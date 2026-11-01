@@ -15,11 +15,11 @@ A powerful and flexible library for creating, manipulating, and managing PDF doc
 
 - **.NET CLI**
   
-  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 0.0.3`
+  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 0.1.0`
   
 - **Package Reference**
   
-  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="0.0.3" />`
+  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="0.1.0" />`
   
 ## Sample Code
 
@@ -162,3 +162,52 @@ Console.ReadLine();
 ### Screenshot
 
 <img width="1272" height="903" alt="image" src="https://github.com/user-attachments/assets/1e4dc378-1cc6-4d06-9178-48f2377890d2" />
+
+## Add images
+
+Load a JPEG or PNG once, then place it anywhere on any page, or inside table cells. Each image is stored once in the PDF, however many times it is placed, and one loaded image can be shared by many documents, including documents built in parallel.
+
+```cs
+using UnlimitedPDF;
+using UnlimitedPDF.Enums;
+using UnlimitedPDF.Models.Table;
+
+// Load from a file, a Stream, or a byte array; async loading takes a cancellation token.
+var logo = PdfImage.FromFile("logo.png");
+var photo = await PdfImage.FromStreamAsync(uploadStream);
+
+var pdfDocument = new PdfDocument();
+var page = pdfDocument.AddPage();
+
+// x and y are the image's bottom-left corner, in points from the page's bottom-left corner.
+// With no size, images draw at 96 pixels per inch; with one size, the other keeps the aspect ratio.
+page.AddImage(logo, 492, 762, width: 70);
+
+// With both sizes the image stretches to fill the box, or fits inside it with Contain.
+page.AddImage(photo, 50, 560, 150, 100, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
+
+// Lengths are always points; convert from millimeters, centimeters, inches, or pixels.
+page.AddImage(photo, PdfUnits.FromMillimeters(20), PdfUnits.FromMillimeters(20), width: PdfUnits.FromInches(2));
+
+// A cell holds an ordered list of text and images, drawn top to bottom.
+// AtLeast rows grow to fit their content; Exactly rows (the default) keep their height and shrink images.
+var table = page.AddTable(50, 500, 300);
+table.SetColumnWidths(100, 200);
+table.RowHeightRule = PdfRowHeightRule.AtLeast;
+table.GetOrCreateCell(0, 0).SetContent(photo, "Laptop", "SKU 123");
+table.GetOrCreateCell(0, 1).Text = "Image above two lines of text";
+
+pdfDocument.Save("images.pdf");
+```
+
+- Supported formats: JPEG (baseline and progressive; grayscale, RGB, CMYK) and PNG (every color type and bit depth, interlaced or not, with transparency).
+- Photos honor their EXIF orientation. Turn this off with `PdfImageLoadOptions.ApplyExifOrientation = false`.
+- Bad input fails at load. Unsupported formats, damaged data, and images over the pixel limit throw `PdfImageException`. The limit is 100,000,000 pixels by default; change it with `PdfImageLoadOptions.MaxPixels` or `PdfImage.DefaultMaxPixels`.
+
+## Changes in 0.1.0
+
+- New: images (`PdfImage`, `PdfPageBuilder.AddImage`), images and stacked content in table cells, row height rules, and unit conversion (`PdfUnits`).
+- `PdfTableCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
+- Table cells with `VAlign` set to `Top` or `Bottom` are now drawn that way (it had no effect before).
+- Table cell text containing a backslash or an unbalanced parenthesis is now escaped, so it displays as written.
+- Table numbers are written the same way in every culture, so documents saved under comma-decimal cultures are valid.

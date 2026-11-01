@@ -1,0 +1,81 @@
+%PDF-1.7
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R 6 0 R]
+/Count 2
+>>
+
+endobj
+
+3 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+
+endobj
+
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595.28 841.89]
+/Contents 5 0 R
+/Resources <<
+>>
+
+>>
+
+endobj
+
+5 0 obj
+<< /Length 92 >>
+stream
+BT /F1 12 Tf 72 760 Td (First page) Tj ET
+BT /F1 9 Tf 72 740 Td (Second line, size 9) Tj ET
+endstream
+endobj
+6 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 419.53 595.28]
+/Contents 7 0 R
+/Resources <<
+>>
+
+>>
+
+endobj
+
+7 0 obj
+<< /Length 38 >>
+stream
+BT /F1 16 Tf 40 560 Td (A5 page) Tj ET
+endstream
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000010 00000 n 
+0000000069 00000 n 
+0000000143 00000 n 
+0000000224 00000 n 
+0000000350 00000 n 
+0000000498 00000 n 
+0000000624 00000 n 
+trailer
+<< /Root 1 0 R /Size 8 >>
+startxref
+718
+%%EOF

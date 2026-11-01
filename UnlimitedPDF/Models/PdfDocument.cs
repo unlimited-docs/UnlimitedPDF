@@ -2,15 +2,17 @@
 
 public class PdfDocument
 {
-    private readonly PdfHeader _header;
-    private readonly PdfBody _body;
-    private readonly PdfPages _pages;
-    private readonly List<PdfPageBuilder> _pageBuilders = new();
+    #region Fields and Constants
 
-    /// <summary>
-    /// Gets or sets the default page size for the document.
-    /// </summary>
-    public PdfPageSize PageSize { get; set; }
+    private readonly PdfBody _body;
+    private readonly PdfHeader _header;
+    private readonly Dictionary<string, int> _imageObjects = new(StringComparer.Ordinal);
+    private readonly List<PageEntry> _pageEntries = new();
+    private readonly PdfPages _pages;
+
+    #endregion
+
+    #region Constructors and Finalizers
 
     public PdfDocument(PdfPageSize pageSize = PdfPageSize.A4)
     {
@@ -32,34 +34,76 @@ public class PdfDocument
         _body.AddObject(font);
     }
 
+    #endregion
+
+    #region Methods
+
+    #region Public Methods
+
     /// <summary>
-    /// Writes a PDF document to the specified file path.
+    /// Adds a new page to the PDF document and returns a page object for adding content.
     /// </summary>
-    /// <param name="path">The file path where the document will be saved.</param>
-    public void Save(string path)
+    /// <returns>A <see cref="PdfPageBuilder"/> object to which content can be added.</returns>
+    [AddedVersion("0.0.2")]
+    [Description("Adds a new page to the PDF document and returns a page object for adding content.")]
+    public PdfPageBuilder AddPage()
     {
-        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
-        WriteToStream(fs);
+        // Determine object numbers for the new page and its content stream.
+        int pageObjectNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
+        int contentStreamObjectNumber = pageObjectNumber + 1;
+
+        // Create an empty content stream object. It will be populated with content just before the document is written.
+        var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
+
+        // Create pdf page internal object
+        var pageInternal = new PdfPage
+        {
+            Parent = new PdfIndirectReference(objectNumber: 2), // Parent is the /Pages object
+            Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
+            MediaBox = PageSize.ToMediaBoxString()
+        };
+
+        var pageObject = new PdfObject(objectNumber: pageObjectNumber, content: pageInternal.ToString());
+
+        // Add the new page and content stream objects to the document body.
+        _body.AddObject(pageObject);
+        _body.AddObject(contentStream);
+
+        // Update the /Kids array in the /Pages object to include the new page.
+        _pages.Kids.Add(new PdfIndirectReference(objectNumber: pageObjectNumber));
+
+        // Create a new Page builder, associate it with the content stream, and keep the page so its
+        // dictionary can be rewritten at save (resources are only known then).
+        var pageBuilder = new PdfPageBuilder(contentStream, pageNumber: _pageEntries.Count + 1);
+        _pageEntries.Add(new PageEntry(pageBuilder, pageInternal, pageObject));
+
+        return pageBuilder;
     }
 
     /// <summary>
     /// Writes a PDF document to the specified stream.
     /// </summary>
     /// <param name="stream">The stream to which the document will be written.</param>
+    [AddedVersion("0.0.3")]
+    [Description("Writes a PDF document to the specified stream.")]
     public void Save(Stream stream)
     {
+        PrepareDocumentForSave();
         WriteToStream(stream);
     }
 
     /// <summary>
-    /// Asynchronously writes a PDF document to the specified file path.
+    /// Writes a PDF document to the specified file path. The document is validated before the file is opened,
+    /// so an invalid document leaves an existing file unchanged.
     /// </summary>
     /// <param name="path">The file path where the document will be saved.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    [AddedVersion("0.0.3")]
+    [Description("Writes a PDF document to the specified file path.")]
+    public void Save(string path)
     {
+        PrepareDocumentForSave();
         using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
-        await WriteToStreamAsync(fs, cancellationToken);
+        WriteToStream(fs);
     }
 
     /// <summary>
@@ -67,17 +111,72 @@ public class PdfDocument
     /// </summary>
     /// <param name="stream">The stream to which the document will be written.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
+    [AddedVersion("0.0.3")]
+    [Description("Asynchronously writes a PDF document to the specified stream.")]
     public async Task SaveAsync(Stream stream, CancellationToken cancellationToken = default)
     {
+        PrepareDocumentForSave();
         await WriteToStreamAsync(stream, cancellationToken);
     }
 
+    /// <summary>
+    /// Asynchronously writes a PDF document to the specified file path. The document is validated before the
+    /// file is opened, so an invalid document leaves an existing file unchanged.
+    /// </summary>
+    /// <param name="path">The file path where the document will be saved.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    [AddedVersion("0.0.3")]
+    [Description("Asynchronously writes a PDF document to the specified file path.")]
+    public async Task SaveAsync(string path, CancellationToken cancellationToken = default)
+    {
+        PrepareDocumentForSave();
+        using var fs = new FileStream(path, FileMode.Create, FileAccess.Write);
+        await WriteToStreamAsync(fs, cancellationToken);
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    // Pages without images keep an empty resource dictionary, exactly as before images existed.
+    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images)
+    {
+        var resources = new PdfDictionary();
+        if (images.Count == 0) return resources;
+
+        var entries = images.Select((image, i) => $"/Im{i + 1} {new PdfIndirectReference(_imageObjects[image.ContentKey])}");
+        resources.AddEntry("XObject", $"<< {string.Join(" ", entries)} >>");
+        return resources;
+    }
+
+    private static string MaskKey(PdfImageData mask) => "mask:" + mask.ContentKey;
+
     private void PrepareDocumentForSave()
     {
-        // Finalize page content before writing
-        foreach (var page in _pageBuilders)
+        // Lay out every page first, without changing the document. Any layout error is thrown here, before
+        // anything is written or committed.
+        var contents = new PdfPageContent[_pageEntries.Count];
+        for (int i = 0; i < _pageEntries.Count; i++)
         {
-            page.UpdateContentStream();
+            contents[i] = _pageEntries[i].Builder.BuildContent();
+        }
+
+        // Store each distinct image once per document. Objects added by an earlier save are reused.
+        foreach (var content in contents)
+        {
+            foreach (var image in content.Images)
+            {
+                RegisterImage(image);
+            }
+        }
+
+        // Commit page content and rewrite each page dictionary with the images it uses.
+        for (int i = 0; i < _pageEntries.Count; i++)
+        {
+            var entry = _pageEntries[i];
+            entry.Builder.CommitContent(contents[i].Data);
+            entry.Page.Resources = CreateResources(contents[i].Images);
+            entry.PageObject.Content = entry.Page.ToString();
         }
 
         // Update the content of the main pages object (object 2) to reflect all added pages.
@@ -85,10 +184,34 @@ public class PdfDocument
         pagesObject.Content = _pages.ToString();
     }
 
+    // Appends the image, and its mask unless an identical mask is already stored, as new objects numbered after every
+    // existing object, keeping object numbers contiguous in body order as the xref table requires (WR-002).
+    private void RegisterImage(PdfImageData image)
+    {
+        if (_imageObjects.ContainsKey(image.ContentKey)) return;
+
+        int imageNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
+        int? maskNumber = null;
+        bool newMask = false;
+        if (image.SoftMask is not null)
+        {
+            // Masks are keyed apart from images, so a mask is only ever shared with other masks.
+            newMask = !_imageObjects.TryGetValue(MaskKey(image.SoftMask), out var existingMask);
+            maskNumber = newMask ? imageNumber + 1 : existingMask;
+        }
+
+        _body.AddObject(new PdfImageXObject(imageNumber, image, maskNumber));
+        _imageObjects[image.ContentKey] = imageNumber;
+
+        if (newMask)
+        {
+            _body.AddObject(new PdfImageXObject(maskNumber!.Value, image.SoftMask!, softMaskObjectNumber: null));
+            _imageObjects[MaskKey(image.SoftMask!)] = maskNumber.Value;
+        }
+    }
+
     private void WriteToStream(Stream stream)
     {
-        PrepareDocumentForSave();
-
         using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
 
         // Keep track of object offsets to build the xref table
@@ -106,7 +229,7 @@ public class PdfDocument
             {
                 // Custom writing for stream objects to handle byte arrays
                 writer.WriteLine($"{streamObj.ObjectNumber} {streamObj.GenerationNumber} obj");
-                writer.WriteLine($"<< /Length {streamObj.StreamData.Length} >>");
+                writer.WriteLine(streamObj.GetStreamDictionary());
                 writer.WriteLine("stream");
                 writer.Flush();
                 stream.Write(streamObj.StreamData, 0, streamObj.StreamData.Length);
@@ -147,8 +270,6 @@ public class PdfDocument
 
     private async Task WriteToStreamAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        PrepareDocumentForSave();
-
         using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
 
         // Keep track of object offsets to build the xref table
@@ -167,7 +288,7 @@ public class PdfDocument
             {
                 // Custom writing for stream objects to handle byte arrays
                 await writer.WriteLineAsync($"{streamObj.ObjectNumber} {streamObj.GenerationNumber} obj".AsMemory(), cancellationToken);
-                await writer.WriteLineAsync($"<< /Length {streamObj.StreamData.Length} >>".AsMemory(), cancellationToken);
+                await writer.WriteLineAsync(streamObj.GetStreamDictionary().AsMemory(), cancellationToken);
                 await writer.WriteLineAsync("stream".AsMemory(), cancellationToken);
                 await writer.FlushAsync();
                 await stream.WriteAsync(streamObj.StreamData, cancellationToken);
@@ -207,40 +328,25 @@ public class PdfDocument
         await writer.WriteLineAsync("%%EOF".AsMemory(), cancellationToken);
     }
 
+    #endregion
+
+    #endregion
+
+    #region Properties, Indexers
+
     /// <summary>
-    /// Adds a new page to the PDF document and returns a page object for adding content.
+    /// Gets or sets the default page size for the document.
     /// </summary>
-    /// <returns>A <see cref="PdfPageBuilder"/> object to which content can be added.</returns>
-    public PdfPageBuilder AddPage()
-    {
-        // Determine object numbers for the new page and its content stream.
-        int pageObjectNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
-        int contentStreamObjectNumber = pageObjectNumber + 1;
+    public PdfPageSize PageSize { get; set; }
 
-        // Create an empty content stream object. It will be populated with content just before the document is written.
-        var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
+    #endregion
 
-        // Create pdf page internal object
-        var pageInternal = new PdfPage
-        {
-            Parent = new PdfIndirectReference(objectNumber: 2), // Parent is the /Pages object
-            Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
-            MediaBox = PageSize.ToMediaBoxString()
-        };
+    #region Nested Types
 
-        var pageObject = new PdfObject(objectNumber: pageObjectNumber, content: pageInternal.ToString());
+    /// <summary>
+    /// A page's builder together with its page dictionary and the object that serializes it.
+    /// </summary>
+    private sealed record PageEntry(PdfPageBuilder Builder, PdfPage Page, PdfObject PageObject);
 
-        // Add the new page and content stream objects to the document body.
-        _body.AddObject(pageObject);
-        _body.AddObject(contentStream);
-
-        // Update the /Kids array in the /Pages object to include the new page.
-        _pages.Kids.Add(new PdfIndirectReference(objectNumber: pageObjectNumber));
-
-        // Create a new Page builder, associate it with the content stream, and add it to our list.
-        var pageBuilder = new PdfPageBuilder(contentStream);
-        _pageBuilders.Add(pageBuilder);
-
-        return pageBuilder;
-    }
+    #endregion
 }
