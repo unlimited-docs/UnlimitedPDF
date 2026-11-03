@@ -1,0 +1,412 @@
+%PDF-1.7
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [4 0 R 6 0 R 8 0 R]
+/Count 3
+>>
+
+endobj
+
+3 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+
+endobj
+
+4 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595.28 841.89]
+/Contents 5 0 R
+/Resources <<
+>>
+
+>>
+
+endobj
+
+5 0 obj
+<< /Length 4426 >>
+stream
+BT /F1 20 Tf 250 800 Td (INVOICE) Tj ET
+BT /F1 10 Tf 50 760 Td (Seller:) Tj ET
+BT /F1 10 Tf 50 748 Td (ABC Electronics Pvt. Ltd.) Tj ET
+BT /F1 10 Tf 50 736 Td (123 Tech Park, Bangalore, KA 560001) Tj ET
+BT /F1 10 Tf 50 724 Td (GSTIN: 222222222222225) Tj ET
+BT /F1 10 Tf 350 760 Td (Buyer:) Tj ET
+BT /F1 10 Tf 350 748 Td (UnlimitedPDF) Tj ET
+BT /F1 10 Tf 350 736 Td (456 Code Street, Hyderabad, TS 500001) Tj ET
+BT /F1 10 Tf 50 690 Td (Invoice No: INV-2026-11-01-001) Tj ET
+BT /F1 10 Tf 50 678 Td (Date: 01-Nov-2026) Tj ET
+q
+0.900 0.900 0.900 rg
+50 630 40 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+50 630 40 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 54 636 Tm
+(S.No.) Tj
+ET
+Q
+q
+0.900 0.900 0.900 rg
+90 630 210 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+90 630 210 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 94 636 Tm
+(Item Description) Tj
+ET
+Q
+q
+0.900 0.900 0.900 rg
+300 630 60 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+300 630 60 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 304 636 Tm
+(Qty) Tj
+ET
+Q
+q
+0.900 0.900 0.900 rg
+360 630 100 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+360 630 100 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 364 636 Tm
+(Rate (INR)) Tj
+ET
+Q
+q
+0.900 0.900 0.900 rg
+460 630 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 630 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 464 636 Tm
+(Amount (INR)) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+50 610 40 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+50 610 40 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 54 616 Tm
+(1) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+90 610 210 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+90 610 210 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 94 616 Tm
+(Wireless Keyboard) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+300 610 60 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+300 610 60 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 350 616 Tm
+(2) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+360 610 100 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+360 610 100 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 414 616 Tm
+(1250.00) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+460 610 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 610 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 516 616 Tm
+(2500.00) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+50 590 40 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+50 590 40 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 54 596 Tm
+(2) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+90 590 210 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+90 590 210 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 94 596 Tm
+(USB-C Docking Station) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+300 590 60 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+300 590 60 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 350 596 Tm
+(1) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+360 590 100 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+360 590 100 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 414 596 Tm
+(4500.00) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+460 590 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 590 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 516 596 Tm
+(4500.00) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+350 530 110 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+350 530 110 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 354 536 Tm
+(Subtotal) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+460 530 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 530 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 516 536 Tm
+(7000.00) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+350 510 110 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+350 510 110 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 354 516 Tm
+(CGST @ 9%) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+460 510 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 510 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 522 516 Tm
+(630.00) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+350 490 110 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+350 490 110 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 354 496 Tm
+(SGST @ 9%) Tj
+ET
+Q
+q
+1.000 1.000 1.000 rg
+460 490 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 490 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 522 496 Tm
+(630.00) Tj
+ET
+Q
+q
+0.900 0.900 0.900 rg
+350 470 110 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+350 470 110 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 354 476 Tm
+(Total) Tj
+ET
+Q
+q
+0.900 0.900 0.900 rg
+460 470 102 20 re f
+0.000 0.000 0.000 RG
+0.5 w
+460 470 102 20 re s
+BT
+0 0 0 rg
+/F1 12 Tf
+1 0 0 1 516 476 Tm
+(8260.00) Tj
+ET
+Q
+BT /F1 10 Tf 50 450 Td (Terms & Conditions:) Tj ET
+BT /F1 9 Tf 50 438 Td (1. Payment due within 30 days.) Tj ET
+BT /F1 9 Tf 50 426 Td (2. Goods once sold will not be taken back.) Tj ET
+endstream
+endobj
+6 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595.28 841.89]
+/Contents 7 0 R
+/Resources <<
+>>
+
+>>
+
+endobj
+
+7 0 obj
+<< /Length 73 >>
+stream
+BT /F1 12 Tf 50 750 Td (This is the first line on the second page.) Tj ET
+endstream
+endobj
+8 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595.28 841.89]
+/Contents 9 0 R
+/Resources <<
+>>
+
+>>
+
+endobj
+
+9 0 obj
+<< /Length 72 >>
+stream
+BT /F1 12 Tf 50 750 Td (This is the first line on the third page.) Tj ET
+endstream
+endobj
+xref
+0 10
+0000000000 65535 f 
+0000000010 00000 n 
+0000000069 00000 n 
+0000000149 00000 n 
+0000000230 00000 n 
+0000000356 00000 n 
+0000004840 00000 n 
+0000004966 00000 n 
+0000005095 00000 n 
+0000005221 00000 n 
+trailer
+<< /Root 1 0 R /Size 10 >>
+startxref
+5349
+%%EOF

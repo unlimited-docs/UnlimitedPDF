@@ -1,0 +1,3 @@
+# Fixtures are byte-exact test data; never convert their line endings.
+*.jpg binary
+*.png binary

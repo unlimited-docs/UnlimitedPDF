@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <PackageId>UnlimitedPDF</PackageId>
-    <Version>0.0.3</Version>
-    <PackageVersion>0.0.3</PackageVersion>
+    <Version>0.1.0</Version>
+    <PackageVersion>0.1.0</PackageVersion>
     
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/unlimited-pdf/UnlimitedPDF</RepositoryUrl>
@@ -31,6 +31,10 @@
 
   <ItemGroup>
     <SupportedPlatform Include="browser" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="UnlimitedPDF.Tests" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">

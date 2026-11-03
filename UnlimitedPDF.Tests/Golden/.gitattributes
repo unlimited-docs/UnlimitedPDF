@@ -1,0 +1,2 @@
+# Golden PDFs are byte-exact test data; never convert their line endings.
+*.pdf binary
