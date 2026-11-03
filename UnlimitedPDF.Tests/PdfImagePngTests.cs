@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using UnlimitedPDF.Enums;
 
 namespace UnlimitedPDF.Tests;
@@ -124,6 +125,36 @@ public class PdfImagePngTests
     public void Palette_in_grayscale_image_is_corrupt()
     {
         AssertCorrupt(new PngBuilder { ColorType = 0, ChunksBeforeImageData = { ("PLTE", new byte[6]) } }.Build(), "PLTE chunk in a grayscale");
+    }
+
+    [Theory]
+    [InlineData(0, 10_000, 10_000)]
+    [InlineData(2, 100_000_000, 1)]
+    public void Pass_through_header_larger_than_its_image_data_is_corrupt(int colorType, int width, int height)
+    {
+        // The image data of a 1 x 1 image under a header that declares 100,000,000 pixels. Pass-through never
+        // inflates the data, so the size check is what makes this fail at load.
+        var png = new PngBuilder { ColorType = colorType, Width = 1, Height = 1, HeaderSize = (width, height) }.Build();
+
+        AssertCorrupt(png, "less image data than its size requires");
+    }
+
+    [Fact]
+    public void Pass_through_image_near_the_compression_bound_still_loads()
+    {
+        // 10,000,100 bytes of zero rows compress more than 1,000 times, close to the deflate limit the check uses.
+        const int width = 100_000;
+        const int height = 100;
+        var raw = new byte[(width + 1) * height];
+        using var buffer = new MemoryStream();
+        using (var zlib = new ZLibStream(buffer, CompressionLevel.SmallestSize, leaveOpen: true))
+            zlib.Write(raw);
+        var compressed = buffer.ToArray();
+
+        var image = PdfImage.FromBytes(new PngBuilder { ColorType = 0, Width = width, Height = height, CompressedOverride = compressed }.Build());
+
+        Assert.True(raw.Length > compressed.Length * 1_000L, $"Compression ratio is only {raw.Length / compressed.Length}.");
+        Assert.Equal(compressed, image.Data.EncodedData);
     }
 
     public static TheoryData<int, int> PassThroughVariants() => new()

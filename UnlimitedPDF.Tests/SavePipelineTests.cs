@@ -59,10 +59,11 @@ public class SavePipelineTests
     [Fact]
     public async Task SaveAsync_to_path_leaves_existing_file_unchanged_when_layout_fails()
     {
+        var document = DocumentWithLayoutFailure();
         var path = CreateExistingFile();
         try
         {
-            await Assert.ThrowsAsync<InvalidOperationException>(() => DocumentWithLayoutFailure().SaveAsync(path));
+            AssertLayoutFailure(await Assert.ThrowsAsync<InvalidOperationException>(() => document.SaveAsync(path)));
             Assert.Equal(ExistingFileBytes, File.ReadAllBytes(path));
         }
         finally
@@ -74,19 +75,21 @@ public class SavePipelineTests
     [Fact]
     public async Task SaveAsync_to_stream_writes_nothing_when_layout_fails()
     {
+        var document = DocumentWithLayoutFailure();
         using var stream = new MemoryStream();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() => DocumentWithLayoutFailure().SaveAsync(stream));
+        AssertLayoutFailure(await Assert.ThrowsAsync<InvalidOperationException>(() => document.SaveAsync(stream)));
         Assert.Equal(0, stream.Length);
     }
 
     [Fact]
     public void Save_to_path_leaves_existing_file_unchanged_when_layout_fails()
     {
+        var document = DocumentWithLayoutFailure();
         var path = CreateExistingFile();
         try
         {
-            Assert.Throws<InvalidOperationException>(() => DocumentWithLayoutFailure().Save(path));
+            AssertLayoutFailure(Assert.Throws<InvalidOperationException>(() => document.Save(path)));
             Assert.Equal(ExistingFileBytes, File.ReadAllBytes(path));
         }
         finally
@@ -98,9 +101,10 @@ public class SavePipelineTests
     [Fact]
     public void Save_to_stream_writes_nothing_when_layout_fails()
     {
+        var document = DocumentWithLayoutFailure();
         using var stream = new MemoryStream();
 
-        Assert.Throws<InvalidOperationException>(() => DocumentWithLayoutFailure().Save(stream));
+        AssertLayoutFailure(Assert.Throws<InvalidOperationException>(() => document.Save(stream)));
         Assert.Equal(0, stream.Length);
     }
 
@@ -120,6 +124,10 @@ public class SavePipelineTests
     #endregion
 
     #region Private Methods
+
+    // The document is built before the assertion, so the failure must come from Save rejecting the AC-20 layout.
+    private static void AssertLayoutFailure(InvalidOperationException exception) =>
+        Assert.Contains("has no height left after padding and text", exception.Message);
 
     private static string CreateExistingFile()
     {

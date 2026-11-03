@@ -46,8 +46,9 @@ internal sealed class PngBuilder
         if (IncludeHeader)
         {
             var header = new List<byte>();
-            header.AddRange(UInt32(Width));
-            header.AddRange(UInt32(Height));
+            var (headerWidth, headerHeight) = HeaderSize ?? (Width, Height);
+            header.AddRange(UInt32(headerWidth));
+            header.AddRange(UInt32(headerHeight));
             header.AddRange(new[] { (byte)BitDepth, (byte)ColorType, (byte)0, (byte)0, (byte)(Interlaced ? 1 : 0) });
             WriteChunk(output, "IHDR", header.ToArray());
         }
@@ -257,6 +258,12 @@ internal sealed class PngBuilder
     /// Gets or sets a filter type used for every row instead of cycling through all five; a value above 4 is invalid.
     /// </summary>
     public int? FilterOverride { get; init; }
+
+    /// <summary>
+    /// Gets or sets the size written to IHDR instead of <see cref="Width"/> x <see cref="Height"/>, so a small file
+    /// can declare a huge image.
+    /// </summary>
+    public (int Width, int Height)? HeaderSize { get; init; }
 
     public int Height { get; init; } = 5;
 

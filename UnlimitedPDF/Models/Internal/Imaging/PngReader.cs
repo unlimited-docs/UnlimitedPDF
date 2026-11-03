@@ -98,7 +98,10 @@ internal static class PngReader
         ValidateTransparency(image, palette, transparency);
 
         if (CanPassThrough(image, transparency))
+        {
+            PngDecoder.EnsureImageDataFits(image, compressed.Length);
             return PassThrough(image, palette, transparency, compressed.ToArray(), dpiX, dpiY);
+        }
 
         return PngDecoder.Decode(image, palette, transparency, compressed.ToArray(), dpiX, dpiY, cancellationToken);
     }

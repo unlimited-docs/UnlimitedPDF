@@ -52,7 +52,8 @@ internal static class PngDecoder
         CancellationToken cancellationToken)
     {
         var layout = new PixelLayout(header);
-        EnsureDecodable(header, layout, compressed.Length);
+        EnsureDecodable(header, layout);
+        EnsureImageDataFits(header, compressed.Length);
         var converter = new RowConverter(header, palette, transparency);
 
         using var colorOutput = new MemoryStream();
@@ -102,6 +103,30 @@ internal static class PngDecoder
         }
 
         return new PdfImageData(header.Width, header.Height, colorEntries, colorOutput.ToArray(), dpiX, dpiY, softMask);
+    }
+
+    /// <summary>
+    /// Throws when the compressed image data is too short to inflate to the rows <paramref name="header"/> declares.
+    /// Every PNG is checked, decoded or passed through, so damaged data fails at load without inflating it (AC-07).
+    /// </summary>
+    /// <param name="header">The image header.</param>
+    /// <param name="compressedLength">The total length of the IDAT data.</param>
+    /// <exception cref="PdfImageException">The image data cannot hold the image.</exception>
+    public static void EnsureImageDataFits(PngHeader header, long compressedLength)
+    {
+        var layout = new PixelLayout(header);
+        long filteredBytes = (layout.RowBytes(header.Width) + 1) * header.Height;
+        if (header.Interlaced)
+        {
+            filteredBytes = 0;
+            foreach (var pass in Adam7Passes)
+            {
+                var (passWidth, passHeight) = PassSize(header, pass);
+                if (passWidth > 0) filteredBytes += (layout.RowBytes(passWidth) + 1) * passHeight;
+            }
+        }
+
+        if (filteredBytes > compressedLength * MaxDeflateRatio) throw Corrupt("has less image data than its size requires");
     }
 
     #endregion
@@ -194,9 +219,9 @@ internal static class PngDecoder
         }
     }
 
-    // Checks every buffer size the header implies before anything is allocated (A06). A row that cannot fit in one
-    // array is too large; image data too short to inflate to the rows the header promises is damaged.
-    private static void EnsureDecodable(PngHeader header, PixelLayout layout, int compressedLength)
+    // Checks every buffer size the header implies before anything is allocated (A06): a row or an interlaced image
+    // that cannot fit in one array is too large.
+    private static void EnsureDecodable(PngHeader header, PixelLayout layout)
     {
         long rowBytes = layout.RowBytes(header.Width);
         if (rowBytes + 1 > MaxBufferBytes || (long)header.Width * ColorChannels(header.ColorType) > MaxBufferBytes)
@@ -206,25 +231,12 @@ internal static class PngDecoder
                 $"The PNG image is {header.Width} x {header.Height} pixels, so one row is too large to decode in memory.");
         }
 
-        long filteredBytes = (rowBytes + 1) * header.Height;
-        if (header.Interlaced)
+        if (header.Interlaced && rowBytes * header.Height > MaxBufferBytes)
         {
-            if (rowBytes * header.Height > MaxBufferBytes)
-            {
-                throw new PdfImageException(
-                    PdfImageErrorReason.TooLarge,
-                    $"The PNG image is {header.Width} x {header.Height} pixels and interlaced, which is too large to decode in memory.");
-            }
-
-            filteredBytes = 0;
-            foreach (var pass in Adam7Passes)
-            {
-                var (passWidth, passHeight) = PassSize(header, pass);
-                if (passWidth > 0) filteredBytes += (layout.RowBytes(passWidth) + 1) * passHeight;
-            }
+            throw new PdfImageException(
+                PdfImageErrorReason.TooLarge,
+                $"The PNG image is {header.Width} x {header.Height} pixels and interlaced, which is too large to decode in memory.");
         }
-
-        if (filteredBytes > compressedLength * MaxDeflateRatio) throw Corrupt("has less image data than its size requires");
     }
 
     private static byte Paeth(int a, int b, int c)
@@ -239,8 +251,8 @@ internal static class PngDecoder
     // The width and height of one Adam7 pass; zero when the pass has no pixels.
     private static (int Width, int Height) PassSize(PngHeader header, (int X, int Y, int DX, int DY) pass) =>
     (
-        header.Width > pass.X ? (header.Width - pass.X + pass.DX - 1) / pass.DX : 0,
-        header.Height > pass.Y ? (header.Height - pass.Y + pass.DY - 1) / pass.DY : 0
+        header.Width > pass.X ? (int)(((long)header.Width - pass.X + pass.DX - 1) / pass.DX) : 0,
+        header.Height > pass.Y ? (int)(((long)header.Height - pass.Y + pass.DY - 1) / pass.DY) : 0
     );
 
     // Reads one filtered row and reverses its filter into current, using the previous row of the same pass.
