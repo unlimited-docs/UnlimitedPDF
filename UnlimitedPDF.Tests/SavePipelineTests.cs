@@ -5,7 +5,7 @@ using UnlimitedPDF.Models.Internal;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// Save validates the whole document before writing (AC-20 groundwork, A08, A10) and shares one stream
+/// Save validates the whole document before writing (AC-20, A08, A10) and shares one stream
 /// dictionary source between both writers.
 /// </summary>
 public class SavePipelineTests
@@ -132,8 +132,12 @@ public class SavePipelineTests
     {
         var document = new PdfDocument();
         var page = document.AddPage();
-        page.AddText("Valid content before the failing element", 72, 720);
-        page.AddElement(new FailingElement());
+        page.AddText("Valid content before the failing table", 72, 720);
+
+        // AC-20: an Exactly 20 pt row holding an image and 12 pt text (a 14.4 pt line) leaves the image no height.
+        var table = page.AddTable(50, 700, 100);
+        table.SetColumnWidths(100);
+        table.GetOrCreateCell(0, 0).SetContent(PdfImage.FromBytes(new JpegBuilder { Width = 200, Height = 80 }.Build()), "Logo");
         return document;
     }
 
@@ -145,18 +149,6 @@ public class SavePipelineTests
     }
 
     #endregion
-
-    #endregion
-
-    #region Nested Types
-
-    /// <summary>
-    /// Stands in for a layout error (such as AC-20) until real layout validation exists.
-    /// </summary>
-    private sealed class FailingElement
-    {
-        public override string ToString() => throw new InvalidOperationException("Layout failed.");
-    }
 
     #endregion
 }

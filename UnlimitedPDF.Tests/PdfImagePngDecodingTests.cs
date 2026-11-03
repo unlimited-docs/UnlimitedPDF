@@ -88,15 +88,27 @@ public class PdfImagePngDecodingTests
         AssertCorrupt(builder.Build(), "more image data than its size allows");
     }
 
+    [Theory]
+    [InlineData(100_000_000, 1, false)]
+    [InlineData(10_000, 10_000, true)]
+    public void Header_promising_more_rows_than_the_image_data_can_hold_is_corrupt_before_allocating(int width, int height, bool interlaced)
+    {
+        // Within the default pixel limit, but 800 MB of 16-bit RGBA rows from a few bytes of image data.
+        var png = Resized(new PngBuilder { ColorType = 6, BitDepth = 16, Interlaced = interlaced, Width = 1, Height = 1 }, width, height);
+        long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
+
+        var exception = Assert.Throws<PdfImageException>(() => PdfImage.FromBytes(png));
+
+        Assert.Equal(PdfImageErrorReason.CorruptData, exception.Reason);
+        Assert.Contains("less image data than its size requires", exception.Message);
+        Assert.True(GC.GetAllocatedBytesForCurrentThread() - allocatedBefore < 16_000_000, "The load allocated buffers before checking the image data.");
+    }
+
     [Fact]
     public void Interlaced_image_too_large_for_memory_is_rejected_before_allocating()
     {
-        var builder = new PngBuilder { ColorType = 6, BitDepth = 16, Interlaced = true, Width = 1, Height = 1 };
-        var png = builder.Build();
-        // Patch IHDR to 50000 x 50000 (a 20 GB buffer) and fix its checksum.
-        WriteUInt32(png, 16, 50_000);
-        WriteUInt32(png, 20, 50_000);
-        WriteUInt32(png, 29, (int)Crc32.Compute(png, 12, 17));
+        // A 50000 x 50000 header needs a 20 GB buffer.
+        var png = Resized(new PngBuilder { ColorType = 6, BitDepth = 16, Interlaced = true, Width = 1, Height = 1 }, 50_000, 50_000);
 
         var exception = Assert.Throws<PdfImageException>(() => PdfImage.FromBytes(png, new PdfImageLoadOptions { MaxPixels = 3_000_000_000 }));
 
@@ -167,6 +179,29 @@ public class PdfImagePngDecodingTests
         var image = PdfImage.FromBytes(builder.Build());
 
         AssertDecodedImage(builder, image);
+    }
+
+    [Theory]
+    [InlineData(6, 8, 600_000_000)]
+    [InlineData(3, 1, int.MaxValue)]
+    public void Rows_too_large_for_memory_are_too_large_when_the_limit_is_raised(int colorType, int depth, int width)
+    {
+        // A 2.4 GB filtered RGBA row, and a 1-bit palette row (with palette transparency, so it is decoded) whose
+        // 8-bit converted row would exceed the largest array.
+        var builder = new PngBuilder
+        {
+            ColorType = colorType,
+            BitDepth = depth,
+            Width = 1,
+            Height = 1,
+            Transparency = colorType == 3 ? new byte[] { 0 } : null
+        };
+        var png = Resized(builder, width, 1);
+
+        var exception = Assert.Throws<PdfImageException>(() => PdfImage.FromBytes(png, new PdfImageLoadOptions { MaxPixels = 3_000_000_000 }));
+
+        Assert.Equal(PdfImageErrorReason.TooLarge, exception.Reason);
+        Assert.Contains("one row is too large to decode in memory", exception.Message);
     }
 
     #endregion
@@ -246,6 +281,16 @@ public class PdfImagePngDecodingTests
         8 => (byte)sample,
         _ => (byte)(sample * 255 / ((1 << depth) - 1))
     };
+
+    // Builds the PNG, then patches its IHDR size and checksum so a tiny file declares a huge image.
+    private static byte[] Resized(PngBuilder builder, int width, int height)
+    {
+        var png = builder.Build();
+        WriteUInt32(png, 16, width);
+        WriteUInt32(png, 20, height);
+        WriteUInt32(png, 29, (int)Crc32.Compute(png, 12, 17));
+        return png;
+    }
 
     private static void WriteUInt32(byte[] data, int offset, int value)
     {

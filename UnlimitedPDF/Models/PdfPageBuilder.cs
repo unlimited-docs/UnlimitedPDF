@@ -138,15 +138,6 @@ public class PdfPageBuilder
     #region Internal Methods
 
     /// <summary>
-    /// Appends a content element. Elements are drawn in the order they were added.
-    /// </summary>
-    /// <param name="element">The element; a <see cref="PdfTable"/> or an element that renders through <c>ToString</c>.</param>
-    internal void AddElement(object element)
-    {
-        _contentElements.Add(element ?? throw new ArgumentNullException(nameof(element)));
-    }
-
-    /// <summary>
     /// Compiles the content elements into content stream bytes without changing the page. Layout errors are
     /// thrown here, before the document commits anything.
     /// </summary>

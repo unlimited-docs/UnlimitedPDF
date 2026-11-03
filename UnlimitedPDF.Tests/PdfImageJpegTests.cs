@@ -69,6 +69,14 @@ public class PdfImageJpegTests
     }
 
     [Fact]
+    public void Rejects_height_set_by_a_later_marker()
+    {
+        var exception = AssertLoadFails(new JpegBuilder { Height = 0 }.Build(), PdfImageErrorReason.UnsupportedFormat);
+
+        Assert.Contains("DNL marker", exception.Message);
+    }
+
+    [Fact]
     public void Rejects_two_component_images()
     {
         AssertLoadFails(new JpegBuilder { Components = 2 }.Build(), PdfImageErrorReason.UnsupportedFormat);
@@ -122,11 +130,13 @@ public class PdfImageJpegTests
     }
 
     [Theory]
-    [InlineData(0, 3)]
-    [InlineData(4, 0)]
-    public void Reports_zero_dimension_as_corrupt(int width, int height)
+    [InlineData(3)]
+    [InlineData(0)]
+    public void Reports_zero_width_as_corrupt(int height)
     {
-        AssertLoadFails(new JpegBuilder { Width = width, Height = height }.Build(), PdfImageErrorReason.CorruptData);
+        var exception = AssertLoadFails(new JpegBuilder { Width = 0, Height = height }.Build(), PdfImageErrorReason.CorruptData);
+
+        Assert.Contains("zero width", exception.Message);
     }
 
     #endregion

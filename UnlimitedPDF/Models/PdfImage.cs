@@ -147,7 +147,8 @@ public sealed class PdfImage
         var imageData = ImageSignature.Detect(data) switch
         {
             ImageFormat.Jpeg => JpegReader.Read(data, settings, cancellationToken),
-            _ => PngReader.Read(data, settings, cancellationToken)
+            ImageFormat.Png => PngReader.Read(data, settings, cancellationToken),
+            var format => throw new PdfImageException(PdfImageErrorReason.UnsupportedFormat, $"The {format} image format has no reader.")
         };
 
         return new PdfImage(imageData);

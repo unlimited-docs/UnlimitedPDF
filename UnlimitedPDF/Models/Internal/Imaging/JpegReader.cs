@@ -184,7 +184,9 @@ internal static class JpegReader
         if (length != 8 + 3 * components) throw Corrupt("has a frame header whose length does not match its components");
         if (precision != 8)
             throw new PdfImageException(PdfImageErrorReason.UnsupportedFormat, $"The JPEG image uses {precision}-bit samples. Only 8-bit JPEG images are supported.");
-        if (width == 0 || height == 0) throw Corrupt("has a zero width or height");
+        if (width == 0) throw Corrupt("has a zero width");
+        if (height == 0)
+            throw new PdfImageException(PdfImageErrorReason.UnsupportedFormat, "The JPEG image sets its height later in the file (a DNL marker). Only JPEG images with the height in the frame header are supported.");
         if (components is not (1 or 3 or 4))
             throw new PdfImageException(PdfImageErrorReason.UnsupportedFormat, $"The JPEG image has {components} color components. Only grayscale, RGB, and CMYK JPEG images are supported.");
 

@@ -11,8 +11,12 @@ internal static class PngDecoder
 {
     #region Fields and Constants
 
-    // The largest buffer an interlaced image may need; above it the image cannot be decoded in memory.
-    private const long MaxInterlacedBufferBytes = int.MaxValue - 64;
+    // The largest buffer the decoder allocates (a row, or an interlaced image); above it the image cannot be decoded
+    // in memory.
+    private const long MaxBufferBytes = int.MaxValue - 64;
+
+    // Deflate cannot expand data by more than about 1032 times (a 258-byte match for every two bits).
+    private const long MaxDeflateRatio = 1032;
 
     // Adam7 passes: x start, y start, x step, y step.
     private static readonly (int X, int Y, int DX, int DY)[] Adam7Passes =
@@ -48,6 +52,7 @@ internal static class PngDecoder
         CancellationToken cancellationToken)
     {
         var layout = new PixelLayout(header);
+        EnsureDecodable(header, layout, compressed.Length);
         var converter = new RowConverter(header, palette, transparency);
 
         using var colorOutput = new MemoryStream();
@@ -103,6 +108,9 @@ internal static class PngDecoder
 
     #region Private Methods
 
+    private static int ColorChannels(PngColorType colorType) =>
+        colorType is PngColorType.Rgb or PngColorType.RgbAlpha ? 3 : 1;
+
     // Copies one pixel of a packed row into a packed row of the full image.
     private static void CopyPixel(byte[] source, int sourceIndex, byte[] target, long targetRowOffset, int targetIndex, int bitsPerPixel)
     {
@@ -113,10 +121,10 @@ internal static class PngDecoder
             return;
         }
 
-        int sourceBit = sourceIndex * bitsPerPixel;
-        int value = (source[sourceBit / 8] >> (8 - bitsPerPixel - sourceBit % 8)) & ((1 << bitsPerPixel) - 1);
-        int targetBit = targetIndex * bitsPerPixel;
-        target[targetRowOffset + targetBit / 8] |= (byte)(value << (8 - bitsPerPixel - targetBit % 8));
+        long sourceBit = (long)sourceIndex * bitsPerPixel;
+        int value = (source[sourceBit / 8] >> (8 - bitsPerPixel - (int)(sourceBit % 8))) & ((1 << bitsPerPixel) - 1);
+        long targetBit = (long)targetIndex * bitsPerPixel;
+        target[targetRowOffset + targetBit / 8] |= (byte)(value << (8 - bitsPerPixel - (int)(targetBit % 8)));
     }
 
     private static PdfImageException Corrupt(string detail) =>
@@ -132,19 +140,10 @@ internal static class PngDecoder
         CancellationToken cancellationToken)
     {
         long fullRowBytes = layout.RowBytes(header.Width);
-        long imageBytes = fullRowBytes * header.Height;
-        if (imageBytes > MaxInterlacedBufferBytes)
-        {
-            throw new PdfImageException(
-                PdfImageErrorReason.TooLarge,
-                $"The PNG image is {header.Width} x {header.Height} pixels and interlaced, which is too large to decode in memory.");
-        }
-
-        var image = new byte[imageBytes];
+        var image = new byte[fullRowBytes * header.Height];
         foreach (var (px, py, dx, dy) in Adam7Passes)
         {
-            int passWidth = header.Width > px ? (header.Width - px + dx - 1) / dx : 0;
-            int passHeight = header.Height > py ? (header.Height - py + dy - 1) / dy : 0;
+            var (passWidth, passHeight) = PassSize(header, (px, py, dx, dy));
             if (passWidth == 0 || passHeight == 0) continue;
 
             int rowBytes = (int)layout.RowBytes(passWidth);
@@ -195,6 +194,39 @@ internal static class PngDecoder
         }
     }
 
+    // Checks every buffer size the header implies before anything is allocated (A06). A row that cannot fit in one
+    // array is too large; image data too short to inflate to the rows the header promises is damaged.
+    private static void EnsureDecodable(PngHeader header, PixelLayout layout, int compressedLength)
+    {
+        long rowBytes = layout.RowBytes(header.Width);
+        if (rowBytes + 1 > MaxBufferBytes || (long)header.Width * ColorChannels(header.ColorType) > MaxBufferBytes)
+        {
+            throw new PdfImageException(
+                PdfImageErrorReason.TooLarge,
+                $"The PNG image is {header.Width} x {header.Height} pixels, so one row is too large to decode in memory.");
+        }
+
+        long filteredBytes = (rowBytes + 1) * header.Height;
+        if (header.Interlaced)
+        {
+            if (rowBytes * header.Height > MaxBufferBytes)
+            {
+                throw new PdfImageException(
+                    PdfImageErrorReason.TooLarge,
+                    $"The PNG image is {header.Width} x {header.Height} pixels and interlaced, which is too large to decode in memory.");
+            }
+
+            filteredBytes = 0;
+            foreach (var pass in Adam7Passes)
+            {
+                var (passWidth, passHeight) = PassSize(header, pass);
+                if (passWidth > 0) filteredBytes += (layout.RowBytes(passWidth) + 1) * passHeight;
+            }
+        }
+
+        if (filteredBytes > compressedLength * MaxDeflateRatio) throw Corrupt("has less image data than its size requires");
+    }
+
     private static byte Paeth(int a, int b, int c)
     {
         int p = a + b - c;
@@ -203,6 +235,13 @@ internal static class PngDecoder
         int pc = Math.Abs(p - c);
         return (byte)(pa <= pb && pa <= pc ? a : pb <= pc ? b : c);
     }
+
+    // The width and height of one Adam7 pass; zero when the pass has no pixels.
+    private static (int Width, int Height) PassSize(PngHeader header, (int X, int Y, int DX, int DY) pass) =>
+    (
+        header.Width > pass.X ? (header.Width - pass.X + pass.DX - 1) / pass.DX : 0,
+        header.Height > pass.Y ? (header.Height - pass.Y + pass.DY - 1) / pass.DY : 0
+    );
 
     // Reads one filtered row and reverses its filter into current, using the previous row of the same pass.
     private static void ReadRow(Stream inflater, byte[] filtered, byte[] current, byte[] prior, int bytesPerPixel)
@@ -302,7 +341,6 @@ internal static class PngDecoder
 
         #region Constructors and Finalizers
 
-
         public RowConverter(PngHeader header, byte[]? palette, byte[]? transparency)
         {
             _width = header.Width;
@@ -310,8 +348,7 @@ internal static class PngDecoder
             _colorType = header.ColorType;
             _paletteEntries = palette is null ? 0 : palette.Length / 3;
 
-            int colorChannels = header.ColorType is PngColorType.Rgb or PngColorType.RgbAlpha ? 3 : 1;
-            _colorRow = new byte[_width * colorChannels];
+            _colorRow = new byte[_width * ColorChannels(header.ColorType)];
             _alphaRow = new byte[_width];
 
             switch (header.ColorType)
@@ -422,8 +459,8 @@ internal static class PngDecoder
                 case 8:
                     return row[index];
                 default:
-                    int bit = index * _bitDepth;
-                    return (row[bit / 8] >> (8 - _bitDepth - bit % 8)) & ((1 << _bitDepth) - 1);
+                    long bit = (long)index * _bitDepth;
+                    return (row[bit / 8] >> (8 - _bitDepth - (int)(bit % 8))) & ((1 << _bitDepth) - 1);
             }
         }
 
