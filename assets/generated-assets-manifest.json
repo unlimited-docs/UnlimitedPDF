@@ -2,17 +2,8 @@
   "source": "https://chatgpt.com/share/6aeb010e-7d90-83e8-b31b-ae43794edd92",
   "downloadedOn": "2026-11-04",
   "generationTool": "ChatGPT image generation",
-  "notes": "PNG artwork downloaded from the shared chat. The GitHub banner and social card were edited on 2026-11-04 to correct their code windows using the local UnlimitedPDF API. Their edit records include exact prompts and validated code; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
+  "notes": "PNG artwork downloaded from the shared chat. On 2026-11-04, the GitHub banner and social card were edited to correct their code windows using the local UnlimitedPDF API, and the demo hero was edited to show the current logo once without a duplicate headline. Edit records contain exact prompts and validation details; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
   "assets": [
-    {
-      "path": "originals/unlimitedpdf-demos-logo.png",
-      "purpose": "Demo application wordmark",
-      "width": 2172,
-      "height": 724,
-      "bytes": 289219,
-      "sha256": "ac7127f6243618453d750a8da495db27ff80dac887c7ee7917af7f0bd1750f8e",
-      "sourceAssetId": "d2c7f1a8092cab19"
-    },
     {
       "path": "originals/invoice-logo.png",
       "purpose": "Invoice demo logo",
@@ -143,9 +134,38 @@
       "purpose": "Demo website promotional hero",
       "width": 1672,
       "height": 941,
-      "bytes": 1713151,
-      "sha256": "955a7f5fd6bf9cc376f4901b8fcc8cf3ac5490e543d80713e24bc7a016b3d0ec",
-      "sourceAssetId": "546595f8d30c540b"
+      "bytes": 1674895,
+      "sha256": "f12c861805306cdbc2975b0a2b2183d981800fb960651d9fc5d5ec5d4777fdf2",
+      "sourceAssetId": "546595f8d30c540b",
+      "edit": {
+        "editedOn": "2026-11-04",
+        "tool": "Built-in image_gen",
+        "description": "Replaced the stacked logo and duplicate headline with one centered wordmark. The main brand uses navy Unlimited and teal PDF, matching branding/unlimitedpdf-logo.png; Demos remains teal. Preserved the subtitle and four document illustrations.",
+        "originalSha256": "955a7f5fd6bf9cc376f4901b8fcc8cf3ac5490e543d80713e24bc7a016b3d0ec",
+        "logoReference": "originals/unlimitedpdf-demos-logo.png",
+        "derivedCopies": [
+          "UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/unlimitedpdf-demos-hero-800.jpg",
+          "UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/unlimitedpdf-demos-hero-1200.jpg"
+        ],
+        "validation": "Visually checked the generated source and both responsive JPEGs. Rebuilt the JPEGs using assets/New-DerivedImages.ps1; dimensions and byte budgets verified.",
+        "prompt": "Use case: precise-object-edit / text-localization.\nAsset type: UnlimitedPDF Demos home page showcase illustration, source for responsive 800x450 and 1200x675 JPEGs.\nImage 1 is the EDIT TARGET: the existing four-document showcase artwork.\nImage 2 is the CURRENT APPROVED LOGO reference: use this document-outline/infinity icon and exact \"UnlimitedPDF Demos\" wordmark, proportions, typography and navy/teal colors as the only main branding across the top.\n\nRequested correction: the current artwork incorrectly stacks a small \"UnlimitedPDF Demos\" logo above a second large \"UnlimitedPDF Demos\" headline. Remove BOTH of those old top branding treatments and replace them with ONE clean, centered, appropriately large rendering of the approved logo from Image 2, including its icon and wordmark. The phrase \"UnlimitedPDF Demos\" must appear EXACTLY ONCE in the whole top heading area. There must be no separate duplicate title above or below the logo. The reference image's surrounding transparent margins are not part of the logo: use only its visible icon and lettering.\nBalance the single logo in the existing upper whitespace, with comfortable top breathing room and clear separation from the subtitle. Keep the exact subtitle beneath the single logo:\n\"Explore sample outputs and ready-to-use PDF scenarios\"\n\nPreserve the rest of Image 1 as closely as possible: the same overall wide composition, light blue/white background and navy/cyan/teal wave shapes, the decorative divider, the four document cards (invoice, medical report, receipt, certificate), their positioning and perspective, their fictional content, the shadows/reflections, the four bottom category badges and their legible labels \"Invoice\", \"Medical Report\", \"Receipt\", \"Certificate\". Keep the four document illustrations readable and recognizable at 800px width. Do not add a new headline, unrelated branding, extra UI, new cards, watermarks, or new objects. No cropping of any card or category badge. Do not change the logos inside the individual document examples in this edit.\nMaintain the original 1672x941 canvas and aspect ratio if possible, opaque background, polished production-ready raster artwork. Treat this as a targeted branding correction, not a redesign.",
+        "colorCorrection": {
+          "editedOn": "2026-11-04",
+          "tool": "Built-in image_gen",
+          "logoReference": "branding/unlimitedpdf-logo.png",
+          "priorSha256": "fce2117a4a81d644d356d0e402c0539d18ec56658af17b4a5300954a1f8914b7",
+          "description": "Corrected the top wordmark color split: Unlimited is navy, PDF is teal, and Demos stays teal.",
+          "prompt": "Use case: precise-object-edit, brand color correction.\nImage 1 is the EDIT TARGET: the current UnlimitedPDF Demos showcase hero.\nImage 2 is the AUTHORITATIVE MAIN BRAND LOGO reference. Its wordmark splits the name into NAVY \"Unlimited\" and TEAL \"PDF\".\n\nMake exactly one targeted correction to Image 1: in the large single logo heading at the top, recolor the THREE letters \"PDF\" from navy blue to the same teal used for \"PDF\" in Image 2. The main product name must visibly read \"UnlimitedPDF\" in TWO colors: \"Unlimited\" stays dark navy, and \"PDF\" becomes teal. The trailing separate word \"Demos\" stays teal as it already is. Match the teal tones from the reference logo and the existing infinity symbol. Do not change the letters, typeface, size, spacing, kerning, icon, or placement. All three P, D, and F must be teal; the final \"d\" of \"Unlimited\" must stay navy.\n\nPreserve the entire remainder of Image 1 as closely as possible: one and only one top wordmark with document/infinity icon, no repeated headline, exact subtitle \"Explore sample outputs and ready-to-use PDF scenarios\", decorative divider, light background and blue/teal waves, all four document illustrations and fictional text, document logos, category badges, shadows, reflections and composition. No new text, no second logo, no duplicate headline, no cropping, no other recoloring, no watermark.\nKeep the original 1672x941 canvas, aspect ratio and opaque background. This is ONLY a color correction of the three letters PDF in the top main wordmark, not a redesign."
+        },
+        "spellingCorrection": {
+          "editedOn": "2026-11-04",
+          "tool": "Built-in image_gen",
+          "priorSha256": "234a65b15ae23e3defa6d00e167f93e56c4ce516dfd964166e1db5fe700ab403",
+          "description": "Corrected the Medical Report Findings bullet to: No significant abnormalities detected.",
+          "validation": "Inspected an enlarged crop to verify abnormalities letter by letter; rebuilt both responsive JPEGs with assets/New-DerivedImages.ps1.",
+          "prompt": "Use case: text-localization, single-word spelling correction.\nImage 1 is the EDIT TARGET, an existing UnlimitedPDF Demos hero image. Make ONLY this exact correction in the Medical Report card (second document from left): under \"Findings\", the SECOND bullet currently misspells \"abnormalities\". Replace that entire second bullet's text with this exact correctly spelled sentence:\n\"No significant abnormalities detected.\"\n\nThe correct word is abnormalities: a-b-n-o-r-m-a-l-i-t-i-e-s. It ends in \"ities\", not \"iites\". Render all letters clearly and in exactly this order. Match the existing dark navy small sans-serif font, baseline, size, weight, line spacing and turquoise bullet. Keep the sentence in its existing location. Do not change the word count or wording, and do not add any new text.\n\nPreserve all other pixels and text as closely as possible. In particular keep the top single logo with \"Unlimited\" navy, \"PDF\" teal and \"Demos\" teal, the existing icon, no repeated headline, exact subtitle, all backgrounds, decorative divider, document positions, invoice, receipt and certificate, their original text and numbers, category badges, shadows and reflections. The surrounding Medical Report text must remain:\n\"Findings\"\n\"Vital signs are within normal range.\"\n\"No significant abnormalities detected.\"\n\"Overall, the results are normal.\"\n\"Recommendations\"\n\"Maintain a healthy lifestyle and schedule a routine\"\n\"follow-up in 12 months.\"\n\nDo not change any other spelling, names, symbols, layout or colors. Do not redesign or recreate the composition. Preserve the 1672x941 canvas and opaque background. Surgical text correction only."
+        }
+      }
     }
   ]
 }
