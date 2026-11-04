@@ -239,7 +239,7 @@ New-Item -ItemType Directory -Force -Path $derived | Out-Null
 
 # Each entry: output (relative to the repository), original (relative to assets/), purpose, and how to make it.
 $copies = @(
-    @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\unlimitedpdf-demos-logo.png'; From = 'originals\unlimitedpdf-demos-logo.png'; Use = 'App top bar wordmark'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 440, 64, 0.0, 0) } },
+    @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\unlimitedpdf-logo.png'; From = 'branding\unlimitedpdf-logo.png'; Use = 'App top bar wordmark'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 440, 64, 0.0, 0) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\unlimitedpdf-icon.png'; From = 'branding\unlimitedpdf-icon.png'; Use = 'App top bar logo on phones'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 64, 64, 0.0, 0) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\favicon.png'; From = 'branding\favicon.png'; Use = 'App browser tab icon'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 64, 64, 0.0, 0) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\invoice-logo.png'; From = 'originals\invoice-logo.png'; Use = 'Invoice demo'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 480, 120, 0.01, 0) } },

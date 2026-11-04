@@ -20,7 +20,7 @@ The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`
 
 | File | Used by |
 |---|---|
-| `unlimitedpdf-demos-logo.png` | Top bar wordmark |
+| `unlimitedpdf-logo.png` | Top bar wordmark |
 | `unlimitedpdf-icon.png` | Top bar logo on phones |
 | `favicon.png` | Browser tab icon |
 | `unlimitedpdf-demos-hero-1200.jpg`, `unlimitedpdf-demos-hero-800.jpg` | Home page showcase (a stylized illustration) |
