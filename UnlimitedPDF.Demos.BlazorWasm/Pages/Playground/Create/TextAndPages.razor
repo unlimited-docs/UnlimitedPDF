@@ -1,0 +1,57 @@
+@page "/playground/create/text-and-pages"
+
+<SamplePage Demo="SampleCatalog.TextAndPages" Build="BuildAsync" PageCount="Math.Max(1, _input.PageCount)" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Page">
+            <div class="field-row">
+                <div class="field">
+                    <label for="page-size">Page size</label>
+                    <select id="page-size" class="form-control" @bind="_input.PageSize">
+                        @foreach (var size in Enum.GetValues<PdfPageSize>())
+                        {
+                            <option value="@size">@size</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="page-count">Pages</label>
+                    <input id="page-count" type="number" min="1" max="100" class="form-control" @bind="_input.PageCount" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Text">
+            <div class="field">
+                <label for="heading">Heading</label>
+                <input id="heading" class="form-control" @bind="_input.Heading" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="body">Body line</label>
+                <input id="body" class="form-control" @bind="_input.Body" @bind:event="oninput" />
+            </div>
+            <div class="field-row-3">
+                <div class="field">
+                    <label for="x">X (pt)</label>
+                    <input id="x" type="number" class="form-control" @bind="_input.X" />
+                </div>
+                <div class="field">
+                    <label for="y">Y (pt)</label>
+                    <input id="y" type="number" class="form-control" @bind="_input.Y" />
+                </div>
+                <div class="field">
+                    <label for="font-size">Size (pt)</label>
+                    <input id="font-size" type="number" min="1" class="form-control" @bind="_input.FontSize" />
+                </div>
+            </div>
+            <div class="field-hint">Positions are in points (1/72 inch) from the bottom-left corner. A4 is 595 x 842 pt.</div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private TextBasicsInput _input = new();
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(TextBasicsSample.Build(_input));
+
+    private void Reset() => _input = new();
+}

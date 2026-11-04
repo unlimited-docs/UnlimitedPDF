@@ -1,0 +1,151 @@
+{
+  "source": "https://chatgpt.com/share/6aeb010e-7d90-83e8-b31b-ae43794edd92",
+  "downloadedOn": "2026-11-04",
+  "generationTool": "ChatGPT image generation",
+  "notes": "PNG artwork downloaded from the shared chat. The GitHub banner and social card were edited on 2026-11-04 to correct their code windows using the local UnlimitedPDF API. Their edit records include exact prompts and validated code; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
+  "assets": [
+    {
+      "path": "originals/unlimitedpdf-demos-logo.png",
+      "purpose": "Demo application wordmark",
+      "width": 2172,
+      "height": 724,
+      "bytes": 289219,
+      "sha256": "ac7127f6243618453d750a8da495db27ff80dac887c7ee7917af7f0bd1750f8e",
+      "sourceAssetId": "d2c7f1a8092cab19"
+    },
+    {
+      "path": "originals/invoice-logo.png",
+      "purpose": "Invoice demo logo",
+      "width": 2172,
+      "height": 724,
+      "bytes": 294608,
+      "sha256": "9510b1226a735697430cdb146703f3487ee5bca7f502a6cd1a77d643db663204",
+      "sourceAssetId": "158c79dda2ae7e14"
+    },
+    {
+      "path": "originals/medical-report-logo.png",
+      "purpose": "Medical report demo logo",
+      "width": 2172,
+      "height": 724,
+      "bytes": 350700,
+      "sha256": "79fc910e582c3efa5323d6ddb6e030747dc6878154abd297d206a12add904dbe",
+      "sourceAssetId": "e1e5a47f85432d6a"
+    },
+    {
+      "path": "originals/receipt-logo.png",
+      "purpose": "Receipt demo logo",
+      "width": 1983,
+      "height": 793,
+      "bytes": 250775,
+      "sha256": "8d3299d9146344f853e3099a0d36e5709d13069e7c58cf6604a4291b469dd169",
+      "sourceAssetId": "5dfa6f469251b8f7"
+    },
+    {
+      "path": "originals/certificate-seal.png",
+      "purpose": "Certificate demo seal",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1125856,
+      "sha256": "830e82106a8a875724a4be6d3c404128ea187d57c1c088b41cc9d8d26bda7941",
+      "sourceAssetId": "d551620d54cb2dc4"
+    },
+    {
+      "path": "originals/certificate-signature.png",
+      "purpose": "Fictional certificate demo signature",
+      "width": 2172,
+      "height": 724,
+      "bytes": 245843,
+      "sha256": "e15c3a53f34759d741603786b3ad4ce62295b13ba316d25cb9a165e7873bd686",
+      "sourceAssetId": "72e974d4d095761f"
+    },
+    {
+      "path": "branding/favicon.png",
+      "purpose": "Original generated favicon artwork",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 906318,
+      "sha256": "b12d71b63f0347445a62fcc74fd296cf0192bf2bbc4802771f336fef30a49e13",
+      "sourceAssetId": "d8fb8ffb6e4659f2"
+    },
+    {
+      "path": "branding/unlimitedpdf-logo.png",
+      "purpose": "UnlimitedPDF main wordmark",
+      "width": 2172,
+      "height": 724,
+      "bytes": 348186,
+      "sha256": "ac51fafe4130da3cfd84105b76b0f55c6baf7d3fa55384b7599244b88ada6594",
+      "sourceAssetId": "727de814a2b32abc"
+    },
+    {
+      "path": "branding/unlimitedpdf-icon.png",
+      "purpose": "UnlimitedPDF standalone icon",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1030487,
+      "sha256": "602d753f0b66c74725bf159f4d376f99a8a4fd927d0478f8a2297c4e3b19dfbe",
+      "sourceAssetId": "1f935021e8568266"
+    },
+    {
+      "path": "nuget/unlimitedpdf-package-icon.png",
+      "purpose": "NuGet package icon artwork",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1233700,
+      "sha256": "420df8ea128785aa3fe8a8e96224fa2560133ccee0d709757cbe59a91e090410",
+      "sourceAssetId": "17224f33849f2573"
+    },
+    {
+      "path": "banners/unlimitedpdf-github-banner.png",
+      "purpose": "UnlimitedPDF project banner",
+      "width": 1774,
+      "height": 887,
+      "bytes": 1595179,
+      "sha256": "f0cb23cee16c46d17f8901c241c45a83bd7beddee1dcb9c8a05f1fb258ce5095",
+      "sourceAssetId": "47f79a39c92b2ac7",
+      "edit": {
+        "editedOn": "2026-11-04",
+        "tool": "Built-in image_gen",
+        "description": "Replaced the code window text with a C# example verified against the local UnlimitedPDF library, preserving the surrounding design.",
+        "originalSha256": "6932debe0e359299a3a7471e060e219b7654260f73124b0369ec51f72a5ba864",
+        "code": "using UnlimitedPDF;\n\nvar pdf = new PdfDocument();\nvar page = pdf.AddPage();\npage.AddText(\"Hello, PDF!\", 50, 780);\npdf.Save(\"output.pdf\");",
+        "validation": "Compiled and executed using .NET SDK 10.0.403 against the local UnlimitedPDF.csproj; generated a valid PDF. Rendered code visually verified.",
+        "apiSourceFiles": [
+          "UnlimitedPDF/Models/PdfDocument.cs",
+          "UnlimitedPDF/Models/PdfPageBuilder.cs"
+        ],
+        "prompt": "Use case: text-localization.\nAsset type: UnlimitedPDF GitHub project banner.\nImage 1 is the EDIT TARGET. Make a surgical edit to the existing image: change ONLY the C# code text inside the dark blue Program.cs editor window in the lower center-right. Preserve the entire rest of the image: exact UnlimitedPDF branding, icon, white/teal title, description and subtitle, blue/teal wave background, PDF document illustration, curved teal arrow, editor window position/size/perspective/frame, C# badge, Program.cs title and colored dots. Keep original 1774 x 887 dimensions and opaque background if possible. This is a correction, not a redesign.\nRemove every line of old code inside the editor body, including the invalid using-var line, lambda and braces, and typeset this exact, locally verified C# snippet, verbatim, including correct case, ASCII straight quotes, punctuation, coordinates, and semicolons:\n\nusing UnlimitedPDF;\n\nvar pdf = new PdfDocument();\nvar page = pdf.AddPage();\npage.AddText(\"Hello, PDF!\", 50, 780);\npdf.Save(\"output.pdf\");\n\nUse crisp, highly legible monospaced code text, with restrained C# syntax highlighting matching the existing editor (purple keywords, white identifiers and punctuation, yellow string literals, teal type and namespace names). Fit every line within the existing editor body without cropping or clipping. Keep all non-code pixels as close to identical as possible.\nThis exact snippet has been compiled and executed against the local UnlimitedPDF library. DO NOT invent, substitute, omit, or add API calls. Do not show DrawText, AddHeading, using var, callbacks, braces or ellipses. Do not add comments, labels, UI, objects, watermarks, or decorative pseudo-code. Preserve every surrounding design element unchanged."
+      }
+    },
+    {
+      "path": "banners/unlimitedpdf-social-card.png",
+      "purpose": "UnlimitedPDF promotional card",
+      "width": 1731,
+      "height": 909,
+      "bytes": 1561533,
+      "sha256": "9b16fe28157a8001302ac4f4e6741595d87824d7e78a61e76b0fee28e16f87f1",
+      "sourceAssetId": "82d7e39684fcec0c",
+      "edit": {
+        "editedOn": "2026-11-04",
+        "tool": "Built-in image_gen",
+        "description": "Replaced the code window text with a C# example verified against the local UnlimitedPDF library, preserving the surrounding design.",
+        "originalSha256": "93957e310997d0cd02a4479c41cad8535d29a43f129fcf77396e7d9dad3fbd33",
+        "code": "using UnlimitedPDF;\n\nvar doc = new PdfDocument();\nvar page = doc.AddPage();\npage.AddText(\"Invoice\", 50, 780, 20);\ndoc.Save(\"invoice.pdf\");",
+        "validation": "Compiled and executed using .NET SDK 10.0.403 against the local UnlimitedPDF.csproj; generated a valid PDF. Rendered code visually verified.",
+        "apiSourceFiles": [
+          "UnlimitedPDF/Models/PdfDocument.cs",
+          "UnlimitedPDF/Models/PdfPageBuilder.cs"
+        ],
+        "prompt": "Use case: text-localization.\nAsset type: UnlimitedPDF promotional social card.\nImage 1 is the EDIT TARGET. Make a surgical edit to the existing image: change ONLY the C# code text inside the dark blue code editor window near the center-right. Preserve the entire rest of the image: exact branding, logo, headings, feature labels, white/blue/teal curved background, invoice illustration, green arrow, code window position/size/perspective/frame/title bar and colored dots. Keep its original 1731 x 909 dimensions and opaque background if possible. This is a correction, not a redesign.\nRemove every line of the old code inside the editor body and typeset this exact, locally verified C# snippet, verbatim, including correct case, ASCII straight quotes, punctuation, coordinates, and semicolons:\n\nusing UnlimitedPDF;\n\nvar doc = new PdfDocument();\nvar page = doc.AddPage();\npage.AddText(\"Invoice\", 50, 780, 20);\ndoc.Save(\"invoice.pdf\");\n\nUse crisp, highly legible monospaced code text, with restrained C# syntax highlighting matching the existing editor (cyan keywords, white identifiers and punctuation, teal string literals). Fit all lines comfortably within the existing code editor body, modestly reducing font size if needed, with no clipping or overlap with the arrow. Keep all non-code pixels as close to identical as possible.\nThis exact snippet has been compiled and executed against the local UnlimitedPDF library. DO NOT invent, substitute, omit, or add any API calls. In particular do not show AddHeading, DrawText, doc.AddTable, doc.AddImage, using var, callbacks, or ellipses. Do not add comments, other text, labels, UI, objects, watermarks, or decorative pseudo-code. Preserve every surrounding design element unchanged."
+      }
+    },
+    {
+      "path": "banners/unlimitedpdf-demos-hero.png",
+      "purpose": "Demo website promotional hero",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1713151,
+      "sha256": "955a7f5fd6bf9cc376f4901b8fcc8cf3ac5490e543d80713e24bc7a016b3d0ec",
+      "sourceAssetId": "546595f8d30c540b"
+    }
+  ]
+}

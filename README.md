@@ -1,4 +1,8 @@
-﻿<h3 align="center">UnlimitedPDF Library</h3>
+﻿<p align="center">
+  <img src="assets/derived/unlimitedpdf-github-banner.jpg" alt="UnlimitedPDF: a lightweight .NET library for programmatically creating PDF files" />
+</p>
+
+<h3 align="center">UnlimitedPDF Library</h3>
 
 <p align="center">
 A powerful and flexible library for creating, manipulating, and managing PDF documents with unlimited capabilities.
@@ -20,6 +24,16 @@ A powerful and flexible library for creating, manipulating, and managing PDF doc
 - **Package Reference**
   
   Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="0.1.0" />`
+
+## Demos
+
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, and images, plus complete invoice, medical report, receipt, and certificate documents. Each demo has editable options, a live preview, a download, and the C# code that builds it.
+
+Run it locally:
+
+```bash
+dotnet run --project UnlimitedPDF.Demos.BlazorWasm
+```
 
 ## Sample Code
 

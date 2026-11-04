@@ -1,0 +1,25 @@
+<div class="preview">
+    @* The frame is always rendered so it can receive the first PDF; it stays hidden until then. *@
+    <iframe @ref="_frame" class="preview-frame @(_url is null ? "is-hidden" : null)" title="PDF preview"></iframe>
+
+    @if (_url is null && !Busy)
+    {
+        <div class="preview-empty">
+            <div>
+                <Icon Name="invoice" Size="44" />
+                <strong>Your PDF appears here</strong>
+                <span>Press Generate PDF to build it in your browser.</span>
+            </div>
+        </div>
+    }
+
+    @if (Busy)
+    {
+        <div class="preview-overlay" aria-hidden="true">
+            <div class="preview-progress">
+                <div class="preview-progress-label">Generating your PDF...</div>
+                <div class="progress-indeterminate"></div>
+            </div>
+        </div>
+    }
+</div>

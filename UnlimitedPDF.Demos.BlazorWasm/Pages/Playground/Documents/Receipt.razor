@@ -1,0 +1,96 @@
+@page "/playground/documents/receipt"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Receipt" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Store">
+            <div class="field">
+                <label for="store-name">Store name</label>
+                <input id="store-name" class="form-control" @bind="_input.StoreName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="store-address">Address</label>
+                <input id="store-address" class="form-control" @bind="_input.StoreAddress" @bind:event="oninput" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="receipt-no">Receipt number</label>
+                    <input id="receipt-no" class="form-control" @bind="_input.ReceiptNumber" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="receipt-date">Date</label>
+                    <input id="receipt-date" type="date" class="form-control" @bind="_input.Date" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="payment">Paid by</label>
+                    <select id="payment" class="form-control" @bind="_input.PaymentMethod">
+                        <option>Card</option>
+                        <option>Cash</option>
+                        <option>UPI</option>
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="tax">Tax (%)</label>
+                    <input id="tax" type="number" min="0" step="0.5" class="form-control" @bind="_input.TaxPercent" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Items">
+            <div class="rows">
+                @for (int index = 0; index < _input.Items.Count; index++)
+                {
+                    var line = _input.Items[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Item @number</span>
+                            <button type="button" class="row-remove" title="Remove item @number" aria-label="Remove item @number" @onclick="() => RemoveItem(line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Name of item @number" @bind="line.Name" @bind:event="oninput" />
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Qty</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                            </div>
+                            <div class="field">
+                                <label>Price</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Price" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddItem">+ Add item</button>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private ReceiptInput _input = new();
+    private SamplePage? _page;
+
+    private void AddItem()
+    {
+        _input.Items.Add(new ReceiptLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var images = await ImageStore.GetManyAsync("receipt-logo.png");
+        return ReceiptSample.Build(_input, images);
+    }
+
+    private void RemoveItem(ReceiptLine line)
+    {
+        _input.Items.Remove(line);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

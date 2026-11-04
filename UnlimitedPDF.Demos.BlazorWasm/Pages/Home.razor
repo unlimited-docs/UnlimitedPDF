@@ -1,0 +1,60 @@
+﻿@page "/"
+
+<PageTitle>UnlimitedPDF Demos: PDF generation in pure .NET</PageTitle>
+
+<section class="hero">
+    <div class="hero-eyebrow"><Icon Name="spark" Size="14" /> Runs entirely in your browser</div>
+    <h1>Generate PDFs in <span>pure .NET</span></h1>
+    <p class="hero-lead">
+        UnlimitedPDF builds PDF documents with text, tables, and JPEG or PNG images from plain C#.
+        No native libraries, no server. Every demo below runs right here, and shows the code behind it.
+    </p>
+    <div class="hero-actions">
+        <a class="btn btn-lg btn-solid theme-primary" href="playground">Try the playground <Icon Name="arrow" Size="18" /></a>
+        <a class="btn btn-lg btn-outline" href="https://github.com/unlimited-docs/UnlimitedPDF" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+    <InstallCommand />
+</section>
+
+<section class="showcase" aria-label="Real-life documents you can build">
+    @* A stylized illustration of the four document demos; the phone-sized copy is chosen by srcset. *@
+    <img src="images/unlimitedpdf-demos-hero-1200.jpg"
+         srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
+         sizes="(max-width: 1240px) calc(100vw - 2.5rem), 1200px"
+         width="1200" height="675" loading="lazy" decoding="async"
+         alt="Illustration of UnlimitedPDF Demos: an invoice, a medical report, a receipt, and a certificate, each with its own logo" />
+</section>
+
+@foreach (var category in SampleCatalog.Categories)
+{
+    <section class="section">
+        <div class="section-head">
+            <h2>@category.Title</h2>
+            <p>@category.Description</p>
+        </div>
+        <div class="card-grid">
+            @foreach (var demo in category.Demos)
+            {
+                <a class="panel feature-card" href="@demo.Route">
+                    <div class="feature-icon"><Icon Name="@demo.Icon" Size="22" /></div>
+                    <h3>@demo.Title</h3>
+                    <p>@demo.Description</p>
+                    <span class="feature-link">Open demo <Icon Name="arrow" Size="15" /></span>
+                </a>
+            }
+        </div>
+    </section>
+}
+
+<section class="section">
+    <div class="facts">
+        <div class="panel fact"><strong>Pure managed .NET</strong><span>No native or third-party engine to install.</span></div>
+        <div class="panel fact"><strong>.NET 6, 8, 9, and 10</strong><span>One package for every supported target.</span></div>
+        <div class="panel fact"><strong>Runs anywhere .NET runs</strong><span>Servers, desktops, and WebAssembly in the browser.</span></div>
+        <div class="panel fact"><strong>Open source</strong><span>Apache-2.0 licensed, developed on GitHub.</span></div>
+    </div>
+</section>
+
+<footer class="footer">
+    UnlimitedPDF is open source under the Apache-2.0 license. Demo data is fictional.
+</footer>

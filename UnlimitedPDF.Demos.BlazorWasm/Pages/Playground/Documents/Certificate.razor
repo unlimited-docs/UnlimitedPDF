@@ -1,0 +1,57 @@
+@page "/playground/documents/certificate"
+@inject SampleImageStore ImageStore
+
+<SamplePage Demo="SampleCatalog.Certificate" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Heading">
+            <div class="field-row">
+                <div class="field">
+                    <label for="cert-title">Title</label>
+                    <input id="cert-title" class="form-control" @bind="_input.Title" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="cert-subtitle">Subtitle</label>
+                    <input id="cert-subtitle" class="form-control" @bind="_input.Subtitle" @bind:event="oninput" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Recipient">
+            <div class="field">
+                <label for="recipient">Presented to</label>
+                <input id="recipient" class="form-control" @bind="_input.Recipient" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="description">Description</label>
+                <input id="description" class="form-control" @bind="_input.Description" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="cert-date">Date</label>
+                <input id="cert-date" type="date" class="form-control" @bind="_input.Date" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Signature">
+            <div class="field">
+                <label for="signer">Signer</label>
+                <input id="signer" class="form-control" @bind="_input.SignerName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="signer-title">Signer role</label>
+                <input id="signer-title" class="form-control" @bind="_input.SignerTitle" @bind:event="oninput" />
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private CertificateInput _input = new();
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var images = await ImageStore.GetManyAsync("certificate-seal.png", "certificate-signature.png");
+        return CertificateSample.Build(_input, images);
+    }
+
+    private void Reset() => _input = new();
+}

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UnlimitedPDF Demos: PDF generation in pure .NET</title>
+    <meta name="description" content="Try UnlimitedPDF in your browser: create PDFs with text, tables, and images in pure .NET, and see the code behind every demo." />
+    <base href="/" />
+    <link rel="preload" id="webassembly" />
+    <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/app.css" />
+    <link rel="icon" type="image/png" href="images/favicon.png" />
+    <link href="UnlimitedPDF.Demos.BlazorWasm.styles.css" rel="stylesheet" />
+    <script type="importmap"></script>
+    <style>
+        /* First screen: plain HTML and inline CSS, so it paints at once while .NET downloads. Blazor replaces it. */
+        .boot { min-height: 100vh; display: grid; place-items: center; padding: 2rem; text-align: center;
+                font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+                background: radial-gradient(60rem 30rem at 50% -10%, #e6efff 0%, #ffffff 60%); color: #12213d; }
+        .boot-card { max-width: 36rem; }
+        .boot-brand { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+        .boot-brand span { color: #2357e8; }
+        .boot-tagline { font-size: 1.125rem; color: #4a5875; margin: 0.75rem 0 2rem; line-height: 1.5; }
+        .boot-track { height: 6px; border-radius: 999px; background: #dde5f5; overflow: hidden; width: min(22rem, 80vw); margin: 0 auto; }
+        .boot-bar { height: 100%; width: var(--blazor-load-percentage, 4%); background: linear-gradient(90deg, #2357e8, #19b2a6);
+                    border-radius: inherit; transition: width 0.15s ease-out; }
+        .boot-status { margin-top: 0.75rem; font-size: 0.875rem; color: #6b7894; font-variant-numeric: tabular-nums; }
+        .boot-status::after { content: "Loading the playground " var(--blazor-load-percentage-text, ""); }
+        @media (prefers-reduced-motion: reduce) { .boot-bar { transition: none; } }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="boot">
+            <div class="boot-card">
+                <p class="boot-brand">Unlimited<span>PDF</span></p>
+                <p class="boot-tagline">Create PDFs with text, tables, and images in pure .NET, generated right here in your browser.</p>
+                <div class="boot-track" role="progressbar" aria-label="Loading the playground"><div class="boot-bar"></div></div>
+                <div class="boot-status" aria-hidden="true"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Something went wrong. Reload the page to continue.
+        <a href="." class="reload">Reload</a>
+        <span class="dismiss">&#x2715;</span>
+    </div>
+    <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
+</body>
+
+</html>

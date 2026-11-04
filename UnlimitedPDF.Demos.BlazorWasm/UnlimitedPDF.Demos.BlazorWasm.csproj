@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OverrideHtmlAssetPlaceholders>true</OverrideHtmlAssetPlaceholders>
+
+    <!-- Fast first load: no culture data or time-zone database is downloaded. Trimming and Brotli/gzip
+         compression stay on through the template's publish defaults, and AOT stays off (smaller download). -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <BlazorEnableTimeZoneSupport>false</BlazorEnableTimeZoneSupport>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="10.0.14" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="10.0.14" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\UnlimitedPDF\UnlimitedPDF.csproj" />
+  </ItemGroup>
+
+  <!-- Each sample builder's source is embedded so the page shows exactly the code that runs. -->
+  <ItemGroup>
+    <EmbeddedResource Include="Samples\*Sample.cs" LogicalName="Samples.%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>

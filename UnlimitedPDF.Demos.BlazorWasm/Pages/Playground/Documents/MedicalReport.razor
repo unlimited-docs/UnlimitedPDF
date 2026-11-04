@@ -1,0 +1,108 @@
+@page "/playground/documents/medical-report"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.MedicalReport" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Patient">
+            <div class="field-row">
+                <div class="field">
+                    <label for="patient-name">Name</label>
+                    <input id="patient-name" class="form-control" @bind="_input.PatientName" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="patient-id">Patient ID</label>
+                    <input id="patient-id" class="form-control" @bind="_input.PatientId" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="age">Age</label>
+                    <input id="age" type="number" min="0" class="form-control" @bind="_input.Age" />
+                </div>
+                <div class="field">
+                    <label for="sex">Sex</label>
+                    <input id="sex" class="form-control" @bind="_input.Sex" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="field">
+                <label for="referred">Referred by</label>
+                <input id="referred" class="form-control" @bind="_input.ReferredBy" @bind:event="oninput" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="collected">Collected</label>
+                    <input id="collected" type="date" class="form-control" @bind="_input.CollectedOn" />
+                </div>
+                <div class="field">
+                    <label for="reported">Reported</label>
+                    <input id="reported" type="date" class="form-control" @bind="_input.ReportedOn" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Results">
+            <div class="rows">
+                @for (int index = 0; index < _input.Results.Count; index++)
+                {
+                    var result = _input.Results[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="result">
+                        <div class="row-item-head">
+                            <span>Test @number</span>
+                            <button type="button" class="row-remove" title="Remove test @number" aria-label="Remove test @number" @onclick="() => RemoveResult(result)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Name of test @number" @bind="result.Test" @bind:event="oninput" />
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Result</label>
+                                <input class="form-control" @bind="result.Result" @bind:event="oninput" />
+                            </div>
+                            <div class="field">
+                                <label>Unit</label>
+                                <input class="form-control" @bind="result.Unit" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Range low</label>
+                                <input type="number" step="any" class="form-control" @bind="result.Low" />
+                            </div>
+                            <div class="field">
+                                <label>Range high</label>
+                                <input type="number" step="any" class="form-control" @bind="result.High" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddResult">+ Add test</button>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private MedicalReportInput _input = new();
+    private SamplePage? _page;
+
+    private void AddResult()
+    {
+        _input.Results.Add(new LabResult());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var images = await ImageStore.GetManyAsync("medical-report-logo.png");
+        return MedicalReportSample.Build(_input, images);
+    }
+
+    private void RemoveResult(LabResult result)
+    {
+        _input.Results.Remove(result);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

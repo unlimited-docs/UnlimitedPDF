@@ -1,0 +1,88 @@
+<PageTitle>@Demo.Title · UnlimitedPDF Demos</PageTitle>
+
+<article class="demo">
+    <header class="demo-header">
+        <h1>@Demo.Title</h1>
+        <p class="demo-lead">@Demo.Description</p>
+    </header>
+
+    <div class="demo-grid">
+        <section class="panel demo-inputs" aria-label="Options">
+            <div class="demo-inputs-body" @oninput="OnInputsChanged" @onchange="OnInputsChanged" @onkeydown="OnInputsKeyDownAsync">
+                @Inputs
+            </div>
+            <div class="demo-actions">
+                <button type="button" class="btn btn-solid theme-primary btn-generate" disabled="@_busy" @onclick="() => GenerateAsync(userStarted: true)">
+                    @if (_busy)
+                    {
+                        <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span>
+                        <span>Generating...</span>
+                    }
+                    else
+                    {
+                        <span>Generate PDF</span>
+                    }
+                </button>
+                <button type="button" class="btn btn-text" disabled="@_busy" @onclick="ResetAsync">Reset to defaults</button>
+                <span class="demo-shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+            </div>
+        </section>
+
+        <section class="panel demo-output" @ref="_outputSection" aria-label="Output">
+            <div class="output-head">
+                <div class="output-tabs" role="tablist">
+                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-preview")" aria-controls="@($"{_id}-panel-preview")"
+                            aria-selected="@(_tab == OutputTab.Preview ? "true" : "false")" @onclick="() => _tab = OutputTab.Preview">Preview</button>
+                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-code")" aria-controls="@($"{_id}-panel-code")"
+                            aria-selected="@(_tab == OutputTab.Code ? "true" : "false")" @onclick="() => _tab = OutputTab.Code">C# code</button>
+                </div>
+                <div class="output-actions">
+                    <button type="button" class="btn btn-sm btn-text" disabled="@(!HasPdf || _busy)" @onclick="OpenInNewTabAsync" title="Open the PDF in a new tab">
+                        <Icon Name="external" Size="16" /> Open
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@(!HasPdf || _busy)" @onclick="DownloadAsync" title="Download the PDF">
+                        <Icon Name="download" Size="16" /> Download
+                    </button>
+                </div>
+            </div>
+
+            @if (_error is not null)
+            {
+                <div class="error-box" role="alert">
+                    <p><strong>Couldn't generate the PDF.</strong> @_error</p>
+                    <button type="button" class="btn btn-sm btn-outline" @onclick="() => GenerateAsync(userStarted: true)">Try again</button>
+                </div>
+            }
+
+            <div class="output-body">
+                <div id="@($"{_id}-panel-preview")" role="tabpanel" aria-labelledby="@($"{_id}-tab-preview")" hidden="@(_tab != OutputTab.Preview)">
+                    <PdfPreview @ref="_preview" Busy="_busy" />
+                </div>
+                <div id="@($"{_id}-panel-code")" role="tabpanel" aria-labelledby="@($"{_id}-tab-code")" hidden="@(_tab != OutputTab.Code)">
+                    <CodeView Source="@_source" AriaLabel="@($"{Demo.SourceFile} source")" />
+                </div>
+            </div>
+
+            <div class="status-bar">
+                @if (_result is { } result)
+                {
+                    <span class="status-meta">
+                        <span><strong>@result.Pages</strong> @(result.Pages == 1 ? "page" : "pages")</span>
+                        <span><strong>@FormatSize(result.Bytes)</strong></span>
+                        <span>generated in <strong>@result.Milliseconds ms</strong></span>
+                    </span>
+                }
+                else if (!_busy)
+                {
+                    <span>Every PDF is generated locally. Nothing is uploaded.</span>
+                }
+                @if (_stale && !_busy)
+                {
+                    <span class="stale-note">Inputs changed. <button type="button" @onclick="() => GenerateAsync(userStarted: true)">Generate to update</button></span>
+                }
+            </div>
+        </section>
+    </div>
+
+    <div class="visually-hidden" role="status" aria-live="polite">@_announcement</div>
+</article>
