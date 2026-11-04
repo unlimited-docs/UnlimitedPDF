@@ -1,0 +1,84 @@
+@page "/playground/create/images"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Images" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Image">
+            <ImagePicker Choices="_choices" BuiltInFile="@_input.BuiltInFile" BuiltInFileChanged="OnBuiltInChanged"
+                         Uploaded="_input.Uploaded" UploadedChanged="OnUploadedChanged" />
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Placement">
+            <div class="field">
+                <span class="field-label">Fit</span>
+                <div class="segmented" role="group" aria-label="Fit mode">
+                    @foreach (var fit in Enum.GetValues<PdfImageFit>())
+                    {
+                        <button type="button" aria-pressed="@(_input.Fit == fit ? "true" : "false")" @onclick="() => SetFit(fit)">@fit</button>
+                    }
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="box-w">Box width (pt)</label>
+                    <input id="box-w" type="number" min="1" class="form-control" @bind="_input.BoxWidth" />
+                </div>
+                <div class="field">
+                    <label for="box-h">Box height (pt)</label>
+                    <input id="box-h" type="number" min="1" class="form-control" @bind="_input.BoxHeight" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="img-x">X (pt)</label>
+                    <input id="img-x" type="number" class="form-control" @bind="_input.X" />
+                </div>
+                <div class="field">
+                    <label for="img-y">Y (pt)</label>
+                    <input id="img-y" type="number" class="form-control" @bind="_input.Y" />
+                </div>
+            </div>
+            <label class="check-field">
+                <input type="checkbox" @bind="_input.ShowInTableCell" /> Also show it inside a table cell
+            </label>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private static readonly IReadOnlyList<(string File, string Label)> _choices =
+    [
+        ("dock.jpg", "Dock (JPEG)"),
+        ("keyboard.jpg", "Keyboard (JPEG)"),
+        ("cmyk-sample.jpg", "CMYK JPEG")
+    ];
+
+    private ImagesInput _input = new();
+    private SamplePage? _page;
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var image = _input.Uploaded ?? await ImageStore.GetAsync(_input.BuiltInFile);
+        return ImagesSample.Build(_input, image);
+    }
+
+    private void OnBuiltInChanged(string file)
+    {
+        _input.BuiltInFile = file;
+        _page?.NotifyInputsChanged();
+    }
+
+    private void OnUploadedChanged(PdfImage? image)
+    {
+        _input.Uploaded = image;
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+
+    private void SetFit(PdfImageFit fit)
+    {
+        _input.Fit = fit;
+        _page?.NotifyInputsChanged();
+    }
+}

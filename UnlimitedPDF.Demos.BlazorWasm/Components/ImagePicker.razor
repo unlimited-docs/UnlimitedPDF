@@ -1,0 +1,52 @@
+<div class="picker">
+    <div class="picker-choices" role="group" aria-label="Built-in images">
+        @foreach (var choice in Choices)
+        {
+            <button type="button" class="picker-choice" aria-pressed="@(Uploaded is null && BuiltInFile == choice.File ? "true" : "false")"
+                    @onclick="() => ChooseBuiltInAsync(choice.File)">
+                <img src="images/@choice.File" alt="" loading="lazy" />
+                <span>@choice.Label</span>
+            </button>
+        }
+    </div>
+
+    <div class="mt-3">
+        @if (Uploaded is not null && !_reading)
+        {
+            <div class="upload-card">
+                <img src="@_thumbnailUrl" alt="Uploaded image preview" />
+                <div>
+                    <div class="upload-name">@_fileName</div>
+                    <div class="upload-meta">@Uploaded.PixelWidth x @Uploaded.PixelHeight px · @FormatSize(_fileSize)</div>
+                </div>
+                <button type="button" class="row-remove" @onclick="RemoveUploadAsync" aria-label="Remove the uploaded image" title="Remove">
+                    <Icon Name="close" Size="18" />
+                </button>
+            </div>
+        }
+        else
+        {
+            @if (_reading)
+            {
+                <div class="upload-reading" role="status">
+                    <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span>
+                    Reading @_fileName... @((int)(_readProgress * 100))%
+                </div>
+            }
+
+            @* The file input must stay in the page while its file is read, so it is hidden rather than removed. *@
+            <label class="dropzone @(_dragOver ? "is-over" : null)" hidden="@_reading"
+                   @ondragenter="() => _dragOver = true" @ondragleave="() => _dragOver = false" @ondrop="() => _dragOver = false">
+                <InputFile class="dropzone-input" OnChange="OnFileChosenAsync" accept=".jpg,.jpeg,.png,image/jpeg,image/png" aria-label="Upload your own image" />
+                <Icon Name="upload" Size="22" />
+                <strong>Drop your own JPEG or PNG</strong>
+                <span>or click to browse · up to 2 MB and 4096 x 4096 px</span>
+            </label>
+        }
+
+        @if (_error is not null)
+        {
+            <div class="upload-error mt-2" role="alert">@_error</div>
+        }
+    </div>
+</div>

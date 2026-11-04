@@ -1,0 +1,7 @@
+<div class="code-view">
+    <button type="button" class="code-copy" @onclick="CopyAsync" aria-label="Copy the code">
+        <Icon Name="@(_copyState == CopyState.Copied ? "check" : "copy")" Size="15" />
+        @(_copyState switch { CopyState.Copied => "Copied", CopyState.Unavailable => "Copy not available", _ => "Copy" })
+    </button>
+    <pre tabindex="0" aria-label="@AriaLabel"><code>@Source</code></pre>
+</div>

@@ -1,0 +1,11 @@
+@page "/playground"
+@inject NavigationManager Navigation
+
+@code {
+    /// <inheritdoc />
+    protected override void OnInitialized()
+    {
+        // The playground opens on its first demo.
+        Navigation.NavigateTo(SampleCatalog.Categories[0].Demos[0].Route, replace: true);
+    }
+}

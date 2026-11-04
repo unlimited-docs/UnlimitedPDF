@@ -1,13 +1,15 @@
-﻿<h3 align="center">UnlimitedPDF Library</h3>
+﻿![UnlimitedPDF: a lightweight .NET library for programmatically creating PDF files](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/unlimitedpdf-github-banner.jpg)
+
+<h3 align="center">UnlimitedPDF Library</h3>
 
 <p align="center">
-A powerful and flexible library for creating, manipulating, and managing PDF documents with unlimited capabilities.
+UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, and JPEG and PNG images, saved to a file or a stream.
 </p>
 
 ## Status
 
-[![NuGet](https://img.shields.io/nuget/vpre/UnlimitedPDF)](https://www.nuget.org/packages/blazor.bootstrap/absoluteLatest)
-[![NuGet](https://img.shields.io/nuget/dt/UnlimitedPDF.svg)](https://www.nuget.org/packages/blazor.bootstrap/absoluteLatest)
+[![NuGet](https://img.shields.io/nuget/vpre/UnlimitedPDF)](https://www.nuget.org/packages/unlimitedpdf/absoluteLatest)
+[![NuGet](https://img.shields.io/nuget/dt/UnlimitedPDF.svg)](https://www.nuget.org/packages/unlimitedpdf/absoluteLatest)
 
 ## Table of contents
 

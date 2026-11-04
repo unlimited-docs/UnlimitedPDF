@@ -1,0 +1,11 @@
+<section class="opt-section">
+    <button type="button" class="opt-section-toggle" @onclick="Toggle"
+            aria-expanded="@(_open ? "true" : "false")" aria-controls="@_bodyId">
+        <span>@Title</span>
+        <Icon Name="chevron" Size="18" />
+    </button>
+    @* Hidden rather than removed, so typed values and focus survive collapsing. *@
+    <div id="@_bodyId" class="opt-section-body" hidden="@(!_open)">
+        @ChildContent
+    </div>
+</section>

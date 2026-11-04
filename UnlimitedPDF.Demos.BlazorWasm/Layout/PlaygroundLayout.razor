@@ -1,0 +1,32 @@
+@inherits LayoutComponentBase
+@layout MainLayout
+
+<div class="playground">
+    <button type="button" class="playground-menu btn btn-sm btn-outline" @onclick="ToggleMenu"
+            aria-expanded="@(_menuOpen ? "true" : "false")" aria-controls="playground-sidebar">
+        <Icon Name="menu" Size="18" /> All demos
+    </button>
+
+    <aside id="playground-sidebar" class="playground-sidebar @(_menuOpen ? "is-open" : null)" aria-label="Demos">
+        @foreach (var category in SampleCatalog.Categories)
+        {
+            <div class="sidebar-group">
+                <div class="sidebar-group-title">@category.Title</div>
+                <ul class="sidebar-list">
+                    @foreach (var demo in category.Demos)
+                    {
+                        <li>
+                            <NavLink class="sidebar-link" href="@demo.Route" Match="NavLinkMatch.All" @onclick="CloseMenu">
+                                <Icon Name="@demo.Icon" Size="18" /> @demo.Title
+                            </NavLink>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </aside>
+
+    <div class="playground-content">
+        @Body
+    </div>
+</div>

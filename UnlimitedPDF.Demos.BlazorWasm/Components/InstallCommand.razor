@@ -1,0 +1,25 @@
+@inject UnlimitedPDF.Demos.BlazorWasm.Services.BrowserInterop Interop
+
+<div class="install">
+    <code>@Command</code>
+    <button type="button" @onclick="CopyAsync" aria-label="Copy the install command">
+        <Icon Name="@(_copied ? "check" : "copy")" Size="14" /> @(_copied ? "Copied" : "Copy")
+    </button>
+</div>
+
+@code {
+    private bool _copied;
+
+    /// <summary>
+    /// Gets or sets the command to show and copy.
+    /// </summary>
+    [Parameter] public string Command { get; set; } = "dotnet add package UnlimitedPDF";
+
+    private async Task CopyAsync()
+    {
+        _copied = await Interop.CopyTextAsync(Command);
+        StateHasChanged();
+        await Task.Delay(2000);
+        _copied = false;
+    }
+}

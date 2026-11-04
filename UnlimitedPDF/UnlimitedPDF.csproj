@@ -6,12 +6,13 @@
     <PackageVersion>0.1.0</PackageVersion>
     
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/unlimited-pdf/UnlimitedPDF</RepositoryUrl>
-    <PackageTags>pdf, unlimitedpdf, unlimited-pdf, pdflibray, pdf-library, pdf-generation, pdf-merge, pdf-split, pdf-watermark, pdf-signing, pdf-encryption, pdf-rendering</PackageTags>
-    <Description>UnlimitedPDF is a pure .NET library for enterprise-grade PDF operations, including creation, manipulation, merging, splitting, watermarking, signing, encryption, and rendering. It is designed for cross-platform .NET 6, .NET 8, and .NET 9 applications, with a focus on reliability, performance, and an ergonomic API for global developers.</Description>
+    <RepositoryUrl>https://github.com/unlimited-docs/UnlimitedPDF</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/unlimited-docs/UnlimitedPDF</PackageProjectUrl>
+    <PackageTags>pdf;pdf-library;pdf-generation;create-pdf;pdf-tables;pdf-images;enterprise-pdf;dotnet;csharp;blazor;unlimitedpdf;unlimited-pdf</PackageTags>
+    <Description>UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, and JPEG and PNG images, saved to a file or a stream. No third-party dependencies.</Description>
     <Authors>Vikram Reddy</Authors>
-    <!--<Company>Unlimited PDF</Company>-->
-    <Copyright>Copyright © 2025 UnlimitedPDF</Copyright>
+    <Company>Unlimited Docs</Company>
+    <Copyright>Copyright © 2025-2026 UnlimitedPDF</Copyright>
 
     <TargetFrameworks>net6.0;net8.0;net9.0;net10.0</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,11 +20,16 @@
     <OutputType>Library</OutputType>
     <IsPackable>true</IsPackable>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <RepositoryType>git</RepositoryType>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\nuget\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\nuget\icon.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

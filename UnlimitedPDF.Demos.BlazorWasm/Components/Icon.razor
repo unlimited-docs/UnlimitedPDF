@@ -1,0 +1,75 @@
+@* Small line icons drawn for this app (project-authored; no icon font or library is downloaded). *@
+<svg class="icon @Class" viewBox="0 0 24 24" width="@Size" height="@Size" aria-hidden="true" focusable="false"
+     fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+    @switch (Name)
+    {
+        case "text":
+            <path d="M5 6h14M12 6v13M9 19h6" />
+            break;
+        case "table":
+            <rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M3.5 10h17M3.5 15h17M10 4.5v15" />
+            break;
+        case "image":
+            <rect x="3.5" y="4.5" width="17" height="15" rx="2" /><circle cx="9" cy="10" r="1.8" /><path d="m4 18 5-5 4 4 3-3 4 4" />
+            break;
+        case "invoice":
+            <path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z" /><path d="M9 8h6M9 12h6M9 16h3" />
+            break;
+        case "pulse":
+            <rect x="3.5" y="4.5" width="17" height="15" rx="2" /><path d="M6 12h3l2-4 2 8 2-4h3" />
+            break;
+        case "receipt":
+            <path d="M7 3.5h10v17l-2.5-1.5-2.5 1.5-2.5-1.5L7 20.5z" /><path d="M10 8h4M10 11.5h4M10 15h2" />
+            break;
+        case "award":
+            <circle cx="12" cy="9" r="5.5" /><path d="m9 14-1.5 6.5L12 18l4.5 2.5L15 14" />
+            break;
+        case "menu":
+            <path d="M4 7h16M4 12h16M4 17h16" />
+            break;
+        case "copy":
+            <rect x="8.5" y="8.5" width="11" height="11" rx="2" /><path d="M15.5 8.5V6a2 2 0 0 0-2-2h-7.5a2 2 0 0 0-2 2v7.5a2 2 0 0 0 2 2h2.5" />
+            break;
+        case "check":
+            <path d="m5 12.5 4.5 4.5L19 7.5" />
+            break;
+        case "download":
+            <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" />
+            break;
+        case "external":
+            <path d="M14 4.5h5.5V10M19.5 4.5 11 13M17 13.5v5a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 4 18.5v-10A1.5 1.5 0 0 1 5.5 7h5" />
+            break;
+        case "chevron":
+            <path d="m7 10 5 5 5-5" />
+            break;
+        case "upload":
+            <path d="M12 16V5M7.5 9.5 12 5l4.5 4.5M5 19.5h14" />
+            break;
+        case "close":
+            <path d="M6 6l12 12M18 6 6 18" />
+            break;
+        case "spark":
+            <path d="M12 3.5v4M12 16.5v4M3.5 12h4M16.5 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18" />
+            break;
+        case "arrow":
+            <path d="M5 12h14M13 6l6 6-6 6" />
+            break;
+    }
+</svg>
+
+@code {
+    /// <summary>
+    /// Gets or sets extra CSS classes for the icon.
+    /// </summary>
+    [Parameter] public string? Class { get; set; }
+
+    /// <summary>
+    /// Gets or sets the icon name, for example "table".
+    /// </summary>
+    [Parameter, EditorRequired] public string Name { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the icon size in CSS pixels.
+    /// </summary>
+    [Parameter] public int Size { get; set; } = 20;
+}

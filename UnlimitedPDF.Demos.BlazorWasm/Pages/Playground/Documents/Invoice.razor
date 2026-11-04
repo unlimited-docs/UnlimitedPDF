@@ -1,0 +1,106 @@
+@page "/playground/documents/invoice"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Invoice" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Seller">
+            <div class="field">
+                <label for="seller-name">Name</label>
+                <input id="seller-name" class="form-control" @bind="_input.SellerName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="seller-address">Address</label>
+                <input id="seller-address" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="seller-tax">Tax number</label>
+                <input id="seller-tax" class="form-control" @bind="_input.SellerTaxId" @bind:event="oninput" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Buyer and invoice" InitiallyOpen="false">
+            <div class="field">
+                <label for="buyer-name">Buyer name</label>
+                <input id="buyer-name" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="buyer-address">Buyer address</label>
+                <input id="buyer-address" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="inv-no">Invoice number</label>
+                    <input id="inv-no" class="form-control" @bind="_input.InvoiceNumber" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="inv-date">Date</label>
+                    <input id="inv-date" type="date" class="form-control" @bind="_input.InvoiceDate" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Line items">
+            <div class="rows">
+                @for (int index = 0; index < _input.Items.Count; index++)
+                {
+                    var line = _input.Items[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Item @number</span>
+                            <button type="button" class="row-remove" title="Remove item @number" aria-label="Remove item @number" @onclick="() => RemoveItem(line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" />
+                        <div class="field-row-3">
+                            <div class="field">
+                                <label>Qty</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                            </div>
+                            <div class="field">
+                                <label>Rate</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
+                            </div>
+                            <div class="field">
+                                <label>Photo</label>
+                                <select class="form-control" @bind="line.Photo">
+                                    <option value="">None</option>
+                                    <option value="keyboard.jpg">Keyboard</option>
+                                    <option value="dock.jpg">Dock</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddItem">+ Add item</button>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private InvoiceInput _input = new();
+    private SamplePage? _page;
+
+    private void AddItem()
+    {
+        _input.Items.Add(new InvoiceLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var photos = _input.Items.Select(item => item.Photo).Where(photo => photo.Length > 0);
+        var images = await ImageStore.GetManyAsync(["invoice-logo.png", .. photos]);
+        return InvoiceSample.Build(_input, images);
+    }
+
+    private void RemoveItem(InvoiceLine line)
+    {
+        _input.Items.Remove(line);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

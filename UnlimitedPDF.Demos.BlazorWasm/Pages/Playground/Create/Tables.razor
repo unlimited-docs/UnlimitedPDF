@@ -1,0 +1,103 @@
+@page "/playground/create/tables"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Tables" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Columns and rows">
+            <div class="field-row-3">
+                <div class="field">
+                    <label for="col1">Column 1 (pt)</label>
+                    <input id="col1" type="number" min="0" class="form-control" @bind="_input.Column1Width" />
+                </div>
+                <div class="field">
+                    <label for="col2">Column 2 (pt)</label>
+                    <input id="col2" type="number" min="0" class="form-control" @bind="_input.Column2Width" />
+                </div>
+                <div class="field">
+                    <label for="col3">Column 3 (pt)</label>
+                    <input id="col3" type="number" min="0" class="form-control" @bind="_input.Column3Width" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="row-height">Row height (pt)</label>
+                    <input id="row-height" type="number" min="1" class="form-control" @bind="_input.RowHeight" />
+                </div>
+                <div class="field">
+                    <span class="field-label">Height rule</span>
+                    <div class="segmented" role="group" aria-label="Row height rule">
+                        @foreach (var rule in Enum.GetValues<PdfRowHeightRule>())
+                        {
+                            <button type="button" aria-pressed="@(_input.RowHeightRule == rule ? "true" : "false")" @onclick="() => SetRule(rule)">@rule</button>
+                        }
+                    </div>
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Colors and borders">
+            <div class="field-row">
+                <div class="field">
+                    <label for="header-bg">Header background</label>
+                    <input id="header-bg" type="color" @bind="_input.HeaderBackground" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="body-bg">Body background</label>
+                    <input id="body-bg" type="color" @bind="_input.BodyBackground" @bind:event="oninput" />
+                </div>
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="border-color">Border color</label>
+                    <input id="border-color" type="color" @bind="_input.BorderColor" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="border-width">Border width (pt)</label>
+                    <input id="border-width" type="number" min="0" step="0.25" class="form-control" @bind="_input.BorderWidth" />
+                </div>
+            </div>
+            <div class="field-hint">One border color and width applies to all four sides of every cell.</div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Cell layout">
+            <div class="field-row">
+                <div class="field">
+                    <label for="h-align">Horizontal alignment</label>
+                    <select id="h-align" class="form-control" @bind="_input.HorizontalAlignment">
+                        @foreach (var alignment in Enum.GetValues<PdfCellHorizontalAlignment>())
+                        {
+                            <option value="@alignment">@alignment</option>
+                        }
+                    </select>
+                </div>
+                <div class="field">
+                    <label for="v-align">Vertical alignment</label>
+                    <select id="v-align" class="form-control" @bind="_input.VerticalAlignment">
+                        @foreach (var alignment in Enum.GetValues<PdfCellVerticalAlignment>())
+                        {
+                            <option value="@alignment">@alignment</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="field">
+                <label for="padding">Padding (pt)</label>
+                <input id="padding" type="number" min="0" class="form-control" @bind="_input.Padding" />
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private TablesInput _input = new();
+    private SamplePage? _page;
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(TablesSample.Build(_input));
+
+    private void Reset() => _input = new();
+
+    private void SetRule(PdfRowHeightRule rule)
+    {
+        _input.RowHeightRule = rule;
+        _page?.NotifyInputsChanged();
+    }
+}
