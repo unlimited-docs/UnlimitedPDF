@@ -11,7 +11,6 @@ public class PdfDocument
     private readonly Dictionary<string, int> _imageObjects = new(StringComparer.Ordinal);
     private readonly List<PageEntry> _pageEntries = new();
     private readonly PdfPages _pages;
-    private readonly Dictionary<PdfPageBuilder, PageEntry> _rootPages = new();
     private double _bottomMargin;
     private double _topMargin;
 
@@ -79,10 +78,9 @@ public class PdfDocument
 
         // Create a new Page builder, associate it with the content stream, and keep the page so its
         // dictionary can be rewritten at save (resources are only known then).
-        var pageBuilder = new PdfPageBuilder(contentStream, pageNumber: _pageEntries.Count + 1, document: this);
+        var pageBuilder = new PdfPageBuilder(contentStream, pageNumber: _pageEntries.Count + 1);
         var entry = new PageEntry(pageBuilder, pageInternal, pageObject, PageSize);
         _pageEntries.Add(entry);
-        _rootPages[pageBuilder] = entry;
 
         return pageBuilder;
     }
@@ -143,48 +141,12 @@ public class PdfDocument
 
     #endregion
 
-    #region Internal Methods
-
-    /// <summary>
-    /// Lays out <paramref name="table"/>, a table on <paramref name="page"/>, together with every other table on that
-    /// page's caller page and its continuation pages, adding continuation pages as needed (WR-027).
-    /// </summary>
-    /// <param name="page">The page the table was added to.</param>
-    /// <param name="table">The table.</param>
-    /// <returns>The table's page plan.</returns>
-    /// <exception cref="InvalidOperationException">A table on those pages cannot be laid out.</exception>
-    internal TablePlan PlanTable(PdfPageBuilder page, PdfTable table)
-    {
-        return PlanChain(_rootPages[page]).Plans[table];
-    }
-
-    #endregion
-
     #region Private Methods
 
     private static void EnsureMargin(double value)
     {
         if (double.IsNaN(value) || double.IsInfinity(value) || value < 0)
             throw new ArgumentOutOfRangeException(nameof(value), value, "The margin must be a finite number of points, zero or greater.");
-    }
-
-    // A table whose end the caller read must still lay out the same way, or content placed from that end could overlap
-    // the table or land on a page that no longer holds it (WR-029).
-    private static void EnsureQueriedTablesUnchanged(ChainPlan chain)
-    {
-        foreach (var pair in chain.Plans)
-        {
-            var queried = pair.Key.QueriedPlan;
-            if (queried is null || queried.PlacesTableLike(pair.Value)) continue;
-
-            var page = pair.Value.Parts[0].Page;
-            int number = page.Tables.TakeWhile(table => table != pair.Key).Count() + 1;
-            throw new InvalidOperationException(string.Format(
-                CultureInfo.InvariantCulture,
-                "Table {0} on {1} no longer lays out as it did when GetTableEnd was called. Call GetTableEnd again after changing the table or the document margins.",
-                number,
-                page.Description));
-        }
     }
 
     private static PageEntry PageAt(PageEntry root, int index) => index == 0 ? root : root.Chain[index - 1];
@@ -208,9 +170,8 @@ public class PdfDocument
         _body.AddObject(pageObject);
         _body.AddObject(contentStream);
 
-        var builder = new PdfPageBuilder(contentStream, root.Builder.PageNumber, this, continuationIndex: root.Chain.Count + 1);
+        var builder = new PdfPageBuilder(contentStream, root.Builder.PageNumber, continuationIndex: root.Chain.Count + 1);
         root.Chain.Add(new PageEntry(builder, pageInternal, pageObject, root.PageSize));
-        _rootPages[builder] = root;
     }
 
     // Lays out every table on the root page and its continuation pages, page by page and in the order the tables were
@@ -277,10 +238,6 @@ public class PdfDocument
         // Lay out every table first; only continuation pages may be added. Any layout error is thrown here, before
         // anything is written or committed.
         var chains = _pageEntries.Select(PlanChain).ToList();
-        foreach (var chain in chains)
-        {
-            EnsureQueriedTablesUnchanged(chain);
-        }
 
         // Pages in reading order: each caller page, then the continuation pages its tables use. Continuation pages an
         // earlier save needed but this one does not are left out and kept empty, so object numbers stay contiguous.

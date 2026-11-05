@@ -213,13 +213,6 @@ internal static class GoldenDocuments
             row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
         }
 
-        var end = page.GetTableEnd(table);
-        end.Page.AddText("End of table", 50, (int)(end.Y - 20), 10);
-        foreach (var continuation in end.ContinuationPages)
-        {
-            continuation.AddText("Continued", 50, 20, 9);
-        }
-
         document.AddPage().AddText("Next section", 50, 780, 14);
         return document;
     }

@@ -367,11 +367,5 @@ public class PdfTable
     /// </summary>
     public double Y { get; set; }
 
-    /// <summary>
-    /// Gets or sets how the table was laid out when its end was last queried, or null if it never was. Saving fails
-    /// when the table no longer lays out the same way (WR-029).
-    /// </summary>
-    internal TablePlan? QueriedPlan { get; set; }
-
     #endregion
 }

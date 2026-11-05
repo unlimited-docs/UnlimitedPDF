@@ -4,8 +4,8 @@ using UnlimitedPDF.Models.Table;
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// Employee directory: one long table that continues across pages by itself, repeats its header row on every page,
-/// and gets a page number on each page and a summary right below its last row.
+/// Employee directory: one long table that continues across pages by itself and repeats its header row on every
+/// page.
 /// </summary>
 public static class EmployeeDirectorySample
 {
@@ -31,15 +31,7 @@ public static class EmployeeDirectorySample
     /// </summary>
     /// <param name="input">The directory options.</param>
     /// <returns>The document, ready to save.</returns>
-    public static PdfDocument Build(EmployeeDirectoryInput input) => Build(input, out _);
-
-    /// <summary>
-    /// Builds the document and reports how many pages it has.
-    /// </summary>
-    /// <param name="input">The directory options.</param>
-    /// <param name="pageCount">The number of pages: the first page plus the table's continuation pages.</param>
-    /// <returns>The document, ready to save.</returns>
-    public static PdfDocument Build(EmployeeDirectoryInput input, out int pageCount)
+    public static PdfDocument Build(EmployeeDirectoryInput input)
     {
         // Margins apply to every page: tables break above the bottom one and continue below the top one.
         var document = new PdfDocument
@@ -79,30 +71,7 @@ public static class EmployeeDirectorySample
             row.GetCell(4).Text = (2000 + i).ToString();
         }
 
-        // Ask where the table ended: the library has added the pages it needed after this one.
-        var end = page.GetTableEnd(table);
-
-        // A page number on the first page and on every continuation page.
-        pageCount = end.ContinuationPages.Count + 1;
-        AddPageNumber(page, 1, pageCount);
-        for (int index = 0; index < end.ContinuationPages.Count; index++)
-        {
-            AddPageNumber(end.ContinuationPages[index], index + 2, pageCount);
-        }
-
-        // A summary right below the last row, on whichever page that is.
-        end.Page.AddText($"{count} employees listed", (int)TableLeft, (int)(end.Y - 20), 10);
-
         return document;
-    }
-
-    #endregion
-
-    #region Private Methods
-
-    private static void AddPageNumber(PdfPageBuilder page, int number, int count)
-    {
-        page.AddText($"Page {number} of {count}", 480, 20, 9);
     }
 
     #endregion

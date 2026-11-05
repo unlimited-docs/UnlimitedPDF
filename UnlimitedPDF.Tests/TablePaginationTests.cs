@@ -4,9 +4,9 @@ using UnlimitedPDF.Models.Table;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// Table pagination (WR-027), page margins (WR-028), and the table end query (WR-029): rows continue on library-added
+/// Table pagination (WR-027) and page margins (WR-028), checked on the saved output: rows continue on library-added
 /// continuation pages, header rows repeat and never end a page, tables on one page share continuation pages, and
-/// saving fails before any output when a layout is impossible or a queried end went stale.
+/// saving fails before any output when a layout is impossible.
 /// </summary>
 public class TablePaginationTests
 {
@@ -35,43 +35,6 @@ public class TablePaginationTests
     }
 
     [Fact]
-    public void A_table_on_a_continuation_page_continues_on_the_same_chain()
-    {
-        var document = new PdfDocument();
-        var page = document.AddPage();
-        var first = NumberedTable(page, 700, 60);
-        var end = page.GetTableEnd(first);
-
-        // 25 rows are on the only continuation page, ending at 841.89 - 500; 80 more rows need two further pages.
-        var second = end.Page.AddTable(50, end.Y - 20, 300);
-        second.AddColumn();
-        for (int r = 0; r < 80; r++) second.AddRow().GetCell(0).Text = "S" + r;
-        document.AddPage().AddText("LAST", 50, 400);
-
-        var pages = PdfPageReader.Save(document);
-
-        Assert.Equal(5, pages.Count);
-        Assert.True(pages[1].Shows("R59") && pages[1].Shows("S0"));
-        Assert.True(pages[3].Shows("S79"));
-        Assert.True(pages[4].Shows("LAST"));
-        AssertEachRowOnOnePage(pages, "S", 80);
-    }
-
-    [Fact]
-    public void A_table_without_rows_ends_at_its_own_top()
-    {
-        var document = new PdfDocument();
-        var page = document.AddPage();
-        var table = page.AddTable(50, 640, 400);
-
-        var end = page.GetTableEnd(table);
-
-        Assert.Same(page, end.Page);
-        Assert.Equal(640, end.Y);
-        Assert.Empty(end.ContinuationPages);
-    }
-
-    [Fact]
     public void At_least_image_row_that_grows_past_the_bottom_moves_to_the_next_page()
     {
         // A 200 x 80 px image in a 100 pt column is 92 x 36.8 pt, so its AtLeast row grows to 44.8 pt.
@@ -90,41 +53,6 @@ public class TablePaginationTests
         Assert.True(pages[0].Shows("first"));
         Assert.DoesNotContain("Do", pages[0].Content);
         Assert.Contains("/Im1 Do", pages[1].Content);
-    }
-
-    [Fact]
-    public void Changing_a_queried_table_without_changing_its_layout_still_saves()
-    {
-        var document = new PdfDocument();
-        var page = document.AddPage();
-        var table = NumberedTable(page, 700, 60);
-        page.GetTableEnd(table);
-
-        table.GetCell(3, 0).Background = PdfColor.LightGray;
-
-        Assert.Equal(2, PdfPageReader.Save(document).Count);
-    }
-
-    [Fact]
-    public void Content_added_to_the_end_page_is_drawn_after_the_table()
-    {
-        var document = new PdfDocument();
-        var page = document.AddPage();
-        page.AddText("BELOW", 50, 100);
-        var table = NumberedTable(page, 700, 60);
-
-        var end = page.GetTableEnd(table);
-        end.Page.AddText("TOTAL", 350, (int)(end.Y - 20));
-
-        // 35 rows fit on page 1; the other 25 end at 841.89 - 25 x 20 on the continuation page.
-        Assert.Single(end.ContinuationPages);
-        Assert.Same(end.ContinuationPages[0], end.Page);
-        Assert.Equal(A4Height - 500, end.Y, Precision);
-
-        var pages = PdfPageReader.Save(document);
-        Assert.True(pages[0].Shows("BELOW"));
-        Assert.False(pages[1].Shows("BELOW"));
-        Assert.True(pages[1].Shows("TOTAL"));
     }
 
     [Fact]
@@ -188,28 +116,6 @@ public class TablePaginationTests
         Assert.Equal(0, document.BottomMargin);
         Assert.Equal(0, table.HeaderRowCount);
         Assert.False(table.RepeatHeaderRows);
-    }
-
-    [Fact]
-    public void Each_continuation_page_can_get_its_own_footer()
-    {
-        var document = new PdfDocument();
-        var page = document.AddPage();
-        var table = NumberedTable(page, 700, 150);
-
-        var end = page.GetTableEnd(table);
-        for (int i = 0; i < end.ContinuationPages.Count; i++)
-        {
-            end.ContinuationPages[i].AddText("Footer " + (i + 1), 50, 10);
-        }
-
-        var pages = PdfPageReader.Save(document);
-        Assert.Equal(end.ContinuationPages.Count + 1, pages.Count);
-        for (int i = 1; i < pages.Count; i++)
-        {
-            Assert.True(pages[i].Shows("Footer " + i));
-        }
-        Assert.Same(end.ContinuationPages[end.ContinuationPages.Count - 1], end.Page);
     }
 
     [Fact]
@@ -324,18 +230,6 @@ public class TablePaginationTests
     }
 
     [Fact]
-    public void Querying_a_table_from_another_page_or_null_is_rejected()
-    {
-        var document = new PdfDocument();
-        var first = document.AddPage();
-        var second = document.AddPage();
-        var table = first.AddTable(50, 700, 300);
-
-        Assert.Equal("table", Assert.Throws<ArgumentNullException>(() => first.GetTableEnd(null!)).ParamName);
-        Assert.Equal("table", Assert.Throws<ArgumentException>(() => second.GetTableEnd(table)).ParamName);
-    }
-
-    [Fact]
     public void Readme_tables_across_pages_sample_runs_as_written()
     {
         // The code of README.md and nuget/README.md "Tables across pages", saved to memory instead of a file (PR-012).
@@ -358,17 +252,9 @@ public class TablePaginationTests
             table.GetOrCreateCell(i, 2).Text = "Engineering";
         }
 
-        var end = page.GetTableEnd(table);
-        end.Page.AddText("200 employees", 40, (int)(end.Y - 20), 10);
-        for (int i = 0; i < end.ContinuationPages.Count; i++)
-        {
-            end.ContinuationPages[i].AddText($"Page {i + 2}", 500, 20, 9);
-        }
-
         var pages = PdfPageReader.Save(pdfDocument);
-        Assert.Equal(end.ContinuationPages.Count + 1, pages.Count);
         Assert.True(pages.Count > 1);
-        Assert.True(pages[pages.Count - 1].Shows("200 employees"));
+        Assert.True(pages[pages.Count - 1].Shows("Employee 200"));
         Assert.All(pages.Skip(1), p => Assert.True(p.Shows("Department")));
     }
 
@@ -401,7 +287,6 @@ public class TablePaginationTests
                 var error = Assert.Throws<InvalidOperationException>(() => document.Save(path));
                 Assert.Contains("Row index 1 of table 1 on page 1", error.Message);
                 Assert.Equal("existing", File.ReadAllText(path));
-                Assert.Throws<InvalidOperationException>(() => page.GetTableEnd(table));
             }
             finally
             {
@@ -466,55 +351,24 @@ public class TablePaginationTests
     }
 
     [Fact]
-    public void Stale_table_end_fails_the_save_until_queried_again()
-    {
-        var path = Path.GetTempFileName();
-        try
-        {
-            File.WriteAllText(path, "existing");
-
-            var document = new PdfDocument();
-            var page = document.AddPage();
-            var table = NumberedTable(page, 700, 60);
-            page.GetTableEnd(table);
-
-            for (int r = 60; r < 110; r++) table.AddRow().GetCell(0).Text = "R" + r;
-            var error = Assert.Throws<InvalidOperationException>(() => document.Save(path));
-            Assert.Contains("Table 1 on page 1 no longer lays out", error.Message);
-            Assert.Equal("existing", File.ReadAllText(path));
-
-            page.GetTableEnd(table);
-            document.BottomMargin = 100;
-            Assert.Throws<InvalidOperationException>(() => document.Save(path));
-            Assert.Equal("existing", File.ReadAllText(path));
-
-            page.GetTableEnd(table);
-            document.Save(path);
-            PdfStructureChecker.AssertValid(File.ReadAllBytes(path));
-        }
-        finally
-        {
-            File.Delete(path);
-        }
-    }
-
-    [Fact]
     public void Table_whose_first_row_has_no_room_starts_on_the_next_page()
     {
         var document = new PdfDocument { BottomMargin = 36 };
         var page = document.AddPage();
         page.AddText("ABOVE", 50, 60);
-        var table = NumberedTable(page, 30, 5);
+        NumberedTable(page, 30, 5);
 
-        var end = page.GetTableEnd(table);
         var pages = PdfPageReader.Save(document);
 
+        // All five rows move to the continuation page, starting at its top edge.
         Assert.Equal(2, pages.Count);
         Assert.Empty(pages[0].FilledRectangles());
         Assert.True(pages[0].Shows("ABOVE"));
-        Assert.Equal(A4Height - 20, pages[1].FilledRectangles()[0].Y, Precision);
-        Assert.Single(end.ContinuationPages);
-        Assert.Equal(A4Height - 100, end.Y, Precision);
+        var rows = pages[1].FilledRectangles();
+        Assert.Equal(5, rows.Count);
+        Assert.Equal(A4Height - 20, rows[0].Y, Precision);
+        Assert.Equal(A4Height - 100, rows[4].Y, Precision);
+        AssertEachRowOnOnePage(pages, "R", 5);
     }
 
     [Fact]
@@ -592,6 +446,14 @@ public class TablePaginationTests
             Assert.False(pages[0].Shows("R" + (lastOnFirstPage + 1)));
             Assert.All(pages[0].FilledRectangles(), r => Assert.True(r.Y >= margin - 1e-6));
         }
+    }
+
+    [Fact]
+    public void The_table_end_query_is_not_public_api()
+    {
+        // WR-029: content after a table is placed through the body flow, so there is no table end query.
+        Assert.Null(typeof(PdfPageBuilder).GetMethod("GetTableEnd"));
+        Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(), type => type.Name == "PdfTableEnd");
     }
 
     #endregion

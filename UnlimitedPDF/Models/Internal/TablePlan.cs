@@ -18,25 +18,6 @@ internal sealed class TablePlan
 
     #endregion
 
-    #region Methods
-
-    #region Public Methods
-
-    /// <summary>
-    /// Returns whether <paramref name="other"/> puts the same rows on the same pages at the same positions and ends at
-    /// the same y-coordinate. Changes that leave the layout the same, such as a cell color, compare equal (WR-029).
-    /// </summary>
-    /// <param name="other">The plan to compare with.</param>
-    /// <returns>True when both plans place the table the same way.</returns>
-    public bool PlacesTableLike(TablePlan other)
-    {
-        return EndY.Equals(other.EndY) && Parts.SequenceEqual(other.Parts);
-    }
-
-    #endregion
-
-    #endregion
-
     #region Properties, Indexers
 
     /// <summary>

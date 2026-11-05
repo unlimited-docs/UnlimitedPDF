@@ -47,7 +47,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo EmployeeDirectory { get; } = new(
         "Employee directory",
-        "A long table that continues across pages, repeats its header row, and numbers every page.",
+        "A long table that continues across pages and repeats its header row on every page.",
         "playground/documents/employee-directory",
         "EmployeeDirectorySample.cs",
         "employee-directory.pdf",

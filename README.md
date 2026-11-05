@@ -247,25 +247,16 @@ for (int i = 1; i <= 200; i++)
     table.GetOrCreateCell(i, 2).Text = "Engineering";
 }
 
-// Ask where the table ends to place content after it, or on each page it continued onto.
-var end = page.GetTableEnd(table);
-end.Page.AddText("200 employees", 40, (int)(end.Y - 20), 10);
-for (int i = 0; i < end.ContinuationPages.Count; i++)
-{
-    end.ContinuationPages[i].AddText($"Page {i + 2}", 500, 20, 9);
-}
-
 pdfDocument.Save("directory.pdf");
 ```
 
 - A row taller than the space between the margins, or header rows that cannot fit with one data row, make `Save` throw before anything is written.
 - Tables that start on the same page share their continuation pages, so side-by-side tables stay side by side.
-- `GetTableEnd` reports the layout at the time of the call. If you then change the table or the margins so that it lays out differently, `Save` throws; call `GetTableEnd` again after the change.
 - Content you place at coordinates is never moved.
 
 ## Changes in 0.1.0
 
-- New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.TopMargin`, `PdfDocument.BottomMargin`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`, `PdfPageBuilder.GetTableEnd`). Tables that fit their page are drawn exactly as before.
+- New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.TopMargin`, `PdfDocument.BottomMargin`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
 - New: images (`PdfImage`, `PdfPageBuilder.AddImage`), images and stacked content in table cells, row height rules, and unit conversion (`PdfUnits`).
 - `PdfTableCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
 - Table cells with `VAlign` set to `Top` or `Bottom` are now drawn that way (it had no effect before).

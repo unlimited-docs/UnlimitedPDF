@@ -39,13 +39,15 @@
 
     private Task<PdfDocument> BuildAsync() => Task.FromResult(EmployeeDirectorySample.Build(_input));
 
-    // The status line shows this count; the library lays the table out to find it.
+    // The status line shows this count, read from the saved document's page tree.
     private int CountPages()
     {
         try
         {
-            EmployeeDirectorySample.Build(_input, out int pageCount);
-            return pageCount;
+            using var stream = new System.IO.MemoryStream();
+            EmployeeDirectorySample.Build(_input).Save(stream);
+            var match = System.Text.RegularExpressions.Regex.Match(System.Text.Encoding.ASCII.GetString(stream.ToArray()), @"/Count (\d+)");
+            return match.Success ? int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 1;
         }
         catch (Exception)
         {

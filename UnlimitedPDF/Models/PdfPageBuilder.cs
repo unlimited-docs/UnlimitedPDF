@@ -11,18 +11,16 @@ public class PdfPageBuilder
 
     private readonly List<object> _contentElements = new();
     private readonly PdfPageContentStream _contentStream;
-    private readonly PdfDocument? _document;
     private readonly int _pageNumber;
 
     #endregion
 
     #region Constructors and Finalizers
 
-    internal PdfPageBuilder(PdfPageContentStream contentStream, int pageNumber = 1, PdfDocument? document = null, int continuationIndex = 0)
+    internal PdfPageBuilder(PdfPageContentStream contentStream, int pageNumber = 1, int continuationIndex = 0)
     {
         _contentStream = contentStream;
         _pageNumber = pageNumber;
-        _document = document;
         ContinuationIndex = continuationIndex;
     }
 
@@ -134,33 +132,6 @@ public class PdfPageBuilder
             FontSize = fontSize,
             FontName = fontName
         });
-    }
-
-    /// <summary>
-    /// Lays out a table added to this page across as many pages as it needs and returns where it ends: the page that
-    /// holds its last row, the y-coordinate where that row ends, and the continuation pages it was drawn onto. Use it
-    /// to place content after the table or on each of its pages. Continuation pages are added after this page as
-    /// needed. Change the table or the document margins after this call only in ways that keep its layout, or call it
-    /// again: saving fails when the table no longer lays out as it did here.
-    /// </summary>
-    /// <param name="table">A table added to this page with <see cref="AddTable"/>.</param>
-    /// <returns>Where the table ends.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="table"/> is null.</exception>
-    /// <exception cref="ArgumentException"><paramref name="table"/> was not added to this page.</exception>
-    /// <exception cref="InvalidOperationException">A row, or the header rows with a data row, cannot fit on any page, or a row leaves an image no room.</exception>
-    [AddedVersion("0.1.0")]
-    [Description("Lays out a table and returns the page and y position where it ends, and the pages it continued onto.")]
-    public PdfTableEnd GetTableEnd(PdfTable table)
-    {
-        if (table is null) throw new ArgumentNullException(nameof(table));
-        if (!_contentElements.Contains(table) || _document is null)
-            throw new ArgumentException("The table was not added to this page.", nameof(table));
-
-        var plan = _document.PlanTable(this, table);
-        table.QueriedPlan = plan;
-
-        var continuationPages = plan.Parts.Select(part => part.Page).Where(page => page != this).Distinct().ToList();
-        return new PdfTableEnd(plan.Parts[plan.Parts.Count - 1].Page, plan.EndY, continuationPages);
     }
 
     #endregion

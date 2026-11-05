@@ -67,7 +67,7 @@ internal static class VisualCheckDocument
     private static void AddPaginationPage(PdfPageBuilder page)
     {
         page.AddText("Visual check 4 of 4: table pagination", 40, 800, 14);
-        AddCaption(page, "Rows 1 to 34 are on this page and none is cut at the bottom; the table|continues on the next page, which repeats the gray header row at its top", 40, 785);
+        AddCaption(page, "Rows 1 to 34 are on this page and none is cut at the bottom; the table continues on the|next page, which repeats the gray header row at its top, followed by rows 35 to 50 in order", 40, 785);
 
         var table = page.AddTable(40, 750, 500);
         table.SetColumnWidths(80, 270, 150);
@@ -87,9 +87,6 @@ internal static class VisualCheckDocument
             row.GetCell(1).Text = "Every cell has a full border";
             row.GetCell(2).Text = r <= 34 ? "first" : "continued";
         }
-
-        var end = page.GetTableEnd(table);
-        AddCaption(end.Page, "Rows 35 to 50 follow the header in order; this text sits just below row 50", 40, (int)(end.Y - 15));
     }
 
     private static void AddOrientationPage(PdfPageBuilder page)
