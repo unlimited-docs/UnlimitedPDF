@@ -1,4 +1,6 @@
-﻿namespace UnlimitedPDF;
+﻿using UnlimitedPDF.Models.Table;
+
+namespace UnlimitedPDF;
 
 public class PdfDocument
 {
@@ -9,6 +11,8 @@ public class PdfDocument
     private readonly Dictionary<string, int> _imageObjects = new(StringComparer.Ordinal);
     private readonly List<PageEntry> _pageEntries = new();
     private readonly PdfPages _pages;
+    private double _bottomMargin;
+    private double _topMargin;
 
     #endregion
 
@@ -75,7 +79,8 @@ public class PdfDocument
         // Create a new Page builder, associate it with the content stream, and keep the page so its
         // dictionary can be rewritten at save (resources are only known then).
         var pageBuilder = new PdfPageBuilder(contentStream, pageNumber: _pageEntries.Count + 1);
-        _pageEntries.Add(new PageEntry(pageBuilder, pageInternal, pageObject));
+        var entry = new PageEntry(pageBuilder, pageInternal, pageObject, PageSize);
+        _pageEntries.Add(entry);
 
         return pageBuilder;
     }
@@ -138,6 +143,83 @@ public class PdfDocument
 
     #region Private Methods
 
+    private static void EnsureMargin(double value)
+    {
+        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0)
+            throw new ArgumentOutOfRangeException(nameof(value), value, "The margin must be a finite number of points, zero or greater.");
+    }
+
+    private static PageEntry PageAt(PageEntry root, int index) => index == 0 ? root : root.Chain[index - 1];
+
+    // Appends a continuation page of the root page's size, numbered after every existing object as AddPage does
+    // (WR-002). Its place in /Kids, after the root page and its earlier continuation pages, is set at save.
+    private void AddContinuationPage(PageEntry root)
+    {
+        int pageObjectNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
+        int contentStreamObjectNumber = pageObjectNumber + 1;
+        var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
+
+        var pageInternal = new PdfPage
+        {
+            Parent = new PdfIndirectReference(objectNumber: 2),
+            Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
+            MediaBox = root.PageSize.ToMediaBoxString()
+        };
+        var pageObject = new PdfObject(objectNumber: pageObjectNumber, content: pageInternal.ToString());
+
+        _body.AddObject(pageObject);
+        _body.AddObject(contentStream);
+
+        var builder = new PdfPageBuilder(contentStream, root.Builder.PageNumber, continuationIndex: root.Chain.Count + 1);
+        root.Chain.Add(new PageEntry(builder, pageInternal, pageObject, root.PageSize));
+    }
+
+    // Lays out every table on the root page and its continuation pages, page by page and in the order the tables were
+    // added. Tables that start on the same page share the following continuation pages, and a table on a continuation
+    // page continues on the same chain (WR-027). Continuation pages are added when a table needs more than exist.
+    private ChainPlan PlanChain(PageEntry root)
+    {
+        var plans = new Dictionary<PdfTable, TablePlan>();
+        var carried = new Dictionary<PdfPageBuilder, List<(PdfTable, TablePart)>>();
+        double pageHeight = root.PageSize.ToDimensions().Height;
+        int pagesNeeded = 1;
+
+        for (int index = 0; index < pagesNeeded; index++)
+        {
+            var page = PageAt(root, index).Builder;
+            int tableNumber = 0;
+            foreach (var table in page.Tables)
+            {
+                int number = ++tableNumber;
+                var layout = PdfTableRenderer.Layout(table, page.PageNumber, number);
+                var (splits, headerRows, endY) = TablePaginator.Paginate(
+                    table,
+                    layout,
+                    pageHeight,
+                    TopMargin,
+                    BottomMargin,
+                    () => string.Format(CultureInfo.InvariantCulture, "table {0} on {1}", number, page.Description));
+
+                pagesNeeded = Math.Max(pagesNeeded, index + splits[splits.Count - 1].PageOffset + 1);
+                while (root.Chain.Count < pagesNeeded - 1) AddContinuationPage(root);
+
+                int start = index;
+                var parts = splits
+                    .Select(split => new TablePart(PageAt(root, start + split.PageOffset).Builder, split.FirstRow, split.EndRow, split.Top, split.RepeatsHeader))
+                    .ToList();
+                plans[table] = new TablePlan(layout, parts, headerRows, endY);
+
+                foreach (var part in parts.Skip(1))
+                {
+                    if (!carried.TryGetValue(part.Page, out var list)) carried[part.Page] = list = new List<(PdfTable, TablePart)>();
+                    list.Add((table, part));
+                }
+            }
+        }
+
+        return new ChainPlan(plans, carried, pagesNeeded);
+    }
+
     // Pages without images keep an empty resource dictionary, exactly as before images existed.
     private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images)
     {
@@ -153,12 +235,34 @@ public class PdfDocument
 
     private void PrepareDocumentForSave()
     {
-        // Lay out every page first, without changing the document. Any layout error is thrown here, before
+        // Lay out every table first; only continuation pages may be added. Any layout error is thrown here, before
         // anything is written or committed.
-        var contents = new PdfPageContent[_pageEntries.Count];
+        var chains = _pageEntries.Select(PlanChain).ToList();
+
+        // Pages in reading order: each caller page, then the continuation pages its tables use. Continuation pages an
+        // earlier save needed but this one does not are left out and kept empty, so object numbers stay contiguous.
+        var visible = new List<PageEntry>();
+        var unused = new List<PageEntry>();
+        var chainOf = new List<ChainPlan>();
         for (int i = 0; i < _pageEntries.Count; i++)
         {
-            contents[i] = _pageEntries[i].Builder.BuildContent();
+            var root = _pageEntries[i];
+            int used = chains[i].PagesNeeded - 1;
+            visible.Add(root);
+            visible.AddRange(root.Chain.Take(used));
+            unused.AddRange(root.Chain.Skip(used));
+            chainOf.AddRange(Enumerable.Repeat(chains[i], used + 1));
+        }
+
+        var plans = chains.SelectMany(chain => chain.Plans).ToDictionary(pair => pair.Key, pair => pair.Value);
+        var contents = new PdfPageContent[visible.Count];
+        for (int i = 0; i < visible.Count; i++)
+        {
+            var builder = visible[i].Builder;
+            IReadOnlyList<(PdfTable, TablePart)> carried = chainOf[i].Carried.TryGetValue(builder, out var parts)
+                ? parts
+                : Array.Empty<(PdfTable, TablePart)>();
+            contents[i] = builder.BuildContent(plans, carried);
         }
 
         // Store each distinct image once per document. Objects added by an earlier save are reused.
@@ -171,15 +275,24 @@ public class PdfDocument
         }
 
         // Commit page content and rewrite each page dictionary with the images it uses.
-        for (int i = 0; i < _pageEntries.Count; i++)
+        for (int i = 0; i < visible.Count; i++)
         {
-            var entry = _pageEntries[i];
+            var entry = visible[i];
             entry.Builder.CommitContent(contents[i].Data);
             entry.Page.Resources = CreateResources(contents[i].Images);
             entry.PageObject.Content = entry.Page.ToString();
         }
 
-        // Update the content of the main pages object (object 2) to reflect all added pages.
+        foreach (var entry in unused)
+        {
+            entry.Builder.CommitContent(Array.Empty<byte>());
+            entry.Page.Resources = new PdfDictionary();
+            entry.PageObject.Content = entry.Page.ToString();
+        }
+
+        // List the pages in reading order in the main pages object (object 2).
+        _pages.Kids.Clear();
+        _pages.Kids.AddRange(visible.Select(entry => new PdfIndirectReference(objectNumber: entry.PageObject.ObjectNumber)));
         var pagesObject = _body.Objects.First(o => o.ObjectNumber == 2);
         pagesObject.Content = _pages.ToString();
     }
@@ -335,18 +448,62 @@ public class PdfDocument
     #region Properties, Indexers
 
     /// <summary>
+    /// Gets or sets the bottom margin of every page, in points. The default is 0 (the page's bottom edge). A table
+    /// continues on a new page when its next row would pass this margin. Content placed at absolute coordinates is not
+    /// moved. Margins that leave no room between them make saving any table with rows fail.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
+    public double BottomMargin
+    {
+        get => _bottomMargin;
+        set
+        {
+            EnsureMargin(value);
+            _bottomMargin = value;
+        }
+    }
+
+    /// <summary>
     /// Gets or sets the default page size for the document.
     /// </summary>
     public PdfPageSize PageSize { get; set; }
+
+    /// <summary>
+    /// Gets or sets the top margin of every page, in points. The default is 0 (the page's top edge). A table that
+    /// continues on a new page resumes at this margin; on its own page it still starts at its own y-coordinate.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
+    public double TopMargin
+    {
+        get => _topMargin;
+        set
+        {
+            EnsureMargin(value);
+            _topMargin = value;
+        }
+    }
 
     #endregion
 
     #region Nested Types
 
     /// <summary>
-    /// A page's builder together with its page dictionary and the object that serializes it.
+    /// The tables of a caller page and its continuation pages, laid out: each table's plan, the parts each
+    /// continuation page draws for tables that started on an earlier page, and how many of the pages are used.
     /// </summary>
-    private sealed record PageEntry(PdfPageBuilder Builder, PdfPage Page, PdfObject PageObject);
+    private sealed record ChainPlan(
+        Dictionary<PdfTable, TablePlan> Plans,
+        Dictionary<PdfPageBuilder, List<(PdfTable, TablePart)>> Carried,
+        int PagesNeeded);
+
+    /// <summary>
+    /// A page's builder together with its page dictionary, the object that serializes it, and its size. A caller page
+    /// also lists its continuation pages in order.
+    /// </summary>
+    private sealed record PageEntry(PdfPageBuilder Builder, PdfPage Page, PdfObject PageObject, PdfPageSize PageSize)
+    {
+        public List<PageEntry> Chain { get; } = new();
+    }
 
     #endregion
 }

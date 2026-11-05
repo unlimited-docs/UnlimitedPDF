@@ -38,6 +38,7 @@ public class GoldenOutputTests
     {
         GoldenDocuments.Invoice,
         GoldenDocuments.MiddleTable,
+        GoldenDocuments.PaginatedTable,
         GoldenDocuments.TextPages
     };
 

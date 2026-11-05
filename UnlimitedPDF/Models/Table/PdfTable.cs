@@ -8,6 +8,7 @@ public class PdfTable
     #region Fields and Constants
 
     private readonly List<PdfTableColumn> _cols = new();
+    private int _headerRowCount;
     private readonly List<PdfTableRow> _rows = new();
 
     #endregion
@@ -305,6 +306,29 @@ public class PdfTable
     /// Gets the columns.
     /// </summary>
     public IReadOnlyList<PdfTableColumn> Columns => _cols;
+
+    /// <summary>
+    /// Gets or sets how many leading rows are header rows. The default is 0 (no header rows). Header rows are never the
+    /// last rows on a page: when they and the next row do not fit, they move to the next page together. Set
+    /// <see cref="RepeatHeaderRows"/> to draw them again at the top of every continuation page.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>
+    public int HeaderRowCount
+    {
+        get => _headerRowCount;
+        set
+        {
+            if (value < 0)
+                throw new ArgumentOutOfRangeException(nameof(value), value, "The header row count cannot be negative.");
+            _headerRowCount = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets whether the <see cref="HeaderRowCount"/> header rows are drawn again at the top of every
+    /// continuation page when the table continues on a new page. The default is false.
+    /// </summary>
+    public bool RepeatHeaderRows { get; set; }
 
     /// <summary>
     /// Gets the number of rows.

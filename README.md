@@ -218,8 +218,45 @@ pdfDocument.Save("images.pdf");
 - Photos honor their EXIF orientation. Turn this off with `PdfImageLoadOptions.ApplyExifOrientation = false`.
 - Bad input fails at load. Unsupported formats, damaged data, and images over the pixel limit throw `PdfImageException`. The limit is 100,000,000 pixels by default; change it with `PdfImageLoadOptions.MaxPixels` or `PdfImage.DefaultMaxPixels`.
 
+## Tables across pages
+
+A table that runs past the bottom of the page continues on a new page by itself. Rows are never split, and the new pages are added right after the table's page.
+
+```cs
+using UnlimitedPDF;
+using UnlimitedPDF.Models.Table;
+
+// Margins apply to every page; both default to 0 (the page edges).
+var pdfDocument = new PdfDocument { TopMargin = 40, BottomMargin = 50 };
+var page = pdfDocument.AddPage();
+
+var table = page.AddTable(40, 760, 515);
+table.SetColumnWidths(60, 255, 200);
+
+// Mark the first row as a header and draw it again at the top of every new page.
+table.HeaderRowCount = 1;
+table.RepeatHeaderRows = true;
+table.GetOrCreateCell(0, 0).Text = "No.";
+table.GetOrCreateCell(0, 1).Text = "Name";
+table.GetOrCreateCell(0, 2).Text = "Department";
+
+for (int i = 1; i <= 200; i++)
+{
+    table.GetOrCreateCell(i, 0).Text = i.ToString();
+    table.GetOrCreateCell(i, 1).Text = "Employee " + i;
+    table.GetOrCreateCell(i, 2).Text = "Engineering";
+}
+
+pdfDocument.Save("directory.pdf");
+```
+
+- A row taller than the space between the margins, or header rows that cannot fit with one data row, make `Save` throw before anything is written.
+- Tables that start on the same page share their continuation pages, so side-by-side tables stay side by side.
+- Content you place at coordinates is never moved.
+
 ## Changes in 0.1.0
 
+- New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.TopMargin`, `PdfDocument.BottomMargin`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
 - New: images (`PdfImage`, `PdfPageBuilder.AddImage`), images and stacked content in table cells, row height rules, and unit conversion (`PdfUnits`).
 - `PdfTableCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
 - Table cells with `VAlign` set to `Top` or `Bottom` are now drawn that way (it had no effect before).

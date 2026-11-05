@@ -28,7 +28,7 @@ public static class SampleCatalog
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
-            [Invoice, MedicalReport, Receipt, Certificate])
+            [Invoice, MedicalReport, Receipt, Certificate, EmployeeDirectory])
     ];
 
     /// <summary>
@@ -41,6 +41,17 @@ public static class SampleCatalog
         "CertificateSample.cs",
         "certificate.pdf",
         "award");
+
+    /// <summary>
+    /// Gets the Employee directory demo.
+    /// </summary>
+    public static SampleDemo EmployeeDirectory { get; } = new(
+        "Employee directory",
+        "A long table that continues across pages and repeats its header row on every page.",
+        "playground/documents/employee-directory",
+        "EmployeeDirectorySample.cs",
+        "employee-directory.pdf",
+        "users");
 
     /// <summary>
     /// Gets the Images demo.
