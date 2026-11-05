@@ -20,7 +20,7 @@ public class VisualCheckTests
         var pdf = stream.ToArray();
 
         PdfStructureChecker.AssertValid(pdf);
-        Assert.Equal(3, Regex.Matches(Encoding.Latin1.GetString(pdf), @"/Type /Page\b").Count);
+        Assert.Equal(5, Regex.Matches(Encoding.Latin1.GetString(pdf), @"/Type /Page\b").Count);
 
         var directory = Environment.GetEnvironmentVariable(VisualCheckDocument.OutputVariable);
         if (!string.IsNullOrEmpty(directory))

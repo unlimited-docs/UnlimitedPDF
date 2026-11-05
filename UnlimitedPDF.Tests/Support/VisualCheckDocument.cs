@@ -29,10 +29,11 @@ internal static class VisualCheckDocument
     /// </summary>
     public static PdfDocument Build()
     {
-        var document = new PdfDocument();
+        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36 };
         AddOrientationPage(document.AddPage());
         AddJpegColorPage(document.AddPage());
         AddPngPage(document.AddPage());
+        AddPaginationPage(document.AddPage());
         return document;
     }
 
@@ -50,7 +51,7 @@ internal static class VisualCheckDocument
 
     private static void AddJpegColorPage(PdfPageBuilder page)
     {
-        page.AddText("Visual check 2 of 3: JPEG color", 40, 800, 14);
+        page.AddText("Visual check 2 of 4: JPEG color", 40, 800, 14);
 
         Place(page, "rgb-baseline.jpg", 40, 640, "RGB: " + Quadrants);
         Place(page, "gray-baseline.jpg", 300, 640, "Gray: black top-left, dark gray top-right,|light gray bottom-left, white bottom-right");
@@ -62,9 +63,38 @@ internal static class VisualCheckDocument
         AddCaption(page, "300 dpi file: drawn 72 x 48 pt,|1 x 2/3 inch, like a 96 dpi file", 300, 455);
     }
 
+    // A table that continues on a library-added page with its header row repeated (WR-027).
+    private static void AddPaginationPage(PdfPageBuilder page)
+    {
+        page.AddText("Visual check 4 of 4: table pagination", 40, 800, 14);
+        AddCaption(page, "Rows 1 to 34 are on this page and none is cut at the bottom; the table|continues on the next page, which repeats the gray header row at its top", 40, 785);
+
+        var table = page.AddTable(40, 750, 500);
+        table.SetColumnWidths(80, 270, 150);
+        table.HeaderRowCount = 1;
+        table.RepeatHeaderRows = true;
+
+        var header = table.AddRow();
+        header.GetCell(0).Text = "Row";
+        header.GetCell(1).Text = "Description";
+        header.GetCell(2).Text = "Page";
+        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+
+        for (int r = 1; r <= 50; r++)
+        {
+            var row = table.AddRow();
+            row.GetCell(0).Text = r.ToString(CultureInfo.InvariantCulture);
+            row.GetCell(1).Text = "Every cell has a full border";
+            row.GetCell(2).Text = r <= 34 ? "first" : "continued";
+        }
+
+        var end = page.GetTableEnd(table);
+        AddCaption(end.Page, "Rows 35 to 50 follow the header in order; this text sits just below row 50", 40, (int)(end.Y - 15));
+    }
+
     private static void AddOrientationPage(PdfPageBuilder page)
     {
-        page.AddText("Visual check 1 of 3: EXIF orientation", 40, 800, 14);
+        page.AddText("Visual check 1 of 4: EXIF orientation", 40, 800, 14);
         page.AddText("Every image must look the same:", 40, 780, 10);
         page.AddText("red top-left, green top-right, blue bottom-left, yellow bottom-right.", 40, 766, 10);
 
@@ -82,7 +112,7 @@ internal static class VisualCheckDocument
 
     private static void AddPngPage(PdfPageBuilder page)
     {
-        page.AddText("Visual check 3 of 3: PNG", 40, 800, 14);
+        page.AddText("Visual check 3 of 4: PNG", 40, 800, 14);
         page.AddText("Transparent parts must show the stripes behind them;", 40, 780, 10);
         page.AddText("no white or black boxes around the shapes.", 40, 766, 10);
 

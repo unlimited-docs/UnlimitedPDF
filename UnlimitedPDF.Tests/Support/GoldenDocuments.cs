@@ -13,6 +13,7 @@ internal static class GoldenDocuments
 
     public const string Invoice = "invoice";
     public const string MiddleTable = "middle-table";
+    public const string PaginatedTable = "paginated-table";
     public const string TextPages = "text-pages";
 
     #endregion
@@ -32,6 +33,7 @@ internal static class GoldenDocuments
         {
             Invoice => BuildInvoice(),
             MiddleTable => BuildMiddleTable(),
+            PaginatedTable => BuildPaginatedTable(),
             TextPages => BuildTextPages(),
             _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown golden document.")
         };
@@ -180,6 +182,45 @@ internal static class GoldenDocuments
         }
 
         table.SetText(5, 1, "Auto-expanded");
+        return document;
+    }
+
+    // A 60-row table with a repeated header continuing across pages inside 36 pt margins, followed by a page the
+    // caller added (WR-027, WR-028). Captured when table pagination was added; it locks that layout.
+    private static PdfDocument BuildPaginatedTable()
+    {
+        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36 };
+        var page = document.AddPage();
+        page.AddText("Paginated table", 50, 780, 14);
+
+        var table = page.AddTable(50, 760, 495);
+        table.SetColumnWidths(60, 285, 150);
+        table.HeaderRowCount = 1;
+        table.RepeatHeaderRows = true;
+
+        var header = table.AddRow();
+        header.GetCell(0).Text = "No.";
+        header.GetCell(1).Text = "Item";
+        header.GetCell(2).Text = "Amount";
+        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+
+        for (int r = 1; r <= 60; r++)
+        {
+            var row = table.AddRow();
+            row.GetCell(0).Text = r.ToString(CultureInfo.InvariantCulture);
+            row.GetCell(1).Text = "Item " + r;
+            row.GetCell(2).Text = (r * 12.5).ToString("0.00", CultureInfo.InvariantCulture);
+            row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+        }
+
+        var end = page.GetTableEnd(table);
+        end.Page.AddText("End of table", 50, (int)(end.Y - 20), 10);
+        foreach (var continuation in end.ContinuationPages)
+        {
+            continuation.AddText("Continued", 50, 20, 9);
+        }
+
+        document.AddPage().AddText("Next section", 50, 780, 14);
         return document;
     }
 

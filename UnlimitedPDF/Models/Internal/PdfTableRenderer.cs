@@ -63,39 +63,26 @@ internal static class PdfTableRenderer
     {
         var layout = Layout(table, pageNumber, tableNumber);
         var sb = new StringBuilder();
-        double currentY = table.Y;
+        DrawRows(sb, table, layout, Enumerable.Range(0, table.RowCount), table.Y, imageName);
+        return sb.ToString();
+    }
 
-        for (int r = 0; r < table.RowCount; r++)
-        {
-            double rowHeight = layout.RowHeights[r];
-            double currentX = table.X;
-            for (int c = 0; c < table.ColCount; c++)
-            {
-                var cell = table.GetCell(r, c);
-                double cellWidth = layout.ColumnWidths[c];
+    /// <summary>
+    /// Returns the content stream operators that draw one page part of a table laid out across pages (WR-027): the
+    /// repeated header rows when the part repeats them, then the part's rows, from the part's top edge down.
+    /// </summary>
+    /// <param name="table">The table.</param>
+    /// <param name="plan">The table's page plan.</param>
+    /// <param name="part">The part to draw; one of <paramref name="plan"/>'s parts.</param>
+    /// <param name="imageName">Returns the page resource name of an image, for example "/Im1".</param>
+    /// <returns>The operators; empty when the part has no rows.</returns>
+    public static string RenderPart(PdfTable table, TablePlan plan, TablePart part, Func<PdfImageData, string> imageName)
+    {
+        var rows = Enumerable.Range(part.FirstRow, part.EndRow - part.FirstRow);
+        if (part.RepeatsHeader) rows = Enumerable.Range(0, plan.HeaderRowCount).Concat(rows);
 
-                sb.AppendLine("q"); // Save graphics state
-
-                // Draw background
-                var bg = cell.Background;
-                sb.AppendLine(FormattableString.Invariant($"{bg.R:F3} {bg.G:F3} {bg.B:F3} rg")); // Set fill color
-                sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re f")); // Draw and fill rectangle
-
-                // Draw borders
-                var border = cell.LeftBorder; // Using left as a proxy for all for now
-                sb.AppendLine(FormattableString.Invariant($"{border.Color.R:F3} {border.Color.G:F3} {border.Color.B:F3} RG")); // Set stroke color
-                sb.AppendLine(FormattableString.Invariant($"{border.Width} w")); // Border width
-                sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re s")); // Stroke rectangle
-
-                DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, imageName);
-
-                sb.AppendLine("Q"); // Restore graphics state
-
-                currentX += cellWidth;
-            }
-            currentY -= rowHeight;
-        }
-
+        var sb = new StringBuilder();
+        DrawRows(sb, table, plan.Layout, rows, part.Top, imageName);
         return sb.ToString();
     }
 
@@ -171,6 +158,44 @@ internal static class PdfTableRenderer
             }
 
             top -= item.Height;
+        }
+    }
+
+    // Draws the given rows one below the other from top. Every cell is drawn with its own background and closed border,
+    // so each page part of a table looks complete.
+    private static void DrawRows(StringBuilder sb, PdfTable table, TableLayout layout, IEnumerable<int> rows, double top, Func<PdfImageData, string> imageName)
+    {
+        double currentY = top;
+
+        foreach (int r in rows)
+        {
+            double rowHeight = layout.RowHeights[r];
+            double currentX = table.X;
+            for (int c = 0; c < table.ColCount; c++)
+            {
+                var cell = table.GetCell(r, c);
+                double cellWidth = layout.ColumnWidths[c];
+
+                sb.AppendLine("q"); // Save graphics state
+
+                // Draw background
+                var bg = cell.Background;
+                sb.AppendLine(FormattableString.Invariant($"{bg.R:F3} {bg.G:F3} {bg.B:F3} rg")); // Set fill color
+                sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re f")); // Draw and fill rectangle
+
+                // Draw borders
+                var border = cell.LeftBorder; // Using left as a proxy for all for now
+                sb.AppendLine(FormattableString.Invariant($"{border.Color.R:F3} {border.Color.G:F3} {border.Color.B:F3} RG")); // Set stroke color
+                sb.AppendLine(FormattableString.Invariant($"{border.Width} w")); // Border width
+                sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re s")); // Stroke rectangle
+
+                DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, imageName);
+
+                sb.AppendLine("Q"); // Restore graphics state
+
+                currentX += cellWidth;
+            }
+            currentY -= rowHeight;
         }
     }
 
