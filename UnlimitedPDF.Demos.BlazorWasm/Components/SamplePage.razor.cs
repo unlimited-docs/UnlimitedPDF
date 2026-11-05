@@ -67,6 +67,10 @@ public partial class SamplePage
 
     #region Private Methods
 
+    // The library writes one "/Type /Page" entry per page object and "/Type /Pages" for the page tree.
+    private static int CountPages(byte[] pdf) =>
+        System.Text.RegularExpressions.Regex.Matches(System.Text.Encoding.ASCII.GetString(pdf), @"/Type /Page\b").Count;
+
     private static string FormatSize(int bytes) =>
         bytes < 1024
             ? $"{bytes} B"
@@ -109,10 +113,11 @@ public partial class SamplePage
             await _preview.ShowAsync(pdfBytes);
             stopwatch.Stop();
 
-            _result = new GenerationResult(PageCount, pdfBytes.Length, stopwatch.ElapsedMilliseconds);
+            int pageCount = PageCount ?? CountPages(pdfBytes);
+            _result = new GenerationResult(pageCount, pdfBytes.Length, stopwatch.ElapsedMilliseconds);
             _stale = false;
             _tab = OutputTab.Preview;
-            _announcement = $"PDF ready: {PageCount} {(PageCount == 1 ? "page" : "pages")}, generated in {stopwatch.ElapsedMilliseconds} milliseconds.";
+            _announcement = $"PDF ready: {pageCount} {(pageCount == 1 ? "page" : "pages")}, generated in {stopwatch.ElapsedMilliseconds} milliseconds.";
         }
         catch (Exception exception)
         {
@@ -199,10 +204,10 @@ public partial class SamplePage
     [Parameter] public EventCallback OnReset { get; set; }
 
     /// <summary>
-    /// Gets or sets how many pages the current inputs produce, shown in the status line. The library has no page-count
-    /// API, so each demo supplies it from its own inputs.
+    /// Gets or sets how many pages the current inputs produce, shown in the status line, or null to count the pages of
+    /// the generated PDF (for demos whose page count depends on the content, such as a flowing table).
     /// </summary>
-    [Parameter] public int PageCount { get; set; } = 1;
+    [Parameter] public int? PageCount { get; set; } = 1;
 
     #endregion
 

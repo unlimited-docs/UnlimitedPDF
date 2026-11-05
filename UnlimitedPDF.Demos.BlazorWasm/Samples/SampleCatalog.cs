@@ -23,8 +23,8 @@ public static class SampleCatalog
     [
         new SampleCategory(
             "Create",
-            "Build documents from code: pages, text, tables, and images.",
-            [TextAndPages, Tables, Images]),
+            "Build documents from code: pages, text, tables, images, and headers and footers.",
+            [TextAndPages, Tables, Images, HeadersFooters]),
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
@@ -47,11 +47,22 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo EmployeeDirectory { get; } = new(
         "Employee directory",
-        "A long table that continues across pages and repeats its header row on every page.",
+        "A long table that continues across pages, repeats its header row, and numbers every page.",
         "playground/documents/employee-directory",
         "EmployeeDirectorySample.cs",
         "employee-directory.pdf",
         "users");
+
+    /// <summary>
+    /// Gets the Headers and footers demo.
+    /// </summary>
+    public static SampleDemo HeadersFooters { get; } = new(
+        "Headers and footers",
+        "A report with a header and footer on every page, page numbers, first and last page rules, and content that flows onto new pages.",
+        "playground/create/headers-and-footers",
+        "HeadersFootersSample.cs",
+        "headers-and-footers.pdf",
+        "spark");
 
     /// <summary>
     /// Gets the Images demo.

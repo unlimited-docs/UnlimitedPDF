@@ -1,0 +1,43 @@
+@page "/playground/create/headers-and-footers"
+
+<SamplePage Demo="SampleCatalog.HeadersFooters" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Report">
+            <div class="field">
+                <label for="title">Title</label>
+                <input id="title" class="form-control" @bind="_input.Title" @bind:event="oninput" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="sections">Sections (1 to 30)</label>
+                    <input id="sections" type="number" min="1" max="30" class="form-control" @bind="_input.SectionCount" />
+                </div>
+                <div class="field">
+                    <label for="rows">Rows per section (1 to 100)</label>
+                    <input id="rows" type="number" min="1" max="100" class="form-control" @bind="_input.RowsPerSection" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Pages">
+            <div class="field">
+                <label for="first-page">
+                    <input id="first-page" type="checkbox" @bind="_input.DifferentFirstPage" />
+                    Give the first page its own header
+                </label>
+            </div>
+            <div class="field">
+                <label for="max-pages">Page limit (0 for none)</label>
+                <input id="max-pages" type="number" min="0" class="form-control" @bind="_input.MaxPages" />
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private HeadersFootersInput _input = new();
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(HeadersFootersSample.Build(_input));
+
+    private void Reset() => _input = new();
+}

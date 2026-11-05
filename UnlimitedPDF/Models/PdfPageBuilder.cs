@@ -54,45 +54,34 @@ public class PdfPageBuilder
         if (width is double w) EnsurePositive(w, nameof(width));
         if (height is double h) EnsurePositive(h, nameof(height));
 
-        double pixelWidth = image.PixelWidth;
-        double pixelHeight = image.PixelHeight;
-        double drawX = x, drawY = y, drawWidth, drawHeight;
-
-        if (width is null && height is null)
-        {
-            drawWidth = PdfUnits.FromPixels(pixelWidth);
-            drawHeight = PdfUnits.FromPixels(pixelHeight);
-        }
-        else if (height is null)
-        {
-            drawWidth = width!.Value;
-            drawHeight = drawWidth * pixelHeight / pixelWidth;
-        }
-        else if (width is null)
-        {
-            drawHeight = height.Value;
-            drawWidth = drawHeight * pixelWidth / pixelHeight;
-        }
-        else if ((options?.Fit ?? PdfImageFit.Stretch) == PdfImageFit.Contain)
-        {
-            // Fit inside the box keeping the aspect ratio, centered.
-            drawWidth = width.Value;
-            drawHeight = drawWidth * pixelHeight / pixelWidth;
-            if (drawHeight > height.Value)
-            {
-                drawHeight = height.Value;
-                drawWidth = drawHeight * pixelWidth / pixelHeight;
-            }
-            drawX = x + (width.Value - drawWidth) / 2;
-            drawY = y + (height.Value - drawHeight) / 2;
-        }
-        else
-        {
-            drawWidth = width.Value;
-            drawHeight = height.Value;
-        }
+        var box = ImageBox.Compute(image, width, height, options);
+        double drawX = x + box.OffsetX, drawY = y + box.OffsetY, drawWidth = box.DrawWidth, drawHeight = box.DrawHeight;
 
         _contentElements.Add(new PdfImageElement(image.Data, drawX, drawY, drawWidth, drawHeight));
+    }
+
+    /// <summary>
+    /// Adds a filled rectangle with its bottom-left corner at (<paramref name="x"/>, <paramref name="y"/>), in points from
+    /// the page's bottom-left corner, for example a rule, a band, or a box. A rectangle never continues onto another
+    /// page and is drawn in the order it is added.
+    /// </summary>
+    /// <param name="x">The x-coordinate of the bottom-left corner, in points.</param>
+    /// <param name="y">The y-coordinate of the bottom-left corner, in points.</param>
+    /// <param name="width">The width in points.</param>
+    /// <param name="height">The height in points.</param>
+    /// <param name="color">The fill color.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="color"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or a size is zero, negative, or not finite.</exception>
+    [AddedVersion("0.1.0")]
+    [Description("Adds a filled rectangle to the page with its bottom-left corner at the given position, in points.")]
+    public void AddRectangle(double x, double y, double width, double height, PdfColor color)
+    {
+        if (color is null) throw new ArgumentNullException(nameof(color));
+        EnsureFinite(x, nameof(x));
+        EnsureFinite(y, nameof(y));
+        EnsurePositive(width, nameof(width));
+        EnsurePositive(height, nameof(height));
+        _contentElements.Add(new PdfRectangleElement(x, y, width, height, color));
     }
 
     /// <summary>
@@ -143,7 +132,7 @@ public class PdfPageBuilder
     /// on this page. Layout errors are thrown here, before the document commits anything.
     /// </summary>
     /// <returns>The compiled content and the distinct images it draws, in resource-name order.</returns>
-    internal PdfPageContent BuildContent() => BuildContent(plans: null, carriedParts: Array.Empty<(PdfTable, TablePart)>());
+    internal PdfPageContent BuildContent() => BuildContent(plans: null, carriedParts: Array.Empty<(PdfTable, TablePart)>(), after: null);
 
     /// <summary>
     /// Compiles the page's content into content stream bytes without changing the page: first the parts of tables
@@ -152,8 +141,13 @@ public class PdfPageBuilder
     /// </summary>
     /// <param name="plans">Each table's page plan, or null to draw every table whole on this page.</param>
     /// <param name="carriedParts">Parts of tables from earlier pages that are drawn on this page, in drawing order.</param>
+    /// <param name="after">Draws the page's body flow content and its header and footer after the page's own content,
+    /// or null.</param>
     /// <returns>The compiled content and the distinct images it draws, in resource-name order.</returns>
-    internal PdfPageContent BuildContent(IReadOnlyDictionary<PdfTable, TablePlan>? plans, IReadOnlyList<(PdfTable Table, TablePart Part)> carriedParts)
+    internal PdfPageContent BuildContent(
+        IReadOnlyDictionary<PdfTable, TablePlan>? plans,
+        IReadOnlyList<(PdfTable Table, TablePart Part)> carriedParts,
+        Action<StringBuilder, Func<PdfImageData, string>>? after)
     {
         var sb = new StringBuilder();
         var images = new List<PdfImageData>();
@@ -200,6 +194,7 @@ public class PdfPageBuilder
                 sb.AppendLine(element.ToString());
             }
         }
+        after?.Invoke(sb, NameFor);
         return new PdfPageContent(Encoding.ASCII.GetBytes(sb.ToString().Trim()), images);
     }
 

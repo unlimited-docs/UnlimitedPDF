@@ -3,16 +3,16 @@ using UnlimitedPDF.Models.Table;
 namespace UnlimitedPDF.Models.Internal;
 
 /// <summary>
-/// Splits a table's rows into page parts (WR-027). Rows are never split; a row that would pass the bottom margin moves
-/// to the next page, where the table resumes at the top margin below the repeated header rows. Header rows are never
-/// the last rows on a page. Pages are counted from the table's own page (0).
+/// Splits a table's rows into page parts (WR-027). Rows are never split; a row that would pass the body bottom of its
+/// page moves to the next page, where the table resumes at that page's body top below the repeated header rows. Header
+/// rows are never the last rows on a page. Pages are counted from the table's own page (0).
 /// </summary>
 internal static class TablePaginator
 {
     #region Fields and Constants
 
-    // A row that ends within this distance below the bottom margin still fits, so rounding never moves a row.
-    private const double Tolerance = 1e-6;
+    // A row that ends within this distance below the body bottom still fits, so rounding never moves a row.
+    internal const double Tolerance = 1e-6;
 
     #endregion
 
@@ -25,18 +25,19 @@ internal static class TablePaginator
     /// </summary>
     /// <param name="table">The table.</param>
     /// <param name="layout">The table's row and cell layout.</param>
-    /// <param name="pageHeight">The height of the table's page and its continuation pages, in points.</param>
-    /// <param name="topMargin">The document's top margin, in points.</param>
-    /// <param name="bottomMargin">The document's bottom margin, in points.</param>
+    /// <param name="startY">The y-coordinate of the table's top edge on its own page, in points.</param>
+    /// <param name="edges">Returns the top and bottom edges of the room on the page <c>n</c> pages after the table's own
+    /// page, and whether that room is the page's whole, empty body. On the table's own page only the bottom is used.</param>
+    /// <param name="emptyBodyHeight">The height of an empty body, which every row must fit.</param>
     /// <param name="describe">Returns the table's description for error messages, for example "table 1 on page 2".</param>
-    /// <returns>The parts in page order, the header rows in effect, and the y-coordinate where the last row ends.</returns>
+    /// <returns>The parts in page order and the header rows in effect.</returns>
     /// <exception cref="InvalidOperationException">A row, or the header rows with a data row, cannot fit on an empty page.</exception>
-    public static (List<Split> Parts, int HeaderRowCount, double EndY) Paginate(
+    public static (List<Split> Parts, int HeaderRowCount) Paginate(
         PdfTable table,
         TableLayout layout,
-        double pageHeight,
-        double topMargin,
-        double bottomMargin,
+        double startY,
+        Func<int, (double Top, double Bottom, bool Empty)> edges,
+        double emptyBodyHeight,
         Func<string> describe)
     {
         var heights = layout.RowHeights;
@@ -46,14 +47,15 @@ internal static class TablePaginator
         int headerRows = table.HeaderRowCount < rowCount ? table.HeaderRowCount : 0;
         bool repeatHeader = table.RepeatHeaderRows && headerRows > 0;
         double headerHeight = heights.Take(headerRows).Sum();
-        double usable = pageHeight - topMargin - bottomMargin;
 
-        EnsureEveryRowFits(heights, headerRows, headerHeight, repeatHeader, usable, describe);
+        // Every row must fit an empty body, before any layout is attempted.
+        EnsureEveryRowFits(heights, headerRows, headerHeight, repeatHeader, emptyBodyHeight, describe);
 
         var parts = new List<Split>();
         int page = 0;
-        double y = table.Y;
-        var current = new Split(page, 0, 0, y, false);
+        double y = startY;
+        double bottom = edges(0).Bottom;
+        var current = new Split(page, 0, 0, y, y, false);
 
         int row = 0;
         while (row < rowCount)
@@ -63,28 +65,52 @@ internal static class TablePaginator
             double need = headerBlock ? headerHeight + heights[headerRows] : heights[row];
             int count = headerBlock ? headerRows + 1 : 1;
 
-            if (y - need < bottomMargin - Tolerance)
+            if (y - need < bottom - Tolerance)
             {
-                // Only the first part may stay empty: its page may have no room left for the first row.
-                if (current.EndRow == current.FirstRow && page > 0)
-                    throw RowTooTall(describe(), row, heights[row], usable);
+                // Only the first part, or a part on a page whose room is partly taken, may stay empty.
+                var (top, pageBottom, empty) = edges(page);
+                if (current.EndRow == current.FirstRow && page > 0 && empty)
+                    throw RowTooTall(describe(), row, heights[row], top - pageBottom);
 
+                // A part without data rows draws nothing, so header rows never stand alone on a page.
+                if (current.EndRow == current.FirstRow) current = current with { RepeatsHeader = false, Bottom = current.Top };
                 parts.Add(current);
                 page++;
-                y = pageHeight - topMargin;
+                var (nextTop, nextBottom, _) = edges(page);
+                bottom = nextBottom;
+                y = nextTop;
                 bool repeats = repeatHeader && row > 0;
-                current = new Split(page, row, row, y, repeats);
-                if (repeats) y -= headerHeight;
+                current = new Split(page, row, row, y, y, repeats);
+                if (repeats)
+                {
+                    y -= headerHeight;
+                    current = current with { Bottom = y };
+                }
                 continue;
             }
 
             row += count;
             y -= need;
-            current = current with { EndRow = row };
+            current = current with { EndRow = row, Bottom = y };
         }
 
         parts.Add(current);
-        return (parts, headerRows, y);
+        return (parts, headerRows);
+    }
+
+    /// <summary>
+    /// Returns the height of the table's header rows together with its first data row, or of its first row when it has
+    /// no header rows: the least height its first part needs. Returns 0 for a table without rows.
+    /// </summary>
+    /// <param name="table">The table.</param>
+    /// <param name="layout">The table's row and cell layout.</param>
+    /// <returns>The height in points.</returns>
+    public static double HeadHeight(PdfTable table, TableLayout layout)
+    {
+        var heights = layout.RowHeights;
+        if (heights.Length == 0) return 0;
+        int headerRows = table.HeaderRowCount < heights.Length ? table.HeaderRowCount : 0;
+        return heights.Take(headerRows + 1).Sum();
     }
 
     #endregion
@@ -109,7 +135,7 @@ internal static class TablePaginator
             {
                 throw new InvalidOperationException(string.Format(
                     CultureInfo.InvariantCulture,
-                    "The {0} header row(s) of {1} together with row index {2} need {3:0.###} pt, which is more than the {4:0.###} pt between the top and bottom margins. Use fewer or smaller header rows, smaller rows, or smaller margins.",
+                    "The {0} header row(s) of {1} together with row index {2} need {3:0.###} pt, which is more than the {4:0.###} pt of body height between the margins, header, and footer. Use fewer or smaller header rows, smaller rows, or smaller margins.",
                     headerRows,
                     describe(),
                     row,
@@ -122,7 +148,7 @@ internal static class TablePaginator
     private static InvalidOperationException RowTooTall(string table, int row, double height, double usable) =>
         new(string.Format(
             CultureInfo.InvariantCulture,
-            "Row index {0} of {1} is {2:0.###} pt tall, which is more than the {3:0.###} pt between the top and bottom margins, so it cannot fit on any page. Use a smaller row height, an Exactly row so images scale down, or smaller margins.",
+            "Row index {0} of {1} is {2:0.###} pt tall, which is more than the {3:0.###} pt of body height between the margins, header, and footer, so it cannot fit on any page. Use a smaller row height, an Exactly row so images scale down, or smaller margins.",
             row,
             table,
             height,
@@ -141,8 +167,9 @@ internal static class TablePaginator
     /// <param name="FirstRow">The index of the first row.</param>
     /// <param name="EndRow">The index after the last row.</param>
     /// <param name="Top">The y-coordinate of the part's top edge, in points.</param>
+    /// <param name="Bottom">The y-coordinate where the part's last row ends, in points (the top when it draws nothing).</param>
     /// <param name="RepeatsHeader">Whether the header rows are drawn again above the rows.</param>
-    internal sealed record Split(int PageOffset, int FirstRow, int EndRow, double Top, bool RepeatsHeader);
+    internal sealed record Split(int PageOffset, int FirstRow, int EndRow, double Top, double Bottom, bool RepeatsHeader);
 
     #endregion
 }

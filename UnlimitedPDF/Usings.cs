@@ -5,3 +5,4 @@ global using UnlimitedPDF.Enums;
 global using UnlimitedPDF.Extensions;
 global using UnlimitedPDF.Models.Internal;
 global using UnlimitedPDF.Models.Internal.Imaging;
+global using UnlimitedPDF.Models.Internal.Layout;

@@ -1,6 +1,6 @@
 @page "/playground/documents/employee-directory"
 
-<SamplePage Demo="SampleCatalog.EmployeeDirectory" Build="BuildAsync" PageCount="CountPages()" OnReset="Reset">
+<SamplePage Demo="SampleCatalog.EmployeeDirectory" Build="BuildAsync" PageCount="null" OnReset="Reset">
     <Inputs>
         <CollapsibleSection Title="Directory">
             <div class="field">
@@ -38,22 +38,6 @@
     private EmployeeDirectoryInput _input = new();
 
     private Task<PdfDocument> BuildAsync() => Task.FromResult(EmployeeDirectorySample.Build(_input));
-
-    // The status line shows this count, read from the saved document's page tree.
-    private int CountPages()
-    {
-        try
-        {
-            using var stream = new System.IO.MemoryStream();
-            EmployeeDirectorySample.Build(_input).Save(stream);
-            var match = System.Text.RegularExpressions.Regex.Match(System.Text.Encoding.ASCII.GetString(stream.ToArray()), @"/Count (\d+)");
-            return match.Success ? int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture) : 1;
-        }
-        catch (Exception)
-        {
-            return 1;
-        }
-    }
 
     private void Reset() => _input = new();
 }

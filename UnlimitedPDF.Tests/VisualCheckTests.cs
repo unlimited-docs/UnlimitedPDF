@@ -30,6 +30,26 @@ public class VisualCheckTests
         }
     }
 
+    [Fact]
+    public void Layout_visual_check_document_is_valid_and_written_on_request()
+    {
+        using var stream = new MemoryStream();
+        VisualCheckDocument.BuildLayout().Save(stream);
+        var pdf = stream.ToArray();
+
+        PdfStructureChecker.AssertValid(pdf);
+        var pages = PdfPageReader.Read(pdf);
+        Assert.Equal(3, pages.Count);
+        Assert.True(pages[2].Shows("Totals block: these three lines stay together on page 3"));
+
+        var directory = Environment.GetEnvironmentVariable(VisualCheckDocument.OutputVariable);
+        if (!string.IsNullOrEmpty(directory))
+        {
+            Directory.CreateDirectory(directory);
+            File.WriteAllBytes(Path.Combine(directory, "visual-check-layout.pdf"), pdf);
+        }
+    }
+
     #endregion
 
     #endregion

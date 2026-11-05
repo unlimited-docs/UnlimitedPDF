@@ -1,7 +1,8 @@
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// Documents without images must keep producing the bytes the library wrote before the image feature (AC-14).
+/// Documents without images or the page layout API keep producing the bytes the library wrote before those features;
+/// the page layout goldens pin that API's own output.
 /// </summary>
 public class GoldenOutputTests
 {
@@ -36,8 +37,11 @@ public class GoldenOutputTests
 
     public static TheoryData<string> Documents => new()
     {
+        GoldenDocuments.FlowKeep,
+        GoldenDocuments.HeaderFooter,
         GoldenDocuments.Invoice,
         GoldenDocuments.MiddleTable,
+        GoldenDocuments.PageLimit,
         GoldenDocuments.PaginatedTable,
         GoldenDocuments.TextPages
     };

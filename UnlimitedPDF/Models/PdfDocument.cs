@@ -6,12 +6,22 @@ public class PdfDocument
 {
     #region Fields and Constants
 
-    private readonly PdfBody _body;
-    private readonly PdfHeader _header;
+    private readonly PdfHeader _fileHeader;
     private readonly Dictionary<string, int> _imageObjects = new(StringComparer.Ordinal);
+    private readonly PdfBody _objects;
     private readonly List<PageEntry> _pageEntries = new();
     private readonly PdfPages _pages;
+    private readonly List<RemainingQuery> _queries = new();
+    private readonly List<PdfPageRule> _rules = new();
     private double _bottomMargin;
+    private PageEntry? _flowRoot;
+    private PdfPageSize? _flowRootSize;
+    private double _leftMargin;
+    private int _layoutVersion;
+    private PagePlanner? _livePlanner;
+    private int _livePlannerVersion;
+    private double _rightMargin;
+    private int _signedItems;
     private double _topMargin;
 
     #endregion
@@ -21,9 +31,12 @@ public class PdfDocument
     public PdfDocument(PdfPageSize pageSize = PdfPageSize.A4)
     {
         PageSize = pageSize;
-        _header = new PdfHeader();
-        _body = new PdfBody();
+        _fileHeader = new PdfHeader();
+        _objects = new PdfBody();
         _pages = new PdfPages();
+        Header = new PdfPageSection(LayoutChanged);
+        Footer = new PdfPageSection(LayoutChanged);
+        Body = new PdfBodyFlow(this);
 
         // Build the core PDF document structure
         var catalog = new PdfObject(objectNumber: 1, content: new PdfCatalog(pages: new PdfIndirectReference(objectNumber: 2)).ToString());
@@ -33,9 +46,9 @@ public class PdfDocument
         var font = new PdfObject(objectNumber: 3, content: new PdfFont().ToString());
 
         // Add all objects to the document body
-        _body.AddObject(catalog);
-        _body.AddObject(pagesObject);
-        _body.AddObject(font);
+        _objects.AddObject(catalog);
+        _objects.AddObject(pagesObject);
+        _objects.AddObject(font);
     }
 
     #endregion
@@ -45,44 +58,53 @@ public class PdfDocument
     #region Public Methods
 
     /// <summary>
-    /// Adds a new page to the PDF document and returns a page object for adding content.
+    /// Adds a new page to the PDF document and returns a page object for adding content. When the body flow is used,
+    /// the page also acts as a page break: flow items added after it start on it.
     /// </summary>
     /// <returns>A <see cref="PdfPageBuilder"/> object to which content can be added.</returns>
     [AddedVersion("0.0.2")]
     [Description("Adds a new page to the PDF document and returns a page object for adding content.")]
     public PdfPageBuilder AddPage()
     {
-        // Determine object numbers for the new page and its content stream.
-        int pageObjectNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
-        int contentStreamObjectNumber = pageObjectNumber + 1;
-
-        // Create an empty content stream object. It will be populated with content just before the document is written.
-        var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
-
-        // Create pdf page internal object
-        var pageInternal = new PdfPage
-        {
-            Parent = new PdfIndirectReference(objectNumber: 2), // Parent is the /Pages object
-            Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
-            MediaBox = PageSize.ToMediaBoxString()
-        };
-
-        var pageObject = new PdfObject(objectNumber: pageObjectNumber, content: pageInternal.ToString());
-
-        // Add the new page and content stream objects to the document body.
-        _body.AddObject(pageObject);
-        _body.AddObject(contentStream);
+        var entry = CreatePageEntry(PageSize, pageNumber: _pageEntries.Count + 1, continuationIndex: 0);
+        entry.FlowStart = Body.Items.Count;
 
         // Update the /Kids array in the /Pages object to include the new page.
-        _pages.Kids.Add(new PdfIndirectReference(objectNumber: pageObjectNumber));
-
-        // Create a new Page builder, associate it with the content stream, and keep the page so its
-        // dictionary can be rewritten at save (resources are only known then).
-        var pageBuilder = new PdfPageBuilder(contentStream, pageNumber: _pageEntries.Count + 1);
-        var entry = new PageEntry(pageBuilder, pageInternal, pageObject, PageSize);
+        _pages.Kids.Add(new PdfIndirectReference(objectNumber: entry.PageObject.ObjectNumber));
         _pageEntries.Add(entry);
 
-        return pageBuilder;
+        return entry.Builder;
+    }
+
+    /// <summary>
+    /// Adds a rule that overrides the header, footer, body gaps, or side margins on the first, last, odd, or even pages
+    /// (WR-032). Only the values the rule sets apply; a Last rule may change header and footer content only.
+    /// </summary>
+    /// <param name="target">The pages the rule applies to.</param>
+    /// <returns>The rule, to set its overrides.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="target"/> is not a defined value.</exception>
+    [AddedVersion("0.1.0")]
+    [Description("Adds a rule that overrides the page layout on the first, last, odd, or even pages.")]
+    public PdfPageRule AddPageRule(PdfPageRuleTarget target)
+    {
+        if (!Enum.IsDefined(typeof(PdfPageRuleTarget), target))
+            throw new ArgumentOutOfRangeException(nameof(target), target, "The target must be First, Last, Odd, or Even.");
+        return AddRule(new PdfPageRule(target, null, _rules.Count, LayoutChanged));
+    }
+
+    /// <summary>
+    /// Adds a rule that overrides the header, footer, body gaps, or side margins on one page, by its number among the
+    /// saved pages (WR-032). A number past the last page never matches.
+    /// </summary>
+    /// <param name="pageNumber">The 1-based page number.</param>
+    /// <returns>The rule, to set its overrides.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageNumber"/> is less than 1.</exception>
+    [AddedVersion("0.1.0")]
+    [Description("Adds a rule that overrides the page layout on one page, by its number.")]
+    public PdfPageRule AddPageRule(int pageNumber)
+    {
+        if (pageNumber < 1) throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page numbers start at 1.");
+        return AddRule(new PdfPageRule(null, pageNumber, _rules.Count, LayoutChanged));
     }
 
     /// <summary>
@@ -141,6 +163,47 @@ public class PdfDocument
 
     #endregion
 
+    #region Internal Methods
+
+    /// <summary>
+    /// Records the page size of the library's first flow page when the first flow item comes before any caller page.
+    /// </summary>
+    internal void FlowItemAdding()
+    {
+        if (_pageEntries.Count == 0 && _flowRootSize is null) _flowRootSize = PageSize;
+    }
+
+    /// <summary>
+    /// Marks the layout settings as changed, so the next <c>Body.Remaining</c> read plans the pages again.
+    /// </summary>
+    internal void LayoutChanged() => _layoutVersion++;
+
+    /// <summary>
+    /// Returns where the next flow item would land and records the read so the save can check it stays exact (WR-033).
+    /// </summary>
+    /// <returns>The height from the cursor to the body bottom of that page, in points.</returns>
+    internal double QueryRemaining()
+    {
+        var roots = Roots();
+        if (_livePlanner is null || _livePlannerVersion != _layoutVersion)
+        {
+            _livePlanner = new PagePlanner(Geometry, checkBody: true);
+            _livePlannerVersion = _layoutVersion;
+        }
+
+        _livePlanner.Advance(roots, Body.Items, Body.Items.Count, roots.Count - 1);
+        var (page, value) = _livePlanner.Probe(Geometry(1, PageSize));
+
+        // Each item's layout fingerprint is taken by the first read that measured it.
+        for (; _signedItems < Body.Items.Count; _signedItems++)
+            Body.Items[_signedItems].MeasuredSignature = PagePlanner.Signature(Body.Items[_signedItems]);
+
+        _queries.Add(new RemainingQuery(Body.Items.Count, _pageEntries.Count, PageSize, page, value, SettingsSignature()));
+        return value;
+    }
+
+    #endregion
+
     #region Private Methods
 
     private static void EnsureMargin(double value)
@@ -149,75 +212,127 @@ public class PdfDocument
             throw new ArgumentOutOfRangeException(nameof(value), value, "The margin must be a finite number of points, zero or greater.");
     }
 
-    private static PageEntry PageAt(PageEntry root, int index) => index == 0 ? root : root.Chain[index - 1];
+    private static string Describe(int count, IEnumerable<FlowItem> items)
+    {
+        var list = items.ToList();
+        if (list.Count == 0) return string.Empty;
+        string kinds = string.Join(", ", list.Select(i => i.Kind).Distinct());
+        return list.Count == 1
+            ? list[0].Description
+            : string.Format(CultureInfo.InvariantCulture, "flow items {0} to {1} ({2})", list[0].Index + 1, list[list.Count - 1].Index + 1, kinds);
+    }
 
     // Appends a continuation page of the root page's size, numbered after every existing object as AddPage does
     // (WR-002). Its place in /Kids, after the root page and its earlier continuation pages, is set at save.
     private void AddContinuationPage(PageEntry root)
     {
-        int pageObjectNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
-        int contentStreamObjectNumber = pageObjectNumber + 1;
-        var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
-
-        var pageInternal = new PdfPage
-        {
-            Parent = new PdfIndirectReference(objectNumber: 2),
-            Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
-            MediaBox = root.PageSize.ToMediaBoxString()
-        };
-        var pageObject = new PdfObject(objectNumber: pageObjectNumber, content: pageInternal.ToString());
-
-        _body.AddObject(pageObject);
-        _body.AddObject(contentStream);
-
-        var builder = new PdfPageBuilder(contentStream, root.Builder.PageNumber, continuationIndex: root.Chain.Count + 1);
-        root.Chain.Add(new PageEntry(builder, pageInternal, pageObject, root.PageSize));
+        var entry = CreatePageEntry(root.PageSize, root.Builder.PageNumber, continuationIndex: root.Chain.Count + 1);
+        root.Chain.Add(entry);
     }
 
-    // Lays out every table on the root page and its continuation pages, page by page and in the order the tables were
-    // added. Tables that start on the same page share the following continuation pages, and a table on a continuation
-    // page continues on the same chain (WR-027). Continuation pages are added when a table needs more than exist.
-    private ChainPlan PlanChain(PageEntry root)
+    private PdfPageRule AddRule(PdfPageRule rule)
     {
-        var plans = new Dictionary<PdfTable, TablePlan>();
-        var carried = new Dictionary<PdfPageBuilder, List<(PdfTable, TablePart)>>();
-        double pageHeight = root.PageSize.ToDimensions().Height;
-        int pagesNeeded = 1;
+        _rules.Add(rule);
+        LayoutChanged();
+        return rule;
+    }
 
-        for (int index = 0; index < pagesNeeded; index++)
+    // Checks that every Body.Remaining read is still exact (WR-033), replaying the reads in order on a fresh plan.
+    private void CheckQueries(IReadOnlyList<PlanRoot> roots, PagePlanner planner)
+    {
+        bool hasFlowRoot = _flowRoot is not null || NeedsFlowRoot();
+        string settings = SettingsSignature();
+
+        foreach (var query in _queries)
         {
-            var page = PageAt(root, index).Builder;
-            int tableNumber = 0;
-            foreach (var table in page.Tables)
+            int rootIndex = query.CallerPages == 0 ? (hasFlowRoot ? 0 : -1) : query.CallerPages - 1 + (hasFlowRoot ? 1 : 0);
+            (int Page, double Value) now;
+            if (rootIndex < 0)
             {
-                int number = ++tableNumber;
-                var layout = PdfTableRenderer.Layout(table, page.PageNumber, number);
-                var (splits, headerRows, endY) = TablePaginator.Paginate(
-                    table,
-                    layout,
-                    pageHeight,
-                    TopMargin,
-                    BottomMargin,
-                    () => string.Format(CultureInfo.InvariantCulture, "table {0} on {1}", number, page.Description));
-
-                pagesNeeded = Math.Max(pagesNeeded, index + splits[splits.Count - 1].PageOffset + 1);
-                while (root.Chain.Count < pagesNeeded - 1) AddContinuationPage(root);
-
-                int start = index;
-                var parts = splits
-                    .Select(split => new TablePart(PageAt(root, start + split.PageOffset).Builder, split.FirstRow, split.EndRow, split.Top, split.RepeatsHeader))
-                    .ToList();
-                plans[table] = new TablePlan(layout, parts, headerRows, endY);
-
-                foreach (var part in parts.Skip(1))
-                {
-                    if (!carried.TryGetValue(part.Page, out var list)) carried[part.Page] = list = new List<(PdfTable, TablePart)>();
-                    list.Add((table, part));
-                }
+                now = (1, Math.Max(0, Geometry(1, query.PageSize).BodyHeight));
             }
-        }
+            else
+            {
+                planner.Advance(roots, Body.Items, query.FlowCount, rootIndex);
+                now = planner.Probe(Geometry(1, query.PageSize));
+            }
 
-        return new ChainPlan(plans, carried, pagesNeeded);
+            if (now.Page == query.PageNumber && Math.Abs(now.Value - query.Value) <= 1e-6) continue;
+
+            string cause;
+            if (query.Settings != settings)
+            {
+                cause = "the page layout settings (a margin, band height, gap, or page rule) changed";
+            }
+            else
+            {
+                var changed = Body.Items.Take(query.FlowCount).FirstOrDefault(item => item.MeasuredSignature != PagePlanner.Signature(item));
+                cause = changed is not null
+                    ? changed.Description + " changed its layout"
+                    : "content placed before it changed its layout";
+            }
+
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.InvariantCulture,
+                "Body.Remaining was read as {0:0.###} pt on page {1} before flow item {2}, but {3} afterwards, so that value is no longer exact (it is now {4:0.###} pt on page {5}). Read Body.Remaining after the content and settings it depends on are final.",
+                query.Value,
+                query.PageNumber,
+                query.FlowCount + 1,
+                cause,
+                now.Value,
+                now.Page));
+        }
+    }
+
+    // Fails when the content needs more pages than Body.MaxPages allows (WR-033), naming what does not fit.
+    private void CheckPageLimit(IReadOnlyList<PlannedPage> pages)
+    {
+        if (Body.MaxPages is not int max || pages.Count <= max) return;
+
+        var excess = pages.Where(page => page.Number > max).ToList();
+        var items = excess.SelectMany(page => page.Flow).Select(p => p.Item).Distinct().OrderBy(i => i.Index).ToList();
+        double over = excess.Sum(page => page.Flow.Count == 0
+            ? 0
+            : page.Geometry.BodyTop - page.Flow.Min(p => p.Part?.Bottom ?? p.Top - FlowHeight(p.Item)));
+
+        string what = items.Count > 0
+            ? string.Format(CultureInfo.InvariantCulture, "{0} do not fit, {1:0.###} pt over", Describe(items.Count, items), over)
+            : string.Format(CultureInfo.InvariantCulture, "pages {0} to {1} come from pages added with AddPage or from tables placed at page coordinates", max + 1, pages.Count);
+
+        throw new InvalidOperationException(string.Format(
+            CultureInfo.InvariantCulture,
+            "The content needs {0} pages, but Body.MaxPages is {1}: {2}. Shorten the content or raise the limit.",
+            pages.Count,
+            max,
+            what));
+    }
+
+    private PageEntry CreatePageEntry(PdfPageSize size, int pageNumber, int continuationIndex)
+    {
+        // Determine object numbers for the new page and its content stream.
+        int pageObjectNumber = _objects.Objects.Max(o => o.ObjectNumber) + 1;
+        int contentStreamObjectNumber = pageObjectNumber + 1;
+
+        // Create an empty content stream object. It will be populated with content just before the document is written.
+        var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
+
+        // Create pdf page internal object
+        var pageInternal = new PdfPage
+        {
+            Parent = new PdfIndirectReference(objectNumber: 2), // Parent is the /Pages object
+            Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
+            MediaBox = size.ToMediaBoxString()
+        };
+
+        var pageObject = new PdfObject(objectNumber: pageObjectNumber, content: pageInternal.ToString());
+
+        // Add the new page and content stream objects to the document body.
+        _objects.AddObject(pageObject);
+        _objects.AddObject(contentStream);
+
+        // Keep the page so its dictionary can be rewritten at save (resources are only known then).
+        var builder = new PdfPageBuilder(contentStream, pageNumber, continuationIndex);
+        return new PageEntry(builder, pageInternal, pageObject, size);
     }
 
     // Pages without images keep an empty resource dictionary, exactly as before images existed.
@@ -231,38 +346,192 @@ public class PdfDocument
         return resources;
     }
 
+    // Draws a page's body flow content, then its header and footer bands (WR-031, WR-033).
+    private void DrawLayout(StringBuilder sb, Func<PdfImageData, string> imageName, PlannedPage page, int pageCount, IReadOnlyDictionary<PdfTable, TablePlan> plans)
+    {
+        foreach (var placement in page.Flow) DrawFlow(sb, imageName, placement, plans);
+
+        var g = page.Geometry;
+        var info = new PdfPageInfo(page.Number, pageCount);
+        if (g.HeaderHeight > 0) DrawSection(sb, imageName, SectionFor(page.Number, pageCount, footer: false), g, g.HeaderTop, g.HeaderHeight, info);
+        if (g.FooterHeight > 0) DrawSection(sb, imageName, SectionFor(page.Number, pageCount, footer: true), g, g.FooterTop, g.FooterHeight, info);
+    }
+
+    private static void DrawFlow(StringBuilder sb, Func<PdfImageData, string> imageName, FlowPlacement placement, IReadOnlyDictionary<PdfTable, TablePlan> plans)
+    {
+        if (placement.Part is TablePart part)
+        {
+            var table = ((FlowTable)placement.Item).Table;
+            sb.Append(PdfTableRenderer.RenderPart(table, plans[table], part, imageName));
+            return;
+        }
+
+        DrawItem(sb, imageName, placement.Item, placement.Left, placement.Right, placement.Top);
+    }
+
+    // Draws one flow or block item with its top edge at top, inside the area between left and right.
+    private static void DrawItem(StringBuilder sb, Func<PdfImageData, string> imageName, FlowItem item, double left, double right, double top)
+    {
+        switch (item)
+        {
+            case FlowText text:
+                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top));
+                break;
+            case FlowImage image:
+                var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
+                var element = new PdfImageElement(image.Image.Data, left + image.X + box.OffsetX, top - box.BoxHeight + box.OffsetY, box.DrawWidth, box.DrawHeight);
+                sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                break;
+            case FlowRectangle rectangle:
+                sb.AppendLine(LayoutDrawing.Rectangle(left + rectangle.X, top - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
+                break;
+            case FlowTable table:
+                var layout = PdfTableRenderer.Layout(table.Table, 0, table.Index + 1);
+                sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, left + table.X, top, imageName));
+                break;
+            case FlowBlock block:
+                double y = top;
+                for (int i = 0; i < block.Children.Count; i++)
+                {
+                    var child = block.Children[i];
+                    if (i > 0) y -= child.Spacing;
+                    DrawItem(sb, imageName, child, left + block.X, right, y);
+                    y -= FlowHeight(child);
+                }
+                break;
+        }
+    }
+
+    // Draws a band's content clipped to the band (WR-031): the content added directly, then the callback's.
+    private static void DrawSection(StringBuilder sb, Func<PdfImageData, string> imageName, PdfPageSection? section, PageGeometry g, double top, double height, PdfPageInfo info)
+    {
+        if (section is null || !section.HasContent) return;
+
+        var items = section.Items.ToList();
+        if (section.Callback is not null)
+        {
+            var content = new PdfSectionContent();
+            section.Callback(content, info);
+            items.AddRange(content.Items);
+        }
+        if (items.Count == 0) return;
+
+        sb.AppendLine("q"); // Save graphics state
+        sb.AppendLine($"{PdfNumber.Format(g.Left)} {PdfNumber.Format(top - height)} {PdfNumber.Format(g.ContentWidth)} {PdfNumber.Format(height)} re W n"); // Clip to the band
+
+        int tableNumber = 0;
+        foreach (var item in items)
+        {
+            switch (item)
+            {
+                case SectionText text:
+                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y));
+                    break;
+                case SectionImage image:
+                    var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
+                    var element = new PdfImageElement(image.Image.Data, g.Left + image.X + box.OffsetX, top - image.Y - box.BoxHeight + box.OffsetY, box.DrawWidth, box.DrawHeight);
+                    sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                    break;
+                case SectionTable table:
+                    var layout = PdfTableRenderer.Layout(table.Table, info.PageNumber, ++tableNumber);
+                    sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, g.Left + table.Table.X, top - table.Table.Y, imageName));
+                    break;
+                case SectionRectangle rectangle:
+                    sb.AppendLine(LayoutDrawing.Rectangle(g.Left + rectangle.X, top - rectangle.Y - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
+                    break;
+            }
+        }
+
+        sb.AppendLine("Q"); // Restore graphics state
+    }
+
+    // Replaces {page} and {pages}; {{ and }} write literal braces, and other braces are kept as written.
+    private static string FillPlaceholders(string text, PdfPageInfo info)
+    {
+        if (text.IndexOf('{') < 0 && text.IndexOf('}') < 0) return text;
+
+        var sb = new StringBuilder(text.Length + 8);
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (string.CompareOrdinal(text, i, "{{", 0, 2) == 0 || string.CompareOrdinal(text, i, "}}", 0, 2) == 0)
+            {
+                sb.Append(text[i]);
+                i++;
+            }
+            else if (string.CompareOrdinal(text, i, "{pages}", 0, 7) == 0)
+            {
+                sb.Append(info.PageCount.ToString(CultureInfo.InvariantCulture));
+                i += 6;
+            }
+            else if (string.CompareOrdinal(text, i, "{page}", 0, 6) == 0)
+            {
+                sb.Append(info.PageNumber.ToString(CultureInfo.InvariantCulture));
+                i += 5;
+            }
+            else
+            {
+                sb.Append(text[i]);
+            }
+        }
+        return sb.ToString();
+    }
+
+    private static double FlowHeight(FlowItem item) => item switch
+    {
+        FlowText text => LayoutDrawing.LineHeight(text.FontSize),
+        FlowImage image => ImageBox.Compute(image.Image, image.Width, image.Height, image.Options).BoxHeight,
+        FlowRectangle rectangle => rectangle.Height,
+        FlowTable table => PdfTableRenderer.Layout(table.Table, 0, 0).RowHeights.Sum(),
+        FlowBlock block => block.Children.Select((child, i) => (i == 0 ? 0 : child.Spacing) + FlowHeight(child)).Sum(),
+        _ => 0
+    };
+
+    // The geometry of a page from the document settings and the page rules, without Last rules, which may change content
+    // only (WR-030, WR-032).
+    private PageGeometry Geometry(int number, PdfPageSize size) => PageGeometry.Create(size, SettingsFor(number));
+
     private static string MaskKey(PdfImageData mask) => "mask:" + mask.ContentKey;
+
+    private bool NeedsFlowRoot() => (_pageEntries.Count == 0 ? Body.Items.Count : _pageEntries[0].FlowStart) > 0;
 
     private void PrepareDocumentForSave()
     {
-        // Lay out every table first; only continuation pages may be added. Any layout error is thrown here, before
-        // anything is written or committed.
-        var chains = _pageEntries.Select(PlanChain).ToList();
+        // Plan every page first. Any layout error is thrown here, before a page object is added or anything is written.
+        var roots = Roots();
+        var planner = new PagePlanner(Geometry, checkBody: UsesLayout);
+        CheckQueries(roots, planner);
+        var (planned, plans) = planner.Finish(roots, Body.Items);
+        CheckPageLimit(planned);
 
-        // Pages in reading order: each caller page, then the continuation pages its tables use. Continuation pages an
-        // earlier save needed but this one does not are left out and kept empty, so object numbers stay contiguous.
+        // Materialize the pages the plan needs: the library's first flow page, then continuation pages, root by root.
+        if (NeedsFlowRoot() && _flowRoot is null)
+            _flowRoot = CreatePageEntry(_flowRootSize ?? PageSize, pageNumber: 1, continuationIndex: 0);
+        var rootEntries = (_flowRoot is not null ? new[] { _flowRoot } : Array.Empty<PageEntry>()).Concat(_pageEntries).ToList();
+        int[] used = new int[rootEntries.Count];
+        foreach (var page in planned) used[page.RootIndex] = Math.Max(used[page.RootIndex], page.ChainIndex + 1);
+
         var visible = new List<PageEntry>();
         var unused = new List<PageEntry>();
-        var chainOf = new List<ChainPlan>();
-        for (int i = 0; i < _pageEntries.Count; i++)
+        for (int i = 0; i < rootEntries.Count; i++)
         {
-            var root = _pageEntries[i];
-            int used = chains[i].PagesNeeded - 1;
-            visible.Add(root);
-            visible.AddRange(root.Chain.Take(used));
-            unused.AddRange(root.Chain.Skip(used));
-            chainOf.AddRange(Enumerable.Repeat(chains[i], used + 1));
+            var root = rootEntries[i];
+            int chain = Math.Max(0, used[i] - 1);
+            while (root.Chain.Count < chain) AddContinuationPage(root);
+            if (used[i] > 0) visible.Add(root);
+            else unused.Add(root);
+            visible.AddRange(root.Chain.Take(chain));
+            unused.AddRange(root.Chain.Skip(chain));
         }
 
-        var plans = chains.SelectMany(chain => chain.Plans).ToDictionary(pair => pair.Key, pair => pair.Value);
+        bool drawLayout = UsesLayout;
         var contents = new PdfPageContent[visible.Count];
         for (int i = 0; i < visible.Count; i++)
         {
-            var builder = visible[i].Builder;
-            IReadOnlyList<(PdfTable, TablePart)> carried = chainOf[i].Carried.TryGetValue(builder, out var parts)
-                ? parts
-                : Array.Empty<(PdfTable, TablePart)>();
-            contents[i] = builder.BuildContent(plans, carried);
+            var page = planned[i];
+            Action<StringBuilder, Func<PdfImageData, string>>? after = drawLayout
+                ? (sb, name) => DrawLayout(sb, name, page, planned.Count, plans)
+                : null;
+            contents[i] = visible[i].Builder.BuildContent(plans, page.Carried, after);
         }
 
         // Store each distinct image once per document. Objects added by an earlier save are reused.
@@ -293,7 +562,7 @@ public class PdfDocument
         // List the pages in reading order in the main pages object (object 2).
         _pages.Kids.Clear();
         _pages.Kids.AddRange(visible.Select(entry => new PdfIndirectReference(objectNumber: entry.PageObject.ObjectNumber)));
-        var pagesObject = _body.Objects.First(o => o.ObjectNumber == 2);
+        var pagesObject = _objects.Objects.First(o => o.ObjectNumber == 2);
         pagesObject.Content = _pages.ToString();
     }
 
@@ -303,7 +572,7 @@ public class PdfDocument
     {
         if (_imageObjects.ContainsKey(image.ContentKey)) return;
 
-        int imageNumber = _body.Objects.Max(o => o.ObjectNumber) + 1;
+        int imageNumber = _objects.Objects.Max(o => o.ObjectNumber) + 1;
         int? maskNumber = null;
         bool newMask = false;
         if (image.SoftMask is not null)
@@ -313,15 +582,78 @@ public class PdfDocument
             maskNumber = newMask ? imageNumber + 1 : existingMask;
         }
 
-        _body.AddObject(new PdfImageXObject(imageNumber, image, maskNumber));
+        _objects.AddObject(new PdfImageXObject(imageNumber, image, maskNumber));
         _imageObjects[image.ContentKey] = imageNumber;
 
         if (newMask)
         {
-            _body.AddObject(new PdfImageXObject(maskNumber!.Value, image.SoftMask!, softMaskObjectNumber: null));
+            _objects.AddObject(new PdfImageXObject(maskNumber!.Value, image.SoftMask!, softMaskObjectNumber: null));
             _imageObjects[MaskKey(image.SoftMask!)] = maskNumber.Value;
         }
     }
+
+    // The root pages in reading order: the library's first flow page when flow content comes before any caller page,
+    // then every caller page (WR-033).
+    private List<PlanRoot> Roots()
+    {
+        var roots = new List<PlanRoot>(_pageEntries.Count + 1);
+        if (NeedsFlowRoot()) roots.Add(new PlanRoot(null, _flowRoot?.PageSize ?? _flowRootSize ?? PageSize, Array.Empty<PdfTable>(), 0));
+        foreach (var entry in _pageEntries)
+            roots.Add(new PlanRoot(entry.Builder, entry.PageSize, entry.Builder.Tables.ToList(), entry.FlowStart));
+        return roots;
+    }
+
+    // The header or footer whose content a page shows: the most specific matching rule that sets content, Last rules
+    // included, or the document's (WR-032).
+    private PdfPageSection? SectionFor(int number, int pageCount, bool footer)
+    {
+        PdfPageSection section = footer ? Footer : Header;
+        foreach (var rule in Ordered(number, number == pageCount))
+        {
+            var candidate = footer ? rule.Footer : rule.Header;
+            if (candidate.HasContent) section = candidate;
+        }
+        return section;
+    }
+
+    // Matching rules from least to most specific; between rules of the same kind, the later one comes last and wins.
+    private IEnumerable<PdfPageRule> Ordered(int number, bool isLast) =>
+        _rules.Where(rule => rule.Matches(number, isLast)).OrderBy(rule => rule.Specificity).ThenBy(rule => rule.Order);
+
+    private EffectiveSettings SettingsFor(int number)
+    {
+        double headerHeight = Header.Height, footerHeight = Footer.Height;
+        bool headerHidden = Header.IsHidden, footerHidden = Footer.IsHidden;
+        double topGap = Body.TopGap, bottomGap = Body.BottomGap, left = LeftMargin, right = RightMargin;
+
+        foreach (var rule in Ordered(number, isLast: false))
+        {
+            if (rule.Header.HeightSet) headerHeight = rule.Header.Height;
+            if (rule.Header.HiddenSet) headerHidden = rule.Header.IsHidden;
+            if (rule.Footer.HeightSet) footerHeight = rule.Footer.Height;
+            if (rule.Footer.HiddenSet) footerHidden = rule.Footer.IsHidden;
+            topGap = rule.BodyTopGap ?? topGap;
+            bottomGap = rule.BodyBottomGap ?? bottomGap;
+            left = rule.LeftMargin ?? left;
+            right = rule.RightMargin ?? right;
+        }
+
+        return new EffectiveSettings(TopMargin, BottomMargin, left, right, headerHeight, headerHidden, footerHeight, footerHidden, topGap, bottomGap);
+    }
+
+    private string SettingsSignature() => string.Join(
+        ";",
+        PdfNumber.Format(TopMargin),
+        PdfNumber.Format(BottomMargin),
+        PdfNumber.Format(LeftMargin),
+        PdfNumber.Format(RightMargin),
+        PdfNumber.Format(Header.Height),
+        Header.IsHidden.ToString(),
+        PdfNumber.Format(Footer.Height),
+        Footer.IsHidden.ToString(),
+        PdfNumber.Format(Body.TopGap),
+        PdfNumber.Format(Body.BottomGap),
+        string.Join(",", _rules.Select(rule => rule.LayoutSignature)));
 
     private void WriteToStream(Stream stream)
     {
@@ -331,11 +663,11 @@ public class PdfDocument
         var offsets = new List<long>();
 
         // PDF Header
-        writer.WriteLine(_header.ToString());
+        writer.WriteLine(_fileHeader.ToString());
         writer.Flush();
 
         // Write PDF objects from the body
-        foreach (var obj in _body.Objects)
+        foreach (var obj in _objects.Objects)
         {
             offsets.Add(stream.Position);
             if (obj is PdfStreamObject streamObj)
@@ -389,11 +721,11 @@ public class PdfDocument
         var offsets = new List<long>();
 
         // PDF Header
-        await writer.WriteLineAsync(_header.ToString().AsMemory(), cancellationToken);
+        await writer.WriteLineAsync(_fileHeader.ToString().AsMemory(), cancellationToken);
         await writer.FlushAsync();
 
         // Write PDF objects from the body
-        foreach (var obj in _body.Objects)
+        foreach (var obj in _objects.Objects)
         {
             cancellationToken.ThrowIfCancellationRequested();
             offsets.Add(stream.Position);
@@ -448,9 +780,16 @@ public class PdfDocument
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets or sets the bottom margin of every page, in points. The default is 0 (the page's bottom edge). A table
-    /// continues on a new page when its next row would pass this margin. Content placed at absolute coordinates is not
-    /// moved. Margins that leave no room between them make saving any table with rows fail.
+    /// Gets the body flow: content that stacks below the previous item and continues on new pages the library adds
+    /// (WR-033), its gaps to the header and footer bands, its page limit, and the remaining-space query.
+    /// </summary>
+    public PdfBodyFlow Body { get; }
+
+    /// <summary>
+    /// Gets or sets the bottom margin of every page, in points: the distance from the page's bottom edge to the footer
+    /// band. The default is 0 (the page's bottom edge). A table continues on a new page when its next row would pass the
+    /// body bottom, which equals this margin when the footer and body gaps are 0. Content placed at absolute coordinates
+    /// is not moved. Margins that leave no room between them make saving any table with rows fail.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     public double BottomMargin
@@ -460,6 +799,34 @@ public class PdfDocument
         {
             EnsureMargin(value);
             _bottomMargin = value;
+            LayoutChanged();
+        }
+    }
+
+    /// <summary>
+    /// Gets the footer band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
+    /// </summary>
+    public PdfPageSection Footer { get; }
+
+    /// <summary>
+    /// Gets the header band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
+    /// </summary>
+    public PdfPageSection Header { get; }
+
+    /// <summary>
+    /// Gets or sets the left margin of every page, in points, shared by the header, body, and footer (WR-030). Header,
+    /// footer, and flow x offsets are measured from it. The default is 0. Content placed at page coordinates is not
+    /// moved.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
+    public double LeftMargin
+    {
+        get => _leftMargin;
+        set
+        {
+            EnsureMargin(value);
+            _leftMargin = value;
+            LayoutChanged();
         }
     }
 
@@ -469,8 +836,25 @@ public class PdfDocument
     public PdfPageSize PageSize { get; set; }
 
     /// <summary>
-    /// Gets or sets the top margin of every page, in points. The default is 0 (the page's top edge). A table that
-    /// continues on a new page resumes at this margin; on its own page it still starts at its own y-coordinate.
+    /// Gets or sets the right margin of every page, in points, shared by the header, body, and footer (WR-030). Right-
+    /// and center-aligned text is placed within the width between the side margins. The default is 0.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
+    public double RightMargin
+    {
+        get => _rightMargin;
+        set
+        {
+            EnsureMargin(value);
+            _rightMargin = value;
+            LayoutChanged();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the top margin of every page, in points: the distance from the page's top edge to the header band.
+    /// The default is 0 (the page's top edge). A table that continues on a new page resumes at the body top, which
+    /// equals this margin when the header and body gaps are 0; on its own page it still starts at its own y-coordinate.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     public double TopMargin
@@ -480,29 +864,29 @@ public class PdfDocument
         {
             EnsureMargin(value);
             _topMargin = value;
+            LayoutChanged();
         }
     }
+
+    // Whether any part of the page layout API is in use. A document that uses none of it keeps its output (WR-030).
+    private bool UsesLayout =>
+        Header.Height > 0 || Header.HasContent || Footer.Height > 0 || Footer.HasContent
+        || Body.TopGap > 0 || Body.BottomGap > 0 || Body.Items.Count > 0 || Body.MaxPages is not null
+        || LeftMargin > 0 || RightMargin > 0 || _rules.Count > 0 || _queries.Count > 0;
 
     #endregion
 
     #region Nested Types
 
     /// <summary>
-    /// The tables of a caller page and its continuation pages, laid out: each table's plan, the parts each
-    /// continuation page draws for tables that started on an earlier page, and how many of the pages are used.
-    /// </summary>
-    private sealed record ChainPlan(
-        Dictionary<PdfTable, TablePlan> Plans,
-        Dictionary<PdfPageBuilder, List<(PdfTable, TablePart)>> Carried,
-        int PagesNeeded);
-
-    /// <summary>
-    /// A page's builder together with its page dictionary, the object that serializes it, and its size. A caller page
-    /// also lists its continuation pages in order.
+    /// A page's builder together with its page dictionary, the object that serializes it, and its size. A root page
+    /// also lists its continuation pages in order and records where the body flow starts on it.
     /// </summary>
     private sealed record PageEntry(PdfPageBuilder Builder, PdfPage Page, PdfObject PageObject, PdfPageSize PageSize)
     {
         public List<PageEntry> Chain { get; } = new();
+
+        public int FlowStart { get; set; }
     }
 
     #endregion

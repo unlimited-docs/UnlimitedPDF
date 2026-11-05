@@ -6,13 +6,14 @@ using UnlimitedPDF.Models.Table;
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// Receipt: a compact A6 page with a store logo, items, tax, total, and payment details.
+/// Receipt: a compact A6 page with a store logo, items, tax, total, and payment details. A long receipt continues on
+/// more A6 pages, each with the logo band and the closing line, and the totals stay together after the last item.
 /// </summary>
 public static class ReceiptSample
 {
     #region Fields and Constants
 
-    private const double ItemsTop = 298;
+    private const double Inset = 16;
     private const double RowHeight = 18;
 
     // Greys only, so the receipt still prints cleanly on a black-and-white printer.
@@ -35,25 +36,34 @@ public static class ReceiptSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(ReceiptInput input, SampleImages images)
     {
-        var document = new PdfDocument(PdfPageSize.A6);
-        var (pageWidth, pageHeight) = PdfPageSize.A6.ToDimensions();
-        var page = document.AddPage();
+        var document = new PdfDocument(PdfPageSize.A6) { BottomMargin = 8 };
+        var (pageWidth, _) = PdfPageSize.A6.ToDimensions();
 
-        // Shapes first: the page paints in call order, so text added later sits on top.
-        // A grey header band behind the logo, with a dark accent bar under it.
-        AddBand(page, 0, pageHeight, pageWidth, 66, _bandTint);
-        AddBand(page, 0, pageHeight - 66, pageWidth, 3, _dark);
+        // A grey band behind the logo with a dark accent bar under it, and a closing line, on every page.
+        document.Header.Height = 69;
+        document.Header.AddRectangle(0, 0, pageWidth, 66, _bandTint);
+        document.Header.AddRectangle(0, 66, pageWidth, 3, _dark);
+        document.Header.AddImage(images["receipt-logo.png"], (pageWidth - 100) / 2, 15, 100, 42, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
 
-        page.AddImage(images["receipt-logo.png"], (pageWidth - 100) / 2, 362, 100, 42, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
-        AddCentered(page, input.StoreName, 336, 12, pageWidth);
-        AddCentered(page, input.StoreAddress, 323, 8, pageWidth);
-        page.AddText(PdfText.Escape($"Receipt {input.ReceiptNumber}"), 16, 306, 8);
-        page.AddText($"{input.Date:dd-MMM-yyyy}", 220, 306, 8);
+        document.Footer.Height = 40;
+        document.Footer.AddRectangle(Inset, 0, pageWidth - 2 * Inset, 1.5, _dark);
+        document.Footer.AddText("Thank you for shopping with us!", 0, 8, 9, PdfTextAlignment.Center);
+        document.Footer.AddText("Page {page} of {pages}", 0, 24, 7, PdfTextAlignment.Center);
 
-        // Every row is exactly RowHeight tall, so the totals can be placed right below the last item.
-        var items = page.AddTable(16, ItemsTop, 265);
+        document.Body.TopGap = 10;
+        document.Body.BottomGap = 8;
+        var body = document.Body;
+
+        body.AddText(input.StoreName, fontSize: 12, alignment: PdfTextAlignment.Center);
+        body.AddText(input.StoreAddress, spacing: 2, fontSize: 8, alignment: PdfTextAlignment.Center);
+        body.AddText($"Receipt {input.ReceiptNumber}", spacing: 6, fontSize: 8, x: Inset);
+        body.AddText($"{input.Date:dd-MMM-yyyy}", fontSize: 8, alignment: PdfTextAlignment.Right, x: Inset);
+
+        var items = body.AddTable(265, spacing: 6, x: Inset);
         items.SetColumnWidths(125, 30, 50, 60);
         items.RowHeight = RowHeight;
+        items.HeaderRowCount = 1;
+        items.RepeatHeaderRows = true;
 
         var header = items.AddRow();
         string[] headings = ["Item", "Qty", "Price", "Total"];
@@ -75,9 +85,10 @@ public static class ReceiptSample
             Right(row.GetCell(3), lineTotal.ToString("F2"));
         }
 
+        // The totals and the payment line follow the items and stay together.
         decimal tax = subtotal * input.TaxPercent / 100m;
-        double totalsTop = ItemsTop - (input.Items.Count + 1) * RowHeight - 8;
-        var totals = page.AddTable(146, totalsTop, 135);
+        var closing = body.AddBlock(spacing: 8);
+        var totals = closing.AddTable(135, x: 146);
         totals.SetColumnWidths(75, 60);
         totals.RowHeight = RowHeight;
         AddTotal(totals, 0, "Subtotal", subtotal);
@@ -85,10 +96,7 @@ public static class ReceiptSample
         AddTotal(totals, 2, "Total", subtotal + tax);
         totals.GetCell(2, 0).Background = _totalTint;
         totals.GetCell(2, 1).Background = _totalTint;
-
-        page.AddText(PdfText.Escape($"Paid by: {input.PaymentMethod}"), 16, (int)(totalsTop - 3 * RowHeight - 18), 8);
-        AddBand(page, 16, 44, pageWidth - 32, 1.5, _dark);
-        AddCentered(page, "Thank you for shopping with us!", 30, 9, pageWidth);
+        closing.AddText($"Paid by: {input.PaymentMethod}", spacing: 10, fontSize: 8, x: Inset);
 
         return document;
     }
@@ -96,27 +104,6 @@ public static class ReceiptSample
     #endregion
 
     #region Private Methods
-
-    // A filled rectangle drawn as a one-cell table. The border takes the fill color, because cells always draw one.
-    private static void AddBand(PdfPageBuilder page, double x, double top, double width, double height, PdfColor color)
-    {
-        var band = page.AddTable(x, top, width);
-        band.SetColumnWidths(width);
-        band.RowHeight = height;
-        var cell = band.AddRow().GetCell(0);
-        cell.Background = color;
-        foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
-        {
-            border.Color = color;
-        }
-    }
-
-    // AddText has no centering, so estimate the text width (about half the font size per character).
-    private static void AddCentered(PdfPageBuilder page, string text, int y, int fontSize, double pageWidth)
-    {
-        int x = (int)Math.Max(8, (pageWidth - text.Length * fontSize * 0.5) / 2);
-        page.AddText(PdfText.Escape(text), x, y, fontSize);
-    }
 
     private static void AddTotal(PdfTable table, int row, string label, decimal value)
     {
