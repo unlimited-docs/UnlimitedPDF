@@ -1,0 +1,93 @@
+@page "/playground/documents/quotation"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Quotation" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Quotation">
+            <div class="field">
+                <label for="q-no">Quote number</label>
+                <input id="q-no" class="form-control" @bind="_input.QuoteNumber" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="q-date">Date</label>
+                <input id="q-date" type="date" class="form-control" @bind="_input.QuoteDate" />
+            </div>
+            <div class="field">
+                <label for="q-valid">Valid for (days)</label>
+                <input id="q-valid" type="number" min="1" class="form-control" @bind="_input.ValidDays" />
+            </div>
+            <div class="field">
+                <label for="q-tax">Tax (%)</label>
+                <input id="q-tax" type="number" min="0" step="0.5" class="form-control" @bind="_input.TaxPercent" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Client" InitiallyOpen="false">
+            <div class="field">
+                <label for="client">Contact</label>
+                <input id="client" class="form-control" @bind="_input.ClientName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="company">Company</label>
+                <input id="company" class="form-control" @bind="_input.ClientCompany" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="client-address">Address</label>
+                <input id="client-address" class="form-control" @bind="_input.ClientAddress" @bind:event="oninput" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Services">
+            <div class="rows">
+                @for (int index = 0; index < _input.Services.Count; index++)
+                {
+                    var line = _input.Services[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Service @number</span>
+                            <button type="button" class="row-remove" title="Remove service @number" aria-label="Remove service @number" @onclick="() => Remove(_input.Services, line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Description of service @number" @bind="line.Description" @bind:event="oninput" />
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Qty</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                            </div>
+                            <div class="field">
+                                <label>Rate</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.UnitPrice" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddService">+ Add service</button>
+            </div>
+        </CollapsibleSection>
+
+    </Inputs>
+</SamplePage>
+
+@code {
+    private QuotationInput _input = new();
+    private SamplePage? _page;
+
+    private void AddService()
+    {
+        _input.Services.Add(new OrderLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync() =>
+        QuotationSample.Build(_input, await ImageStore.GetManyAsync("quotation-logo.png"));
+
+    private void Remove<T>(List<T> list, T item)
+    {
+        list.Remove(item);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

@@ -4,15 +4,19 @@ using UnlimitedPDF.Models.Table;
 namespace UnlimitedPDF.Tests.Support;
 
 /// <summary>
-/// Builds the documents without images whose output must stay byte-identical across the image feature
-/// (AC-14). Each builder uses only API that existed before it, with fixed content.
+/// Builds the golden documents. Documents without images or the page layout API must stay byte-identical across those
+/// features (AC-14 of the image story, AC-18 of the page layout story); the header-footer, flow-keep, and page-limit
+/// documents pin the page layout API's own output (WR-030 to WR-033). Each builder uses fixed content.
 /// </summary>
 internal static class GoldenDocuments
 {
     #region Fields and Constants
 
+    public const string FlowKeep = "flow-keep";
+    public const string HeaderFooter = "header-footer";
     public const string Invoice = "invoice";
     public const string MiddleTable = "middle-table";
+    public const string PageLimit = "page-limit";
     public const string PaginatedTable = "paginated-table";
     public const string TextPages = "text-pages";
 
@@ -31,8 +35,11 @@ internal static class GoldenDocuments
         using var culture = new CultureScope("");
         var document = name switch
         {
+            FlowKeep => BuildFlowKeep(),
+            HeaderFooter => BuildHeaderFooter(),
             Invoice => BuildInvoice(),
             MiddleTable => BuildMiddleTable(),
+            PageLimit => BuildPageLimit(),
             PaginatedTable => BuildPaginatedTable(),
             TextPages => BuildTextPages(),
             _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown golden document.")
@@ -46,6 +53,104 @@ internal static class GoldenDocuments
     #endregion
 
     #region Private Methods
+
+    // Body flow: a heading kept with a table that continues with its header row repeated, a block, a kept table, a
+    // page break, and a caller page whose page-coordinate table shares its continuation page with the flow.
+    private static PdfDocument BuildFlowKeep()
+    {
+        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36, LeftMargin = 40, RightMargin = 40 };
+        document.Footer.Height = 20;
+        document.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
+
+        var body = document.Body;
+        body.AddText("Order lines", fontSize: 14, keepWithNext: true);
+        var lines = body.AddTable(515, spacing: 6);
+        lines.SetColumnWidths(60, 355, 100);
+        lines.HeaderRowCount = 1;
+        lines.RepeatHeaderRows = true;
+        var header = lines.AddRow();
+        header.GetCell(0).Text = "Line";
+        header.GetCell(1).Text = "Item";
+        header.GetCell(2).Text = "Amount";
+        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+        for (int r = 1; r <= 45; r++)
+        {
+            var row = lines.AddRow();
+            row.GetCell(0).Text = r.ToString(CultureInfo.InvariantCulture);
+            row.GetCell(1).Text = "Item " + r;
+            row.GetCell(2).Text = (r * 7.25).ToString("0.00", CultureInfo.InvariantCulture);
+            row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+        }
+
+        var totals = body.AddBlock(spacing: 12);
+        totals.AddRectangle(515, 1, PdfColor.Black);
+        totals.AddText("Total 7,498.75", spacing: 4, alignment: PdfTextAlignment.Right);
+        totals.AddText("Thank you for your order", spacing: 2, fontSize: 9);
+
+        body.PageBreak();
+        var kept = body.AddTable(300, keepWithNext: true);
+        kept.AddColumn();
+        for (int r = 0; r < 3; r++) kept.AddRow().GetCell(0).Text = "Kept " + r;
+        body.AddText("Follows the kept table", spacing: 8);
+
+        var page = document.AddPage();
+        var positioned = page.AddTable(40, 300, 250);
+        positioned.AddColumn();
+        for (int r = 0; r < 20; r++) positioned.AddRow().GetCell(0).Text = "Placed " + r;
+        body.AddRectangle(200, 380, PdfColor.LightGray, x: 300);
+        body.AddText("Continues below the carried rows", spacing: 10);
+        return document;
+    }
+
+    // Header and footer bands: margins, clipped band content, a band table, page numbers, the per-page callback, and
+    // First and Last rules, on caller pages and on a page-coordinate table's continuation page.
+    private static PdfDocument BuildHeaderFooter()
+    {
+        var document = new PdfDocument { TopMargin = 24, BottomMargin = 24, LeftMargin = 40, RightMargin = 40 };
+        document.Header.Height = 40;
+        document.Header.AddText("Quarterly report", 0, 6, 14);
+        document.Header.AddText("Confidential", 0, 8, 9, PdfTextAlignment.Right);
+        document.Header.AddRectangle(0, 36, 515, 1, PdfColor.Black);
+        document.Header.AddRectangle(480, 30, 40, 30, PdfColor.LightGray); // clipped at the band's bottom edge
+        document.Footer.Height = 30;
+        document.Footer.AddRectangle(0, 0, 515, 0.5, PdfColor.Black);
+        document.Footer.AddText("Page {page} of {pages}", 0, 10, 9, PdfTextAlignment.Right);
+        document.Footer.Build((content, info) => content.AddText(info.IsFirst ? "First page" : "Continued", 0, 10, 9));
+        document.Body.TopGap = 12;
+        document.Body.BottomGap = 12;
+
+        var first = document.AddPageRule(PdfPageRuleTarget.First);
+        first.Header.Height = 80;
+        first.Header.AddText("Quarterly report", 0, 20, 24, PdfTextAlignment.Center);
+        var codes = first.Header.AddTable(0, 56, 200);
+        codes.SetColumnWidths(100, 100);
+        var codeRow = codes.AddRow();
+        codeRow.GetCell(0).Text = "Q3";
+        codeRow.GetCell(1).Text = "2026";
+        document.AddPageRule(PdfPageRuleTarget.Last).Footer.AddText("End of report", 0, 10, 9, PdfTextAlignment.Center);
+
+        document.AddPage().AddText("Summary", 40, 640, 12);
+        var detail = document.AddPage();
+        var table = detail.AddTable(40, 700, 515);
+        table.SetColumnWidths(100, 415);
+        for (int r = 0; r < 40; r++)
+        {
+            var row = table.AddRow();
+            row.GetCell(0).Text = r.ToString(CultureInfo.InvariantCulture);
+            row.GetCell(1).Text = "Detail " + r;
+        }
+        return document;
+    }
+
+    // A strict page limit met exactly: the flow fills two pages and Body.MaxPages is 2.
+    private static PdfDocument BuildPageLimit()
+    {
+        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36, LeftMargin = 40, RightMargin = 40 };
+        document.Body.MaxPages = 2;
+        for (int i = 1; i <= 100; i++)
+            document.Body.AddText("Line " + i.ToString(CultureInfo.InvariantCulture), fontSize: 10);
+        return document;
+    }
 
     // Mirrors the demo invoice (UnlimitedPDF.Demo.ConsoleApp/Program.cs at e382ac0) with fixed dates.
     private static PdfDocument BuildInvoice()

@@ -40,6 +40,8 @@ internal class PdfTextElement
         // Tf = Set font and size
         // Td = Move to start of next line
         // Tj = Show text
-        return $"BT /{FontName} {FontSize} Tf {X} {Y} Td ({Text}) Tj ET";
+        // The text is escaped like every other string the library writes (WR-005); text without a backslash or an
+        // unbalanced parenthesis is written unchanged.
+        return $"BT /{FontName} {FontSize} Tf {X} {Y} Td ({PdfLiteralString.Escape(Text)}) Tj ET";
     }
 }

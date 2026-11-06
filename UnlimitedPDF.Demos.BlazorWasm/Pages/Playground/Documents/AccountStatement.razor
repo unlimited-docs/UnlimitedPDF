@@ -1,0 +1,87 @@
+@page "/playground/documents/account-statement"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.AccountStatement" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Account">
+            <div class="field">
+                <label for="holder">Account holder</label>
+                <input id="holder" class="form-control" @bind="_input.AccountHolder" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="account">Account number</label>
+                <input id="account" class="form-control" @bind="_input.AccountNumber" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="opening">Opening balance</label>
+                <input id="opening" type="number" step="0.01" class="form-control" @bind="_input.OpeningBalance" />
+            </div>
+            <div class="field">
+                <label for="from">Period from</label>
+                <input id="from" type="date" class="form-control" @bind="_input.PeriodStart" />
+            </div>
+            <div class="field">
+                <label for="to">Period to</label>
+                <input id="to" type="date" class="form-control" @bind="_input.PeriodEnd" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Transactions">
+            <div class="rows">
+                @for (int index = 0; index < _input.Transactions.Count; index++)
+                {
+                    var line = _input.Transactions[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Transaction @number</span>
+                            <button type="button" class="row-remove" title="Remove transaction @number" aria-label="Remove transaction @number" @onclick="() => Remove(_input.Transactions, line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Description of transaction @number" @bind="line.Description" @bind:event="oninput" />
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Date</label>
+                                <input type="date" class="form-control" @bind="line.Date" />
+                            </div>
+                            <div class="field">
+                                <label>Amount (minus for a debit)</label>
+                                <input type="number" step="0.01" class="form-control" @bind="line.Amount" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddTransaction">+ Add transaction</button>
+            </div>
+            <div class="field">
+                <label for="generated">Add generated transactions (0 to 1,000)</label>
+                <input id="generated" type="number" min="0" max="1000" class="form-control" @bind="_input.GeneratedTransactions" />
+            </div>
+        </CollapsibleSection>
+
+    </Inputs>
+</SamplePage>
+
+@code {
+    private AccountStatementInput _input = new();
+    private SamplePage? _page;
+
+    private void AddTransaction()
+    {
+        // A new transaction falls on the last day of the statement period, so it lists inside the period.
+        _input.Transactions.Add(new StatementLine { Date = _input.PeriodEnd });
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync() =>
+        AccountStatementSample.Build(_input, await ImageStore.GetManyAsync("account-statement-logo.png"));
+
+    private void Remove<T>(List<T> list, T item)
+    {
+        list.Remove(item);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

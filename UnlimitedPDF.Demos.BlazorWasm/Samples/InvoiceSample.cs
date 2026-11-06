@@ -1,17 +1,20 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
 using UnlimitedPDF.Enums;
+using UnlimitedPDF.Extensions;
 using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// Invoice: a logo, seller and buyer details, line items with product photos, computed tax and totals.
+/// Invoice: a header band with the logo and a footer with page numbers on every page, then seller and buyer details,
+/// line items with product photos, and the totals, which stay together after the last item however many items there are.
 /// </summary>
 public static class InvoiceSample
 {
     #region Fields and Constants
 
     private const decimal CgstRate = 0.09m;
+    private const double Left = 50;
     private const decimal SgstRate = 0.09m;
 
     // Light tints of the logo's navy and orange: text stays black, so fills carry the color.
@@ -34,34 +37,42 @@ public static class InvoiceSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(InvoiceInput input, SampleImages images)
     {
-        var document = new PdfDocument();
-        var page = document.AddPage();
+        // The side margins stay 0 so the header band runs edge to edge; content is placed 50 pt in.
+        var document = new PdfDocument { BottomMargin = 24 };
+        var (pageWidth, _) = PdfPageSize.A4.ToDimensions();
 
-        // Shapes first: the page paints in call order, so text added later sits on top.
-        // A tinted header band across the top, with an orange accent bar under it.
-        AddBand(page, 0, 842, 595, 72, _bandTint);
-        AddBand(page, 0, 770, 595, 4, _orange);
+        // The header and footer are drawn on every page the invoice needs.
+        document.Header.Height = 76;
+        document.Header.AddRectangle(0, 0, pageWidth, 72, _bandTint);
+        document.Header.AddRectangle(0, 72, pageWidth, 4, _orange);
+        document.Header.AddText("INVOICE", Left, 22, 24);
+        document.Header.AddImage(images["invoice-logo.png"], 432, 14, 130, 45, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
 
-        page.AddText("INVOICE", 50, 796, 24);
+        document.Footer.Height = 30;
+        document.Footer.AddRectangle(Left, 0, 495, 3, _orange);
+        document.Footer.AddText($"Invoice No: {input.InvoiceNumber}", Left, 12, 9);
+        document.Footer.AddText("Page {page} of {pages}", Left, 12, 9, PdfTextAlignment.Right);
 
-        // Logo on the right of the band, fitted inside a 130 x 45 pt box whatever its shape.
-        page.AddImage(images["invoice-logo.png"], 432, 783, 130, 45, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
+        document.Body.TopGap = 20;
+        document.Body.BottomGap = 20;
+        var body = document.Body;
 
-        page.AddText("Seller:", 50, 744, 10);
-        page.AddText(PdfText.Escape(input.SellerName), 50, 732, 10);
-        page.AddText(PdfText.Escape(input.SellerAddress), 50, 720, 10);
-        page.AddText(PdfText.Escape(input.SellerTaxId), 50, 708, 10);
+        // Seller and buyer side by side, in a table without borders.
+        var parties = body.AddTable(512, x: Left);
+        parties.SetColumnWidths(300, 212);
+        AddDetailRow(parties, "Seller:", "Buyer:");
+        AddDetailRow(parties, input.SellerName, input.BuyerName);
+        AddDetailRow(parties, input.SellerAddress, input.BuyerAddress);
+        AddDetailRow(parties, input.SellerTaxId, "");
 
-        page.AddText("Buyer:", 350, 744, 10);
-        page.AddText(PdfText.Escape(input.BuyerName), 350, 732, 10);
-        page.AddText(PdfText.Escape(input.BuyerAddress), 350, 720, 10);
+        body.AddText($"Invoice No: {input.InvoiceNumber}", spacing: 14, fontSize: 10, x: Left);
+        body.AddText($"Date: {input.InvoiceDate:dd-MMM-yyyy}", fontSize: 10, x: Left);
 
-        page.AddText(PdfText.Escape($"Invoice No: {input.InvoiceNumber}"), 50, 682, 10);
-        page.AddText($"Date: {input.InvoiceDate:dd-MMM-yyyy}", 50, 670, 10);
-
-        // Line items. Rows with a photo grow to fit it (AtLeast); the photo sits above the description.
-        var items = page.AddTable(50, 650, 512);
+        // Line items. Rows with a photo grow to fit it (AtLeast); the header row repeats on every page.
+        var items = body.AddTable(512, spacing: 12, x: Left);
         items.SetColumnWidths(40, 210, 60, 100, 102);
+        items.HeaderRowCount = 1;
+        items.RepeatHeaderRows = true;
 
         var header = items.AddRow();
         string[] headings = ["S.No.", "Item Description", "Qty", "Rate (INR)", "Amount (INR)"];
@@ -95,24 +106,22 @@ public static class InvoiceSample
             SetRight(row.GetCell(4), amount.ToString("F2"));
         }
 
-        // Totals sit at a fixed position below the items.
+        // The totals and terms follow the last item and move to the next page together when they do not fit.
         decimal cgst = subtotal * CgstRate;
         decimal sgst = subtotal * SgstRate;
         decimal total = subtotal + cgst + sgst;
 
-        var totals = page.AddTable(350, 470, 212);
+        var closing = body.AddBlock(spacing: 16);
+        var totals = closing.AddTable(212, x: 350);
         totals.SetColumnWidths(110, 102);
         AddTotal(totals, 0, "Subtotal", subtotal, highlight: false);
         AddTotal(totals, 1, "CGST @ 9%", cgst, highlight: false);
         AddTotal(totals, 2, "SGST @ 9%", sgst, highlight: false);
         AddTotal(totals, 3, "Total", total, highlight: true);
 
-        page.AddText("Terms & Conditions:", 50, 370, 10);
-        page.AddText("1. Payment due within 30 days.", 50, 358, 9);
-        page.AddText("2. Goods once sold will not be taken back.", 50, 346, 9);
-
-        // A matching accent bar closes the page.
-        AddBand(page, 50, 60, 495, 3, _orange);
+        closing.AddText("Terms & Conditions:", spacing: 20, fontSize: 10, x: Left);
+        closing.AddText("1. Payment due within 30 days.", spacing: 2, fontSize: 9, x: Left);
+        closing.AddText("2. Goods once sold will not be taken back.", spacing: 2, fontSize: 9, x: Left);
 
         return document;
     }
@@ -121,17 +130,21 @@ public static class InvoiceSample
 
     #region Private Methods
 
-    // A filled rectangle drawn as a one-cell table. The border takes the fill color, because cells always draw one.
-    private static void AddBand(PdfPageBuilder page, double x, double top, double width, double height, PdfColor color)
+    // One row of label or value text without borders: cell borders take the white background.
+    private static void AddDetailRow(PdfTable table, string left, string right)
     {
-        var band = page.AddTable(x, top, width);
-        band.SetColumnWidths(width);
-        band.RowHeight = height;
-        var cell = band.AddRow().GetCell(0);
-        cell.Background = color;
-        foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+        var row = table.AddRow();
+        row.Height = 16;
+        string[] texts = [left, right];
+        for (int column = 0; column < texts.Length; column++)
         {
-            border.Color = color;
+            var cell = row.GetCell(column);
+            cell.Text = texts[column];
+            cell.Padding = 0;
+            foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+            {
+                border.Color = PdfColor.White;
+            }
         }
     }
 

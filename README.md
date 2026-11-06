@@ -27,7 +27,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 ## Demos
 
-`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, and images, plus complete invoice, medical report, receipt, and certificate documents. Each demo has editable options, a live preview, a download, and the C# code that builds it.
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers, plus complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
 
 Run it locally:
 
@@ -252,13 +252,74 @@ pdfDocument.Save("directory.pdf");
 
 - A row taller than the space between the margins, or header rows that cannot fit with one data row, make `Save` throw before anything is written.
 - Tables that start on the same page share their continuation pages, so side-by-side tables stay side by side.
-- Content you place at coordinates is never moved.
+- Content you place at coordinates is never moved. To put content after a table, add both to the body flow (see [Headers, footers & flow](#headers-footers--flow)).
+
+## Headers, footers & flow
+
+Give every page a header and a footer, and let body content flow from page to page. Each body item stacks below the previous one, and the library adds pages as the content needs them.
+
+```cs
+using UnlimitedPDF;
+using UnlimitedPDF.Enums;
+using UnlimitedPDF.Models.Table;
+
+var pdfDocument = new PdfDocument { TopMargin = 30, BottomMargin = 30, LeftMargin = 40, RightMargin = 40 };
+
+// Drawn on every page. Offsets are measured from the band's top-left corner; content past the band is clipped.
+pdfDocument.Header.Height = 40;
+pdfDocument.Header.AddText("Quarterly report", 0, 8, 14);
+pdfDocument.Header.AddRectangle(0, 36, 515, 1, PdfColor.Black);
+pdfDocument.Footer.Height = 20;
+pdfDocument.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
+
+// The first page gets its own, taller header.
+var first = pdfDocument.AddPageRule(PdfPageRuleTarget.First);
+first.Header.Height = 70;
+first.Header.AddText("Quarterly report", 0, 10, 24, PdfTextAlignment.Center);
+
+// Body items stack below each other with a spacing and continue on new pages by themselves.
+var body = pdfDocument.Body;
+body.TopGap = 12;
+body.AddText("Employees", fontSize: 14, keepWithNext: true);
+
+var table = body.AddTable(515, spacing: 6);
+table.SetColumnWidths(60, 255, 200);
+table.HeaderRowCount = 1;
+table.RepeatHeaderRows = true;
+table.GetOrCreateCell(0, 0).Text = "No.";
+table.GetOrCreateCell(0, 1).Text = "Name";
+table.GetOrCreateCell(0, 2).Text = "Department";
+
+for (int i = 1; i <= 120; i++)
+{
+    table.GetOrCreateCell(i, 0).Text = i.ToString();
+    table.GetOrCreateCell(i, 1).Text = "Employee " + i;
+    table.GetOrCreateCell(i, 2).Text = "Engineering";
+}
+
+// A block moves to the next page as one piece, right after the table ends.
+var signOff = body.AddBlock(spacing: 20);
+signOff.AddRectangle(515, 1, PdfColor.Black);
+signOff.AddText("Approved by: ____________________", spacing: 10);
+
+pdfDocument.Save("report.pdf");
+```
+
+- `{page}` and `{pages}` show each page's number and the page count; `Header.Build(...)` and `Footer.Build(...)` build the content per page instead.
+- Page rules for `First`, `Last`, `Odd`, `Even`, or a page number change a band's height, visibility, or content, the body gaps, or the side margins. A `Last` rule may change content only.
+- `keepWithNext` keeps an item, such as a heading, on the page of the item after it. Anything taller than an empty body makes `Save` throw before anything is written.
+- `Body.Remaining` is the room left where the next item lands. If what it measured changes afterwards, `Save` throws instead of writing a different layout.
+- `Body.MaxPages` caps the page count; content that needs more pages makes `Save` throw, naming what does not fit.
+- `AddPage` still works: it starts a new page in the flow, and its page-coordinate content is drawn where you place it.
+- Text is aligned with the font's real character widths. It does not wrap.
+- Documents that use none of these features are written exactly as before.
 
 ## Changes in 0.1.0
 
 - New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.TopMargin`, `PdfDocument.BottomMargin`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
+- New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.AddPageRule`, `PdfDocument.LeftMargin`, `PdfDocument.RightMargin`), and filled rectangles (`PdfPageBuilder.AddRectangle`).
 - New: images (`PdfImage`, `PdfPageBuilder.AddImage`), images and stacked content in table cells, row height rules, and unit conversion (`PdfUnits`).
 - `PdfTableCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
 - Table cells with `VAlign` set to `Top` or `Bottom` are now drawn that way (it had no effect before).
-- Table cell text containing a backslash or an unbalanced parenthesis is now escaped, so it displays as written.
+- Text containing a backslash or an unbalanced parenthesis is now escaped wherever it appears (table cells, `PdfPageBuilder.AddText`, headers, footers, and the body flow), so it displays as written. Text without those characters is written exactly as before.
 - Table numbers are written the same way in every culture, so documents saved under comma-decimal cultures are valid.

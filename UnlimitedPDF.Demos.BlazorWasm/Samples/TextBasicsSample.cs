@@ -27,9 +27,9 @@ public static class TextBasicsSample
         {
             var page = document.AddPage();
 
-            // AddText writes its text into the PDF as given, so escape \ ( and ) first.
-            page.AddText(PdfText.Escape(input.Heading), input.X, input.Y, input.FontSize);
-            page.AddText(PdfText.Escape(input.Body), input.X, input.Y - input.FontSize - 14, 12);
+            // Text is written as typed: the library escapes \ ( and ) itself.
+            page.AddText(input.Heading, input.X, input.Y, input.FontSize);
+            page.AddText(input.Body, input.X, input.Y - input.FontSize - 14, 12);
             page.AddText($"Page {pageNumber} of {pageCount}", input.X, 40, 9);
         }
 

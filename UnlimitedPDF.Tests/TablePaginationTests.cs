@@ -296,6 +296,49 @@ public class TablePaginationTests
     }
 
     [Fact]
+    public void A_row_on_the_tables_own_page_must_still_fit_an_empty_body()
+    {
+        // Review F-15: the table starts above the body top, so its 750 pt row fits below it on page 1, but no empty
+        // body can hold it; the release before this story failed before output, and so must this one.
+        var document = new PdfDocument { TopMargin = 100 };
+        var table = document.AddPage().AddTable(50, 820, 160);
+        table.AddColumn();
+        var row = table.AddRow();
+        row.HeightRule = PdfRowHeightRule.Exactly;
+        row.Height = 750;
+        row.GetCell(0).Text = "tall";
+
+        var error = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document));
+
+        Assert.StartsWith("Row index 0 of table 1 on page 1 is 750 pt tall, which is more than the 741.89 pt", error.Message);
+    }
+
+    [Theory]
+    [InlineData(900, "Row index 1 of table 1 on page 1 is 900 pt tall")]
+    [InlineData(760, "The 1 header row(s) of table 1 on page 1 together with row index 1 need 860 pt")]
+    public void A_too_tall_row_after_header_rows_names_the_row_unless_only_the_header_rows_push_it_over(double height, string expected)
+    {
+        // Review F-16: a data row that alone is too tall is named by its own message, as before this story.
+        var document = new PdfDocument();
+        var table = document.AddPage().AddTable(50, 841.89, 160);
+        table.AddColumn();
+        table.HeaderRowCount = 1;
+        table.RepeatHeaderRows = true;
+        var header = table.AddRow();
+        header.HeightRule = PdfRowHeightRule.Exactly;
+        header.Height = 100;
+        header.GetCell(0).Text = "Header";
+        var row = table.AddRow();
+        row.HeightRule = PdfRowHeightRule.Exactly;
+        row.Height = height;
+        row.GetCell(0).Text = "tall";
+
+        var error = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document));
+
+        Assert.StartsWith(expected, error.Message);
+    }
+
+    [Fact]
     public void Saving_again_gives_the_same_bytes_and_adds_pages_for_new_rows_only()
     {
         var document = new PdfDocument();

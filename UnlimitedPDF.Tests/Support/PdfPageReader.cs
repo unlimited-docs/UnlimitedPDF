@@ -92,6 +92,32 @@ internal static class PdfPageReader
                 .Select(m => (Number(m.Groups[1].Value), Number(m.Groups[2].Value), Number(m.Groups[3].Value), Number(m.Groups[4].Value)))
                 .ToList();
 
+        /// <summary>
+        /// Returns the clip rectangles the page sets with <c>re W n</c>, as (x, y, width, height), in drawing order.
+        /// </summary>
+        public IReadOnlyList<(double X, double Y, double Width, double Height)> ClipRectangles() =>
+            Regex.Matches(Content, @"(\S+) (\S+) (\S+) (\S+) re W n")
+                .Select(m => (Number(m.Groups[1].Value), Number(m.Groups[2].Value), Number(m.Groups[3].Value), Number(m.Groups[4].Value)))
+                .ToList();
+
+        /// <summary>
+        /// Returns the rectangles drawn by the page layout API (pages, bands, and flow), as (x, y, width, height), in
+        /// drawing order.
+        /// </summary>
+        public IReadOnlyList<(double X, double Y, double Width, double Height)> LayoutRectangles() =>
+            Regex.Matches(Content, @"q \S+ \S+ \S+ rg (\S+) (\S+) (\S+) (\S+) re f Q")
+                .Select(m => (Number(m.Groups[1].Value), Number(m.Groups[2].Value), Number(m.Groups[3].Value), Number(m.Groups[4].Value)))
+                .ToList();
+
+        /// <summary>
+        /// Returns the text lines drawn by the page layout API with their position: the x-coordinate where the text
+        /// starts and its baseline, in drawing order.
+        /// </summary>
+        public IReadOnlyList<(string Text, double X, double Baseline)> LayoutTexts() =>
+            Regex.Matches(Content, @"1 0 0 1 (\S+) (\S+) Tm \((.*?)\) Tj ET")
+                .Select(m => (m.Groups[3].Value, Number(m.Groups[1].Value), Number(m.Groups[2].Value)))
+                .ToList();
+
         private static double Number(string value) => double.Parse(value, CultureInfo.InvariantCulture);
     }
 

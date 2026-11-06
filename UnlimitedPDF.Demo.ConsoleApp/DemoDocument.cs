@@ -5,7 +5,8 @@ using UnlimitedPDF.Models.Table;
 namespace UnlimitedPDF.Demo.ConsoleApp;
 
 /// <summary>
-/// Builds the demo document: an invoice with a logo and product images, an image samples page, and a plain page.
+/// Builds the demo document: an invoice in the body flow with product images, an image samples page, and a plain
+/// page, each with the logo in its header and a page number in its footer.
 /// </summary>
 public static class DemoDocument
 {
@@ -26,32 +27,37 @@ public static class DemoDocument
         var dock = PdfImage.FromFile(Path.Combine(assetsDirectory, "dock.jpg"));
         var cmykSample = PdfImage.FromFile(Path.Combine(assetsDirectory, "cmyk-sample.jpg"));
 
-        var pdfDocument = new PdfDocument();
+        var pdfDocument = new PdfDocument { BottomMargin = 20 };
 
-        // --- Page 1: Invoice ---
-        var page1 = pdfDocument.AddPage();
-        AddLogo(page1, logo);
+        // Every page gets the logo in its header band and a page number in its footer.
+        pdfDocument.Header.Height = 80;
+        pdfDocument.Header.AddImage(logo, 492, 10, width: 70);
+        pdfDocument.Footer.Height = 20;
+        pdfDocument.Footer.AddText("Page {page} of {pages}", 33, 4, 9, PdfTextAlignment.Right);
+
+        // --- Page 1: Invoice, in the body flow: each part follows the one above it ---
+        var body = pdfDocument.Body;
 
         // 1. Invoice Header
-        page1.AddText("INVOICE", 250, 800, 20);
+        body.AddText("INVOICE", fontSize: 20, alignment: PdfTextAlignment.Center);
 
-        // Seller and Buyer Details
-        page1.AddText("Seller:", 50, 760, 10);
-        page1.AddText("ABC Electronics Pvt. Ltd.", 50, 748, 10);
-        page1.AddText("123 Tech Park, Bangalore, KA 560001", 50, 736, 10);
-        page1.AddText("GSTIN: 222222222222225", 50, 724, 10);
-
-        page1.AddText("Buyer:", 350, 760, 10);
-        page1.AddText("UnlimitedPDF", 350, 748, 10);
-        page1.AddText("456 Code Street, Hyderabad, TS 500001", 350, 736, 10);
+        // Seller and Buyer Details, side by side in a table without borders
+        var parties = body.AddTable(512, spacing: 16, x: 50);
+        parties.SetColumnWidths(300, 212);
+        AddDetailRow(parties, "Seller:", "Buyer:");
+        AddDetailRow(parties, "ABC Electronics Pvt. Ltd.", "UnlimitedPDF");
+        AddDetailRow(parties, "123 Tech Park, Bangalore, KA 560001", "456 Code Street, Hyderabad, TS 500001");
+        AddDetailRow(parties, "GSTIN: 222222222222225", "");
 
         // Invoice Metadata
-        page1.AddText($"Invoice No: INV-{DateTime.Now:yyyy-MM-dd}-001", 50, 690, 10);
-        page1.AddText($"Date: {DateTime.Now:dd-MMM-yyyy}", 50, 678, 10);
+        body.AddText($"Invoice No: INV-{DateTime.Now:yyyy-MM-dd}-001", spacing: 16, fontSize: 10, x: 50);
+        body.AddText($"Date: {DateTime.Now:dd-MMM-yyyy}", fontSize: 10, x: 50);
 
-        // 2. Items Table
-        var itemsTable = page1.AddTable(50, 650, 512);
+        // 2. Items Table; its header row repeats if the items continue on another page
+        var itemsTable = body.AddTable(512, spacing: 14, x: 50);
         itemsTable.SetColumnWidths(40, 210, 60, 100, 102);
+        itemsTable.HeaderRowCount = 1;
+        itemsTable.RepeatHeaderRows = true;
 
         // Table Headers
         var headerRow = itemsTable.AddRow();
@@ -70,13 +76,14 @@ public static class DemoDocument
         AddItemRow(itemsTable, "1", keyboard, "Wireless Keyboard", "2", "1250.00", "2500.00");
         AddItemRow(itemsTable, "2", dock, "USB-C Docking Station", "1", "4500.00", "4500.00");
 
-        // 3. Totals Section (placed below the taller item rows)
+        // 3. Totals Section and 4. Terms: a block that follows the items and stays together
         double subtotal = 7000.00;
         double cgst = subtotal * 0.09; // 9% CGST
         double sgst = subtotal * 0.09; // 9% SGST
         double total = subtotal + cgst + sgst;
 
-        var totalsTable = page1.AddTable(350, 470, 212);
+        var closing = body.AddBlock(spacing: 16);
+        var totalsTable = closing.AddTable(212, x: 350);
         totalsTable.SetColumnWidths(110, 102);
 
         totalsTable.GetOrCreateCell(0, 0).Text = "Subtotal";
@@ -103,14 +110,13 @@ public static class DemoDocument
         totalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
         totalValueCell.Background = PdfColor.LightGray;
 
-        // 4. Terms and Conditions
-        page1.AddText("Terms & Conditions:", 50, 370, 10);
-        page1.AddText("1. Payment due within 30 days.", 50, 358, 9);
-        page1.AddText("2. Goods once sold will not be taken back.", 50, 346, 9);
+        closing.AddText("Terms & Conditions:", spacing: 20, fontSize: 10, x: 50);
+        closing.AddText("1. Payment due within 30 days.", spacing: 2, fontSize: 9, x: 50);
+        closing.AddText("2. Goods once sold will not be taken back.", spacing: 2, fontSize: 9, x: 50);
 
         // --- Page 2: Image samples ---
+        // AddPage also starts a new page in the flow; this page places its content at page coordinates.
         var page2 = pdfDocument.AddPage();
-        AddLogo(page2, logo);
         page2.AddText("Image samples", 50, 790, 16);
 
         // No size: 96 pixels per inch, so 96 x 64 px draws 72 x 48 pt.
@@ -147,7 +153,6 @@ public static class DemoDocument
 
         // --- Page 3: Other Content ---
         var page3 = pdfDocument.AddPage();
-        AddLogo(page3, logo);
         page3.AddText("This is the first line on the third page.", 50, 750, 12);
 
         return pdfDocument;
@@ -171,10 +176,22 @@ public static class DemoDocument
         row.GetCell(4).HAlign = PdfCellHorizontalAlignment.Right;
     }
 
-    // The logo sits in the top-right corner of every page.
-    private static void AddLogo(PdfPageBuilder page, PdfImage logo)
+    // One row of label or value text without borders: cell borders take the white background.
+    private static void AddDetailRow(PdfTable table, string left, string right)
     {
-        page.AddImage(logo, 492, 762, width: 70);
+        var row = table.AddRow();
+        row.Height = 16;
+        string[] texts = [left, right];
+        for (int column = 0; column < texts.Length; column++)
+        {
+            var cell = row.GetCell(column);
+            cell.Text = texts[column];
+            cell.Padding = 0;
+            foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+            {
+                border.Color = PdfColor.White;
+            }
+        }
     }
 
     #endregion

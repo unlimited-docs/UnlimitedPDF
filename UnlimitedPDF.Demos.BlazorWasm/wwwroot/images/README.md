@@ -14,7 +14,7 @@ Copied unchanged from [`UnlimitedPDF.Demo.ConsoleApp/Assets`](../../../Unlimited
 
 ## Generated UnlimitedPDF images
 
-The project owner created the artwork with ChatGPT image generation on 2026-11-04. The full-size originals, their checksums, and their origin are in the repository's [`assets/`](../../../assets/ARTWORK.md) folder, which is neither served nor published (PR-013).
+The project owner created the artwork with ChatGPT image generation on 2026-11-04, and the five business-document demo logos with image generation on 2026-11-06. The full-size originals, their checksums, and their origin are in the repository's [`assets/`](../../../assets/ARTWORK.md) folder, which is neither served nor published (PR-013).
 
 The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`](../../../assets/New-DerivedImages.ps1). Run that script to regenerate them; don't edit them by hand. Each copy and its original are listed in [`assets/ARTWORK.md`](../../../assets/ARTWORK.md#derived-copies).
 
@@ -28,3 +28,8 @@ The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`
 | `medical-report-logo.png` | Medical report demo |
 | `receipt-logo.png` | Receipt demo |
 | `certificate-seal.png`, `certificate-signature.png` | Certificate demo (the signature is fictional) |
+| `purchase-order-logo.png` | Purchase order demo (fictional company) |
+| `quotation-logo.png` | Quotation demo (fictional company) |
+| `account-statement-logo.png` | Account statement demo (fictional company) |
+| `payslip-logo.png` | Payslip demo (fictional company) |
+| `delivery-note-logo.png` | Delivery note demo (fictional company) |

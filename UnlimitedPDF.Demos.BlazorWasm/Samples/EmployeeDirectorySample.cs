@@ -1,18 +1,16 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
+using UnlimitedPDF.Enums;
 using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// Employee directory: one long table that continues across pages by itself and repeats its header row on every
-/// page.
+/// Employee directory: one long table in the body flow that continues across pages by itself, repeats its header row
+/// on every page, and sits between a header and a footer with "Page n of m" on every page.
 /// </summary>
 public static class EmployeeDirectorySample
 {
     #region Fields and Constants
-
-    private const double TableLeft = 40;
-    private const double TableWidth = 515;
 
     private static readonly string[] _departments = ["Engineering", "Finance", "Sales", "Support", "Marketing", "Operations"];
     private static readonly string[] _firstNames = ["Aarav", "Diya", "Kabir", "Meera", "Rohan", "Sara", "Vikram", "Anika", "Dev", "Isha", "Arjun", "Nina"];
@@ -33,18 +31,24 @@ public static class EmployeeDirectorySample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(EmployeeDirectoryInput input)
     {
-        // Margins apply to every page: tables break above the bottom one and continue below the top one.
+        // Margins apply to every page; the header and footer sit inside them and the table flows between.
         var document = new PdfDocument
         {
             TopMargin = Math.Max(0, input.TopMargin),
-            BottomMargin = Math.Max(0, input.BottomMargin)
+            BottomMargin = Math.Max(0, input.BottomMargin),
+            LeftMargin = 40,
+            RightMargin = 40
         };
-        var page = document.AddPage();
 
-        page.AddText(PdfText.Escape(input.CompanyName), (int)TableLeft, 800, 18);
-        page.AddText("Employee directory", (int)TableLeft, 780, 12);
+        document.Header.Height = 44;
+        document.Header.AddText(input.CompanyName, 0, 0, 18);
+        document.Header.AddText("Employee directory", 0, 24, 12);
+        document.Footer.Height = 16;
+        document.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
+        document.Body.TopGap = 8;
+        document.Body.BottomGap = 8;
 
-        var table = page.AddTable(TableLeft, 760, TableWidth);
+        var table = document.Body.AddTable(515);
         table.SetColumnWidths(45, 160, 120, 110, 80);
         table.RowHeight = 18;
 

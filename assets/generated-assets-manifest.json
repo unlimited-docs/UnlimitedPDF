@@ -166,6 +166,56 @@
           "prompt": "Use case: text-localization, single-word spelling correction.\nImage 1 is the EDIT TARGET, an existing UnlimitedPDF Demos hero image. Make ONLY this exact correction in the Medical Report card (second document from left): under \"Findings\", the SECOND bullet currently misspells \"abnormalities\". Replace that entire second bullet's text with this exact correctly spelled sentence:\n\"No significant abnormalities detected.\"\n\nThe correct word is abnormalities: a-b-n-o-r-m-a-l-i-t-i-e-s. It ends in \"ities\", not \"iites\". Render all letters clearly and in exactly this order. Match the existing dark navy small sans-serif font, baseline, size, weight, line spacing and turquoise bullet. Keep the sentence in its existing location. Do not change the word count or wording, and do not add any new text.\n\nPreserve all other pixels and text as closely as possible. In particular keep the top single logo with \"Unlimited\" navy, \"PDF\" teal and \"Demos\" teal, the existing icon, no repeated headline, exact subtitle, all backgrounds, decorative divider, document positions, invoice, receipt and certificate, their original text and numbers, category badges, shadows and reflections. The surrounding Medical Report text must remain:\n\"Findings\"\n\"Vital signs are within normal range.\"\n\"No significant abnormalities detected.\"\n\"Overall, the results are normal.\"\n\"Recommendations\"\n\"Maintain a healthy lifestyle and schedule a routine\"\n\"follow-up in 12 months.\"\n\nDo not change any other spelling, names, symbols, layout or colors. Do not redesign or recreate the composition. Preserve the 1672x941 canvas and opaque background. Surgical text correction only."
         }
       }
+    },
+    {
+      "path": "originals/purchase-order-logo.png",
+      "purpose": "Purchase order demo logo (fictional Brightline Manufacturing)",
+      "width": 2172,
+      "height": 724,
+      "bytes": 653911,
+      "sha256": "04dd8176ca6deb7bc288a1373f6fd8bdd7c853cd93b857dfaf63184bddb787c9",
+      "origin": "Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028).",
+      "prompt": "Create a clean horizontal logo for the fictional company 'Brightline Manufacturing'. On the left, a simple flat icon of a gear with a single bright horizontal line passing through its center. To its right, the name 'Brightline' on the first line in bold dark slate gray #2F3E4E and 'Manufacturing' on the second line in medium-weight amber #E8A317, left-aligned, in a clean geometric sans-serif. Wide 3:1 landscape canvas, 2172 x 724 pixels, transparent background, crisp edges, flat solid colors, balanced padding. Spell the text exactly as given. No tagline, gradients, shadows, glow, textures, 3D effects, mockup, or additional symbols, and no resemblance to any real company's logo."
+    },
+    {
+      "path": "originals/quotation-logo.png",
+      "purpose": "Quotation demo logo (fictional Summit IT Services)",
+      "width": 2172,
+      "height": 724,
+      "bytes": 625865,
+      "sha256": "091ec7fbfca87eb0ae89d1966ce762722a5c7d129d7f735f4b3f7e40ddf94d75",
+      "origin": "Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028).",
+      "prompt": "Create a clean horizontal logo for the fictional company 'Summit IT Services'. On the left, a simple flat icon of a mountain peak made of two overlapping triangles, with a small circuit-style dot and line at the summit. To its right, 'Summit' on the first line in bold deep indigo #2B3A8C and 'IT Services' on the second line in medium-weight sky blue #3BA7E0, left-aligned, in a clean geometric sans-serif. Wide 3:1 landscape canvas, 2172 x 724 pixels, transparent background, crisp edges, flat solid colors, balanced padding. Spell the text exactly as given. No tagline, gradients, shadows, glow, textures, 3D effects, mockup, or additional symbols, and no resemblance to any real company's logo."
+    },
+    {
+      "path": "originals/account-statement-logo.png",
+      "purpose": "Account statement demo logo (fictional Harborview Savings Bank)",
+      "width": 2172,
+      "height": 724,
+      "bytes": 576168,
+      "sha256": "da7871651976220474e0eabbfb6b682bf2c40633ccbbb4772e32a2dfd7736308",
+      "origin": "Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028).",
+      "prompt": "Create a clean horizontal logo for the fictional bank 'Harborview Savings Bank'. On the left, a simple flat icon of a classic columned bank building above two gentle wave lines. To its right, 'Harborview' on the first line in bold dark navy #14365A and 'Savings Bank' on the second line in medium-weight sea green #2E9C8F, left-aligned, in a clean serif-free professional typeface. Wide 3:1 landscape canvas, 2172 x 724 pixels, transparent background, crisp edges, flat solid colors, balanced padding. Spell the text exactly as given. No tagline, gradients, shadows, glow, textures, 3D effects, mockup, currency symbols, or additional symbols, and no resemblance to any real bank's logo."
+    },
+    {
+      "path": "originals/payslip-logo.png",
+      "purpose": "Payslip demo logo (fictional Greenfield Logistics)",
+      "width": 2172,
+      "height": 724,
+      "bytes": 604899,
+      "sha256": "21b1974eb9352056e244b3cb625f8c17940eb119b2b420ee0cb2102dd90239ba",
+      "origin": "Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028).",
+      "prompt": "Create a clean horizontal logo for the fictional company 'Greenfield Logistics'. On the left, a simple flat icon of a leaf whose central vein forms a forward-pointing arrow. To its right, 'Greenfield' on the first line in bold forest green #2E7D32 and 'Logistics' on the second line in medium-weight charcoal #3C4043, left-aligned, in a clean geometric sans-serif. Wide 3:1 landscape canvas, 2172 x 724 pixels, transparent background, crisp edges, flat solid colors, balanced padding. Spell the text exactly as given. No tagline, gradients, shadows, glow, textures, 3D effects, mockup, or additional symbols, and no resemblance to any real company's logo."
+    },
+    {
+      "path": "originals/delivery-note-logo.png",
+      "purpose": "Delivery note demo logo (fictional Meridian Freight)",
+      "width": 2172,
+      "height": 724,
+      "bytes": 625144,
+      "sha256": "0123e7dd99643c9909248035b6437f2b745461302c935c45f0a6e46357ba6bfe",
+      "origin": "Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028).",
+      "prompt": "Create a clean horizontal logo for the fictional company 'Meridian Freight'. On the left, a simple flat icon of a globe outline crossed by one bold curved meridian line ending in a small arrowhead. To its right, 'Meridian' on the first line in bold deep red #B3261E and 'Freight' on the second line in medium-weight dark gray #444B53, left-aligned, in a clean geometric sans-serif. Wide 3:1 landscape canvas, 2172 x 724 pixels, transparent background, crisp edges, flat solid colors, balanced padding. Spell the text exactly as given. No tagline, gradients, shadows, glow, textures, 3D effects, mockup, or additional symbols, and no resemblance to any real company's logo."
     }
   ]
 }

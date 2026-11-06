@@ -62,8 +62,23 @@ internal static class PdfTableRenderer
     public static string Render(PdfTable table, int pageNumber, int tableNumber, Func<PdfImageData, string> imageName)
     {
         var layout = Layout(table, pageNumber, tableNumber);
+        return RenderAt(table, layout, table.X, table.Y, imageName);
+    }
+
+    /// <summary>
+    /// Returns the content stream operators that draw every row of <paramref name="table"/> with its top-left corner at
+    /// (<paramref name="x"/>, <paramref name="top"/>), without pagination (used for tables in headers and footers).
+    /// </summary>
+    /// <param name="table">The table.</param>
+    /// <param name="layout">The table's layout.</param>
+    /// <param name="x">The x-coordinate of the table's left edge, in points.</param>
+    /// <param name="top">The y-coordinate of the table's top edge, in points.</param>
+    /// <param name="imageName">Returns the page resource name of an image, for example "/Im1".</param>
+    /// <returns>The operators.</returns>
+    public static string RenderAt(PdfTable table, TableLayout layout, double x, double top, Func<PdfImageData, string> imageName)
+    {
         var sb = new StringBuilder();
-        DrawRows(sb, table, layout, Enumerable.Range(0, table.RowCount), table.Y, imageName);
+        DrawRows(sb, table, layout, Enumerable.Range(0, table.RowCount), x, top, imageName);
         return sb.ToString();
     }
 
@@ -82,7 +97,7 @@ internal static class PdfTableRenderer
         if (part.RepeatsHeader) rows = Enumerable.Range(0, plan.HeaderRowCount).Concat(rows);
 
         var sb = new StringBuilder();
-        DrawRows(sb, table, plan.Layout, rows, part.Top, imageName);
+        DrawRows(sb, table, plan.Layout, rows, part.X, part.Top, imageName);
         return sb.ToString();
     }
 
@@ -163,14 +178,14 @@ internal static class PdfTableRenderer
 
     // Draws the given rows one below the other from top. Every cell is drawn with its own background and closed border,
     // so each page part of a table looks complete.
-    private static void DrawRows(StringBuilder sb, PdfTable table, TableLayout layout, IEnumerable<int> rows, double top, Func<PdfImageData, string> imageName)
+    private static void DrawRows(StringBuilder sb, PdfTable table, TableLayout layout, IEnumerable<int> rows, double left, double top, Func<PdfImageData, string> imageName)
     {
         double currentY = top;
 
         foreach (int r in rows)
         {
             double rowHeight = layout.RowHeights[r];
-            double currentX = table.X;
+            double currentX = left;
             for (int c = 0; c < table.ColCount; c++)
             {
                 var cell = table.GetCell(r, c);

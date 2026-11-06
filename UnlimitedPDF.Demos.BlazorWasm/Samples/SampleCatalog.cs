@@ -23,13 +23,24 @@ public static class SampleCatalog
     [
         new SampleCategory(
             "Create",
-            "Build documents from code: pages, text, tables, and images.",
-            [TextAndPages, Tables, Images]),
+            "Build documents from code: pages, text, tables, images, and headers and footers.",
+            [TextAndPages, Tables, Images, HeadersFooters]),
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
-            [Invoice, MedicalReport, Receipt, Certificate, EmployeeDirectory])
+            [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory])
     ];
+
+    /// <summary>
+    /// Gets the Account statement demo.
+    /// </summary>
+    public static SampleDemo AccountStatement { get; } = new(
+        "Account statement",
+        "A bank statement with a first-page summary, a running balance, and the header row on every page.",
+        "playground/documents/account-statement",
+        "AccountStatementSample.cs",
+        "account-statement.pdf",
+        "table");
 
     /// <summary>
     /// Gets the Certificate demo.
@@ -43,15 +54,37 @@ public static class SampleCatalog
         "award");
 
     /// <summary>
+    /// Gets the Delivery note demo.
+    /// </summary>
+    public static SampleDemo DeliveryNote { get; } = new(
+        "Delivery note",
+        "A delivery note that lists ordered and shipped quantities and keeps the signature block together.",
+        "playground/documents/delivery-note",
+        "DeliveryNoteSample.cs",
+        "delivery-note.pdf",
+        "receipt");
+
+    /// <summary>
     /// Gets the Employee directory demo.
     /// </summary>
     public static SampleDemo EmployeeDirectory { get; } = new(
         "Employee directory",
-        "A long table that continues across pages and repeats its header row on every page.",
+        "A long table that continues across pages, repeats its header row, and numbers every page.",
         "playground/documents/employee-directory",
         "EmployeeDirectorySample.cs",
         "employee-directory.pdf",
         "users");
+
+    /// <summary>
+    /// Gets the Headers and footers demo.
+    /// </summary>
+    public static SampleDemo HeadersFooters { get; } = new(
+        "Headers and footers",
+        "A report with a header and footer on every page, page numbers, first and last page rules, and content that flows onto new pages.",
+        "playground/create/headers-and-footers",
+        "HeadersFootersSample.cs",
+        "headers-and-footers.pdf",
+        "spark");
 
     /// <summary>
     /// Gets the Images demo.
@@ -85,6 +118,39 @@ public static class SampleCatalog
         "MedicalReportSample.cs",
         "medical-report.pdf",
         "pulse");
+
+    /// <summary>
+    /// Gets the Payslip demo.
+    /// </summary>
+    public static SampleDemo Payslip { get; } = new(
+        "Payslip",
+        "A one-page payslip with earnings, deductions, and net pay, held to one page by a page limit.",
+        "playground/documents/payslip",
+        "PayslipSample.cs",
+        "payslip.pdf",
+        "users");
+
+    /// <summary>
+    /// Gets the Purchase order demo.
+    /// </summary>
+    public static SampleDemo PurchaseOrder { get; } = new(
+        "Purchase order",
+        "A purchase order whose item table runs across pages, with the totals kept together at the end.",
+        "playground/documents/purchase-order",
+        "PurchaseOrderSample.cs",
+        "purchase-order.pdf",
+        "invoice");
+
+    /// <summary>
+    /// Gets the Quotation demo.
+    /// </summary>
+    public static SampleDemo Quotation { get; } = new(
+        "Quotation",
+        "A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.",
+        "playground/documents/quotation",
+        "QuotationSample.cs",
+        "quotation.pdf",
+        "invoice");
 
     /// <summary>
     /// Gets the Receipt demo.

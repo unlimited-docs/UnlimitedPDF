@@ -29,11 +29,28 @@
 
   <!-- The demos app's document builders and their inputs are compiled here too, so tests can check the demo PDFs. -->
   <ItemGroup>
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\AccountStatementSample.cs" Link="Demo\Samples\AccountStatementSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DeliveryNoteSample.cs" Link="Demo\Samples\DeliveryNoteSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PayslipSample.cs" Link="Demo\Samples\PayslipSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PurchaseOrderSample.cs" Link="Demo\Samples\PurchaseOrderSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\QuotationSample.cs" Link="Demo\Samples\QuotationSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\AccountStatementInput.cs" Link="Demo\Samples\Inputs\AccountStatementInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\DeliveryLine.cs" Link="Demo\Samples\Inputs\DeliveryLine.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\DeliveryNoteInput.cs" Link="Demo\Samples\Inputs\DeliveryNoteInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\OrderLine.cs" Link="Demo\Samples\Inputs\OrderLine.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\PayslipInput.cs" Link="Demo\Samples\Inputs\PayslipInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\PayslipLine.cs" Link="Demo\Samples\Inputs\PayslipLine.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\PurchaseOrderInput.cs" Link="Demo\Samples\Inputs\PurchaseOrderInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\QuotationInput.cs" Link="Demo\Samples\Inputs\QuotationInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\StatementLine.cs" Link="Demo\Samples\Inputs\StatementLine.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\EmployeeDirectorySample.cs" Link="Demo\Samples\EmployeeDirectorySample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HeadersFootersSample.cs" Link="Demo\Samples\HeadersFootersSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\InvoiceSample.cs" Link="Demo\Samples\InvoiceSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MedicalReportSample.cs" Link="Demo\Samples\MedicalReportSample.cs" />
-    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PdfText.cs" Link="Demo\Samples\PdfText.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ReceiptSample.cs" Link="Demo\Samples\ReceiptSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleImages.cs" Link="Demo\Samples\SampleImages.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\EmployeeDirectoryInput.cs" Link="Demo\Samples\Inputs\EmployeeDirectoryInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\HeadersFootersInput.cs" Link="Demo\Samples\Inputs\HeadersFootersInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\InvoiceInput.cs" Link="Demo\Samples\Inputs\InvoiceInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\InvoiceLine.cs" Link="Demo\Samples\Inputs\InvoiceLine.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\LabResult.cs" Link="Demo\Samples\Inputs\LabResult.cs" />

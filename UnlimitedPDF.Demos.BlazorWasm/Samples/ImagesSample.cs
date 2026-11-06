@@ -26,16 +26,13 @@ public static class ImagesSample
         page.AddText("Images", 50, 795, 20);
         page.AddText($"Source image: {image.PixelWidth} x {image.PixelHeight} px", 50, 775, 10);
 
-        // 1. Fit inside a box. A one-cell table draws the box outline so the fit is visible.
+        // 1. Fit inside a box, outlined so the fit is visible.
         page.AddText($"{input.Fit} in a {input.BoxWidth:0} x {input.BoxHeight:0} pt box", (int)input.X, (int)(input.Y + input.BoxHeight + 10), 11);
-        var frame = page.AddTable(input.X, input.Y + input.BoxHeight, input.BoxWidth);
-        frame.SetColumnWidths(input.BoxWidth);
-        frame.RowHeight = input.BoxHeight;
-        frame.AddRow();
 
         // Images are placed by their bottom-left corner; Contain keeps the aspect ratio, Stretch fills the box.
         page.AddImage(image, input.X, input.Y, input.BoxWidth, input.BoxHeight,
             new PdfImagePlacementOptions { Fit = input.Fit });
+        Outline(page, input.X, input.Y, input.BoxWidth, input.BoxHeight);
 
         // 2. One dimension only: the other follows the image's aspect ratio. PdfUnits converts other units to points.
         page.AddText("Width only: 1.5 in", 400, 440, 11);
@@ -61,6 +58,20 @@ public static class ImagesSample
         }
 
         return document;
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    // Draws a thin outline on the box's edges with four filled rectangles.
+    private static void Outline(PdfPageBuilder page, double x, double y, double width, double height)
+    {
+        const double thickness = 0.5;
+        page.AddRectangle(x, y, width, thickness, PdfColor.Black);
+        page.AddRectangle(x, y + height - thickness, width, thickness, PdfColor.Black);
+        page.AddRectangle(x, y, thickness, height, PdfColor.Black);
+        page.AddRectangle(x + width - thickness, y, thickness, height, PdfColor.Black);
     }
 
     #endregion

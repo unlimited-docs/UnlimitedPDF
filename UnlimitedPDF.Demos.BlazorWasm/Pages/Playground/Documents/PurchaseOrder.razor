@@ -1,0 +1,97 @@
+@page "/playground/documents/purchase-order"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.PurchaseOrder" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Order">
+            <div class="field">
+                <label for="po-no">PO number</label>
+                <input id="po-no" class="form-control" @bind="_input.OrderNumber" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="po-date">Date</label>
+                <input id="po-date" type="date" class="form-control" @bind="_input.OrderDate" />
+            </div>
+            <div class="field">
+                <label for="po-tax">Tax (%)</label>
+                <input id="po-tax" type="number" min="0" step="0.5" class="form-control" @bind="_input.TaxPercent" />
+            </div>
+            <div class="field">
+                <label for="po-ship">Shipping</label>
+                <input id="po-ship" type="number" min="0" step="0.01" class="form-control" @bind="_input.Shipping" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Vendor and delivery" InitiallyOpen="false">
+            <div class="field">
+                <label for="vendor">Vendor name</label>
+                <input id="vendor" class="form-control" @bind="_input.VendorName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="vendor-address">Vendor address</label>
+                <input id="vendor-address" class="form-control" @bind="_input.VendorAddress" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="ship-to">Ship to</label>
+                <input id="ship-to" class="form-control" @bind="_input.ShipToAddress" @bind:event="oninput" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Lines">
+            <div class="rows">
+                @for (int index = 0; index < _input.Lines.Count; index++)
+                {
+                    var line = _input.Lines[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Line @number</span>
+                            <button type="button" class="row-remove" title="Remove line @number" aria-label="Remove line @number" @onclick="() => Remove(_input.Lines, line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Description of line @number" @bind="line.Description" @bind:event="oninput" />
+                        <div class="field-row-3">
+                            <div class="field">
+                                <label>Qty</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                            </div>
+                            <div class="field">
+                                <label>Unit price</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.UnitPrice" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddLine">+ Add line</button>
+            </div>
+            <div class="field">
+                <label for="po-generated">Add generated lines (0 to 500)</label>
+                <input id="po-generated" type="number" min="0" max="500" class="form-control" @bind="_input.GeneratedLines" />
+            </div>
+        </CollapsibleSection>
+
+    </Inputs>
+</SamplePage>
+
+@code {
+    private PurchaseOrderInput _input = new();
+    private SamplePage? _page;
+
+    private void AddLine()
+    {
+        _input.Lines.Add(new OrderLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync() =>
+        PurchaseOrderSample.Build(_input, await ImageStore.GetManyAsync("purchase-order-logo.png"));
+
+    private void Remove<T>(List<T> list, T item)
+    {
+        list.Remove(item);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

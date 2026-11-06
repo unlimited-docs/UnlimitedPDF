@@ -4,8 +4,8 @@ using UnlimitedPDF.Demo.ConsoleApp;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// The demo document places a logo on every page and images in the invoice table, and saves a structurally valid PDF
-/// that stores each image once (AC-17, AC-27).
+/// The demo document places a logo in the header of every page and images in the invoice table, and saves a
+/// structurally valid PDF that stores each image once.
 /// </summary>
 public class DemoDocumentTests
 {
@@ -29,10 +29,12 @@ public class DemoDocumentTests
         Assert.Contains("/ColorSpace /DeviceCMYK", text);
         Assert.Contains("/Decode [1 0 1 0 1 0 1 0]", text);
 
-        // Every page references the same logo object.
-        var logoReferences = Regex.Matches(text, @"/XObject << /Im1 (\d+) 0 R").Select(m => m.Groups[1].Value).ToList();
-        Assert.Equal(3, logoReferences.Count);
-        Assert.Single(logoReferences.Distinct());
+        // Every page references the same logo object from its header band.
+        var pageImages = Regex.Matches(text, @"/XObject << ([^>]*) >>")
+            .Select(m => Regex.Matches(m.Groups[1].Value, @"(\d+) 0 R").Select(r => r.Groups[1].Value).ToHashSet())
+            .ToList();
+        Assert.Equal(3, pageImages.Count);
+        Assert.Single(pageImages.Aggregate((shared, next) => shared.Intersect(next).ToHashSet()));
 
         // The invoice stacks each product image above its name.
         Assert.Contains("(Wireless Keyboard) Tj", text);
