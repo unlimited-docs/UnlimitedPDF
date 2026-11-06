@@ -34,7 +34,7 @@ The hero's Medical Report Findings bullet was also corrected to "No significant 
 
 ## Demo logos added 2026-11-06
 
-The five business-document demo logos (Purchase order, Quotation, Account statement, Payslip, Delivery note) are for fictional companies. Created by the project owner with an image generation tool on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028); the tool's name is to be confirmed. They are released under Apache-2.0 with the rest of the repository (PR-008, PR-011). Their dimensions, sizes, and SHA-256 checksums, with each exact prompt, are in `generated-assets-manifest.json`. Each original was checked on 2026-11-06 for spelling, a transparent background, and its look on a white page at the served size. The copies clear their faint background-removal specks (`specksMinArea` 400, as for the seal).
+The five business-document demo logos (Purchase order, Quotation, Account statement, Payslip, Delivery note) are for fictional companies. Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028). They are released under Apache-2.0 with the rest of the repository (PR-008, PR-011). Their dimensions, sizes, and SHA-256 checksums, with each exact prompt, are in `generated-assets-manifest.json`. Each original was checked on 2026-11-06 for spelling, a transparent background, and its look on a white page at the served size. The copies clear their faint background-removal specks (`specksMinArea` 400, as for the seal).
 
 | Original | Company |
 |---|---|
