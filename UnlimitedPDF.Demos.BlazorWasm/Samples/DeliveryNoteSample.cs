@@ -48,8 +48,8 @@ public static class DeliveryNoteSample
         document.Body.BottomGap = 14;
         var body = document.Body;
 
-        // Sender and recipient side by side, in a table without borders; each address line is a row, so a long address
-        // runs down its column instead of across into the other one.
+        // Sender and recipient side by side, in a table without borders. Each typed address line is a row; table cells
+        // do not wrap text, so a line wider than its column (about 40 characters at 12 pt) runs into the next column.
         var parties = body.AddTable(Width);
         parties.SetColumnWidths(250, 245);
         AddDetailRow(parties, "From", "Deliver to");

@@ -33,6 +33,18 @@ internal sealed class PlannedPage
         if (part.HasRows) CarriedBottom = Math.Min(CarriedBottom ?? double.MaxValue, part.Bottom);
     }
 
+    /// <summary>
+    /// Returns a copy whose carried parts and flow content can change without changing this page.
+    /// </summary>
+    /// <returns>The copy.</returns>
+    public PlannedPage Copy()
+    {
+        var copy = new PlannedPage(RootIndex, ChainIndex, Number, Geometry) { CarriedBottom = CarriedBottom };
+        copy.Carried.AddRange(Carried);
+        copy.Flow.AddRange(Flow);
+        return copy;
+    }
+
     #endregion
 
     #region Properties, Indexers

@@ -20,7 +20,7 @@
 
         <CollapsibleSection Title="Addresses" InitiallyOpen="false">
             <div class="field">
-                <label for="sender">From address (one line per address line)</label>
+                <label for="sender">From address (one line per address line, up to about 40 characters each)</label>
                 <textarea id="sender" rows="3" class="form-control" @bind="_input.SenderAddress" @bind:event="oninput"></textarea>
             </div>
             <div class="field">
@@ -28,7 +28,7 @@
                 <input id="recipient" class="form-control" @bind="_input.RecipientName" @bind:event="oninput" />
             </div>
             <div class="field">
-                <label for="recipient-address">Address (one line per address line)</label>
+                <label for="recipient-address">Address (one line per address line, up to about 40 characters each)</label>
                 <textarea id="recipient-address" rows="3" class="form-control" @bind="_input.RecipientAddress" @bind:event="oninput"></textarea>
             </div>
         </CollapsibleSection>

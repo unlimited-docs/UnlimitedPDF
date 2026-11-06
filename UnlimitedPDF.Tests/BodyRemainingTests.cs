@@ -201,6 +201,67 @@ public class BodyRemainingTests
         Assert.Contains("page layout settings", error.Message);
     }
 
+    [Theory]
+    [InlineData("kept table")]
+    [InlineData("kept lines")]
+    public void A_read_while_kept_items_wait_gives_the_room_the_next_item_really_gets(string waiting)
+    {
+        // Review F-21: the read ignored the waiting kept table's last row, which moves to page 2 with the kept heading
+        // (817.89 pt read, 797.89 pt drawn), and an item as tall as the read then failed to save.
+        static PdfDocument Build(string waiting)
+        {
+            var document = new PdfDocument();
+            if (waiting == "kept table")
+            {
+                var table = document.Body.AddTable(200, keepWithNext: true);
+                table.AddColumn();
+                for (int r = 0; r < 41; r++) table.AddRow().GetCell(0).Text = "K" + r;
+                document.Body.AddText("Heading", fontSize: 20, keepWithNext: true);
+            }
+            else
+            {
+                // 20 pt are left: the first kept line fits there, the second does not, and they stay together.
+                document.Body.AddRectangle(100, A4Height - 20, PdfColor.Black);
+                document.Body.AddText("first", keepWithNext: true);
+                document.Body.AddText("second", keepWithNext: true);
+            }
+            return document;
+        }
+
+        var document = Build(waiting);
+        double remaining = document.Body.Remaining;
+        document.Body.AddRectangle(100, remaining, PdfColor.Black);
+
+        var pages = PdfPageReader.Save(document);
+
+        double expected = waiting == "kept table" ? A4Height - 20 - 24 : A4Height - 2 * 14.4;
+        Assert.Equal(expected, remaining, Precision);
+        Assert.Equal(2, pages.Count);
+        var last = pages[1].LayoutRectangles().Last();
+        Assert.Equal(0, last.Y, Precision);
+        Assert.Equal(remaining, last.Height, Precision);
+    }
+
+    [Fact]
+    public void Reading_remaining_with_a_large_page_coordinate_table_stays_within_its_budget()
+    {
+        // Review F-22 (A-20): each read fingerprints the page-coordinate tables, so its cost grows with their rows.
+        var document = new PdfDocument();
+        var table = document.AddPage().AddTable(300, 800, 200);
+        table.AddColumn();
+        for (int r = 0; r < 1_000; r++) table.AddRow().GetCell(0).Text = "P" + r;
+        var watch = Stopwatch.StartNew();
+        for (int i = 0; i < 1_000; i++)
+        {
+            document.Body.AddText("line " + i);
+            _ = document.Body.Remaining;
+        }
+        PdfPageReader.SaveBytes(document);
+        watch.Stop();
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+    }
+
     [Fact]
     public void Reading_remaining_after_every_line_stays_fast()
     {

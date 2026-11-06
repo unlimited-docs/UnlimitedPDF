@@ -17,10 +17,14 @@ public class DemoPaginationTests
 
     private const double Tolerance = 1e-6;
 
-    // A text object: its font size, its position (Tm or Td), and its escaped text.
+    // A text object: its font size, its position (Tm or Td), and its escaped text up to the ") Tj" that ends it, so text
+    // with balanced, unescaped parentheses such as "Rate (INR)" is matched too.
     private static readonly Regex TextObject = new(
-        @"BT\s+(?:0 0 0 rg\s+)?/F1 (\S+) Tf\s+(?:0 0 0 rg\s+)?(?:1 0 0 1 (\S+) (\S+) Tm|(\S+) (\S+) Td)\s+\(((?:\\.|[^\\)])*)\) Tj\s+ET",
+        @"BT\s+(?:0 0 0 rg\s+)?/F1 (\S+) Tf\s+(?:0 0 0 rg\s+)?(?:1 0 0 1 (\S+) (\S+) Tm|(\S+) (\S+) Td)\s+\(((?:\\.|[^\\\r\n])*?)\) Tj\s+ET",
         RegexOptions.CultureInvariant);
+
+    // Every text-showing operator, to prove each text object is checked.
+    private static readonly Regex ShowText = new(@"\) Tj\s+ET", RegexOptions.CultureInvariant);
 
     #endregion
 
@@ -166,7 +170,11 @@ public class DemoPaginationTests
     [Fact]
     public void Purchase_order_runs_across_pages_and_keeps_its_totals_with_the_authorization()
     {
-        Assert.Single(PdfPageReader.Save(PurchaseOrderSample.Build(new PurchaseOrderInput(), Images())));
+        // Review F-26: the default build is checked as well as the large one.
+        var single = PdfPageReader.Save(PurchaseOrderSample.Build(new PurchaseOrderInput(), Images()));
+        Assert.Single(single);
+        AssertNoOverlaps(single);
+        AssertNumbered(single);
 
         var input = new PurchaseOrderInput { GeneratedLines = 300, VendorName = "Apex Components (India Ltd" };
         var pages = PdfPageReader.Save(PurchaseOrderSample.Build(input, Images()));
@@ -184,6 +192,12 @@ public class DemoPaginationTests
     [Fact]
     public void Quotation_has_its_own_first_page_header_last_page_footer_and_kept_terms()
     {
+        // Review F-26: the default build is checked as well as the long one.
+        var single = PdfPageReader.Save(QuotationSample.Build(new QuotationInput(), Images()));
+        AssertNoOverlaps(single);
+        AssertNumbered(single);
+        Assert.True(single[single.Count - 1].Shows("Thank you for your business"));
+
         var input = new QuotationInput();
         for (int i = 0; i < 40; i++) input.Services.Add(new OrderLine { Description = "Support hours, block " + i, Quantity = 4, UnitPrice = 55m });
 
@@ -325,7 +339,9 @@ public class DemoPaginationTests
     private static List<(string Text, double Left, double Right, double Bottom, double Top)> TextBoxes(PdfPageReader.Page page)
     {
         var boxes = new List<(string, double, double, double, double)>();
-        foreach (Match match in TextObject.Matches(page.Content))
+        var matches = TextObject.Matches(page.Content);
+        Assert.Equal(ShowText.Matches(page.Content).Count, matches.Count);
+        foreach (Match match in matches)
         {
             string text = Regex.Replace(match.Groups[6].Value, @"\\(.)", "$1");
             if (text.Trim().Length == 0) continue;

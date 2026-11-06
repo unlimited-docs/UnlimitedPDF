@@ -343,6 +343,56 @@ public class BodyFlowTests
         Assert.Contains("kept-together run of flow items 1 to 2", message);
     }
 
+    [Theory]
+    [InlineData("title and one row")]
+    [InlineData("title and header row")]
+    [InlineData("kept table before")]
+    public void What_a_kept_table_keeps_with_moves_when_the_whole_table_moves(string lead)
+    {
+        // Review F-23: 70 pt are left on page 1. The lead and the small kept table fit there, but the table does not fit
+        // with the 100 pt rectangle after it, so the whole table moves, and what it keeps with must move with it.
+        var document = new PdfDocument();
+        if (lead == "kept table before")
+        {
+            // 38 rows leave 81.89 pt; table B's only row fits there, but not with the rectangle.
+            Rows(document.Body.AddTable(200, keepWithNext: true), 38, "A");
+        }
+        else
+        {
+            document.Body.AddRectangle(100, A4Height - 70, PdfColor.Black);
+            document.Body.AddText("Title", keepWithNext: true);
+        }
+
+        var table = document.Body.AddTable(200, keepWithNext: true);
+        table.AddColumn();
+        if (lead == "title and header row")
+        {
+            table.HeaderRowCount = 1;
+            table.RepeatHeaderRows = true;
+            table.AddRow().GetCell(0).Text = "H";
+        }
+        table.AddRow().GetCell(0).Text = "B0";
+        document.Body.AddRectangle(100, 100, PdfColor.Black);
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(2, pages.Count);
+        Assert.True(pages[1].Shows("B0"));
+        Assert.False(pages[0].Shows("B0"));
+        if (lead == "kept table before")
+        {
+            Assert.True(pages[0].Shows("A36"));
+            Assert.False(pages[0].Shows("A37"));
+            Assert.True(pages[1].Shows("A37"));
+        }
+        else
+        {
+            Assert.False(pages[0].Shows("Title"));
+            Assert.True(pages[1].Shows("Title"));
+        }
+        Assert.All(pages, page => Assert.False(page.Shows("H") && !page.Shows("B0")));
+    }
+
     [Fact]
     public void A_row_only_has_to_fit_the_page_it_lands_on()
     {

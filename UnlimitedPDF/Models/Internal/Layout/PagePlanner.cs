@@ -24,6 +24,8 @@ internal sealed class PagePlanner
 
     // Kept items wait here until the item they keep with arrives (WR-033).
     private readonly List<FlowItem> _pending = new();
+    // For each kept table of the current kept run: what it keeps with before it, which moves with it when it moves whole.
+    private readonly Dictionary<FlowTable, Lead> _leads = new();
     private readonly List<PlannedPage> _pages = new();
     private readonly Dictionary<PdfTable, TablePlan> _plans = new();
     private readonly bool _checkBody;
@@ -97,7 +99,8 @@ internal sealed class PagePlanner
 
     /// <summary>
     /// Returns where the next flow item would land: its page number and the height from the cursor to that page's body
-    /// bottom. Kept items still waiting for their next item count as placed where they are (WR-033).
+    /// bottom. Kept items still waiting for their next item count as placed the way the run would end there: with a
+    /// waiting kept table's last row moved to them when it must be, and kept together (WR-033).
     /// </summary>
     /// <param name="emptyDocumentGeometry">The geometry of page 1 when no root page exists yet.</param>
     /// <returns>The page number and remaining height, in points.</returns>
@@ -105,11 +108,12 @@ internal sealed class PagePlanner
     {
         if (_root is null) return (1, Math.Max(0, emptyDocumentGeometry.BodyHeight));
 
-        var cursor = _cursor;
-        foreach (var item in _pending)
-            cursor = FitBox(cursor, item.Spacing, MeasureSimple(item), item.Description, out _);
+        // A waiting run is ended on a copy, so this plan keeps waiting for the item that really ends it.
+        var planner = _pending.Count == 0 && _pendingTable is null ? this : Copy();
+        if (planner != this) planner.FinishPending();
 
-        return (_slots[0].Number + cursor.Slot, Math.Max(0, cursor.Y - Geometry(cursor.Slot).BodyBottom));
+        var cursor = planner._cursor;
+        return (planner._slots[0].Number + cursor.Slot, Math.Max(0, cursor.Y - planner.Geometry(cursor.Slot).BodyBottom));
     }
 
     /// <summary>
@@ -204,13 +208,34 @@ internal sealed class PagePlanner
     {
         if (_pendingTable is not null)
         {
-            KeepTableWithNext(_pendingTable, null);
+            KeepTableWithNext(_pendingTable, RunNeed(null, atTop: false), RunDescription(RunStart(_pendingTable), null));
             _pendingTable = null;
         }
 
         if (_pending.Count > 1) KeepRunWith(null);
         foreach (var item in _pending) PlaceBox(item);
         _pending.Clear();
+        _leads.Clear();
+    }
+
+    // A copy of the plan for the current root, which can be planned further without changing this one.
+    private PagePlanner Copy()
+    {
+        var copy = new PagePlanner(_geometry, _checkBody)
+        {
+            _cursor = _cursor,
+            _nextItem = _nextItem,
+            _nextNumber = _nextNumber,
+            _pendingTable = _pendingTable,
+            _root = _root,
+            _rootIndex = _rootIndex,
+            _slots = _slots.Select(page => page.Copy()).ToList()
+        };
+        copy._pending.AddRange(_pending);
+        copy._pages.AddRange(_pages);
+        foreach (var plan in _plans) copy._plans.Add(plan.Key, plan.Value);
+        foreach (var lead in _leads) copy._leads.Add(lead.Key, lead.Value);
+        return copy;
     }
 
     private void FinishRoot()
@@ -254,13 +279,13 @@ internal sealed class PagePlanner
         ? TablePaginator.HeadHeight(table.Table, PdfTableRenderer.Layout(table.Table, 0, 0))
         : MeasureSimple(item);
 
-    // Keeps the last data row of a kept table with what follows it (WR-033): when the kept run after the table and the
-    // head of the item that ends it (none when the run ends the page sequence) do not fit below the table, that row
-    // moves, with the repeated header rows above it, to the first following page whose free room holds it and the run.
-    private void KeepTableWithNext(FlowTable kept, FlowItem? next)
+    // Keeps the last data row of a kept table with what follows it (WR-033): when the given height (the kept run after
+    // the table and the head of the item that ends it) does not fit below the table, that row moves, with the repeated
+    // header rows above it, to the first following page whose free room holds it and the run. When the row is the
+    // table's head, the whole table moves, and what it keeps with before it moves too.
+    private void KeepTableWithNext(FlowTable kept, double need, string run)
     {
         if (!_plans.TryGetValue(kept.Table, out var plan) || plan.Parts.Count == 0) return;
-        double need = RunNeed(next, atTop: false);
 
         var parts = plan.Parts.ToList();
         var last = parts[parts.Count - 1];
@@ -273,6 +298,12 @@ internal sealed class PagePlanner
         if (moveFrom < last.FirstRow) return;
         // Header rows never stay behind without a data row, so the whole first part moves with them.
         if (last.FirstRow == 0 && moveFrom <= headerRows) moveFrom = 0;
+
+        if (moveFrom == 0 && _leads.TryGetValue(kept, out var lead) && (lead.Items.Count > 0 || lead.Predecessor is not null))
+        {
+            MoveWithLead(kept, lead, slot, heights.Take(last.EndRow).Sum(), need, run);
+            return;
+        }
 
         double moved = heights.Skip(moveFrom).Take(last.EndRow - moveFrom).Sum();
         bool repeats = kept.Table.RepeatHeaderRows && headerRows > 0 && moveFrom > 0;
@@ -292,7 +323,7 @@ internal sealed class PagePlanner
             {
                 double body = Geometry(targetSlot).BodyHeight;
                 if (top - headerHeight - moved < bottom) throw Oversize(kept.Description, headerHeight + moved, body);
-                throw Oversize(RunDescription(kept, next), headerHeight + moved + need, body);
+                throw Oversize(run, headerHeight + moved + need, body);
             }
             targetSlot++;
         }
@@ -312,6 +343,51 @@ internal sealed class PagePlanner
         else placements.RemoveAt(index);
         _slots[targetSlot].Flow.Add(new FlowPlacement(kept, Geometry(targetSlot).Left, Geometry(targetSlot).Right, top, movedPart));
         _cursor = new Cursor(targetSlot, movedPart.Bottom, false, false);
+    }
+
+    // Moves a kept table that moves whole together with what it keeps with before it (WR-033): the kept items placed
+    // just before it and, when a kept table comes before those, that table's last row. They all stand on the table's
+    // page, so they are taken off it and placed again where they fit together with the run after the table.
+    private void MoveWithLead(FlowTable kept, Lead lead, int slot, double tableHeight, double need, string run)
+    {
+        foreach (var page in _slots) page.Flow.RemoveAll(p => p.Item == kept || lead.Items.Contains(p.Item));
+
+        double Group(bool atTop)
+        {
+            double total = 0;
+            for (int i = 0; i < lead.Items.Count; i++)
+                total += (i == 0 && atTop ? 0 : lead.Items[i].Spacing) + MeasureSimple(lead.Items[i]);
+            return total + (lead.Items.Count == 0 && atTop ? 0 : kept.Spacing) + tableHeight + need;
+        }
+
+        if (lead.Predecessor is FlowTable predecessor)
+        {
+            // The earlier kept table's last row moves to the group, as it would for any kept run after it.
+            KeepTableWithNext(predecessor, Group(atTop: false), run);
+            var end = _plans[predecessor.Table].Parts.Last();
+            _cursor = new Cursor(end.PageIndex - _pages.Count, end.Bottom, false, false);
+        }
+        else
+        {
+            var cursor = Fresh(slot + 1);
+            while (cursor.Y - Group(cursor.AtTop) < Geometry(cursor.Slot).BodyBottom - TablePaginator.Tolerance)
+            {
+                if (cursor.EmptyBody) throw Oversize(run, Group(atTop: true), Geometry(cursor.Slot).BodyHeight);
+                cursor = Fresh(cursor.Slot + 1);
+            }
+            _cursor = cursor;
+        }
+
+        foreach (var item in lead.Items) PlaceBox(item);
+        PlaceTable(kept);
+    }
+
+    // The first item of the kept run that a kept table belongs to.
+    private FlowItem RunStart(FlowTable table)
+    {
+        if (!_leads.TryGetValue(table, out var lead)) return table;
+        if (lead.Predecessor is FlowTable predecessor) return RunStart(predecessor);
+        return lead.Items.Count > 0 ? lead.Items[0] : table;
     }
 
     // Moves the cursor to a fresh page when the kept run and the item's head (if any) do not fit together here.
@@ -362,25 +438,33 @@ internal sealed class PagePlanner
             return;
         }
 
-        if (_pendingTable is not null)
+        FlowTable? predecessor = _pendingTable;
+        if (predecessor is not null)
         {
-            KeepTableWithNext(_pendingTable, item);
+            KeepTableWithNext(predecessor, RunNeed(item, atTop: false), RunDescription(RunStart(predecessor), item));
             _pendingTable = null;
         }
 
         KeepRunWith(item);
+        var lead = _pending.ToList();
         foreach (var kept in _pending) PlaceBox(kept);
         _pending.Clear();
 
         if (item is FlowTable table)
         {
             PlaceTable(table);
-            if (table.KeepWithNext && table.Table.RowCount > 0) _pendingTable = table;
+            if (table.KeepWithNext && table.Table.RowCount > 0)
+            {
+                _pendingTable = table;
+                _leads[table] = new Lead(lead, predecessor);
+            }
         }
         else
         {
             PlaceBox(item);
         }
+
+        if (!item.KeepWithNext) _leads.Clear();
     }
 
     private void PlaceBox(FlowItem item)
@@ -488,6 +572,12 @@ internal sealed class PagePlanner
     /// whole, empty body (an item that does not fit there fits nowhere).
     /// </summary>
     private readonly record struct Cursor(int Slot, double Y, bool AtTop, bool EmptyBody);
+
+    /// <summary>
+    /// What a kept table keeps with before it in its kept run: the kept items placed just before it, and the kept
+    /// table before those, whose last row stays with them.
+    /// </summary>
+    private sealed record Lead(List<FlowItem> Items, FlowTable? Predecessor);
 
     #endregion
 }
