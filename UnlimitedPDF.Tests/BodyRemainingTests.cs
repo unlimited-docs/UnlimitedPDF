@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using UnlimitedPDF.Enums;
 using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Tests;
@@ -107,6 +108,97 @@ public class BodyRemainingTests
         document.LeftMargin = 20;
 
         PdfPageReader.SaveBytes(document);
+    }
+
+    [Fact]
+    public void A_read_after_page_coordinate_tables_change_is_exact()
+    {
+        // Review F-02: a table placed on the page after an earlier read was ignored by later reads.
+        var document = new PdfDocument();
+        document.Footer.Height = 20;
+        var page = document.AddPage();
+        _ = document.Body.Remaining;
+        var placed = page.AddTable(300, 400, 200);
+        placed.AddColumn();
+        for (int r = 0; r < 40; r++) placed.AddRow().GetCell(0).Text = "P" + r;
+        for (int i = 0; i < 60; i++) document.Body.AddText("x" + i);
+
+        // 19 table rows fit page 1 above the 20 pt footer; page 2 carries the other 21 down to 421.89. After 60 lines
+        // (57 on page 1) the cursor is 3 lines below the carried rows.
+        Assert.Equal(421.89 - 3 * 14.4 - 20, document.Body.Remaining, Precision);
+        PdfPageReader.SaveBytes(document);
+    }
+
+    [Theory]
+    [InlineData("y")]
+    [InlineData("x")]
+    [InlineData("header")]
+    public void A_read_after_a_page_coordinate_table_moves_or_changes_its_header_rows_is_exact(string change)
+    {
+        // Review F-12: the live plan was reused when a carried table's position or header rows changed, so the read
+        // returned 358.69 pt where a fresh plan gives 558.69 pt, and the save then failed.
+        static (PdfDocument Document, PdfTable Table) Build()
+        {
+            var document = new PdfDocument();
+            document.Footer.Height = 20;
+            var table = document.AddPage().AddTable(300, 400, 200);
+            table.AddColumn();
+            for (int r = 0; r < 40; r++) table.AddRow().GetCell(0).Text = "P" + r;
+            for (int i = 0; i < 5; i++) document.Body.AddText("x" + i);
+            return (document, table);
+        }
+
+        static void Change(PdfTable table, string change)
+        {
+            if (change == "y") table.Y = 600;
+            else if (change == "x") table.X = 320;
+            else
+            {
+                table.HeaderRowCount = 1;
+                table.RepeatHeaderRows = true;
+            }
+        }
+
+        var (document, table) = Build();
+        _ = document.Body.Remaining;
+        Change(table, change);
+        for (int i = 5; i < 60; i++) document.Body.AddText("x" + i);
+
+        var (fresh, freshTable) = Build();
+        Change(freshTable, change);
+        for (int i = 5; i < 60; i++) fresh.Body.AddText("x" + i);
+
+        Assert.Equal(fresh.Body.Remaining, document.Body.Remaining, Precision);
+        if (change == "y") Assert.Equal(558.69, document.Body.Remaining, Precision);
+        PdfPageReader.SaveBytes(document);
+    }
+
+    [Fact]
+    public void A_read_that_throws_does_not_leave_a_stale_plan()
+    {
+        // Review F-07: the failed read advanced the live plan past the oversize item, so the next read returned a value.
+        var document = new PdfDocument();
+        document.Body.AddText("a");
+        document.Body.AddRectangle(100, 2000, PdfColor.Black);
+
+        Assert.Throws<InvalidOperationException>(() => document.Body.Remaining);
+        Assert.Throws<InvalidOperationException>(() => document.Body.Remaining);
+    }
+
+    [Fact]
+    public void A_page_size_change_after_an_early_read_makes_saving_fail()
+    {
+        // Review F-09: a read before any page was replayed with the old page size, so the save passed.
+        var document = new PdfDocument();
+        document.Footer.Height = 20;
+        Assert.Equal(A4Height - 20, document.Body.Remaining, Precision);
+        document.PageSize = PdfPageSize.Letter;
+        document.AddPage();
+        document.Body.AddText("x");
+
+        var error = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document));
+
+        Assert.Contains("page layout settings", error.Message);
     }
 
     [Fact]

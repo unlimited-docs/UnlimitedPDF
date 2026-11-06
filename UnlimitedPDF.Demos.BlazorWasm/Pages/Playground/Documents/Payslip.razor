@@ -1,0 +1,120 @@
+@page "/playground/documents/payslip"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Payslip" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Employee">
+            <div class="field">
+                <label for="emp">Name</label>
+                <input id="emp" class="form-control" @bind="_input.EmployeeName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="emp-id">Employee ID</label>
+                <input id="emp-id" class="form-control" @bind="_input.EmployeeId" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="dept">Department</label>
+                <input id="dept" class="form-control" @bind="_input.Department" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="title">Designation</label>
+                <input id="title" class="form-control" @bind="_input.Designation" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="period">Pay period</label>
+                <input id="period" class="form-control" @bind="_input.PayPeriod" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="paydate">Pay date</label>
+                <input id="paydate" type="date" class="form-control" @bind="_input.PayDate" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Earnings">
+            <div class="rows">
+                @for (int index = 0; index < _input.Earnings.Count; index++)
+                {
+                    var line = _input.Earnings[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Earning @number</span>
+                            <button type="button" class="row-remove" title="Remove earning @number" aria-label="Remove earning @number" @onclick="() => Remove(_input.Earnings, line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Label</label>
+                                <input class="form-control" @bind="line.Label" @bind:event="oninput" />
+                            </div>
+                            <div class="field">
+                                <label>Amount</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Amount" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddEarning">+ Add earning</button>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Deductions" InitiallyOpen="false">
+            <div class="rows">
+                @for (int index = 0; index < _input.Deductions.Count; index++)
+                {
+                    var line = _input.Deductions[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Deduction @number</span>
+                            <button type="button" class="row-remove" title="Remove deduction @number" aria-label="Remove deduction @number" @onclick="() => Remove(_input.Deductions, line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Label</label>
+                                <input class="form-control" @bind="line.Label" @bind:event="oninput" />
+                            </div>
+                            <div class="field">
+                                <label>Amount</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Amount" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddDeduction">+ Add deduction</button>
+            </div>
+        </CollapsibleSection>
+
+    </Inputs>
+</SamplePage>
+
+@code {
+    private PayslipInput _input = new();
+    private SamplePage? _page;
+
+    private void AddEarning()
+    {
+        _input.Earnings.Add(new PayslipLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private void AddDeduction()
+    {
+        _input.Deductions.Add(new PayslipLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync() =>
+        PayslipSample.Build(_input, await ImageStore.GetManyAsync("payslip-logo.png"));
+
+    private void Remove<T>(List<T> list, T item)
+    {
+        list.Remove(item);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

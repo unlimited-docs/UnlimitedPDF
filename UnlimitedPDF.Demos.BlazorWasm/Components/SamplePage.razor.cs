@@ -123,7 +123,9 @@ public partial class SamplePage
         {
             _error = exception.Message;
             _announcement = $"Couldn't generate the PDF. {exception.Message}";
-            Console.Error.WriteLine(exception);
+            // Generation errors are expected while options are being edited; the status line shows them, so they are
+            // logged without the app's error banner.
+            Console.WriteLine(exception);
         }
         finally
         {

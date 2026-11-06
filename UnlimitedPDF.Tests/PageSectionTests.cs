@@ -204,6 +204,52 @@ public class PageSectionTests
     }
 
     [Fact]
+    public void A_failing_callback_or_band_table_adds_no_page_object()
+    {
+        // Review F-08: band content was built after continuation pages were added, so a corrected document kept their
+        // unused objects. Each document needs continuation pages until rows are removed after the failed save.
+        static (PdfDocument Document, PdfTable Table) Build(Func<bool> fail, bool badBandTable)
+        {
+            var document = new PdfDocument();
+            document.Footer.Height = 20;
+            document.Footer.Build((content, info) =>
+            {
+                if (fail()) throw new FormatException("callback failed");
+                content.AddText("Page " + info.PageNumber, 0, 0);
+            });
+            if (badBandTable)
+            {
+                var band = document.Header.AddTable(0, 0, 4);
+                document.Header.Height = 20;
+                band.AddColumn();
+                band.AddRow().GetCell(0).AddContent(PdfImage.FromBytes(new JpegBuilder { Width = 8, Height = 8 }.Build()));
+            }
+            var table = document.AddPage().AddTable(50, 700, 200);
+            table.AddColumn();
+            for (int r = 0; r < 60; r++) table.AddRow().GetCell(0).Text = "R" + r;
+            return (document, table);
+        }
+
+        bool failing = true;
+        var (withCallback, rows) = Build(() => failing, badBandTable: false);
+        Assert.Throws<FormatException>(() => PdfPageReader.SaveBytes(withCallback));
+        while (rows.RowCount > 5) rows.RemoveRow(rows.RowCount - 1);
+        failing = false;
+        var (fresh, freshRows) = Build(() => false, badBandTable: false);
+        while (freshRows.RowCount > 5) freshRows.RemoveRow(freshRows.RowCount - 1);
+        Assert.Equal(PdfPageReader.SaveBytes(fresh), PdfPageReader.SaveBytes(withCallback));
+
+        var (withBandTable, bandRows) = Build(() => false, badBandTable: true);
+        Assert.Contains("no width left", Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(withBandTable)).Message);
+        while (bandRows.RowCount > 5) bandRows.RemoveRow(bandRows.RowCount - 1);
+        withBandTable.Header.Height = 0;
+        var (freshBand, freshBandRows) = Build(() => false, badBandTable: true);
+        while (freshBandRows.RowCount > 5) freshBandRows.RemoveRow(freshBandRows.RowCount - 1);
+        freshBand.Header.Height = 0;
+        Assert.Equal(PdfPageReader.SaveBytes(freshBand), PdfPageReader.SaveBytes(withBandTable));
+    }
+
+    [Fact]
     public void Repeated_saves_of_a_sectioned_document_are_identical()
     {
         var document = Sectioned();

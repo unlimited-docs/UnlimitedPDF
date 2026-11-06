@@ -10,12 +10,11 @@ internal sealed class PlannedPage
 {
     #region Constructors and Finalizers
 
-    public PlannedPage(int rootIndex, int chainIndex, int number, PdfPageSize size, PageGeometry geometry)
+    public PlannedPage(int rootIndex, int chainIndex, int number, PageGeometry geometry)
     {
         RootIndex = rootIndex;
         ChainIndex = chainIndex;
         Number = number;
-        Size = size;
         Geometry = geometry;
     }
 
@@ -73,11 +72,6 @@ internal sealed class PlannedPage
     /// Gets the index of the root page among the planned roots.
     /// </summary>
     public int RootIndex { get; }
-
-    /// <summary>
-    /// Gets the page size.
-    /// </summary>
-    public PdfPageSize Size { get; }
 
     #endregion
 }

@@ -19,7 +19,7 @@ public class PdfDocument
     private double _leftMargin;
     private int _layoutVersion;
     private PagePlanner? _livePlanner;
-    private int _livePlannerVersion;
+    private string? _livePlannerStamp;
     private double _rightMargin;
     private int _signedItems;
     private double _topMargin;
@@ -185,14 +185,29 @@ public class PdfDocument
     internal double QueryRemaining()
     {
         var roots = Roots();
-        if (_livePlanner is null || _livePlannerVersion != _layoutVersion)
+
+        // The live plan is reused only while nothing it already planned can have changed: the layout settings, the
+        // caller pages, and the page-coordinate tables on them (WR-033).
+        string stamp = LivePlanStamp(roots);
+        if (_livePlanner is null || _livePlannerStamp != stamp)
         {
             _livePlanner = new PagePlanner(Geometry, checkBody: true);
-            _livePlannerVersion = _layoutVersion;
+            _livePlannerStamp = stamp;
         }
 
-        _livePlanner.Advance(roots, Body.Items, Body.Items.Count, roots.Count - 1);
-        var (page, value) = _livePlanner.Probe(Geometry(1, PageSize));
+        int page;
+        double value;
+        try
+        {
+            _livePlanner.Advance(roots, Body.Items, Body.Items.Count, roots.Count - 1);
+            (page, value) = _livePlanner.Probe(Geometry(1, PageSize));
+        }
+        catch
+        {
+            // A layout error leaves the plan part-way; the next read plans again from the start.
+            _livePlanner = null;
+            throw;
+        }
 
         // Each item's layout fingerprint is taken by the first read that measured it.
         for (; _signedItems < Body.Items.Count; _signedItems++)
@@ -212,7 +227,7 @@ public class PdfDocument
             throw new ArgumentOutOfRangeException(nameof(value), value, "The margin must be a finite number of points, zero or greater.");
     }
 
-    private static string Describe(int count, IEnumerable<FlowItem> items)
+    private static string Describe(IEnumerable<FlowItem> items)
     {
         var list = items.ToList();
         if (list.Count == 0) return string.Empty;
@@ -245,7 +260,8 @@ public class PdfDocument
 
         foreach (var query in _queries)
         {
-            int rootIndex = query.CallerPages == 0 ? (hasFlowRoot ? 0 : -1) : query.CallerPages - 1 + (hasFlowRoot ? 1 : 0);
+            // A read taken before any page existed is checked against the page the next item really landed on.
+            int rootIndex = query.CallerPages == 0 ? (roots.Count > 0 ? 0 : -1) : query.CallerPages - 1 + (hasFlowRoot ? 1 : 0);
             (int Page, double Value) now;
             if (rootIndex < 0)
             {
@@ -293,10 +309,10 @@ public class PdfDocument
         var items = excess.SelectMany(page => page.Flow).Select(p => p.Item).Distinct().OrderBy(i => i.Index).ToList();
         double over = excess.Sum(page => page.Flow.Count == 0
             ? 0
-            : page.Geometry.BodyTop - page.Flow.Min(p => p.Part?.Bottom ?? p.Top - FlowHeight(p.Item)));
+            : page.Geometry.BodyTop - page.Flow.Min(p => p.Part?.Bottom ?? p.Top - PagePlanner.MeasureSimple(p.Item)));
 
         string what = items.Count > 0
-            ? string.Format(CultureInfo.InvariantCulture, "{0} do not fit, {1:0.###} pt over", Describe(items.Count, items), over)
+            ? string.Format(CultureInfo.InvariantCulture, "{0} do not fit, {1:0.###} pt over", Describe(items), over)
             : string.Format(CultureInfo.InvariantCulture, "pages {0} to {1} come from pages added with AddPage or from tables placed at page coordinates", max + 1, pages.Count);
 
         throw new InvalidOperationException(string.Format(
@@ -347,14 +363,13 @@ public class PdfDocument
     }
 
     // Draws a page's body flow content, then its header and footer bands (WR-031, WR-033).
-    private void DrawLayout(StringBuilder sb, Func<PdfImageData, string> imageName, PlannedPage page, int pageCount, IReadOnlyDictionary<PdfTable, TablePlan> plans)
+    private static void DrawLayout(StringBuilder sb, Func<PdfImageData, string> imageName, PlannedPage page, BandContent? header, BandContent? footer, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
         foreach (var placement in page.Flow) DrawFlow(sb, imageName, placement, plans);
 
         var g = page.Geometry;
-        var info = new PdfPageInfo(page.Number, pageCount);
-        if (g.HeaderHeight > 0) DrawSection(sb, imageName, SectionFor(page.Number, pageCount, footer: false), g, g.HeaderTop, g.HeaderHeight, info);
-        if (g.FooterHeight > 0) DrawSection(sb, imageName, SectionFor(page.Number, pageCount, footer: true), g, g.FooterTop, g.FooterHeight, info);
+        if (header is not null) DrawSection(sb, imageName, header, g, g.HeaderTop, g.HeaderHeight);
+        if (footer is not null) DrawSection(sb, imageName, footer, g, g.FooterTop, g.FooterHeight);
     }
 
     private static void DrawFlow(StringBuilder sb, Func<PdfImageData, string> imageName, FlowPlacement placement, IReadOnlyDictionary<PdfTable, TablePlan> plans)
@@ -396,16 +411,17 @@ public class PdfDocument
                     var child = block.Children[i];
                     if (i > 0) y -= child.Spacing;
                     DrawItem(sb, imageName, child, left + block.X, right, y);
-                    y -= FlowHeight(child);
+                    y -= PagePlanner.MeasureSimple(child);
                 }
                 break;
         }
     }
 
-    // Draws a band's content clipped to the band (WR-031): the content added directly, then the callback's.
-    private static void DrawSection(StringBuilder sb, Func<PdfImageData, string> imageName, PdfPageSection? section, PageGeometry g, double top, double height, PdfPageInfo info)
+    // Collects a band's content for one page: the content added directly, then the callback's, with every band table
+    // laid out. Runs before any page object exists, so a callback or layout error leaves the document unchanged (A10).
+    private static BandContent? PrepareBand(PdfPageSection section, PdfPageInfo info)
     {
-        if (section is null || !section.HasContent) return;
+        if (!section.HasContent) return null;
 
         var items = section.Items.ToList();
         if (section.Callback is not null)
@@ -414,18 +430,27 @@ public class PdfDocument
             section.Callback(content, info);
             items.AddRange(content.Items);
         }
-        if (items.Count == 0) return;
+        if (items.Count == 0) return null;
 
+        int tableNumber = 0;
+        var layouts = items
+            .Select(item => item is SectionTable table ? PdfTableRenderer.Layout(table.Table, info.PageNumber, ++tableNumber) : null)
+            .ToList();
+        return new BandContent(info, items, layouts);
+    }
+
+    // Draws a band's prepared content clipped to the band (WR-031).
+    private static void DrawSection(StringBuilder sb, Func<PdfImageData, string> imageName, BandContent band, PageGeometry g, double top, double height)
+    {
         sb.AppendLine("q"); // Save graphics state
         sb.AppendLine($"{PdfNumber.Format(g.Left)} {PdfNumber.Format(top - height)} {PdfNumber.Format(g.ContentWidth)} {PdfNumber.Format(height)} re W n"); // Clip to the band
 
-        int tableNumber = 0;
-        foreach (var item in items)
+        for (int i = 0; i < band.Items.Count; i++)
         {
-            switch (item)
+            switch (band.Items[i])
             {
                 case SectionText text:
-                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y));
+                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y));
                     break;
                 case SectionImage image:
                     var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
@@ -433,8 +458,7 @@ public class PdfDocument
                     sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
                     break;
                 case SectionTable table:
-                    var layout = PdfTableRenderer.Layout(table.Table, info.PageNumber, ++tableNumber);
-                    sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, g.Left + table.Table.X, top - table.Table.Y, imageName));
+                    sb.Append(PdfTableRenderer.RenderAt(table.Table, band.Layouts[i]!, g.Left + table.Table.X, top - table.Table.Y, imageName));
                     break;
                 case SectionRectangle rectangle:
                     sb.AppendLine(LayoutDrawing.Rectangle(g.Left + rectangle.X, top - rectangle.Y - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
@@ -476,16 +500,6 @@ public class PdfDocument
         return sb.ToString();
     }
 
-    private static double FlowHeight(FlowItem item) => item switch
-    {
-        FlowText text => LayoutDrawing.LineHeight(text.FontSize),
-        FlowImage image => ImageBox.Compute(image.Image, image.Width, image.Height, image.Options).BoxHeight,
-        FlowRectangle rectangle => rectangle.Height,
-        FlowTable table => PdfTableRenderer.Layout(table.Table, 0, 0).RowHeights.Sum(),
-        FlowBlock block => block.Children.Select((child, i) => (i == 0 ? 0 : child.Spacing) + FlowHeight(child)).Sum(),
-        _ => 0
-    };
-
     // The geometry of a page from the document settings and the page rules, without Last rules, which may change content
     // only (WR-030, WR-032).
     private PageGeometry Geometry(int number, PdfPageSize size) => PageGeometry.Create(size, SettingsFor(number));
@@ -502,6 +516,21 @@ public class PdfDocument
         CheckQueries(roots, planner);
         var (planned, plans) = planner.Finish(roots, Body.Items);
         CheckPageLimit(planned);
+
+        // Band content is built for every page before any page object exists: callbacks and band tables can fail.
+        bool drawLayout = UsesLayout;
+        var headers = new BandContent?[planned.Count];
+        var footers = new BandContent?[planned.Count];
+        if (drawLayout)
+        {
+            for (int i = 0; i < planned.Count; i++)
+            {
+                var page = planned[i];
+                var info = new PdfPageInfo(page.Number, planned.Count);
+                if (page.Geometry.HeaderHeight > 0) headers[i] = PrepareBand(SectionFor(page.Number, planned.Count, footer: false), info);
+                if (page.Geometry.FooterHeight > 0) footers[i] = PrepareBand(SectionFor(page.Number, planned.Count, footer: true), info);
+            }
+        }
 
         // Materialize the pages the plan needs: the library's first flow page, then continuation pages, root by root.
         if (NeedsFlowRoot() && _flowRoot is null)
@@ -523,13 +552,14 @@ public class PdfDocument
             unused.AddRange(root.Chain.Skip(chain));
         }
 
-        bool drawLayout = UsesLayout;
         var contents = new PdfPageContent[visible.Count];
         for (int i = 0; i < visible.Count; i++)
         {
             var page = planned[i];
+            var header = headers[i];
+            var footer = footers[i];
             Action<StringBuilder, Func<PdfImageData, string>>? after = drawLayout
-                ? (sb, name) => DrawLayout(sb, name, page, planned.Count, plans)
+                ? (sb, name) => DrawLayout(sb, name, page, header, footer, plans)
                 : null;
             contents[i] = visible[i].Builder.BuildContent(plans, page.Carried, after);
         }
@@ -605,7 +635,7 @@ public class PdfDocument
 
     // The header or footer whose content a page shows: the most specific matching rule that sets content, Last rules
     // included, or the document's (WR-032).
-    private PdfPageSection? SectionFor(int number, int pageCount, bool footer)
+    private PdfPageSection SectionFor(int number, int pageCount, bool footer)
     {
         PdfPageSection section = footer ? Footer : Header;
         foreach (var rule in Ordered(number, number == pageCount))
@@ -641,8 +671,32 @@ public class PdfDocument
         return new EffectiveSettings(TopMargin, BottomMargin, left, right, headerHeight, headerHidden, footerHeight, footerHidden, topGap, bottomGap);
     }
 
+    // Fingerprints everything the planner reads from the caller pages: each root's size and flow start, and each
+    // page-coordinate table's position, width, header-row settings, and row heights (WR-033).
+    private string LivePlanStamp(IReadOnlyList<PlanRoot> roots)
+    {
+        var sb = new StringBuilder();
+        sb.Append(_layoutVersion).Append('|').Append(roots.Count);
+        foreach (var root in roots)
+        {
+            sb.Append('|').Append(root.Size).Append(';').Append(root.FlowStart).Append(';').Append(root.Tables.Count);
+            foreach (var table in root.Tables)
+            {
+                sb.Append(':')
+                    .Append(PdfNumber.Format(table.X)).Append(';')
+                    .Append(PdfNumber.Format(table.Y)).Append(';')
+                    .Append(PdfNumber.Format(table.Width)).Append(';')
+                    .Append(table.HeaderRowCount).Append(';')
+                    .Append(table.RepeatHeaderRows).Append(';')
+                    .Append(string.Join(",", PdfTableRenderer.Layout(table, 0, 0).RowHeights.Select(PdfNumber.Format)));
+            }
+        }
+        return sb.ToString();
+    }
+
     private string SettingsSignature() => string.Join(
         ";",
+        PageSize.ToString(),
         PdfNumber.Format(TopMargin),
         PdfNumber.Format(BottomMargin),
         PdfNumber.Format(LeftMargin),
@@ -877,6 +931,12 @@ public class PdfDocument
     #endregion
 
     #region Nested Types
+
+    /// <summary>
+    /// A band's content for one page, prepared before any page object exists: the page it is for, its items in drawing
+    /// order, and the layout of each band table (null for other items).
+    /// </summary>
+    private sealed record BandContent(PdfPageInfo Info, IReadOnlyList<SectionItem> Items, IReadOnlyList<TableLayout?> Layouts);
 
     /// <summary>
     /// A page's builder together with its page dictionary, the object that serializes it, and its size. A root page

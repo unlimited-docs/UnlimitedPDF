@@ -38,7 +38,7 @@ public class PageLayoutTests
             _ => (800, 0, true)
         };
 
-        var (parts, _) = TablePaginator.Paginate(table, layout, 140, Edges, 800, () => "table 1");
+        var (parts, _) = TablePaginator.Paginate(table, layout, 140, Edges, () => "table 1");
 
         Assert.Equal(3, parts.Count);
         Assert.Equal((0, 2), (parts[0].FirstRow, parts[0].EndRow));
@@ -148,6 +148,23 @@ public class PageLayoutTests
         Assert.Contains("(a\\) b \\\\ \\(c) Tj", page.Content);
         Assert.Contains("/F1 10.5 Tf", page.Content);
         Assert.Contains("1 0 0 1 40.5 ", page.Content);
+    }
+
+    [Fact]
+    public void Security_page_text_is_escaped_and_valid_text_keeps_its_bytes()
+    {
+        // WR-005 (AC-29): page text goes through the same escaping as band, flow, and cell text.
+        var document = new PdfDocument();
+        var page = document.AddPage();
+        page.AddText(") Tj ET BT (injected", 50, 700);
+        page.AddText("C:\\temp", 50, 680);
+        page.AddText("Rate (INR)", 50, 660);
+
+        var content = PdfPageReader.Save(document).Single().Content;
+
+        Assert.Contains("(\\) Tj ET BT \\(injected) Tj", content);
+        Assert.Contains("(C:\\\\temp) Tj", content);
+        Assert.Contains("BT /F1 12 Tf 50 660 Td (Rate (INR)) Tj ET", content);
     }
 
     #endregion

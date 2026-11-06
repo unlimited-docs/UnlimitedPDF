@@ -27,8 +27,8 @@ internal static class TablePaginator
     /// <param name="layout">The table's row and cell layout.</param>
     /// <param name="startY">The y-coordinate of the table's top edge on its own page, in points.</param>
     /// <param name="edges">Returns the top and bottom edges of the room on the page <c>n</c> pages after the table's own
-    /// page, and whether that room is the page's whole, empty body. On the table's own page only the bottom is used.</param>
-    /// <param name="emptyBodyHeight">The height of an empty body, which every row must fit.</param>
+    /// page, and whether that room is the page's whole, empty body. On the table's own page the top is the body top
+    /// (or the table's start in the flow), which its rows must also fit below.</param>
     /// <param name="describe">Returns the table's description for error messages, for example "table 1 on page 2".</param>
     /// <returns>The parts in page order and the header rows in effect.</returns>
     /// <exception cref="InvalidOperationException">A row, or the header rows with a data row, cannot fit on an empty page.</exception>
@@ -37,7 +37,6 @@ internal static class TablePaginator
         TableLayout layout,
         double startY,
         Func<int, (double Top, double Bottom, bool Empty)> edges,
-        double emptyBodyHeight,
         Func<string> describe)
     {
         var heights = layout.RowHeights;
@@ -48,13 +47,10 @@ internal static class TablePaginator
         bool repeatHeader = table.RepeatHeaderRows && headerRows > 0;
         double headerHeight = heights.Take(headerRows).Sum();
 
-        // Every row must fit an empty body, before any layout is attempted.
-        EnsureEveryRowFits(heights, headerRows, headerHeight, repeatHeader, emptyBodyHeight, describe);
-
         var parts = new List<Split>();
         int page = 0;
         double y = startY;
-        double bottom = edges(0).Bottom;
+        var (ownTop, bottom, _) = edges(0);
         var current = new Split(page, 0, 0, y, y, false);
 
         int row = 0;
@@ -69,8 +65,13 @@ internal static class TablePaginator
             {
                 // Only the first part, or a part on a page whose room is partly taken, may stay empty.
                 var (top, pageBottom, empty) = edges(page);
+                // A row is checked against the empty body of the page it lands on, which page rules may size
+                // differently from the table's own page.
                 if (current.EndRow == current.FirstRow && page > 0 && empty)
+                {
+                    EnsureFits(heights, row, headerRows, headerHeight, headerBlock || current.RepeatsHeader, top - pageBottom, describe);
                     throw RowTooTall(describe(), row, heights[row], top - pageBottom);
+                }
 
                 // A part without data rows draws nothing, so header rows never stand alone on a page.
                 if (current.EndRow == current.FirstRow) current = current with { RepeatsHeader = false, Bottom = current.Top };
@@ -88,6 +89,10 @@ internal static class TablePaginator
                 }
                 continue;
             }
+
+            // A table placed above the body top fits rows there that no empty body can hold; those fail as on any
+            // other page (WR-027), so documents without the layout API keep failing before output.
+            if (page == 0) EnsureFits(heights, row, headerRows, headerHeight, headerBlock || repeatHeader, ownTop - bottom, describe);
 
             row += count;
             y -= need;
@@ -117,33 +122,30 @@ internal static class TablePaginator
 
     #region Private Methods
 
-    private static void EnsureEveryRowFits(double[] heights, int headerRows, double headerHeight, bool repeatHeader, double usable, Func<string> describe)
+    // Fails when the rows starting at `row` cannot fit an empty body of the given height: a row that alone is too tall
+    // is named by its own message, and the header rows only when they push their data row over.
+    private static void EnsureFits(double[] heights, int row, int headerRows, double headerHeight, bool withHeader, double usable, Func<string> describe)
     {
-        for (int row = 0; row < heights.Length; row++)
+        bool headerBlock = row == 0 && headerRows > 0;
+        int dataRow = headerBlock ? headerRows : row;
+        for (int r = row; r <= dataRow; r++)
         {
-            if (heights[row] > usable + Tolerance)
-                throw RowTooTall(describe(), row, heights[row], usable);
+            if (heights[r] > usable + Tolerance) throw RowTooTall(describe(), r, heights[r], usable);
         }
 
-        if (headerRows == 0) return;
-
-        // The header rows travel with the first data row, and with every data row when they repeat.
-        int checkedEnd = repeatHeader ? heights.Length : headerRows + 1;
-        for (int row = headerRows; row < checkedEnd; row++)
-        {
-            if (headerHeight + heights[row] > usable + Tolerance)
-            {
-                throw new InvalidOperationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "The {0} header row(s) of {1} together with row index {2} need {3:0.###} pt, which is more than the {4:0.###} pt of body height between the margins, header, and footer. Use fewer or smaller header rows, smaller rows, or smaller margins.",
-                    headerRows,
-                    describe(),
-                    row,
-                    headerHeight + heights[row],
-                    Math.Max(0, usable)));
-            }
-        }
+        if (withHeader && headerHeight + heights[dataRow] > usable + Tolerance)
+            throw HeaderTooTall(describe(), headerRows, dataRow, headerHeight + heights[dataRow], usable);
     }
+
+    private static InvalidOperationException HeaderTooTall(string table, int headerRows, int row, double height, double usable) =>
+        new(string.Format(
+            CultureInfo.InvariantCulture,
+            "The {0} header row(s) of {1} together with row index {2} need {3:0.###} pt, which is more than the {4:0.###} pt of body height between the margins, header, and footer. Use fewer or smaller header rows, smaller rows, or smaller margins.",
+            headerRows,
+            table,
+            row,
+            height,
+            Math.Max(0, usable)));
 
     private static InvalidOperationException RowTooTall(string table, int row, double height, double usable) =>
         new(string.Format(

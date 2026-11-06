@@ -85,17 +85,9 @@ public static class MedicalReportSample
             }
         }
 
-        // The section title stays on the page of the first results row.
-        var title = body.AddTable(495, spacing: 18, x: Left, keepWithNext: true);
-        title.SetColumnWidths(495);
-        title.RowHeight = 18;
-        var titleCell = title.AddRow().GetCell(0);
-        titleCell.Text = "Test results";
-        titleCell.Background = _sectionTint;
-        foreach (var border in new[] { titleCell.LeftBorder, titleCell.TopBorder, titleCell.RightBorder, titleCell.BottomBorder })
-        {
-            border.Color = _sectionTint;
-        }
+        // The section title and its rule stay on the page of the first results row.
+        body.AddText("Test results", spacing: 18, fontSize: 12, x: Left, keepWithNext: true);
+        body.AddRectangle(495, 2, _sectionTint, spacing: 3, x: Left, keepWithNext: true);
 
         var results = body.AddTable(495, spacing: 6, x: Left);
         results.SetColumnWidths(165, 70, 80, 120, 60);

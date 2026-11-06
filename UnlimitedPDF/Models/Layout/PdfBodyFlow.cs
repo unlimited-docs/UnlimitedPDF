@@ -218,7 +218,10 @@ public sealed class PdfBodyFlow
     /// Gets the height, in points, from where the next item would land to the bottom of that page's body. The value
     /// stays exact at save: if anything it depends on later changes the layout (a flow item's height, a table's rows,
     /// a block's items, a band height, a gap, a side margin, or a page rule), saving fails before anything is written.
+    /// A read lays out the content added so far, so it throws the same layout error saving would, for example for an
+    /// item taller than the body.
     /// </summary>
+    /// <exception cref="InvalidOperationException">The content added so far cannot be laid out.</exception>
     public double Remaining => _document.QueryRemaining();
 
     /// <summary>

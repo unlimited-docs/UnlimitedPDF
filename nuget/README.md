@@ -309,5 +309,5 @@ pdfDocument.Save("report.pdf");
 - New: images (`PdfImage`, `PdfPageBuilder.AddImage`), images and stacked content in table cells, row height rules, and unit conversion (`PdfUnits`).
 - `PdfTableCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
 - Table cells with `VAlign` set to `Top` or `Bottom` are now drawn that way (it had no effect before).
-- Table cell text containing a backslash or an unbalanced parenthesis is now escaped, so it displays as written.
+- Text containing a backslash or an unbalanced parenthesis is now escaped wherever it appears (table cells, `PdfPageBuilder.AddText`, headers, footers, and the body flow), so it displays as written. Text without those characters is written exactly as before.
 - Table numbers are written the same way in every culture, so documents saved under comma-decimal cultures are valid.

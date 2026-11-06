@@ -166,8 +166,13 @@ internal sealed class PagePlanner
             height,
             Math.Max(0, body)));
 
-    // Heights of items that never split. A table here is one inside a block.
-    private static double MeasureSimple(FlowItem item) => item switch
+    /// <summary>
+    /// Returns the height of an item that never splits: a line, image, rectangle, block, or a table inside a block.
+    /// Planning and drawing both use it, so they always agree.
+    /// </summary>
+    /// <param name="item">The item.</param>
+    /// <returns>The height in points.</returns>
+    internal static double MeasureSimple(FlowItem item) => item switch
     {
         FlowText text => LayoutDrawing.LineHeight(text.FontSize),
         FlowImage image => ImageBox.Compute(image.Image, image.Width, image.Height, image.Options).BoxHeight,
@@ -192,12 +197,20 @@ internal sealed class PagePlanner
         _nextItem = _root.FlowStart;
     }
 
-    // Places the waiting kept items without the keep rule: nothing follows them on this page sequence.
+    // Ends the waiting kept run where nothing follows it on this page sequence (a page break, the next caller page, or
+    // the document's end): a kept table's last row still stays with the kept items after it, and those items stay
+    // together (WR-033).
     private void FinishPending()
     {
+        if (_pendingTable is not null)
+        {
+            KeepTableWithNext(_pendingTable, null);
+            _pendingTable = null;
+        }
+
+        if (_pending.Count > 1) KeepRunWith(null);
         foreach (var item in _pending) PlaceBox(item);
         _pending.Clear();
-        _pendingTable = null;
     }
 
     private void FinishRoot()
@@ -241,15 +254,17 @@ internal sealed class PagePlanner
         ? TablePaginator.HeadHeight(table.Table, PdfTableRenderer.Layout(table.Table, 0, 0))
         : MeasureSimple(item);
 
-    // Keeps the last data row of a kept table with the item that follows it (WR-033): when the next item's head does
-    // not fit below the table, that row moves to the next page, with the repeated header rows above it.
-    private void KeepTableWithNext(FlowTable kept, FlowItem next)
+    // Keeps the last data row of a kept table with what follows it (WR-033): when the kept run after the table and the
+    // head of the item that ends it (none when the run ends the page sequence) do not fit below the table, that row
+    // moves, with the repeated header rows above it, to the first following page whose free room holds it and the run.
+    private void KeepTableWithNext(FlowTable kept, FlowItem? next)
     {
-        var plan = _plans[kept.Table];
+        if (!_plans.TryGetValue(kept.Table, out var plan) || plan.Parts.Count == 0) return;
+        double need = RunNeed(next, atTop: false);
+
         var parts = plan.Parts.ToList();
         var last = parts[parts.Count - 1];
         int slot = last.PageIndex - _pages.Count;
-        double need = next.Spacing + HeadHeight(next);
         if (last.Bottom - need >= Geometry(slot).BodyBottom - TablePaginator.Tolerance) return;
 
         var heights = plan.Layout.RowHeights;
@@ -260,16 +275,32 @@ internal sealed class PagePlanner
         if (last.FirstRow == 0 && moveFrom <= headerRows) moveFrom = 0;
 
         double moved = heights.Skip(moveFrom).Take(last.EndRow - moveFrom).Sum();
-        var shortened = last with { EndRow = moveFrom, Bottom = last.Bottom + moved };
-        if (!shortened.HasRows) shortened = shortened with { RepeatsHeader = false, Bottom = shortened.Top };
-
-        var target = Fresh(slot + 1);
-        Slot(slot + 1);
         bool repeats = kept.Table.RepeatHeaderRows && headerRows > 0 && moveFrom > 0;
         double headerHeight = repeats ? heights.Take(headerRows).Sum() : 0;
-        double gap = target.AtTop || moveFrom > 0 ? 0 : kept.Spacing;
-        double top = target.Y - gap;
-        var movedPart = new TablePart(_pages.Count + slot + 1, moveFrom, last.EndRow, top, top - headerHeight - moved, Geometry(slot + 1).Left + kept.X, repeats);
+
+        // The moved rows go to the first following page whose free room holds them together with the run.
+        int targetSlot = slot + 1;
+        double top;
+        while (true)
+        {
+            var target = Fresh(targetSlot);
+            double gap = target.AtTop || moveFrom > 0 ? 0 : kept.Spacing;
+            top = target.Y - gap;
+            double bottom = Geometry(targetSlot).BodyBottom - TablePaginator.Tolerance;
+            if (top - headerHeight - moved - need >= bottom) break;
+            if (target.EmptyBody)
+            {
+                double body = Geometry(targetSlot).BodyHeight;
+                if (top - headerHeight - moved < bottom) throw Oversize(kept.Description, headerHeight + moved, body);
+                throw Oversize(RunDescription(kept, next), headerHeight + moved + need, body);
+            }
+            targetSlot++;
+        }
+
+        Slot(targetSlot);
+        var shortened = last with { EndRow = moveFrom, Bottom = last.Bottom + moved };
+        if (!shortened.HasRows) shortened = shortened with { RepeatsHeader = false, Bottom = shortened.Top };
+        var movedPart = new TablePart(_pages.Count + targetSlot, moveFrom, last.EndRow, top, top - headerHeight - moved, Geometry(targetSlot).Left + kept.X, repeats);
 
         parts[parts.Count - 1] = shortened;
         parts.Add(movedPart);
@@ -279,39 +310,39 @@ internal sealed class PagePlanner
         int index = placements.FindIndex(p => p.Item == kept && p.Part == last);
         if (shortened.HasRows) placements[index] = placements[index] with { Part = shortened };
         else placements.RemoveAt(index);
-        _slots[slot + 1].Flow.Add(new FlowPlacement(kept, Geometry(slot + 1).Left, Geometry(slot + 1).Right, top, movedPart));
-        _cursor = new Cursor(slot + 1, movedPart.Bottom, false, false);
+        _slots[targetSlot].Flow.Add(new FlowPlacement(kept, Geometry(targetSlot).Left, Geometry(targetSlot).Right, top, movedPart));
+        _cursor = new Cursor(targetSlot, movedPart.Bottom, false, false);
     }
 
-    // Moves the cursor to a fresh page when the kept run and the item's head do not fit together here.
-    private void KeepRunWith(FlowItem next)
+    // Moves the cursor to a fresh page when the kept run and the item's head (if any) do not fit together here.
+    private void KeepRunWith(FlowItem? next)
     {
         if (_pending.Count == 0) return;
 
-        double Need(Cursor cursor)
-        {
-            double total = 0;
-            for (int i = 0; i < _pending.Count; i++)
-                total += (i == 0 && cursor.AtTop ? 0 : _pending[i].Spacing) + MeasureSimple(_pending[i]);
-            return total + next.Spacing + HeadHeight(next);
-        }
-
         var cursor = _cursor;
-        while (cursor.Y - Need(cursor) < Geometry(cursor.Slot).BodyBottom - TablePaginator.Tolerance)
+        while (cursor.Y - RunNeed(next, cursor.AtTop) < Geometry(cursor.Slot).BodyBottom - TablePaginator.Tolerance)
         {
-            if (cursor.EmptyBody)
-            {
-                string description = string.Format(
-                    CultureInfo.InvariantCulture,
-                    "the kept-together run of flow items {0} to {1}",
-                    _pending[0].Index + 1,
-                    next.Index + 1);
-                throw Oversize(description, Need(cursor), Geometry(cursor.Slot).BodyHeight);
-            }
+            if (cursor.EmptyBody) throw Oversize(RunDescription(_pending[0], next), RunNeed(next, cursor.AtTop), Geometry(cursor.Slot).BodyHeight);
             cursor = Fresh(cursor.Slot + 1);
         }
 
         _cursor = cursor;
+    }
+
+    // Names a kept run from its first item to the item that ends it, or to its last kept item when nothing follows it.
+    private string RunDescription(FlowItem first, FlowItem? next) => string.Format(
+        CultureInfo.InvariantCulture,
+        "the kept-together run of flow items {0} to {1}",
+        first.Index + 1,
+        (next ?? (_pending.Count > 0 ? _pending[_pending.Count - 1] : first)).Index + 1);
+
+    // The height the waiting kept run needs together with the head of the item that ends it (if any).
+    private double RunNeed(FlowItem? next, bool atTop)
+    {
+        double total = 0;
+        for (int i = 0; i < _pending.Count; i++)
+            total += (i == 0 && atTop ? 0 : _pending[i].Spacing) + MeasureSimple(_pending[i]);
+        return next is null ? total : total + next.Spacing + HeadHeight(next);
     }
 
     private void Place(FlowItem item)
@@ -324,16 +355,17 @@ internal sealed class PagePlanner
             return;
         }
 
-        if (_pendingTable is not null)
-        {
-            KeepTableWithNext(_pendingTable, item);
-            _pendingTable = null;
-        }
-
+        // Kept items wait for the item that ends their run; a kept table waits with them (WR-033).
         if (item.KeepWithNext && item is not FlowTable)
         {
             _pending.Add(item);
             return;
+        }
+
+        if (_pendingTable is not null)
+        {
+            KeepTableWithNext(_pendingTable, item);
+            _pendingTable = null;
         }
 
         KeepRunWith(item);
@@ -343,7 +375,7 @@ internal sealed class PagePlanner
         if (item is FlowTable table)
         {
             PlaceTable(table);
-            if (table.KeepWithNext) _pendingTable = table;
+            if (table.KeepWithNext && table.Table.RowCount > 0) _pendingTable = table;
         }
         else
         {
@@ -362,7 +394,12 @@ internal sealed class PagePlanner
     private void PlaceTable(FlowTable item)
     {
         var table = item.Table;
-        if (table.RowCount == 0) return;
+        if (table.RowCount == 0)
+        {
+            // A table without rows draws nothing and takes no room.
+            _plans[table] = new TablePlan(new TableLayout(Array.Empty<double>(), Array.Empty<double>(), new CellLayout[0, 0]), Array.Empty<TablePart>(), 0);
+            return;
+        }
 
         var start = _cursor;
         var layout = PdfTableRenderer.Layout(table, _nextNumber + start.Slot, item.Index + 1);
@@ -381,7 +418,6 @@ internal sealed class PagePlanner
             layout,
             startY,
             Edges,
-            Geometry(start.Slot + 1).BodyHeight,
             () => item.Description);
 
         var parts = new List<TablePart>();
@@ -415,7 +451,6 @@ internal sealed class PagePlanner
                 layout,
                 table.Y,
                 offset => (Geometry(offset).BodyTop, Geometry(offset).BodyBottom, true),
-                Geometry(1).BodyHeight,
                 () => string.Format(CultureInfo.InvariantCulture, "table {0} on {1}", number, page));
 
             var parts = splits
@@ -436,21 +471,12 @@ internal sealed class PagePlanner
             int number = _nextNumber + _slots.Count;
             var geometry = _geometry(number, _root!.Size);
             if (_checkBody && (geometry.BodyHeight <= 0 || geometry.ContentWidth <= 0)) throw NoBody(number, geometry);
-            _slots.Add(new PlannedPage(_rootIndex, _slots.Count, number, _root.Size, geometry));
+            _slots.Add(new PlannedPage(_rootIndex, _slots.Count, number, geometry));
         }
         return _slots[index];
     }
 
     #endregion
-
-    #endregion
-
-    #region Properties, Indexers
-
-    /// <summary>
-    /// Gets the index of the root page the planner is in, or -1 before the first.
-    /// </summary>
-    public int RootIndex => _rootIndex;
 
     #endregion
 

@@ -1,0 +1,102 @@
+@page "/playground/documents/delivery-note"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.DeliveryNote" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Delivery">
+            <div class="field">
+                <label for="dn-no">Note number</label>
+                <input id="dn-no" class="form-control" @bind="_input.NoteNumber" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="order">Order number</label>
+                <input id="order" class="form-control" @bind="_input.OrderNumber" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="dn-date">Delivery date</label>
+                <input id="dn-date" type="date" class="form-control" @bind="_input.DeliveryDate" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Addresses" InitiallyOpen="false">
+            <div class="field">
+                <label for="sender">From address (one line per address line)</label>
+                <textarea id="sender" rows="3" class="form-control" @bind="_input.SenderAddress" @bind:event="oninput"></textarea>
+            </div>
+            <div class="field">
+                <label for="recipient">Deliver to</label>
+                <input id="recipient" class="form-control" @bind="_input.RecipientName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="recipient-address">Address (one line per address line)</label>
+                <textarea id="recipient-address" rows="3" class="form-control" @bind="_input.RecipientAddress" @bind:event="oninput"></textarea>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Items">
+            <div class="rows">
+                @for (int index = 0; index < _input.Items.Count; index++)
+                {
+                    var line = _input.Items[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Item @number</span>
+                            <button type="button" class="row-remove" title="Remove item @number" aria-label="Remove item @number" @onclick="() => Remove(_input.Items, line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Code</label>
+                                <input class="form-control" @bind="line.Code" @bind:event="oninput" />
+                            </div>
+                            <div class="field">
+                                <label>Description</label>
+                                <input class="form-control" @bind="line.Description" @bind:event="oninput" />
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Ordered</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Ordered" />
+                            </div>
+                            <div class="field">
+                                <label>Shipped</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Shipped" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddItem">+ Add item</button>
+            </div>
+            <div class="field">
+                <label for="dn-generated">Add generated lines (0 to 500)</label>
+                <input id="dn-generated" type="number" min="0" max="500" class="form-control" @bind="_input.GeneratedLines" />
+            </div>
+        </CollapsibleSection>
+
+    </Inputs>
+</SamplePage>
+
+@code {
+    private DeliveryNoteInput _input = new();
+    private SamplePage? _page;
+
+    private void AddItem()
+    {
+        _input.Items.Add(new DeliveryLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync() =>
+        DeliveryNoteSample.Build(_input, await ImageStore.GetManyAsync("delivery-note-logo.png"));
+
+    private void Remove<T>(List<T> list, T item)
+    {
+        list.Remove(item);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = new();
+}

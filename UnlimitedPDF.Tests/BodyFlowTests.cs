@@ -226,6 +226,153 @@ public class BodyFlowTests
     }
 
     [Fact]
+    public void An_empty_kept_table_saves_and_takes_no_room()
+    {
+        // Review F-03: a kept table without rows made Save throw KeyNotFoundException.
+        var document = new PdfDocument();
+        document.Body.AddTable(300, keepWithNext: true);
+        document.Body.AddText("after");
+
+        var page = PdfPageReader.Save(document).Single();
+
+        Assert.Equal(A4Height - LineOffset(12), page.LayoutTexts().Single().Baseline, Precision);
+    }
+
+    [Fact]
+    public void A_kept_table_keeps_its_last_row_with_a_kept_run_after_it()
+    {
+        // Review F-04: 39 rows end 61.89 pt above the bottom; the kept heading fits there, but not with the rectangle.
+        var document = new PdfDocument();
+        Rows(document.Body.AddTable(200, keepWithNext: true), 39, "K");
+        document.Body.AddText("Heading", keepWithNext: true);
+        document.Body.AddRectangle(100, 300, PdfColor.Black);
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(2, pages.Count);
+        Assert.True(pages[0].Shows("K37"));
+        Assert.False(pages[0].Shows("K38"));
+        Assert.True(pages[1].Shows("K38"));
+        Assert.True(pages[1].Shows("Heading"));
+    }
+
+    [Fact]
+    public void A_moved_last_row_goes_to_the_first_page_with_room()
+    {
+        // Review F-05: page 2 is full of carried rows down to 21.89; the moved row was drawn into the footer band.
+        var document = new PdfDocument();
+        document.Footer.Height = 20;
+        var page = document.AddPage();
+        var placed = page.AddTable(300, A4Height, 200);
+        placed.AddColumn();
+        for (int r = 0; r < 82; r++) placed.AddRow().GetCell(0).Text = "P" + r;
+        Rows(document.Body.AddTable(200, keepWithNext: true), 39, "K");
+        document.Body.AddRectangle(100, 100, PdfColor.Black);
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(3, pages.Count);
+        Assert.True(pages[1].Shows("P81"));
+        Assert.False(pages[1].Shows("K38"));
+        Assert.True(pages[2].Shows("K38"));
+        Assert.All(pages[1].FilledRectangles(), r => Assert.True(r.Y >= 20 - 1e-6, $"Rectangle {r} is in the footer band."));
+    }
+
+    [Theory]
+    [InlineData("end")]
+    [InlineData("break")]
+    [InlineData("page")]
+    public void A_kept_table_keeps_its_last_row_with_a_kept_run_that_ends_the_flow(string ending)
+    {
+        // Review F-13: 41 rows end 21.89 pt above the bottom, and the kept 24 pt heading after them is the last item
+        // before the document's end, a page break, or AddPage; K40 stayed behind on page 1.
+        var document = new PdfDocument();
+        Rows(document.Body.AddTable(200, keepWithNext: true), 41, "K");
+        document.Body.AddText("Heading", fontSize: 20, keepWithNext: true);
+        if (ending == "break")
+        {
+            document.Body.PageBreak();
+            document.Body.AddText("after");
+        }
+        else if (ending == "page")
+        {
+            document.AddPage().AddText("next caller page", 10, 10);
+        }
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(ending == "end" ? 2 : 3, pages.Count);
+        Assert.True(pages[0].Shows("K39"));
+        Assert.False(pages[0].Shows("K40"));
+        Assert.True(pages[1].Shows("K40"));
+        Assert.True(pages[1].Shows("Heading"));
+    }
+
+    [Fact]
+    public void A_moved_last_row_lands_only_where_the_kept_run_fits_with_it()
+    {
+        // Review F-14: page 2 is carried down to 61.89 pt; the moved row fits there, but not with the 60 pt rectangle
+        // that follows it, so the row and the rectangle go to page 3 together.
+        var document = new PdfDocument();
+        var page = document.AddPage();
+        var placed = page.AddTable(300, A4Height, 200);
+        placed.AddColumn();
+        for (int r = 0; r < 81; r++) placed.AddRow().GetCell(0).Text = "P" + r;
+        Rows(document.Body.AddTable(200, keepWithNext: true), 40, "K");
+        document.Body.AddRectangle(100, 60, PdfColor.Black);
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(3, pages.Count);
+        Assert.True(pages[0].Shows("K38"));
+        Assert.True(pages[1].Shows("P80"));
+        Assert.False(pages[1].Shows("K39"));
+        Assert.True(pages[2].Shows("K39"));
+        AssertRect((0, A4Height - 20 - 60, 100, 60), pages[2].LayoutRectangles().Single());
+    }
+
+    [Fact]
+    public void A_kept_table_row_and_run_taller_than_an_empty_body_fail_naming_the_run()
+    {
+        var document = new PdfDocument();
+        Rows(document.Body.AddTable(200, keepWithNext: true), 39, "K");
+        document.Body.AddRectangle(100, 830, PdfColor.Black);
+
+        var message = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document)).Message;
+
+        Assert.Contains("kept-together run of flow items 1 to 2", message);
+    }
+
+    [Fact]
+    public void A_row_only_has_to_fit_the_page_it_lands_on()
+    {
+        // Review F-06: a 500 pt row fits page 1 (its header is hidden by a First rule) but not later pages.
+        static PdfDocument Build()
+        {
+            var document = new PdfDocument();
+            document.Header.Height = 400;
+            document.AddPageRule(PdfPageRuleTarget.First).Header.IsHidden = true;
+            return document;
+        }
+
+        var flow = Build();
+        var flowTable = flow.Body.AddTable(200);
+        flowTable.AddColumn();
+        var flowRow = flowTable.AddRow();
+        flowRow.Height = 500;
+        flowRow.GetCell(0).Text = "tall";
+        Assert.Single(PdfPageReader.Save(flow));
+
+        var placed = Build();
+        var table = placed.AddPage().AddTable(50, 800, 200);
+        table.AddColumn();
+        var row = table.AddRow();
+        row.Height = 500;
+        row.GetCell(0).Text = "tall";
+        Assert.Single(PdfPageReader.Save(placed));
+    }
+
+    [Fact]
     public void Readme_headers_footers_and_flow_sample_runs_as_written()
     {
         // The code of README.md and nuget/README.md "Headers, footers & flow", saved to memory instead of a file (PR-012).
@@ -284,6 +431,13 @@ public class BodyFlowTests
     }
 
     private static double LineOffset(double size) => size * 1.2 / 2 + size / 3;
+
+    private static PdfTable Rows(PdfTable table, int rows, string prefix)
+    {
+        table.AddColumn();
+        for (int r = 0; r < rows; r++) table.AddRow().GetCell(0).Text = prefix + r;
+        return table;
+    }
 
     private static void NumberedTable(PdfPageBuilder page, double x, double y, double width, int rows, string prefix)
     {
