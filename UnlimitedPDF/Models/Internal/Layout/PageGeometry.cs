@@ -2,7 +2,7 @@ namespace UnlimitedPDF.Models.Internal.Layout;
 
 /// <summary>
 /// Where the areas of one saved page are, in page coordinates (points from the bottom-left corner, WR-030): from the
-/// top edge, the top margin, the header band, the body top gap, the body, the body bottom gap, the footer band, and the
+/// top edge, the top margin, the header band, the body top margin, the body, the body bottom margin, the footer band, and the
 /// bottom margin; the side margins bound all three areas.
 /// </summary>
 /// <param name="Width">The page width.</param>
@@ -46,19 +46,19 @@ internal sealed record PageGeometry(
     public static PageGeometry Create(PdfPageSize size, EffectiveSettings settings)
     {
         var (width, height) = size.ToDimensions();
-        double headerTop = height - settings.TopMargin;
+        double headerTop = height - settings.MarginTop;
         double headerHeight = settings.HeaderHidden ? 0 : settings.HeaderHeight;
         double footerHeight = settings.FooterHidden ? 0 : settings.FooterHeight;
-        double footerTop = settings.BottomMargin + footerHeight;
+        double footerTop = settings.MarginBottom + footerHeight;
         return new PageGeometry(
             width,
             height,
-            settings.LeftMargin,
-            width - settings.RightMargin,
+            settings.MarginLeft,
+            width - settings.MarginRight,
             headerTop,
             headerHeight,
-            headerTop - headerHeight - settings.BodyTopGap,
-            footerTop + settings.BodyBottomGap,
+            headerTop - headerHeight - settings.BodyMarginTop,
+            footerTop + settings.BodyMarginBottom,
             footerTop,
             footerHeight);
     }

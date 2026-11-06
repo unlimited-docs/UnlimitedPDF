@@ -1,7 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Extensions;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -36,7 +34,7 @@ public static class ReceiptSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(ReceiptInput input, SampleImages images)
     {
-        var document = new PdfDocument(PdfPageSize.A6) { BottomMargin = 8 };
+        var document = new PdfDocument(PdfPageSize.A6) { MarginBottom = 8 };
         var (pageWidth, _) = PdfPageSize.A6.ToDimensions();
 
         // A grey band behind the logo with a dark accent bar under it, and a closing line, on every page.
@@ -50,8 +48,8 @@ public static class ReceiptSample
         document.Footer.AddText("Thank you for shopping with us!", 0, 8, 9, PdfTextAlignment.Center);
         document.Footer.AddText("Page {page} of {pages}", 0, 24, 7, PdfTextAlignment.Center);
 
-        document.Body.TopGap = 10;
-        document.Body.BottomGap = 8;
+        document.BodyMarginTop = 10;
+        document.BodyMarginBottom = 8;
         var body = document.Body;
 
         body.AddText(input.StoreName, fontSize: 12, alignment: PdfTextAlignment.Center);
@@ -70,7 +68,7 @@ public static class ReceiptSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         decimal subtotal = 0;
@@ -94,8 +92,8 @@ public static class ReceiptSample
         AddTotal(totals, 0, "Subtotal", subtotal);
         AddTotal(totals, 1, $"Tax {input.TaxPercent:0.##}%", tax);
         AddTotal(totals, 2, "Total", subtotal + tax);
-        totals.GetCell(2, 0).Background = _totalTint;
-        totals.GetCell(2, 1).Background = _totalTint;
+        totals.GetCell(2, 0).BackgroundColor = _totalTint;
+        totals.GetCell(2, 1).BackgroundColor = _totalTint;
         closing.AddText($"Paid by: {input.PaymentMethod}", spacing: 10, fontSize: 8, x: Inset);
 
         return document;
@@ -111,10 +109,10 @@ public static class ReceiptSample
         Right(table.GetOrCreateCell(row, 1), value.ToString("F2"));
     }
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

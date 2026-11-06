@@ -1,11 +1,9 @@
-using UnlimitedPDF.Models.Table;
-
 namespace UnlimitedPDF.Models.Internal;
 
 /// <summary>
 /// Lays out and draws a table. Each row follows its height rule (WR-024): an <c>Exactly</c> row keeps its height and
 /// scales images down to fit, an <c>AtLeast</c> row grows to fit its content. A cell's content is drawn top to bottom,
-/// aligned by <c>HAlign</c>, with the whole block placed by <c>VAlign</c>.
+/// aligned by <c>HorizontalAlignment</c>, with the whole block placed by <c>VerticalAlignment</c>.
 /// </summary>
 internal static class PdfTableRenderer
 {
@@ -25,22 +23,22 @@ internal static class PdfTableRenderer
     {
         var columnWidths = table.GetEffectiveColumnWidths();
         var rowHeights = new double[table.RowCount];
-        var cells = new CellLayout[table.RowCount, table.ColCount];
+        var cells = new CellLayout[table.RowCount, table.ColumnCount];
 
         for (int r = 0; r < table.RowCount; r++)
         {
             var row = table.Rows[r];
-            var rule = row.HeightRule ?? table.RowHeightRule;
+            var rule = row.HeightMode ?? table.RowHeightMode;
             double height = row.Height ?? table.RowHeight;
             double rowHeight = height;
 
-            for (int c = 0; c < table.ColCount; c++)
+            for (int c = 0; c < table.ColumnCount; c++)
             {
                 var cell = table.GetCell(r, c);
                 var layout = LayoutCell(cell, columnWidths[c], rule, height, () => Describe(pageNumber, tableNumber, r, c, height));
                 cells[r, c] = layout;
 
-                if (rule == PdfRowHeightRule.AtLeast && layout.Items.Count > 0)
+                if (rule == PdfRowHeightMode.AtLeast && layout.Items.Count > 0)
                     rowHeight = Math.Max(rowHeight, layout.BlockHeight + 2 * cell.Padding);
             }
 
@@ -105,7 +103,7 @@ internal static class PdfTableRenderer
 
     #region Private Methods
 
-    private static double AlignedX(PdfTableCell cell, double currentX, double cellWidth, double contentWidth) => cell.HAlign switch
+    private static double AlignedX(PdfCell cell, double currentX, double cellWidth, double contentWidth) => cell.HorizontalAlignment switch
     {
         PdfCellHorizontalAlignment.Right => currentX + cellWidth - contentWidth - cell.Padding,
         PdfCellHorizontalAlignment.Center => currentX + (cellWidth - contentWidth) / 2,
@@ -124,7 +122,7 @@ internal static class PdfTableRenderer
 
     private static void DrawContent(
         StringBuilder sb,
-        PdfTableCell cell,
+        PdfCell cell,
         CellLayout layout,
         double currentX,
         double currentY,
@@ -137,14 +135,14 @@ internal static class PdfTableRenderer
         // A single line of text in the middle of the row is drawn exactly as before images existed, so documents
         // without images keep their bytes (AC-14).
         if (layout.Items.Count == 1 && layout.Items[0].Item is PdfCellText single
-            && single.FontSize == PdfCellText.DefaultFontSize && cell.VAlign == PdfCellVerticalAlignment.Middle)
+            && single.FontSize == PdfCellText.DefaultFontSize && cell.VerticalAlignment == PdfCellVerticalAlignment.Middle)
         {
             DrawSingleMiddleLine(sb, cell, single.Text, currentX, currentY, cellWidth, rowHeight);
             return;
         }
 
         double padding = cell.Padding;
-        double top = cell.VAlign switch
+        double top = cell.VerticalAlignment switch
         {
             PdfCellVerticalAlignment.Top => currentY - padding,
             PdfCellVerticalAlignment.Bottom => currentY - rowHeight + padding + layout.BlockHeight,
@@ -186,7 +184,7 @@ internal static class PdfTableRenderer
         {
             double rowHeight = layout.RowHeights[r];
             double currentX = left;
-            for (int c = 0; c < table.ColCount; c++)
+            for (int c = 0; c < table.ColumnCount; c++)
             {
                 var cell = table.GetCell(r, c);
                 double cellWidth = layout.ColumnWidths[c];
@@ -194,12 +192,12 @@ internal static class PdfTableRenderer
                 sb.AppendLine("q"); // Save graphics state
 
                 // Draw background
-                var bg = cell.Background;
+                var bg = cell.BackgroundColor;
                 sb.AppendLine(FormattableString.Invariant($"{bg.R:F3} {bg.G:F3} {bg.B:F3} rg")); // Set fill color
                 sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re f")); // Draw and fill rectangle
 
                 // Draw borders
-                var border = cell.LeftBorder; // Using left as a proxy for all for now
+                var border = cell.BorderLeft; // Using left as a proxy for all for now
                 sb.AppendLine(FormattableString.Invariant($"{border.Color.R:F3} {border.Color.G:F3} {border.Color.B:F3} RG")); // Set stroke color
                 sb.AppendLine(FormattableString.Invariant($"{border.Width} w")); // Border width
                 sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re s")); // Stroke rectangle
@@ -215,7 +213,7 @@ internal static class PdfTableRenderer
     }
 
     // The original single-line text placement, kept verbatim apart from escaping and invariant numbers.
-    private static void DrawSingleMiddleLine(StringBuilder sb, PdfTableCell cell, string text, double currentX, double currentY, double cellWidth, double rowHeight)
+    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, string text, double currentX, double currentY, double cellWidth, double rowHeight)
     {
         sb.AppendLine("BT"); // Begin text
         sb.AppendLine("0 0 0 rg"); // Set text color to black
@@ -237,7 +235,7 @@ internal static class PdfTableRenderer
         return text.Length * fontSize * 0.5;
     }
 
-    private static CellLayout LayoutCell(PdfTableCell cell, double columnWidth, PdfRowHeightRule rule, double height, Func<string> describe)
+    private static CellLayout LayoutCell(PdfCell cell, double columnWidth, PdfRowHeightMode rule, double height, Func<string> describe)
     {
         double paddedWidth = columnWidth - 2 * cell.Padding;
         var items = new List<LaidOutItem>();
@@ -267,13 +265,13 @@ internal static class PdfTableRenderer
             }
         }
 
-        if (rule == PdfRowHeightRule.Exactly && imageHeight > 0)
+        if (rule == PdfRowHeightMode.Exactly && imageHeight > 0)
         {
             double available = height - 2 * cell.Padding - textHeight;
             if (available <= 0)
             {
                 throw new InvalidOperationException(
-                    $"The image in {describe()} has no height left after padding and text. Use PdfRowHeightRule.AtLeast for the row or table, or a larger row height.");
+                    $"The image in {describe()} has no height left after padding and text. Use PdfRowHeightMode.AtLeast for the row or table, or a larger row height.");
             }
 
             if (imageHeight > available)

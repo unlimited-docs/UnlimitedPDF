@@ -1,5 +1,4 @@
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -92,8 +91,8 @@ public class PageSectionTests
     public void Page_coordinate_tables_break_at_the_body_bottom_and_resume_at_the_body_top()
     {
         var document = Sectioned();
-        document.Body.TopGap = 10;
-        document.Body.BottomGap = 10;
+        document.BodyMarginTop = 10;
+        document.BodyMarginBottom = 10;
         var table = document.AddPage().AddTable(50, 300, 300);
         table.AddColumn();
         for (int r = 0; r < 20; r++) table.AddRow().GetCell(0).Text = "R" + r;
@@ -131,9 +130,9 @@ public class PageSectionTests
         var document = new PdfDocument();
 
         Assert.Throws<ArgumentOutOfRangeException>(() => document.Header.Height = value);
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.Body.TopGap = value);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.BodyMarginTop = value);
         Assert.Throws<ArgumentNullException>(() => document.Header.AddText(null!, 0, 0));
-        Assert.Throws<ArgumentNullException>(() => document.Footer.Build(null!));
+        Assert.Throws<ArgumentNullException>(() => document.Footer.SetPageContent(null!));
     }
 
     [Fact]
@@ -170,7 +169,7 @@ public class PageSectionTests
     {
         var document = new PdfDocument();
         document.Header.Height = 20;
-        document.Header.Build((content, info) => content.AddText($"{info.PageNumber}/{info.PageCount} first={info.IsFirst} last={info.IsLast}", 0, 0));
+        document.Header.SetPageContent((content, info) => content.AddText($"{info.PageNumber}/{info.PageCount} first={info.IsFirst} last={info.IsLast}", 0, 0));
         document.AddPage();
         document.AddPage();
         document.AddPage();
@@ -191,7 +190,7 @@ public class PageSectionTests
         {
             var document = new PdfDocument();
             document.Footer.Height = 20;
-            document.Footer.Build((_, _) => throw new FormatException("boom"));
+            document.Footer.SetPageContent((_, _) => throw new FormatException("boom"));
             document.AddPage();
 
             Assert.Throws<FormatException>(() => document.Save(path));
@@ -212,7 +211,7 @@ public class PageSectionTests
         {
             var document = new PdfDocument();
             document.Footer.Height = 20;
-            document.Footer.Build((content, info) =>
+            document.Footer.SetPageContent((content, info) =>
             {
                 if (fail()) throw new FormatException("callback failed");
                 content.AddText("Page " + info.PageNumber, 0, 0);
@@ -264,7 +263,7 @@ public class PageSectionTests
         var document = new PdfDocument();
         document.Header.Height = 40;
         document.Header.AddText(") Tj ET BT (x", 0, 0);
-        document.Header.Build((content, info) => content.AddText("\\{page})", 0, 20));
+        document.Header.SetPageContent((content, info) => content.AddText("\\{page})", 0, 20));
         document.AddPage();
 
         var page = PdfPageReader.Save(document).Single();
@@ -288,7 +287,7 @@ public class PageSectionTests
     // Margins 20 top and bottom, 40 left and right; a 50 pt header with a title and a 30 pt footer with page numbers.
     private static PdfDocument Sectioned()
     {
-        var document = new PdfDocument { TopMargin = 20, BottomMargin = 20, LeftMargin = 40, RightMargin = 40 };
+        var document = new PdfDocument { MarginTop = 20, MarginBottom = 20, MarginLeft = 40, MarginRight = 40 };
         document.Header.Height = 50;
         document.Header.AddText("Report", 0, 10);
         document.Footer.Height = 30;

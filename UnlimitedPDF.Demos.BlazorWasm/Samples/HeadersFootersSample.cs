@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -30,7 +29,7 @@ public static class HeadersFootersSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(HeadersFootersInput input)
     {
-        var document = new PdfDocument { TopMargin = 30, BottomMargin = 24, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 30, MarginBottom = 24, MarginLeft = 50, MarginRight = 50 };
 
         // Every page: a title and a rule in the header, the page number in the footer.
         document.Header.Height = 36;
@@ -40,8 +39,8 @@ public static class HeadersFootersSample
         document.Footer.Height = 24;
         document.Footer.AddRectangle(0, 0, 495, 0.5, PdfColor.Black);
         document.Footer.AddText("Page {page} of {pages}", 0, 9, 9, PdfTextAlignment.Right);
-        document.Body.TopGap = 16;
-        document.Body.BottomGap = 12;
+        document.BodyMarginTop = 16;
+        document.BodyMarginBottom = 12;
 
         // Page rules: a taller title on the first page, a closing note on the last page.
         if (input.DifferentFirstPage)
@@ -78,7 +77,7 @@ public static class HeadersFootersSample
             for (int column = 0; column < headings.Length; column++)
             {
                 header.GetCell(column).Text = headings[column];
-                header.GetCell(column).Background = _headerTint;
+                header.GetCell(column).BackgroundColor = _headerTint;
             }
 
             for (int r = 0; r < rows; r++)
@@ -105,10 +104,10 @@ public static class HeadersFootersSample
 
     #region Private Methods
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

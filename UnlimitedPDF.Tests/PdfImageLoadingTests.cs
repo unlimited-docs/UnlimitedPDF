@@ -1,6 +1,6 @@
 using System.ComponentModel;
 using System.Reflection;
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -157,7 +157,7 @@ public class PdfImageLoadingTests
 
         Assert.All(methods, method =>
         {
-            Assert.Equal("0.1.0", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
+            Assert.Equal("1.0.0", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
             Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
         });
     }

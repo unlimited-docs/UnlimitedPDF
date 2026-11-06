@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Enums;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// The reason a <see cref="PdfImageException"/> was thrown while loading an image.

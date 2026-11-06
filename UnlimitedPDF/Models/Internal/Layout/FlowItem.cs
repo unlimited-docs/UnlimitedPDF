@@ -1,5 +1,3 @@
-using UnlimitedPDF.Models.Table;
-
 namespace UnlimitedPDF.Models.Internal.Layout;
 
 /// <summary>
@@ -36,7 +34,7 @@ internal abstract class FlowItem
     public abstract string Kind { get; }
 
     /// <summary>
-    /// Gets the item's layout fingerprint recorded by the first <c>Body.Remaining</c> query that measured it, or null.
+    /// Gets the item's layout fingerprint recorded by the first <c>Body.RemainingHeight</c> query that measured it, or null.
     /// </summary>
     public string? MeasuredSignature { get; set; }
 

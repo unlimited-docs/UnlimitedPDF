@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Models.Table;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// An image in a table cell's content. The image is scaled down to the cell's padded width, keeping its aspect ratio,
@@ -13,7 +13,7 @@ public sealed class PdfCellImage : PdfCellContent
     /// </summary>
     /// <param name="image">The image.</param>
     /// <exception cref="ArgumentNullException"><paramref name="image"/> is null.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Initializes a new instance of the PdfCellImage class.")]
     public PdfCellImage(PdfImage image)
     {

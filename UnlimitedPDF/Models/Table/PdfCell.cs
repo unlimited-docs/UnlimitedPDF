@@ -1,10 +1,10 @@
-﻿namespace UnlimitedPDF.Models.Table;
+﻿namespace UnlimitedPDF;
 
 /// <summary>
 /// A table cell. Its content is an ordered list of text and image items, drawn top to bottom in the order they were
 /// added. <see cref="Text"/> is a shortcut for the first text item, so text-only cells work as before.
 /// </summary>
-public class PdfTableCell
+public class PdfCell
 {
     #region Fields and Constants
 
@@ -22,7 +22,7 @@ public class PdfTableCell
     /// </summary>
     /// <param name="item">The item. A string or a <see cref="PdfImage"/> converts to an item implicitly.</param>
     /// <exception cref="ArgumentNullException"><paramref name="item"/> is null.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds an item to the end of the cell's content.")]
     public void AddContent(PdfCellContent item)
     {
@@ -33,7 +33,7 @@ public class PdfTableCell
     /// <summary>
     /// Removes every item from the cell's content.
     /// </summary>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Removes every item from the cell's content.")]
     public void ClearContent()
     {
@@ -47,7 +47,7 @@ public class PdfTableCell
     /// <param name="item">The item. A string or a <see cref="PdfImage"/> converts to an item implicitly.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the content.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="item"/> is null.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Inserts an item into the cell's content at the given position.")]
     public void InsertContent(int index, PdfCellContent item)
     {
@@ -61,7 +61,7 @@ public class PdfTableCell
     /// </summary>
     /// <param name="index">The position of the item.</param>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is outside the content.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Removes the item at the given position from the cell's content.")]
     public void RemoveContent(int index)
     {
@@ -75,7 +75,7 @@ public class PdfTableCell
     /// <param name="items">The new items.</param>
     /// <exception cref="ArgumentNullException"><paramref name="items"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="items"/> contains a null item.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Replaces the cell's whole content with the given items, in order.")]
     public void SetContent(IEnumerable<PdfCellContent> items)
     {
@@ -96,7 +96,7 @@ public class PdfTableCell
     /// <param name="items">The new items. Strings and <see cref="PdfImage"/> values convert to items implicitly.</param>
     /// <exception cref="ArgumentNullException"><paramref name="items"/> is null.</exception>
     /// <exception cref="ArgumentException"><paramref name="items"/> contains a null item.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Replaces the cell's whole content with the given items, in order.")]
     public void SetContent(params PdfCellContent[] items)
     {
@@ -112,17 +112,38 @@ public class PdfTableCell
     /// <summary>
     /// Gets or sets the cell's background color. The default is white.
     /// </summary>
-    public PdfColor Background { get; set; } = PdfColor.White;
+    [AddedVersion("1.0.0")]
+    public PdfColor BackgroundColor { get; set; } = PdfColor.White;
 
     /// <summary>
     /// Gets the bottom border.
     /// </summary>
-    public PdfBorder BottomBorder { get; } = new PdfBorder();
+    [AddedVersion("1.0.0")]
+    public PdfBorder BorderBottom { get; } = new PdfBorder();
+
+    /// <summary>
+    /// Gets the left border. Its color and width are used for all four sides when rendering.
+    /// </summary>
+    [AddedVersion("1.0.0")]
+    public PdfBorder BorderLeft { get; } = new PdfBorder();
+
+    /// <summary>
+    /// Gets the right border.
+    /// </summary>
+    [AddedVersion("1.0.0")]
+    public PdfBorder BorderRight { get; } = new PdfBorder();
+
+    /// <summary>
+    /// Gets the top border.
+    /// </summary>
+    [AddedVersion("1.0.0")]
+    public PdfBorder BorderTop { get; } = new PdfBorder();
 
     /// <summary>
     /// Gets or sets how many columns the cell spans. Spans are not rendered yet.
     /// </summary>
-    public int ColSpan { get; set; } = 1;
+    [AddedVersion("1.0.0")]
+    public int ColumnSpan { get; set; } = 1;
 
     /// <summary>
     /// Gets the cell's content items, in drawing order (top to bottom).
@@ -132,18 +153,14 @@ public class PdfTableCell
     /// <summary>
     /// Gets or sets the horizontal alignment of every content item. The default is left.
     /// </summary>
-    public PdfCellHorizontalAlignment HAlign { get; set; } = PdfCellHorizontalAlignment.Left;
+    [AddedVersion("1.0.0")]
+    public PdfCellHorizontalAlignment HorizontalAlignment { get; set; } = PdfCellHorizontalAlignment.Left;
 
     /// <summary>
     /// Gets whether the cell has nothing to draw: no images and no non-empty text. Trimming removes empty trailing
     /// rows and columns.
     /// </summary>
     internal bool IsEmpty => _content.All(item => item is PdfCellText text && text.Text.Length == 0);
-
-    /// <summary>
-    /// Gets the left border. Its color and width are used for all four sides when rendering.
-    /// </summary>
-    public PdfBorder LeftBorder { get; } = new PdfBorder();
 
     /// <summary>
     /// Gets or sets the height of each text line as a multiple of its font size. The default is 1.2, so 12 pt text
@@ -165,11 +182,6 @@ public class PdfTableCell
     /// Gets or sets the space between the cell's border and its content, in points. The default is 4.
     /// </summary>
     public double Padding { get; set; } = 4;
-
-    /// <summary>
-    /// Gets the right border.
-    /// </summary>
-    public PdfBorder RightBorder { get; } = new PdfBorder();
 
     /// <summary>
     /// Gets or sets how many rows the cell spans. Spans are not rendered yet.
@@ -196,14 +208,10 @@ public class PdfTableCell
     }
 
     /// <summary>
-    /// Gets the top border.
-    /// </summary>
-    public PdfBorder TopBorder { get; } = new PdfBorder();
-
-    /// <summary>
     /// Gets or sets the vertical alignment of the whole content block within the row. The default is middle.
     /// </summary>
-    public PdfCellVerticalAlignment VAlign { get; set; } = PdfCellVerticalAlignment.Middle;
+    [AddedVersion("1.0.0")]
+    public PdfCellVerticalAlignment VerticalAlignment { get; set; } = PdfCellVerticalAlignment.Middle;
 
     #endregion
 }

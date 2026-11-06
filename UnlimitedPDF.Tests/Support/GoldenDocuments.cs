@@ -1,5 +1,4 @@
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests.Support;
 
@@ -58,7 +57,7 @@ internal static class GoldenDocuments
     // page break, and a caller page whose page-coordinate table shares its continuation page with the flow.
     private static PdfDocument BuildFlowKeep()
     {
-        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36, LeftMargin = 40, RightMargin = 40 };
+        var document = new PdfDocument { MarginTop = 36, MarginBottom = 36, MarginLeft = 40, MarginRight = 40 };
         document.Footer.Height = 20;
         document.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
 
@@ -72,14 +71,14 @@ internal static class GoldenDocuments
         header.GetCell(0).Text = "Line";
         header.GetCell(1).Text = "Item";
         header.GetCell(2).Text = "Amount";
-        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+        foreach (var cell in header.Cells) cell.BackgroundColor = PdfColor.LightGray;
         for (int r = 1; r <= 45; r++)
         {
             var row = lines.AddRow();
             row.GetCell(0).Text = r.ToString(CultureInfo.InvariantCulture);
             row.GetCell(1).Text = "Item " + r;
             row.GetCell(2).Text = (r * 7.25).ToString("0.00", CultureInfo.InvariantCulture);
-            row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+            row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         }
 
         var totals = body.AddBlock(spacing: 12);
@@ -106,7 +105,7 @@ internal static class GoldenDocuments
     // First and Last rules, on caller pages and on a page-coordinate table's continuation page.
     private static PdfDocument BuildHeaderFooter()
     {
-        var document = new PdfDocument { TopMargin = 24, BottomMargin = 24, LeftMargin = 40, RightMargin = 40 };
+        var document = new PdfDocument { MarginTop = 24, MarginBottom = 24, MarginLeft = 40, MarginRight = 40 };
         document.Header.Height = 40;
         document.Header.AddText("Quarterly report", 0, 6, 14);
         document.Header.AddText("Confidential", 0, 8, 9, PdfTextAlignment.Right);
@@ -115,9 +114,9 @@ internal static class GoldenDocuments
         document.Footer.Height = 30;
         document.Footer.AddRectangle(0, 0, 515, 0.5, PdfColor.Black);
         document.Footer.AddText("Page {page} of {pages}", 0, 10, 9, PdfTextAlignment.Right);
-        document.Footer.Build((content, info) => content.AddText(info.IsFirst ? "First page" : "Continued", 0, 10, 9));
-        document.Body.TopGap = 12;
-        document.Body.BottomGap = 12;
+        document.Footer.SetPageContent((content, info) => content.AddText(info.IsFirst ? "First page" : "Continued", 0, 10, 9));
+        document.BodyMarginTop = 12;
+        document.BodyMarginBottom = 12;
 
         var first = document.AddPageRule(PdfPageRuleTarget.First);
         first.Header.Height = 80;
@@ -145,7 +144,7 @@ internal static class GoldenDocuments
     // A strict page limit met exactly: the flow fills two pages and Body.MaxPages is 2.
     private static PdfDocument BuildPageLimit()
     {
-        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36, LeftMargin = 40, RightMargin = 40 };
+        var document = new PdfDocument { MarginTop = 36, MarginBottom = 36, MarginLeft = 40, MarginRight = 40 };
         document.Body.MaxPages = 2;
         for (int i = 1; i <= 100; i++)
             document.Body.AddText("Line " + i.ToString(CultureInfo.InvariantCulture), fontSize: 10);
@@ -177,35 +176,35 @@ internal static class GoldenDocuments
 
         var headerRow = itemsTable.AddRow();
         headerRow.GetCell(0).Text = "S.No.";
-        headerRow.GetCell(0).Background = PdfColor.LightGray;
+        headerRow.GetCell(0).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(1).Text = "Item Description";
-        headerRow.GetCell(1).Background = PdfColor.LightGray;
+        headerRow.GetCell(1).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(2).Text = "Qty";
-        headerRow.GetCell(2).Background = PdfColor.LightGray;
+        headerRow.GetCell(2).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(3).Text = "Rate (INR)";
-        headerRow.GetCell(3).Background = PdfColor.LightGray;
+        headerRow.GetCell(3).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(4).Text = "Amount (INR)";
-        headerRow.GetCell(4).Background = PdfColor.LightGray;
+        headerRow.GetCell(4).BackgroundColor = PdfColor.LightGray;
 
         var item1Row = itemsTable.AddRow();
         item1Row.GetCell(0).Text = "1";
         item1Row.GetCell(1).Text = "Wireless Keyboard";
         item1Row.GetCell(2).Text = "2";
-        item1Row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+        item1Row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         item1Row.GetCell(3).Text = "1250.00";
-        item1Row.GetCell(3).HAlign = PdfCellHorizontalAlignment.Right;
+        item1Row.GetCell(3).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         item1Row.GetCell(4).Text = "2500.00";
-        item1Row.GetCell(4).HAlign = PdfCellHorizontalAlignment.Right;
+        item1Row.GetCell(4).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         var item2Row = itemsTable.AddRow();
         item2Row.GetCell(0).Text = "2";
         item2Row.GetCell(1).Text = "USB-C Docking Station";
         item2Row.GetCell(2).Text = "1";
-        item2Row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+        item2Row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         item2Row.GetCell(3).Text = "4500.00";
-        item2Row.GetCell(3).HAlign = PdfCellHorizontalAlignment.Right;
+        item2Row.GetCell(3).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         item2Row.GetCell(4).Text = "4500.00";
-        item2Row.GetCell(4).HAlign = PdfCellHorizontalAlignment.Right;
+        item2Row.GetCell(4).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         double subtotal = 7000.00;
         double cgst = subtotal * 0.09;
@@ -218,26 +217,26 @@ internal static class GoldenDocuments
         totalsTable.GetOrCreateCell(0, 0).Text = "Subtotal";
         var subtotalValueCell = totalsTable.GetOrCreateCell(0, 1);
         subtotalValueCell.Text = subtotal.ToString("F2", CultureInfo.InvariantCulture);
-        subtotalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+        subtotalValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         totalsTable.GetOrCreateCell(1, 0).Text = "CGST @ 9%";
         var cgstValueCell = totalsTable.GetOrCreateCell(1, 1);
         cgstValueCell.Text = cgst.ToString("F2", CultureInfo.InvariantCulture);
-        cgstValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+        cgstValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         totalsTable.GetOrCreateCell(2, 0).Text = "SGST @ 9%";
         var sgstValueCell = totalsTable.GetOrCreateCell(2, 1);
         sgstValueCell.Text = sgst.ToString("F2", CultureInfo.InvariantCulture);
-        sgstValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+        sgstValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         var totalCell = totalsTable.GetOrCreateCell(3, 0);
         totalCell.Text = "Total";
-        totalCell.Background = PdfColor.LightGray;
+        totalCell.BackgroundColor = PdfColor.LightGray;
 
         var totalValueCell = totalsTable.GetOrCreateCell(3, 1);
         totalValueCell.Text = total.ToString("F2", CultureInfo.InvariantCulture);
-        totalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
-        totalValueCell.Background = PdfColor.LightGray;
+        totalValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
+        totalValueCell.BackgroundColor = PdfColor.LightGray;
 
         page1.AddText("Terms & Conditions:", 50, 450, 10);
         page1.AddText("1. Payment due within 30 days.", 50, 438, 9);
@@ -252,7 +251,7 @@ internal static class GoldenDocuments
         return pdfDocument;
     }
 
-    // Fractional geometry, colors, and every horizontal alignment, all with the default VAlign Middle.
+    // Fractional geometry, colors, and every horizontal alignment, all with the default VerticalAlignment Middle.
     private static PdfDocument BuildMiddleTable()
     {
         var document = new PdfDocument(PdfPageSize.Letter);
@@ -278,11 +277,11 @@ internal static class GoldenDocuments
             {
                 var cell = row.GetCell(c);
                 cell.Text = $"R{r}C{c} (x)";
-                cell.HAlign = alignments[(r + c) % 3];
+                cell.HorizontalAlignment = alignments[(r + c) % 3];
                 cell.Padding = 3.5;
-                cell.Background = r == 0 ? new PdfColor(0.2, 0.4, 0.6) : PdfColor.White;
-                cell.LeftBorder.Width = 0.75;
-                cell.LeftBorder.Color = new PdfColor(0.1, 0.25, 0.125);
+                cell.BackgroundColor = r == 0 ? new PdfColor(0.2, 0.4, 0.6) : PdfColor.White;
+                cell.BorderLeft.Width = 0.75;
+                cell.BorderLeft.Color = new PdfColor(0.1, 0.25, 0.125);
             }
         }
 
@@ -294,7 +293,7 @@ internal static class GoldenDocuments
     // caller added (WR-027, WR-028). Captured when table pagination was added; it locks that layout.
     private static PdfDocument BuildPaginatedTable()
     {
-        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36 };
+        var document = new PdfDocument { MarginTop = 36, MarginBottom = 36 };
         var page = document.AddPage();
         page.AddText("Paginated table", 50, 780, 14);
 
@@ -307,7 +306,7 @@ internal static class GoldenDocuments
         header.GetCell(0).Text = "No.";
         header.GetCell(1).Text = "Item";
         header.GetCell(2).Text = "Amount";
-        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+        foreach (var cell in header.Cells) cell.BackgroundColor = PdfColor.LightGray;
 
         for (int r = 1; r <= 60; r++)
         {
@@ -315,7 +314,7 @@ internal static class GoldenDocuments
             row.GetCell(0).Text = r.ToString(CultureInfo.InvariantCulture);
             row.GetCell(1).Text = "Item " + r;
             row.GetCell(2).Text = (r * 12.5).ToString("0.00", CultureInfo.InvariantCulture);
-            row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+            row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         }
 
         document.AddPage().AddText("Next section", 50, 780, 14);

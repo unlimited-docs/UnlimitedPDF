@@ -1,11 +1,11 @@
-﻿using UnlimitedPDF.Models.Table;
-
-namespace UnlimitedPDF;
+﻿namespace UnlimitedPDF;
 
 /// <summary>
-/// Manages the content for a PDF page, allowing for the addition of elements like text.
+/// A page of the document: text, images, tables, and filled rectangles placed at page coordinates in points, from the
+/// bottom-left corner. Every <c>Add*</c> method here takes the position first (<c>x</c>, <c>y</c>), then the size, then
+/// the style (PR-016).
 /// </summary>
-public class PdfPageBuilder
+public class PdfPage
 {
     #region Fields and Constants
 
@@ -17,7 +17,7 @@ public class PdfPageBuilder
 
     #region Constructors and Finalizers
 
-    internal PdfPageBuilder(PdfPageContentStream contentStream, int pageNumber = 1, int continuationIndex = 0)
+    internal PdfPage(PdfPageContentStream contentStream, int pageNumber = 1, int continuationIndex = 0)
     {
         _contentStream = contentStream;
         _pageNumber = pageNumber;
@@ -44,7 +44,7 @@ public class PdfPageBuilder
     /// <param name="options">Placement options, or null for the defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="image"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or a size is zero, negative, or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds an image to the page with its bottom-left corner at the given position, in points.")]
     public void AddImage(PdfImage image, double x, double y, double? width = null, double? height = null, PdfImagePlacementOptions? options = null)
     {
@@ -72,7 +72,7 @@ public class PdfPageBuilder
     /// <param name="color">The fill color.</param>
     /// <exception cref="ArgumentNullException"><paramref name="color"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or a size is zero, negative, or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a filled rectangle to the page with its bottom-left corner at the given position, in points.")]
     public void AddRectangle(double x, double y, double width, double height, PdfColor color)
     {
@@ -104,22 +104,22 @@ public class PdfPageBuilder
     }
 
     /// <summary>
-    /// Adds a text element to the content at the specified position with the given font settings.
+    /// Adds text at a page position, drawn with the document's font (Helvetica).
     /// </summary>
-    /// <param name="text">The text to be added to the content. Cannot be null.</param>
-    /// <param name="x">The x-coordinate of the text's position, in points.</param>
-    /// <param name="y">The y-coordinate of the text's position, in points.</param>
-    /// <param name="fontSize">The size of the font, in points. The default value is 12.</param>
-    /// <param name="fontName">The name of the font to use. The default value is "F1".</param>
-    public void AddText(string text, int x, int y, int fontSize = 12, string fontName = "F1")
+    /// <param name="text">The text to add. Cannot be null.</param>
+    /// <param name="x">The x-coordinate of the text's start, in points from the page's left edge.</param>
+    /// <param name="y">The y-coordinate of the text's baseline, in points from the page's bottom edge.</param>
+    /// <param name="fontSize">The font size, in points. The default is 12.</param>
+    [AddedVersion("0.0.2")]
+    [Description("Adds text at a page position, drawn with the document's font.")]
+    public void AddText(string text, double x, double y, double fontSize = 12)
     {
         _contentElements.Add(new PdfTextElement
         {
             Text = text,
             X = x,
             Y = y,
-            FontSize = fontSize,
-            FontName = fontName
+            FontSize = fontSize
         });
     }
 

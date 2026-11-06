@@ -1,7 +1,6 @@
 using System.ComponentModel;
 using System.Reflection;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -42,7 +41,7 @@ public class TableContentModelTests
     [Fact]
     public void Content_is_a_read_only_view()
     {
-        var property = typeof(PdfTableCell).GetProperty(nameof(PdfTableCell.Content))!;
+        var property = typeof(PdfCell).GetProperty(nameof(PdfCell.Content))!;
 
         Assert.False(property.CanWrite);
         Assert.Equal(typeof(IReadOnlyList<PdfCellContent>), property.PropertyType);
@@ -58,7 +57,7 @@ public class TableContentModelTests
     [Fact]
     public void Content_methods_add_insert_remove_and_clear()
     {
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
 
         cell.AddContent("SKU 123");
         cell.InsertContent(0, Photo);
@@ -77,7 +76,7 @@ public class TableContentModelTests
     [Fact]
     public void Content_methods_reject_null_items_and_bad_indexes()
     {
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
         cell.AddContent("one");
 
         Assert.Equal("item", Assert.Throws<ArgumentNullException>(() => cell.AddContent(null!)).ParamName);
@@ -92,12 +91,16 @@ public class TableContentModelTests
     [Fact]
     public void Edited_table_methods_carry_their_first_version()
     {
-        foreach (var name in new[] { "EnsureSize", "GetCell", "GetOrCreateCell", "SetCell", "TrimEmptyTrailingRowsAndCols" })
+        foreach (var name in new[] { "EnsureSize", "GetCell", "GetOrCreateCell", "SetCell" })
         {
             var method = typeof(PdfTable).GetMethod(name)!;
             Assert.Equal("0.0.3", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
             Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
         }
+
+        // Renamed in 1.0.0, so the name first shipped then.
+        var trim = typeof(PdfTable).GetMethod(nameof(PdfTable.TrimEmptyTrailingRowsAndColumns))!;
+        Assert.Equal("1.0.0", trim.GetCustomAttribute<AddedVersionAttribute>()?.Version);
     }
 
     [Fact]
@@ -113,7 +116,7 @@ public class TableContentModelTests
     [Fact]
     public void Line_height_factor_defaults_to_1_2_and_rejects_invalid_values()
     {
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
 
         Assert.Equal(1.2, cell.LineHeightFactor);
         cell.LineHeightFactor = 1.0;
@@ -129,11 +132,11 @@ public class TableContentModelTests
         var members = types.SelectMany(t => t.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.Instance | BindingFlags.DeclaredOnly)
                 .Where(m => !m.IsSpecialName || m.Name == "op_Implicit").Cast<MethodBase>()
                 .Concat(t.GetConstructors()))
-            .Concat(typeof(PdfTableCell).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName));
+            .Concat(typeof(PdfCell).GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName));
 
         Assert.All(members, member =>
         {
-            Assert.Equal("0.1.0", member.GetCustomAttribute<AddedVersionAttribute>()?.Version);
+            Assert.Equal("1.0.0", member.GetCustomAttribute<AddedVersionAttribute>()?.Version);
             Assert.False(string.IsNullOrWhiteSpace(member.GetCustomAttribute<DescriptionAttribute>()?.Description));
         });
     }
@@ -144,14 +147,14 @@ public class TableContentModelTests
         var table = new PdfTable();
         var row = table.AddRow();
 
-        Assert.Equal(PdfRowHeightRule.Exactly, table.RowHeightRule);
+        Assert.Equal(PdfRowHeightMode.Exactly, table.RowHeightMode);
         Assert.Null(row.Height);
-        Assert.Null(row.HeightRule);
+        Assert.Null(row.HeightMode);
 
         row.Height = 44.8;
-        row.HeightRule = PdfRowHeightRule.AtLeast;
+        row.HeightMode = PdfRowHeightMode.AtLeast;
         Assert.Equal(44.8, row.Height);
-        Assert.Equal(PdfRowHeightRule.AtLeast, row.HeightRule);
+        Assert.Equal(PdfRowHeightMode.AtLeast, row.HeightMode);
         row.Height = null;
         Assert.Null(row.Height);
 
@@ -163,7 +166,7 @@ public class TableContentModelTests
     public void Set_content_replaces_everything_from_params_or_a_list()
     {
         // AC-29: replacing photo, "Laptop", "SKU 123" with logo, "Tablet" in one call.
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
         cell.SetContent(Photo, "Laptop", "SKU 123");
 
         cell.SetContent(Logo, "Tablet");
@@ -179,7 +182,7 @@ public class TableContentModelTests
     [Fact]
     public void Set_content_with_a_null_item_changes_nothing()
     {
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
         cell.SetContent(Photo, "Laptop");
 
         var exception = Assert.Throws<ArgumentException>(() => cell.SetContent(Logo, null!, "x"));
@@ -205,7 +208,7 @@ public class TableContentModelTests
         table.RemoveColumn(0);
         Assert.Equal(new[] { "image:64", "Laptop" }, Describe(table.GetCell(1, 1)));
 
-        var placed = new PdfTableCell();
+        var placed = new PdfCell();
         placed.SetContent(Logo);
         table.SetCell(3, 0, placed);
         Assert.Same(placed, table.GetCell(3, 0));
@@ -219,18 +222,21 @@ public class TableContentModelTests
         table.EnsureSize(1, 1);
 
         Assert.Equal("rows", Assert.Throws<ArgumentOutOfRangeException>(() => table.EnsureSize(-1, 0)).ParamName);
-        Assert.Equal("cols", Assert.Throws<ArgumentOutOfRangeException>(() => table.EnsureSize(0, -1)).ParamName);
+        Assert.Equal("columns", Assert.Throws<ArgumentOutOfRangeException>(() => table.EnsureSize(0, -1)).ParamName);
         Assert.Equal("row", Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(-1, 0)).ParamName);
         Assert.Equal("row", Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(1, 0)).ParamName);
-        Assert.Equal("col", Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(0, 1)).ParamName);
-        Assert.Equal("col", Assert.Throws<ArgumentOutOfRangeException>(() => table.GetOrCreateCell(0, -1)).ParamName);
-        Assert.Equal("row", Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCell(-1, 0, new PdfTableCell())).ParamName);
+        Assert.Equal("column", Assert.Throws<ArgumentOutOfRangeException>(() => table.GetCell(0, 1)).ParamName);
+        Assert.Equal("column", Assert.Throws<ArgumentOutOfRangeException>(() => table.GetOrCreateCell(0, -1)).ParamName);
+        Assert.Equal("row", Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCell(-1, 0, new PdfCell())).ParamName);
+        Assert.Equal("column", Assert.Throws<ArgumentOutOfRangeException>(() => table.SetCell(0, -1, new PdfCell())).ParamName);
+        Assert.Equal("columnIndex", Assert.Throws<ArgumentOutOfRangeException>(() => table.Rows[0].GetCell(1)).ParamName);
+        Assert.Equal("columnIndex", Assert.Throws<ArgumentOutOfRangeException>(() => table.Rows[0].SetCell(-1, new PdfCell())).ParamName);
     }
 
     [Fact]
     public void Text_on_cells_without_text_reads_empty_and_appends_on_write()
     {
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
         Assert.Equal("", cell.Text);
 
         cell.AddContent(Photo);
@@ -265,7 +271,7 @@ public class TableContentModelTests
     public void Text_reads_and_writes_only_the_first_text_item()
     {
         // AC-28: content photo, "Laptop", "SKU 123"; reading gives "Laptop"; setting "Tablet" keeps the others.
-        var cell = new PdfTableCell();
+        var cell = new PdfCell();
         cell.SetContent(Photo, "Laptop", "SKU 123");
 
         Assert.Equal("Laptop", cell.Text);
@@ -283,10 +289,10 @@ public class TableContentModelTests
         table.SetText(2, 0, "");                         // Empty text item only: still empty.
         table.SetText(2, 3, "");
 
-        table.TrimEmptyTrailingRowsAndCols();
+        table.TrimEmptyTrailingRowsAndColumns();
 
         Assert.Equal(2, table.RowCount);
-        Assert.Equal(3, table.ColCount);
+        Assert.Equal(3, table.ColumnCount);
         Assert.Equal(new[] { "image:200" }, Describe(table.GetCell(1, 2)));
     }
 
@@ -294,7 +300,7 @@ public class TableContentModelTests
 
     #region Private Methods
 
-    private static string[] Describe(PdfTableCell cell) => cell.Content
+    private static string[] Describe(PdfCell cell) => cell.Content
         .Select(item => item switch
         {
             PdfCellText text => text.Text,

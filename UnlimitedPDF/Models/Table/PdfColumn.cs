@@ -1,6 +1,6 @@
-﻿namespace UnlimitedPDF.Models.Table;
+﻿namespace UnlimitedPDF;
 
-public class PdfTableColumn
+public class PdfColumn
 {
     public int Index { get; internal set; }
 
@@ -10,5 +10,5 @@ public class PdfTableColumn
     /// </summary>
     public double? Width { get; set; } = null;
 
-    public PdfTableColumn(int index) { Index = index; }
+    public PdfColumn(int index) { Index = index; }
 }

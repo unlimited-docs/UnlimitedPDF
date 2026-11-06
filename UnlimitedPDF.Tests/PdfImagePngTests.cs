@@ -1,5 +1,5 @@
 using System.IO.Compression;
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 

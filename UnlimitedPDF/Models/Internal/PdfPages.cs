@@ -6,7 +6,7 @@
 internal class PdfPages
 {
     /// <summary>
-    /// Gets or sets the list of indirect references to child pages (<see cref="PdfPage"/> objects).
+    /// Gets or sets the list of indirect references to child pages (<see cref="PdfPageDictionary"/> objects).
     /// </summary>
     public List<PdfIndirectReference> Kids { get; set; } = new List<PdfIndirectReference>();
 

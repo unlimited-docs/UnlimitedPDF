@@ -1,7 +1,7 @@
 namespace UnlimitedPDF;
 
 /// <summary>
-/// Overrides the document's header, footer, body gaps, or side margins on the pages it matches (WR-032). Only the values
+/// Overrides the document's header, footer, body margins, or side margins on the pages it matches (WR-032). Only the values
 /// a rule sets apply. When several rules match a page, the most specific wins for each value: a page-number rule, then
 /// First or Last, then Odd or Even, then the document default; between rules of the same kind, the one added later wins.
 /// A Last rule may change header and footer content only.
@@ -11,10 +11,10 @@ public sealed class PdfPageRule
     #region Fields and Constants
 
     private readonly Action _layoutChanged;
-    private double? _bodyBottomGap;
-    private double? _bodyTopGap;
-    private double? _leftMargin;
-    private double? _rightMargin;
+    private double? _bodyMarginBottom;
+    private double? _bodyMarginTop;
+    private double? _marginLeft;
+    private double? _marginRight;
 
     #endregion
 
@@ -74,25 +74,27 @@ public sealed class PdfPageRule
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets or sets the gap between the body and the footer band on matching pages, or null to keep the document's.
+    /// Gets or sets the space between the body and the footer band on matching pages, or null to keep the document's.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     /// <exception cref="InvalidOperationException">The rule is a Last rule.</exception>
-    public double? BodyBottomGap
+    [AddedVersion("1.0.0")]
+    public double? BodyMarginBottom
     {
-        get => _bodyBottomGap;
-        set => _bodyBottomGap = SetLayout(value, nameof(BodyBottomGap));
+        get => _bodyMarginBottom;
+        set => _bodyMarginBottom = SetLayout(value, nameof(BodyMarginBottom));
     }
 
     /// <summary>
-    /// Gets or sets the gap between the header band and the body on matching pages, or null to keep the document's.
+    /// Gets or sets the space between the header band and the body on matching pages, or null to keep the document's.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     /// <exception cref="InvalidOperationException">The rule is a Last rule.</exception>
-    public double? BodyTopGap
+    [AddedVersion("1.0.0")]
+    public double? BodyMarginTop
     {
-        get => _bodyTopGap;
-        set => _bodyTopGap = SetLayout(value, nameof(BodyTopGap));
+        get => _bodyMarginTop;
+        set => _bodyMarginTop = SetLayout(value, nameof(BodyMarginTop));
     }
 
     /// <summary>
@@ -106,14 +108,30 @@ public sealed class PdfPageRule
     public PdfPageSection Header { get; }
 
     /// <summary>
+    /// Gets a fingerprint of the rule's layout values, used to detect changes after a <c>Body.RemainingHeight</c> query.
+    /// </summary>
+    internal string LayoutSignature => string.Join(
+        "|",
+        Target?.ToString() ?? PageNumber!.Value.ToString(CultureInfo.InvariantCulture),
+        Sig(Header.HeightSet ? Header.Height : null),
+        Header.HiddenSet ? Header.IsHidden.ToString() : "-",
+        Sig(Footer.HeightSet ? Footer.Height : null),
+        Footer.HiddenSet ? Footer.IsHidden.ToString() : "-",
+        Sig(_bodyMarginTop),
+        Sig(_bodyMarginBottom),
+        Sig(_marginLeft),
+        Sig(_marginRight));
+
+    /// <summary>
     /// Gets or sets the left margin on matching pages, or null to keep the document's.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     /// <exception cref="InvalidOperationException">The rule is a Last rule.</exception>
-    public double? LeftMargin
+    [AddedVersion("1.0.0")]
+    public double? MarginLeft
     {
-        get => _leftMargin;
-        set => _leftMargin = SetLayout(value, nameof(LeftMargin));
+        get => _marginLeft;
+        set => _marginLeft = SetLayout(value, nameof(MarginLeft));
     }
 
     /// <summary>
@@ -121,10 +139,11 @@ public sealed class PdfPageRule
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     /// <exception cref="InvalidOperationException">The rule is a Last rule.</exception>
-    public double? RightMargin
+    [AddedVersion("1.0.0")]
+    public double? MarginRight
     {
-        get => _rightMargin;
-        set => _rightMargin = SetLayout(value, nameof(RightMargin));
+        get => _marginRight;
+        set => _marginRight = SetLayout(value, nameof(MarginRight));
     }
 
     /// <summary>
@@ -151,21 +170,6 @@ public sealed class PdfPageRule
     /// Gets the pages the rule applies to, or null for a page-number rule.
     /// </summary>
     internal PdfPageRuleTarget? Target { get; }
-
-    /// <summary>
-    /// Gets a fingerprint of the rule's layout values, used to detect changes after a <c>Body.Remaining</c> query.
-    /// </summary>
-    internal string LayoutSignature => string.Join(
-        "|",
-        Target?.ToString() ?? PageNumber!.Value.ToString(CultureInfo.InvariantCulture),
-        Sig(Header.HeightSet ? Header.Height : null),
-        Header.HiddenSet ? Header.IsHidden.ToString() : "-",
-        Sig(Footer.HeightSet ? Footer.Height : null),
-        Footer.HiddenSet ? Footer.IsHidden.ToString() : "-",
-        Sig(_bodyTopGap),
-        Sig(_bodyBottomGap),
-        Sig(_leftMargin),
-        Sig(_rightMargin));
 
     #endregion
 }

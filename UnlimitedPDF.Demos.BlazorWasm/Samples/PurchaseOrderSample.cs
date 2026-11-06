@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -33,7 +32,7 @@ public static class PurchaseOrderSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(PurchaseOrderInput input, SampleImages images)
     {
-        var document = new PdfDocument { TopMargin = 32, BottomMargin = 24, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 32, MarginBottom = 24, MarginLeft = 50, MarginRight = 50 };
 
         // Every page: the buyer's logo and the order number in the header, the page number in the footer.
         document.Header.Height = 62;
@@ -45,8 +44,8 @@ public static class PurchaseOrderSample
         document.Footer.AddRectangle(0, 0, Width, 0.5, _slate);
         document.Footer.AddText($"Purchase order {input.OrderNumber}", 0, 8, 8);
         document.Footer.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
-        document.Body.TopGap = 18;
-        document.Body.BottomGap = 14;
+        document.BodyMarginTop = 18;
+        document.BodyMarginBottom = 14;
         var body = document.Body;
 
         // Vendor and delivery address side by side, in a table without borders.
@@ -66,7 +65,7 @@ public static class PurchaseOrderSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         decimal subtotal = 0;
@@ -114,7 +113,7 @@ public static class PurchaseOrderSample
             var cell = row.GetCell(column);
             cell.Text = texts[column];
             cell.Padding = 0;
-            foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+            foreach (var border in new[] { cell.BorderLeft, cell.BorderTop, cell.BorderRight, cell.BorderBottom })
             {
                 border.Color = PdfColor.White;
             }
@@ -128,8 +127,8 @@ public static class PurchaseOrderSample
         Right(row.GetCell(1), value.ToString("F2"));
         if (highlight)
         {
-            row.GetCell(0).Background = _totalTint;
-            row.GetCell(1).Background = _totalTint;
+            row.GetCell(0).BackgroundColor = _totalTint;
+            row.GetCell(1).BackgroundColor = _totalTint;
         }
     }
 
@@ -142,10 +141,10 @@ public static class PurchaseOrderSample
             yield return new OrderLine { Description = $"Spare part SP-{1000 + i}", Quantity = i % 9 + 1, UnitPrice = 2.50m + i % 7 * 1.25m };
     }
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

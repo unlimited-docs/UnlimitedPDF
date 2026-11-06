@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -34,10 +33,10 @@ public static class EmployeeDirectorySample
         // Margins apply to every page; the header and footer sit inside them and the table flows between.
         var document = new PdfDocument
         {
-            TopMargin = Math.Max(0, input.TopMargin),
-            BottomMargin = Math.Max(0, input.BottomMargin),
-            LeftMargin = 40,
-            RightMargin = 40
+            MarginTop = Math.Max(0, input.MarginTop),
+            MarginBottom = Math.Max(0, input.MarginBottom),
+            MarginLeft = 40,
+            MarginRight = 40
         };
 
         document.Header.Height = 44;
@@ -45,8 +44,8 @@ public static class EmployeeDirectorySample
         document.Header.AddText("Employee directory", 0, 24, 12);
         document.Footer.Height = 16;
         document.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
-        document.Body.TopGap = 8;
-        document.Body.BottomGap = 8;
+        document.BodyMarginTop = 8;
+        document.BodyMarginBottom = 8;
 
         var table = document.Body.AddTable(515);
         table.SetColumnWidths(45, 160, 120, 110, 80);
@@ -61,7 +60,7 @@ public static class EmployeeDirectorySample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         int count = Math.Clamp(input.EmployeeCount, 1, 1000);

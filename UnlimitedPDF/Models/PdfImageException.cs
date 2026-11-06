@@ -13,7 +13,7 @@ public class PdfImageException : Exception
     /// </summary>
     /// <param name="reason">Why the image could not be loaded.</param>
     /// <param name="message">A message naming the problem.</param>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Initializes a new instance of the PdfImageException class.")]
     public PdfImageException(PdfImageErrorReason reason, string message)
         : base(message)
@@ -27,7 +27,7 @@ public class PdfImageException : Exception
     /// <param name="reason">Why the image could not be loaded.</param>
     /// <param name="message">A message naming the problem.</param>
     /// <param name="innerException">The exception that caused this one.</param>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Initializes a new instance of the PdfImageException class with an inner exception.")]
     public PdfImageException(PdfImageErrorReason reason, string message, Exception innerException)
         : base(message, innerException)

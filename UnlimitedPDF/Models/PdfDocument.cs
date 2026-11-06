@@ -1,6 +1,4 @@
-﻿using UnlimitedPDF.Models.Table;
-
-namespace UnlimitedPDF;
+﻿namespace UnlimitedPDF;
 
 public class PdfDocument
 {
@@ -13,16 +11,18 @@ public class PdfDocument
     private readonly PdfPages _pages;
     private readonly List<RemainingQuery> _queries = new();
     private readonly List<PdfPageRule> _rules = new();
-    private double _bottomMargin;
+    private double _bodyMarginBottom;
+    private double _bodyMarginTop;
     private PageEntry? _flowRoot;
     private PdfPageSize? _flowRootSize;
-    private double _leftMargin;
     private int _layoutVersion;
     private PagePlanner? _livePlanner;
     private string? _livePlannerStamp;
-    private double _rightMargin;
+    private double _marginBottom;
+    private double _marginLeft;
+    private double _marginRight;
+    private double _marginTop;
     private int _signedItems;
-    private double _topMargin;
 
     #endregion
 
@@ -61,10 +61,10 @@ public class PdfDocument
     /// Adds a new page to the PDF document and returns a page object for adding content. When the body flow is used,
     /// the page also acts as a page break: flow items added after it start on it.
     /// </summary>
-    /// <returns>A <see cref="PdfPageBuilder"/> object to which content can be added.</returns>
+    /// <returns>A <see cref="PdfPage"/> object to which content can be added.</returns>
     [AddedVersion("0.0.2")]
     [Description("Adds a new page to the PDF document and returns a page object for adding content.")]
-    public PdfPageBuilder AddPage()
+    public PdfPage AddPage()
     {
         var entry = CreatePageEntry(PageSize, pageNumber: _pageEntries.Count + 1, continuationIndex: 0);
         entry.FlowStart = Body.Items.Count;
@@ -77,13 +77,13 @@ public class PdfDocument
     }
 
     /// <summary>
-    /// Adds a rule that overrides the header, footer, body gaps, or side margins on the first, last, odd, or even pages
+    /// Adds a rule that overrides the header, footer, body margins, or side margins on the first, last, odd, or even pages
     /// (WR-032). Only the values the rule sets apply; a Last rule may change header and footer content only.
     /// </summary>
     /// <param name="target">The pages the rule applies to.</param>
     /// <returns>The rule, to set its overrides.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="target"/> is not a defined value.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a rule that overrides the page layout on the first, last, odd, or even pages.")]
     public PdfPageRule AddPageRule(PdfPageRuleTarget target)
     {
@@ -93,13 +93,13 @@ public class PdfDocument
     }
 
     /// <summary>
-    /// Adds a rule that overrides the header, footer, body gaps, or side margins on one page, by its number among the
+    /// Adds a rule that overrides the header, footer, body margins, or side margins on one page, by its number among the
     /// saved pages (WR-032). A number past the last page never matches.
     /// </summary>
     /// <param name="pageNumber">The 1-based page number.</param>
     /// <returns>The rule, to set its overrides.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageNumber"/> is less than 1.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a rule that overrides the page layout on one page, by its number.")]
     public PdfPageRule AddPageRule(int pageNumber)
     {
@@ -174,7 +174,7 @@ public class PdfDocument
     }
 
     /// <summary>
-    /// Marks the layout settings as changed, so the next <c>Body.Remaining</c> read plans the pages again.
+    /// Marks the layout settings as changed, so the next <c>Body.RemainingHeight</c> read plans the pages again.
     /// </summary>
     internal void LayoutChanged() => _layoutVersion++;
 
@@ -252,7 +252,7 @@ public class PdfDocument
         return rule;
     }
 
-    // Checks that every Body.Remaining read is still exact (WR-033), replaying the reads in order on a fresh plan.
+    // Checks that every Body.RemainingHeight read is still exact (WR-033), replaying the reads in order on a fresh plan.
     private void CheckQueries(IReadOnlyList<PlanRoot> roots, PagePlanner planner)
     {
         bool hasFlowRoot = _flowRoot is not null || NeedsFlowRoot();
@@ -278,7 +278,7 @@ public class PdfDocument
             string cause;
             if (query.Settings != settings)
             {
-                cause = "the page layout settings (a margin, band height, gap, or page rule) changed";
+                cause = "the page layout settings (a margin, band height, body margin, or page rule) changed";
             }
             else
             {
@@ -290,7 +290,7 @@ public class PdfDocument
 
             throw new InvalidOperationException(string.Format(
                 CultureInfo.InvariantCulture,
-                "Body.Remaining was read as {0:0.###} pt on page {1} before flow item {2}, but {3} afterwards, so that value is no longer exact (it is now {4:0.###} pt on page {5}). Read Body.Remaining after the content and settings it depends on are final.",
+                "Body.RemainingHeight was read as {0:0.###} pt on page {1} before flow item {2}, but {3} afterwards, so that value is no longer exact (it is now {4:0.###} pt on page {5}). Read Body.RemainingHeight after the content and settings it depends on are final.",
                 query.Value,
                 query.PageNumber,
                 query.FlowCount + 1,
@@ -333,7 +333,7 @@ public class PdfDocument
         var contentStream = new PdfPageContentStream(contentStreamObjectNumber, string.Empty);
 
         // Create pdf page internal object
-        var pageInternal = new PdfPage
+        var pageInternal = new PdfPageDictionary
         {
             Parent = new PdfIndirectReference(objectNumber: 2), // Parent is the /Pages object
             Contents = new PdfIndirectReference(objectNumber: contentStreamObjectNumber),
@@ -347,7 +347,7 @@ public class PdfDocument
         _objects.AddObject(contentStream);
 
         // Keep the page so its dictionary can be rewritten at save (resources are only known then).
-        var builder = new PdfPageBuilder(contentStream, pageNumber, continuationIndex);
+        var builder = new PdfPage(contentStream, pageNumber, continuationIndex);
         return new PageEntry(builder, pageInternal, pageObject, size);
     }
 
@@ -654,7 +654,7 @@ public class PdfDocument
     {
         double headerHeight = Header.Height, footerHeight = Footer.Height;
         bool headerHidden = Header.IsHidden, footerHidden = Footer.IsHidden;
-        double topGap = Body.TopGap, bottomGap = Body.BottomGap, left = LeftMargin, right = RightMargin;
+        double topGap = BodyMarginTop, bottomGap = BodyMarginBottom, left = MarginLeft, right = MarginRight;
 
         foreach (var rule in Ordered(number, isLast: false))
         {
@@ -662,13 +662,13 @@ public class PdfDocument
             if (rule.Header.HiddenSet) headerHidden = rule.Header.IsHidden;
             if (rule.Footer.HeightSet) footerHeight = rule.Footer.Height;
             if (rule.Footer.HiddenSet) footerHidden = rule.Footer.IsHidden;
-            topGap = rule.BodyTopGap ?? topGap;
-            bottomGap = rule.BodyBottomGap ?? bottomGap;
-            left = rule.LeftMargin ?? left;
-            right = rule.RightMargin ?? right;
+            topGap = rule.BodyMarginTop ?? topGap;
+            bottomGap = rule.BodyMarginBottom ?? bottomGap;
+            left = rule.MarginLeft ?? left;
+            right = rule.MarginRight ?? right;
         }
 
-        return new EffectiveSettings(TopMargin, BottomMargin, left, right, headerHeight, headerHidden, footerHeight, footerHidden, topGap, bottomGap);
+        return new EffectiveSettings(MarginTop, MarginBottom, left, right, headerHeight, headerHidden, footerHeight, footerHidden, topGap, bottomGap);
     }
 
     // Fingerprints everything the planner reads from the caller pages: each root's size and flow start, and each
@@ -697,16 +697,16 @@ public class PdfDocument
     private string SettingsSignature() => string.Join(
         ";",
         PageSize.ToString(),
-        PdfNumber.Format(TopMargin),
-        PdfNumber.Format(BottomMargin),
-        PdfNumber.Format(LeftMargin),
-        PdfNumber.Format(RightMargin),
+        PdfNumber.Format(MarginTop),
+        PdfNumber.Format(MarginBottom),
+        PdfNumber.Format(MarginLeft),
+        PdfNumber.Format(MarginRight),
         PdfNumber.Format(Header.Height),
         Header.IsHidden.ToString(),
         PdfNumber.Format(Footer.Height),
         Footer.IsHidden.ToString(),
-        PdfNumber.Format(Body.TopGap),
-        PdfNumber.Format(Body.BottomGap),
+        PdfNumber.Format(BodyMarginTop),
+        PdfNumber.Format(BodyMarginBottom),
         string.Join(",", _rules.Select(rule => rule.LayoutSignature)));
 
     private void WriteToStream(Stream stream)
@@ -835,24 +835,41 @@ public class PdfDocument
 
     /// <summary>
     /// Gets the body flow: content that stacks below the previous item and continues on new pages the library adds
-    /// (WR-033), its gaps to the header and footer bands, its page limit, and the remaining-space query.
+    /// (WR-033), its page limit, and the remaining-space query. Its distance from the header and footer bands is
+    /// set by <see cref="BodyMarginTop"/> and <see cref="BodyMarginBottom"/>.
     /// </summary>
     public PdfBodyFlow Body { get; }
 
     /// <summary>
-    /// Gets or sets the bottom margin of every page, in points: the distance from the page's bottom edge to the footer
-    /// band. The default is 0 (the page's bottom edge). A table continues on a new page when its next row would pass the
-    /// body bottom, which equals this margin when the footer and body gaps are 0. Content placed at absolute coordinates
-    /// is not moved. Margins that leave no room between them make saving any table with rows fail.
+    /// Gets or sets the space between the body and the footer band on every page, in points. The default is 0. Page rules
+    /// can override it (<see cref="PdfPageRule.BodyMarginBottom"/>).
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    public double BottomMargin
+    [AddedVersion("1.0.0")]
+    public double BodyMarginBottom
     {
-        get => _bottomMargin;
+        get => _bodyMarginBottom;
         set
         {
-            EnsureMargin(value);
-            _bottomMargin = value;
+            Guard.NonNegative(value, nameof(value));
+            _bodyMarginBottom = value;
+            LayoutChanged();
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the space between the header band and the body on every page, in points. The default is 0. Page
+    /// rules can override it (<see cref="PdfPageRule.BodyMarginTop"/>).
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
+    [AddedVersion("1.0.0")]
+    public double BodyMarginTop
+    {
+        get => _bodyMarginTop;
+        set
+        {
+            Guard.NonNegative(value, nameof(value));
+            _bodyMarginTop = value;
             LayoutChanged();
         }
     }
@@ -868,39 +885,55 @@ public class PdfDocument
     public PdfPageSection Header { get; }
 
     /// <summary>
-    /// Gets or sets the left margin of every page, in points, shared by the header, body, and footer (WR-030). Header,
-    /// footer, and flow x offsets are measured from it. The default is 0. Content placed at page coordinates is not
-    /// moved.
+    /// Gets or sets the bottom margin of every page, in points: the distance from the page's bottom edge to the footer
+    /// band. The default is 0 (the page's bottom edge). A table continues on a new page when its next row would pass the
+    /// body bottom, which equals this margin when the footer height and body bottom margin are 0. Content placed at absolute coordinates
+    /// is not moved. Margins that leave no room between them make saving any table with rows fail.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    public double LeftMargin
+    [AddedVersion("1.0.0")]
+    public double MarginBottom
     {
-        get => _leftMargin;
+        get => _marginBottom;
         set
         {
             EnsureMargin(value);
-            _leftMargin = value;
+            _marginBottom = value;
             LayoutChanged();
         }
     }
 
     /// <summary>
-    /// Gets or sets the default page size for the document.
+    /// Gets or sets the left margin of every page, in points, shared by the header, body, and footer (WR-030). Header,
+    /// footer, and flow x offsets are measured from it. The default is 0. Content placed at page coordinates is not
+    /// moved.
     /// </summary>
-    public PdfPageSize PageSize { get; set; }
+    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
+    [AddedVersion("1.0.0")]
+    public double MarginLeft
+    {
+        get => _marginLeft;
+        set
+        {
+            EnsureMargin(value);
+            _marginLeft = value;
+            LayoutChanged();
+        }
+    }
 
     /// <summary>
     /// Gets or sets the right margin of every page, in points, shared by the header, body, and footer (WR-030). Right-
     /// and center-aligned text is placed within the width between the side margins. The default is 0.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    public double RightMargin
+    [AddedVersion("1.0.0")]
+    public double MarginRight
     {
-        get => _rightMargin;
+        get => _marginRight;
         set
         {
             EnsureMargin(value);
-            _rightMargin = value;
+            _marginRight = value;
             LayoutChanged();
         }
     }
@@ -908,16 +941,17 @@ public class PdfDocument
     /// <summary>
     /// Gets or sets the top margin of every page, in points: the distance from the page's top edge to the header band.
     /// The default is 0 (the page's top edge). A table that continues on a new page resumes at the body top, which
-    /// equals this margin when the header and body gaps are 0; on its own page it still starts at its own y-coordinate.
+    /// equals this margin when the header height and body top margin are 0; on its own page it still starts at its own y-coordinate.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    public double TopMargin
+    [AddedVersion("1.0.0")]
+    public double MarginTop
     {
-        get => _topMargin;
+        get => _marginTop;
         set
         {
             EnsureMargin(value);
-            _topMargin = value;
+            _marginTop = value;
             LayoutChanged();
         }
     }
@@ -925,8 +959,13 @@ public class PdfDocument
     // Whether any part of the page layout API is in use. A document that uses none of it keeps its output (WR-030).
     private bool UsesLayout =>
         Header.Height > 0 || Header.HasContent || Footer.Height > 0 || Footer.HasContent
-        || Body.TopGap > 0 || Body.BottomGap > 0 || Body.Items.Count > 0 || Body.MaxPages is not null
-        || LeftMargin > 0 || RightMargin > 0 || _rules.Count > 0 || _queries.Count > 0;
+        || BodyMarginTop > 0 || BodyMarginBottom > 0 || Body.Items.Count > 0 || Body.MaxPages is not null
+        || MarginLeft > 0 || MarginRight > 0 || _rules.Count > 0 || _queries.Count > 0;
+
+    /// <summary>
+    /// Gets or sets the default page size for the document.
+    /// </summary>
+    public PdfPageSize PageSize { get; set; }
 
     #endregion
 
@@ -942,7 +981,7 @@ public class PdfDocument
     /// A page's builder together with its page dictionary, the object that serializes it, and its size. A root page
     /// also lists its continuation pages in order and records where the body flow starts on it.
     /// </summary>
-    private sealed record PageEntry(PdfPageBuilder Builder, PdfPage Page, PdfObject PageObject, PdfPageSize PageSize)
+    private sealed record PageEntry(PdfPage Builder, PdfPageDictionary Page, PdfObject PageObject, PdfPageSize PageSize)
     {
         public List<PageEntry> Chain { get; } = new();
 

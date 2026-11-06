@@ -1,6 +1,5 @@
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 using UnlimitedPDF.Models.Internal;
-using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Tests;
 
@@ -57,8 +56,8 @@ public class PageLayoutTests
     {
         var document = new PdfDocument();
 
-        Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.LeftMargin = value).ParamName);
-        Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.RightMargin = value).ParamName);
+        Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.MarginLeft = value).ParamName);
+        Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.MarginRight = value).ParamName);
     }
 
     [Fact]
@@ -66,7 +65,7 @@ public class PageLayoutTests
     {
         var plain = new PdfDocument();
         plain.AddPage().AddText("Hello", 50, 700);
-        var withMargins = new PdfDocument { LeftMargin = 40, RightMargin = 40 };
+        var withMargins = new PdfDocument { MarginLeft = 40, MarginRight = 40 };
         withMargins.AddPage().AddText("Hello", 50, 700);
 
         Assert.Equal(PdfPageReader.Save(plain)[0].Content, PdfPageReader.Save(withMargins)[0].Content);
@@ -75,7 +74,7 @@ public class PageLayoutTests
     [Fact]
     public void Side_margins_that_leave_no_width_fail_before_output_naming_the_page()
     {
-        var document = new PdfDocument { LeftMargin = 300, RightMargin = 300 };
+        var document = new PdfDocument { MarginLeft = 300, MarginRight = 300 };
         document.Body.AddText("x");
 
         var error = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document));
@@ -89,7 +88,7 @@ public class PageLayoutTests
         // 26110101 review F-02: page 1's table needs continuation pages, page 2's table cannot fit any page.
         static PdfDocument Build(out PdfTable bad)
         {
-            var document = new PdfDocument { BottomMargin = 50 };
+            var document = new PdfDocument { MarginBottom = 50 };
             NumberedTable(document.AddPage(), 300, 40);
             bad = NumberedTable(document.AddPage(), 700, 2);
             return document;
@@ -107,7 +106,7 @@ public class PageLayoutTests
     [Fact]
     public void A_page_rectangle_is_filled_where_placed_and_never_adds_a_page()
     {
-        var document = new PdfDocument { BottomMargin = 100 };
+        var document = new PdfDocument { MarginBottom = 100 };
         document.AddPage().AddRectangle(50, 10, 495, 3, new PdfColor(1, 0.5, 0));
 
         var pages = PdfPageReader.Save(document);
@@ -140,7 +139,7 @@ public class PageLayoutTests
     public void Layout_text_is_escaped_and_written_with_invariant_numbers()
     {
         using var culture = new CultureScope("de-DE");
-        var document = new PdfDocument { LeftMargin = 40.5 };
+        var document = new PdfDocument { MarginLeft = 40.5 };
         document.Body.AddText("a) b \\ (c", fontSize: 10.5);
 
         var page = PdfPageReader.Save(document).Single();
@@ -171,7 +170,7 @@ public class PageLayoutTests
 
     #region Private Methods
 
-    private static PdfTable NumberedTable(PdfPageBuilder page, double y, int rows)
+    private static PdfTable NumberedTable(PdfPage page, double y, int rows)
     {
         var table = page.AddTable(50, y, 300);
         table.AddColumn();

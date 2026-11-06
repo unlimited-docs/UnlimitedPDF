@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -34,7 +33,7 @@ public static class AccountStatementSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(AccountStatementInput input, SampleImages images)
     {
-        var document = new PdfDocument { TopMargin = 30, BottomMargin = 24, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 30, MarginBottom = 24, MarginLeft = 50, MarginRight = 50 };
 
         document.Header.Height = 60;
         document.Header.AddImage(images["account-statement-logo.png"], 0, 0, 150, 50, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
@@ -48,8 +47,8 @@ public static class AccountStatementSample
         var last = document.AddPageRule(PdfPageRuleTarget.Last).Footer;
         last.AddText("End of statement", 0, 8, 8);
         last.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
-        document.Body.TopGap = 16;
-        document.Body.BottomGap = 14;
+        document.BodyMarginTop = 16;
+        document.BodyMarginBottom = 14;
         var body = document.Body;
 
         // Statements list transactions in date order; OrderBy keeps same-day transactions in the order given.
@@ -68,7 +67,7 @@ public static class AccountStatementSample
         for (int column = 0; column < names.Length; column++)
         {
             labels.GetCell(column).Text = names[column];
-            labels.GetCell(column).Background = _headerTint;
+            labels.GetCell(column).BackgroundColor = _headerTint;
             Right(values.GetCell(column), amounts[column].ToString("N2"));
         }
 
@@ -82,7 +81,7 @@ public static class AccountStatementSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         decimal balance = input.OpeningBalance;
@@ -107,10 +106,10 @@ public static class AccountStatementSample
 
     #region Private Methods
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     // The listed transactions, then generated ones with fictional, repeatable values spread over the period.

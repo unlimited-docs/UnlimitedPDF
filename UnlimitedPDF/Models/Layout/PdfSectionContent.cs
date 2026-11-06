@@ -1,11 +1,10 @@
-using UnlimitedPDF.Models.Table;
-
 namespace UnlimitedPDF;
 
 /// <summary>
 /// Content of a header or footer band: text, images, tables, and filled rectangles placed by offsets from the band's
 /// top-left corner, with y increasing downward (WR-031). Content past a band edge is clipped at that edge, and a table
-/// in a band never continues onto another page.
+/// in a band never continues onto another page. Every <c>Add*</c> method here takes the position first (<c>x</c>,
+/// <c>y</c>), then the size, then the style (PR-016).
 /// </summary>
 public class PdfSectionContent
 {
@@ -37,7 +36,7 @@ public class PdfSectionContent
     /// <param name="color">The fill color.</param>
     /// <exception cref="ArgumentNullException"><paramref name="color"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or a size is zero, negative, or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a filled rectangle to the band at the given offsets from its top-left corner.")]
     public void AddRectangle(double x, double y, double width, double height, PdfColor color)
     {
@@ -51,7 +50,7 @@ public class PdfSectionContent
 
     /// <summary>
     /// Adds an image with its top-left corner at the given offsets from the band's top-left corner. Sizes follow
-    /// <see cref="PdfPageBuilder.AddImage"/>.
+    /// <see cref="PdfPage.AddImage"/>.
     /// </summary>
     /// <param name="image">The image.</param>
     /// <param name="x">The offset from the band's left edge, in points.</param>
@@ -61,7 +60,7 @@ public class PdfSectionContent
     /// <param name="options">Placement options, or null for the defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="image"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or a size is zero, negative, or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds an image to the band at the given offsets from its top-left corner.")]
     public void AddImage(PdfImage image, double x, double y, double? width = null, double? height = null, PdfImagePlacementOptions? options = null)
     {
@@ -82,7 +81,7 @@ public class PdfSectionContent
     /// <param name="width">The table width in points.</param>
     /// <returns>The table, for configuration.</returns>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the width is zero, negative, or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a table to the band at the given offsets from its top-left corner.")]
     public PdfTable AddTable(double x, double y, double width)
     {
@@ -107,7 +106,7 @@ public class PdfSectionContent
     /// <param name="alignment">The alignment across the band width. The default is left.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the font size is zero, negative, or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a line of text to the band at the given offsets from its top-left corner.")]
     public void AddText(string text, double x, double y, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left)
     {

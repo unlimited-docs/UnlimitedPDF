@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Enums;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// How an image fills the box given by a width and a height.

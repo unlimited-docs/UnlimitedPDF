@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Enums;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// How a line of header, footer, or body text is placed across the width of its area.

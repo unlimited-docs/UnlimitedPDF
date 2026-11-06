@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -33,7 +32,7 @@ public static class DeliveryNoteSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(DeliveryNoteInput input, SampleImages images)
     {
-        var document = new PdfDocument { TopMargin = 32, BottomMargin = 24, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 32, MarginBottom = 24, MarginLeft = 50, MarginRight = 50 };
 
         document.Header.Height = 62;
         document.Header.AddImage(images["delivery-note-logo.png"], 0, 0, 150, 50, new PdfImagePlacementOptions { Fit = PdfImageFit.Contain });
@@ -44,8 +43,8 @@ public static class DeliveryNoteSample
         document.Footer.AddRectangle(0, 0, Width, 0.5, _gray);
         document.Footer.AddText($"Delivery note {input.NoteNumber}. Check the goods before signing.", 0, 8, 8);
         document.Footer.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
-        document.Body.TopGap = 18;
-        document.Body.BottomGap = 14;
+        document.BodyMarginTop = 18;
+        document.BodyMarginBottom = 14;
         var body = document.Body;
 
         // Sender and recipient side by side, in a table without borders. Each typed address line is a row; table cells
@@ -68,7 +67,7 @@ public static class DeliveryNoteSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         int ordered = 0, shipped = 0;
@@ -85,7 +84,7 @@ public static class DeliveryNoteSample
             // Short-shipped lines are tinted so the recipient sees them at a glance.
             if (line.Shipped < line.Ordered)
             {
-                for (int column = 0; column < 4; column++) row.GetCell(column).Background = _shortTint;
+                for (int column = 0; column < 4; column++) row.GetCell(column).BackgroundColor = _shortTint;
             }
         }
 
@@ -115,7 +114,7 @@ public static class DeliveryNoteSample
             var cell = row.GetCell(column);
             cell.Text = texts[column];
             cell.Padding = 0;
-            foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+            foreach (var border in new[] { cell.BorderLeft, cell.BorderTop, cell.BorderRight, cell.BorderBottom })
             {
                 border.Color = PdfColor.White;
             }
@@ -138,10 +137,10 @@ public static class DeliveryNoteSample
         }
     }
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

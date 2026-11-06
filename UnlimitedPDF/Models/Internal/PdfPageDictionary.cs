@@ -1,9 +1,9 @@
 ﻿namespace UnlimitedPDF.Models.Internal;
 
 /// <summary>
-/// Represents a single page in a PDF document.
+/// Represents a single page dictionary in a PDF document.
 /// </summary>
-internal class PdfPage
+internal class PdfPageDictionary
 {
     /// <summary>
     /// Gets or sets the indirect reference to the parent page tree node (<see cref="PdfPages"/> object).

@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Models.Table;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// A line of text in a table cell's content.
@@ -21,7 +21,7 @@ public sealed class PdfCellText : PdfCellContent
     /// </summary>
     /// <param name="text">The text.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Initializes a new instance of the PdfCellText class.")]
     public PdfCellText(string text)
         : this(text, DefaultFontSize)

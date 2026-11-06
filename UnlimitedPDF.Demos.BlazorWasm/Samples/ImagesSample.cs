@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -45,16 +44,16 @@ public static class ImagesSample
             var table = page.AddTable(50, 290, 360);
             table.SetColumnWidths(140, 220);
             var row = table.AddRow();
-            row.HeightRule = PdfRowHeightRule.AtLeast;
+            row.HeightMode = PdfRowHeightMode.AtLeast;
 
             var imageCell = row.GetCell(0);
             imageCell.SetContent(image, "Caption under the image");
-            imageCell.HAlign = PdfCellHorizontalAlignment.Center;
+            imageCell.HorizontalAlignment = PdfCellHorizontalAlignment.Center;
 
             var textCell = row.GetCell(1);
             textCell.Text = "Cells hold text and images in order.";
-            textCell.VAlign = PdfCellVerticalAlignment.Top;
-            textCell.Background = new PdfColor(0.96, 0.97, 1.0);
+            textCell.VerticalAlignment = PdfCellVerticalAlignment.Top;
+            textCell.BackgroundColor = new PdfColor(0.96, 0.97, 1.0);
         }
 
         return document;
@@ -65,7 +64,7 @@ public static class ImagesSample
     #region Private Methods
 
     // Draws a thin outline on the box's edges with four filled rectangles.
-    private static void Outline(PdfPageBuilder page, double x, double y, double width, double height)
+    private static void Outline(PdfPage page, double x, double y, double width, double height)
     {
         const double thickness = 0.5;
         page.AddRectangle(x, y, width, thickness, PdfColor.Black);

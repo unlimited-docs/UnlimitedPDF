@@ -1,4 +1,4 @@
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 

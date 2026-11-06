@@ -1,7 +1,7 @@
 namespace UnlimitedPDF.Models.Internal.Layout;
 
 /// <summary>
-/// One <c>Body.Remaining</c> read, kept so the save can check that the value is still exact (WR-033): how much flow and
+/// One <c>Body.RemainingHeight</c> read, kept so the save can check that the value is still exact (WR-033): how much flow and
 /// how many caller pages existed, the page size a first page would have had, the answer, and the layout settings then.
 /// </summary>
 /// <param name="FlowCount">The number of flow items when the value was read.</param>

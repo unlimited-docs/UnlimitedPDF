@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -34,7 +33,7 @@ public static class PayslipSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(PayslipInput input, SampleImages images)
     {
-        var document = new PdfDocument { TopMargin = 36, BottomMargin = 28, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 36, MarginBottom = 28, MarginLeft = 50, MarginRight = 50 };
 
         // A payslip is one page: saving fails, naming what does not fit, if the lines need more.
         document.Body.MaxPages = 1;
@@ -47,7 +46,7 @@ public static class PayslipSample
         document.Footer.Height = 22;
         document.Footer.AddText("This is a computer-generated payslip and needs no signature.", 0, 8, 8);
         document.Footer.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
-        document.Body.TopGap = 18;
+        document.BodyMarginTop = 18;
         var body = document.Body;
 
         // Employee details: label and value pairs in a four-column table.
@@ -65,7 +64,7 @@ public static class PayslipSample
             {
                 var cell = details.GetOrCreateCell(row, column);
                 cell.Text = pairs[row, column];
-                if (column % 2 == 0) cell.Background = _labelShade;
+                if (column % 2 == 0) cell.BackgroundColor = _labelShade;
             }
         }
 
@@ -77,7 +76,7 @@ public static class PayslipSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         int count = Math.Max(input.Earnings.Count, input.Deductions.Count);
@@ -103,7 +102,7 @@ public static class PayslipSample
         Right(totals.GetCell(1), earnings.ToString("N2"));
         totals.GetCell(2).Text = "Total deductions";
         Right(totals.GetCell(3), deductions.ToString("N2"));
-        for (int column = 0; column < 4; column++) totals.GetCell(column).Background = _labelShade;
+        for (int column = 0; column < 4; column++) totals.GetCell(column).BackgroundColor = _labelShade;
 
         // Net pay in a highlighted row of its own. The cell backgrounds fill the row and the amount is right-aligned in
         // the same column edge as the totals above; flow items stack, so text never sits on a flow rectangle.
@@ -113,8 +112,8 @@ public static class PayslipSample
         netRow.Height = 28;
         netRow.GetCell(0).Text = "Net pay";
         Right(netRow.GetCell(1), (earnings - deductions).ToString("N2"));
-        netRow.GetCell(0).Background = _netTint;
-        netRow.GetCell(1).Background = _netTint;
+        netRow.GetCell(0).BackgroundColor = _netTint;
+        netRow.GetCell(1).BackgroundColor = _netTint;
 
         body.AddText("Paid by bank transfer to the account on file.", spacing: 14, fontSize: 9);
 
@@ -125,10 +124,10 @@ public static class PayslipSample
 
     #region Private Methods
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

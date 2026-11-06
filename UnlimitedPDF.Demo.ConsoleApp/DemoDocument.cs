@@ -1,6 +1,4 @@
 using UnlimitedPDF;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Demo.ConsoleApp;
 
@@ -27,7 +25,7 @@ public static class DemoDocument
         var dock = PdfImage.FromFile(Path.Combine(assetsDirectory, "dock.jpg"));
         var cmykSample = PdfImage.FromFile(Path.Combine(assetsDirectory, "cmyk-sample.jpg"));
 
-        var pdfDocument = new PdfDocument { BottomMargin = 20 };
+        var pdfDocument = new PdfDocument { MarginBottom = 20 };
 
         // Every page gets the logo in its header band and a page number in its footer.
         pdfDocument.Header.Height = 80;
@@ -62,15 +60,15 @@ public static class DemoDocument
         // Table Headers
         var headerRow = itemsTable.AddRow();
         headerRow.GetCell(0).Text = "S.No.";
-        headerRow.GetCell(0).Background = PdfColor.LightGray;
+        headerRow.GetCell(0).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(1).Text = "Item Description";
-        headerRow.GetCell(1).Background = PdfColor.LightGray;
+        headerRow.GetCell(1).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(2).Text = "Qty";
-        headerRow.GetCell(2).Background = PdfColor.LightGray;
+        headerRow.GetCell(2).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(3).Text = "Rate (INR)";
-        headerRow.GetCell(3).Background = PdfColor.LightGray;
+        headerRow.GetCell(3).BackgroundColor = PdfColor.LightGray;
         headerRow.GetCell(4).Text = "Amount (INR)";
-        headerRow.GetCell(4).Background = PdfColor.LightGray;
+        headerRow.GetCell(4).BackgroundColor = PdfColor.LightGray;
 
         // Item rows grow to fit a product image stacked above its name.
         AddItemRow(itemsTable, "1", keyboard, "Wireless Keyboard", "2", "1250.00", "2500.00");
@@ -89,26 +87,26 @@ public static class DemoDocument
         totalsTable.GetOrCreateCell(0, 0).Text = "Subtotal";
         var subtotalValueCell = totalsTable.GetOrCreateCell(0, 1);
         subtotalValueCell.Text = subtotal.ToString("F2");
-        subtotalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+        subtotalValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         totalsTable.GetOrCreateCell(1, 0).Text = "CGST @ 9%";
         var cgstValueCell = totalsTable.GetOrCreateCell(1, 1);
         cgstValueCell.Text = cgst.ToString("F2");
-        cgstValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+        cgstValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         totalsTable.GetOrCreateCell(2, 0).Text = "SGST @ 9%";
         var sgstValueCell = totalsTable.GetOrCreateCell(2, 1);
         sgstValueCell.Text = sgst.ToString("F2");
-        sgstValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+        sgstValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
         var totalCell = totalsTable.GetOrCreateCell(3, 0);
         totalCell.Text = "Total";
-        totalCell.Background = PdfColor.LightGray;
+        totalCell.BackgroundColor = PdfColor.LightGray;
 
         var totalValueCell = totalsTable.GetOrCreateCell(3, 1);
         totalValueCell.Text = total.ToString("F2");
-        totalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
-        totalValueCell.Background = PdfColor.LightGray;
+        totalValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
+        totalValueCell.BackgroundColor = PdfColor.LightGray;
 
         closing.AddText("Terms & Conditions:", spacing: 20, fontSize: 10, x: 50);
         closing.AddText("1. Payment due within 30 days.", spacing: 2, fontSize: 9, x: 50);
@@ -147,8 +145,8 @@ public static class DemoDocument
         {
             var cell = alignmentRow.GetCell(c);
             cell.SetContent(dock, $"VAlign {alignments[c]}");
-            cell.VAlign = alignments[c];
-            cell.HAlign = PdfCellHorizontalAlignment.Center;
+            cell.VerticalAlignment = alignments[c];
+            cell.HorizontalAlignment = PdfCellHorizontalAlignment.Center;
         }
 
         // --- Page 3: Other Content ---
@@ -165,15 +163,15 @@ public static class DemoDocument
     private static void AddItemRow(PdfTable table, string number, PdfImage photo, string description, string quantity, string rate, string amount)
     {
         var row = table.AddRow();
-        row.HeightRule = PdfRowHeightRule.AtLeast;
+        row.HeightMode = PdfRowHeightMode.AtLeast;
         row.GetCell(0).Text = number;
         row.GetCell(1).SetContent(photo, description);
         row.GetCell(2).Text = quantity;
-        row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+        row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         row.GetCell(3).Text = rate;
-        row.GetCell(3).HAlign = PdfCellHorizontalAlignment.Right;
+        row.GetCell(3).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
         row.GetCell(4).Text = amount;
-        row.GetCell(4).HAlign = PdfCellHorizontalAlignment.Right;
+        row.GetCell(4).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     // One row of label or value text without borders: cell borders take the white background.
@@ -187,7 +185,7 @@ public static class DemoDocument
             var cell = row.GetCell(column);
             cell.Text = texts[column];
             cell.Padding = 0;
-            foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+            foreach (var border in new[] { cell.BorderLeft, cell.BorderTop, cell.BorderRight, cell.BorderBottom })
             {
                 border.Color = PdfColor.White;
             }

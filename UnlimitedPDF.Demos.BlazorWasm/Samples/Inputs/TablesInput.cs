@@ -1,4 +1,4 @@
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
 
@@ -62,7 +62,7 @@ public sealed class TablesInput
     /// <summary>
     /// Gets or sets whether rows keep their height exactly or grow to fit their content.
     /// </summary>
-    public PdfRowHeightRule RowHeightRule { get; set; } = PdfRowHeightRule.Exactly;
+    public PdfRowHeightMode RowHeightMode { get; set; } = PdfRowHeightMode.Exactly;
 
     /// <summary>
     /// Gets or sets the vertical alignment of every cell.

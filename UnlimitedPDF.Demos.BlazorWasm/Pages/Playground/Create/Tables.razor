@@ -25,9 +25,9 @@
                 <div class="field">
                     <span class="field-label">Height rule</span>
                     <div class="segmented" role="group" aria-label="Row height rule">
-                        @foreach (var rule in Enum.GetValues<PdfRowHeightRule>())
+                        @foreach (var rule in Enum.GetValues<PdfRowHeightMode>())
                         {
-                            <button type="button" aria-pressed="@(_input.RowHeightRule == rule ? "true" : "false")" @onclick="() => SetRule(rule)">@rule</button>
+                            <button type="button" aria-pressed="@(_input.RowHeightMode == rule ? "true" : "false")" @onclick="() => SetRule(rule)">@rule</button>
                         }
                     </div>
                 </div>
@@ -95,9 +95,9 @@
 
     private void Reset() => _input = new();
 
-    private void SetRule(PdfRowHeightRule rule)
+    private void SetRule(PdfRowHeightMode rule)
     {
-        _input.RowHeightRule = rule;
+        _input.RowHeightMode = rule;
         _page?.NotifyInputsChanged();
     }
 }

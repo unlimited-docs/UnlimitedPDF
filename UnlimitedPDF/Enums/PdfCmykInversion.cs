@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Enums;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// How the values of a CMYK JPEG are interpreted. Some encoders store CMYK values inverted and mark the file

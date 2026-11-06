@@ -1,6 +1,5 @@
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 using UnlimitedPDF.Models.Internal;
-using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Tests;
 
@@ -57,7 +56,7 @@ public class BodyFlowTests
     [Fact]
     public void Flow_pages_get_the_header_and_footer_and_flow_tables_repeat_their_header_rows()
     {
-        var document = new PdfDocument { LeftMargin = 40 };
+        var document = new PdfDocument { MarginLeft = 40 };
         document.Header.Height = 30;
         document.Header.AddText("Directory", 0, 0);
         document.Footer.Height = 20;
@@ -108,7 +107,7 @@ public class BodyFlowTests
     [Fact]
     public void Flow_text_is_aligned_within_the_body_width()
     {
-        var document = new PdfDocument { LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginLeft = 50, MarginRight = 50 };
         document.Body.AddText("Right", alignment: PdfTextAlignment.Right);
         document.Body.AddText("Center", alignment: PdfTextAlignment.Center);
 
@@ -401,7 +400,7 @@ public class BodyFlowTests
         // Review F-28: page 2's body is 341.89 pt. The run starts at its top and does not fit; it moved on to page 3 and
         // left page 2 blank, where a run of the same height without a table fails.
         var document = new PdfDocument();
-        document.AddPageRule(2).BodyTopGap = 500;
+        document.AddPageRule(2).BodyMarginTop = 500;
         document.Body.AddRectangle(150, A4Height, PdfColor.Black);
         if (withTitle) document.Body.AddText("T", keepWithNext: true);
         Rows(document.Body.AddTable(200, keepWithNext: true), 1, "A");
@@ -443,7 +442,7 @@ public class BodyFlowTests
         // Review F-30: page 2's body is 341.89 pt. The table's last row starts alone at its top (below the repeated
         // header row when there is one) and does not fit with the rectangle; it moved to page 3 and left page 2 blank.
         var document = new PdfDocument();
-        document.AddPageRule(2).BodyTopGap = 500;
+        document.AddPageRule(2).BodyMarginTop = 500;
         document.Body.AddRectangle(150, repeatedHeader ? 790 : 810, PdfColor.Black);
         var table = document.Body.AddTable(200, keepWithNext: true);
         table.AddColumn();
@@ -513,7 +512,7 @@ public class BodyFlowTests
     public void Readme_headers_footers_and_flow_sample_runs_as_written()
     {
         // The code of README.md and nuget/README.md "Headers, footers & flow", saved to memory instead of a file (PR-012).
-        var pdfDocument = new PdfDocument { TopMargin = 30, BottomMargin = 30, LeftMargin = 40, RightMargin = 40 };
+        var pdfDocument = new PdfDocument { MarginTop = 30, MarginBottom = 30, MarginLeft = 40, MarginRight = 40 };
 
         pdfDocument.Header.Height = 40;
         pdfDocument.Header.AddText("Quarterly report", 0, 8, 14);
@@ -526,7 +525,7 @@ public class BodyFlowTests
         first.Header.AddText("Quarterly report", 0, 10, 24, PdfTextAlignment.Center);
 
         var body = pdfDocument.Body;
-        body.TopGap = 12;
+        pdfDocument.BodyMarginTop = 12;
         body.AddText("Employees", fontSize: 14, keepWithNext: true);
 
         var table = body.AddTable(515, spacing: 6);
@@ -576,7 +575,7 @@ public class BodyFlowTests
         return table;
     }
 
-    private static void NumberedTable(PdfPageBuilder page, double x, double y, double width, int rows, string prefix)
+    private static void NumberedTable(PdfPage page, double x, double y, double width, int rows, string prefix)
     {
         var table = page.AddTable(x, y, width);
         table.AddColumn();

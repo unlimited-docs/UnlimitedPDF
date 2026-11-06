@@ -1,4 +1,4 @@
-﻿namespace UnlimitedPDF.Enums;
+﻿namespace UnlimitedPDF;
 
 /// <summary>
 /// Enum represents horizontal alignment options for content within a PDF cell.

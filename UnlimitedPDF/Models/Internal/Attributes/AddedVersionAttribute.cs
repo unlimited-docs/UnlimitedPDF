@@ -1,19 +1,18 @@
-namespace UnlimitedPDF;
+namespace UnlimitedPDF.Models.Internal.Attributes;
 
 /// <summary>
-/// Records the first package version that shipped the annotated member.
+/// Records the first package version that shipped the annotated public member. Documentation generation reads it by
+/// reflection; it is internal because consumers never apply or read it themselves (PR-016).
 /// </summary>
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Constructor, Inherited = false)]
-public sealed class AddedVersionAttribute : Attribute
+internal sealed class AddedVersionAttribute : Attribute
 {
     #region Constructors and Finalizers
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AddedVersionAttribute"/> class.
     /// </summary>
-    /// <param name="version">The first package version that shipped the member, for example "0.1.0".</param>
-    [AddedVersion("0.1.0")]
-    [Description("Initializes a new instance of the AddedVersionAttribute class.")]
+    /// <param name="version">The first package version that shipped the member, for example "1.0.0".</param>
     public AddedVersionAttribute(string version) => Version = version;
 
     #endregion

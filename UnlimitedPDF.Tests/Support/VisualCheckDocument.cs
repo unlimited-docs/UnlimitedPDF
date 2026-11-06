@@ -1,5 +1,4 @@
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests.Support;
 
@@ -29,7 +28,7 @@ internal static class VisualCheckDocument
     /// </summary>
     public static PdfDocument Build()
     {
-        var document = new PdfDocument { TopMargin = 36, BottomMargin = 36 };
+        var document = new PdfDocument { MarginTop = 36, MarginBottom = 36 };
         AddOrientationPage(document.AddPage());
         AddJpegColorPage(document.AddPage());
         AddPngPage(document.AddPage());
@@ -44,7 +43,7 @@ internal static class VisualCheckDocument
     /// </summary>
     public static PdfDocument BuildLayout()
     {
-        var document = new PdfDocument { TopMargin = 30, BottomMargin = 30, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 30, MarginBottom = 30, MarginLeft = 50, MarginRight = 50 };
         document.Header.Height = 40;
         document.Header.AddText("Visual check 5: headers, footers, and flow", 0, 8, 12);
         document.Header.AddText("Right edge", 0, 10, 9, PdfTextAlignment.Right);
@@ -53,8 +52,8 @@ internal static class VisualCheckDocument
         document.Footer.AddRectangle(0, 0, 495, 1, PdfColor.Black);
         document.Footer.AddText("Footer left", 0, 10, 9);
         document.Footer.AddText("Page {page} of {pages}", 0, 10, 9, PdfTextAlignment.Right);
-        document.Body.TopGap = 14;
-        document.Body.BottomGap = 14;
+        document.BodyMarginTop = 14;
+        document.BodyMarginBottom = 14;
 
         var first = document.AddPageRule(PdfPageRuleTarget.First);
         first.Header.Height = 70;
@@ -86,7 +85,7 @@ internal static class VisualCheckDocument
         header.GetCell(0).Text = "No.";
         header.GetCell(1).Text = "Name";
         header.GetCell(2).Text = "Department";
-        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+        foreach (var cell in header.Cells) cell.BackgroundColor = PdfColor.LightGray;
         for (int r = 1; r <= 40; r++)
         {
             var row = table.AddRow();
@@ -95,8 +94,8 @@ internal static class VisualCheckDocument
             row.GetCell(2).Text = r % 2 == 0 ? "Finance" : "Engineering";
         }
 
-        body.AddText("The blue box fills page 2 to 40 pt above the body bottom (Body.Remaining); the totals block does not fit there", spacing: 10, fontSize: 9);
-        body.AddRectangle(495, body.Remaining - 50, new PdfColor(0.93, 0.96, 1), spacing: 10);
+        body.AddText("The blue box fills page 2 to 40 pt above the body bottom (Body.RemainingHeight); the totals block does not fit there", spacing: 10, fontSize: 9);
+        body.AddRectangle(495, body.RemainingHeight - 50, new PdfColor(0.93, 0.96, 1), spacing: 10);
         var block = body.AddBlock(spacing: 10);
         block.AddRectangle(495, 1, PdfColor.Black);
         block.AddText("Totals block: these three lines stay together on page 3", spacing: 6);
@@ -111,14 +110,14 @@ internal static class VisualCheckDocument
     #region Private Methods
 
     // Captions may hold several lines separated by '|', drawn 10 pt apart.
-    private static void AddCaption(PdfPageBuilder page, string text, int x, int y)
+    private static void AddCaption(PdfPage page, string text, int x, int y)
     {
         var lines = text.Split('|');
         for (int i = 0; i < lines.Length; i++)
             page.AddText(lines[i], x, y - i * 10, 8);
     }
 
-    private static void AddJpegColorPage(PdfPageBuilder page)
+    private static void AddJpegColorPage(PdfPage page)
     {
         page.AddText("Visual check 2 of 4: JPEG color", 40, 800, 14);
 
@@ -133,7 +132,7 @@ internal static class VisualCheckDocument
     }
 
     // A table that continues on a library-added page with its header row repeated (WR-027).
-    private static void AddPaginationPage(PdfPageBuilder page)
+    private static void AddPaginationPage(PdfPage page)
     {
         page.AddText("Visual check 4 of 4: table pagination", 40, 800, 14);
         AddCaption(page, "Rows 1 to 34 are on this page and none is cut at the bottom; the table continues on the|next page, which repeats the gray header row at its top, followed by rows 35 to 50 in order", 40, 785);
@@ -147,7 +146,7 @@ internal static class VisualCheckDocument
         header.GetCell(0).Text = "Row";
         header.GetCell(1).Text = "Description";
         header.GetCell(2).Text = "Page";
-        foreach (var cell in header.Cells) cell.Background = PdfColor.LightGray;
+        foreach (var cell in header.Cells) cell.BackgroundColor = PdfColor.LightGray;
 
         for (int r = 1; r <= 50; r++)
         {
@@ -158,7 +157,7 @@ internal static class VisualCheckDocument
         }
     }
 
-    private static void AddOrientationPage(PdfPageBuilder page)
+    private static void AddOrientationPage(PdfPage page)
     {
         page.AddText("Visual check 1 of 4: EXIF orientation", 40, 800, 14);
         page.AddText("Every image must look the same:", 40, 780, 10);
@@ -176,7 +175,7 @@ internal static class VisualCheckDocument
         }
     }
 
-    private static void AddPngPage(PdfPageBuilder page)
+    private static void AddPngPage(PdfPage page)
     {
         page.AddText("Visual check 3 of 4: PNG", 40, 800, 14);
         page.AddText("Transparent parts must show the stripes behind them;", 40, 780, 10);
@@ -188,7 +187,7 @@ internal static class VisualCheckDocument
         stripes.SetColumnWidths(Enumerable.Repeat(520.0 / 13, 13).ToArray());
         var row = stripes.AddRow();
         for (int c = 0; c < 13; c++)
-            row.GetCell(c).Background = c % 2 == 0 ? new PdfColor(0.6, 0.85, 1) : new PdfColor(1, 0.9, 0.5);
+            row.GetCell(c).BackgroundColor = c % 2 == 0 ? new PdfColor(0.6, 0.85, 1) : new PdfColor(1, 0.9, 0.5);
 
         var samples = new (string Caption, PngBuilder Builder)[]
         {
@@ -269,7 +268,7 @@ internal static class VisualCheckDocument
         SampleOverride = (x, y, c) => DiscAlpha(x, y, 1) > 0 ? 1 : 0
     };
 
-    private static void Place(PdfPageBuilder page, string fixture, int x, int y, string caption)
+    private static void Place(PdfPage page, string fixture, int x, int y, string caption)
     {
         var image = PdfImage.FromFile(Fixtures.Jpeg(fixture));
         page.AddImage(image, x, y, width: 180);

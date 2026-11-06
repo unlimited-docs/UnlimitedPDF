@@ -1,5 +1,3 @@
-using UnlimitedPDF.Models.Table;
-
 namespace UnlimitedPDF.Models.Internal.Layout;
 
 /// <summary>
@@ -10,12 +8,12 @@ namespace UnlimitedPDF.Models.Internal.Layout;
 /// <param name="Size">The page size; the pages that continue it have the same size.</param>
 /// <param name="Tables">The page-coordinate tables on the page, in the order they were added.</param>
 /// <param name="FlowStart">The index of the first flow item added after the page, which starts on it.</param>
-internal sealed record PlanRoot(PdfPageBuilder? Builder, PdfPageSize Size, IReadOnlyList<PdfTable> Tables, int FlowStart);
+internal sealed record PlanRoot(PdfPage? Builder, PdfPageSize Size, IReadOnlyList<PdfTable> Tables, int FlowStart);
 
 /// <summary>
 /// Lays out every saved page in reading order (WR-027, WR-030, WR-033): each root page, then the pages that continue
 /// it, which carry its page-coordinate tables and its body flow. The planner works incrementally, so
-/// <c>Body.Remaining</c> can ask where the next flow item lands while content is still being added, and the same code
+/// <c>Body.RemainingHeight</c> can ask where the next flow item lands while content is still being added, and the same code
 /// lays out the whole document at save. Every layout error is thrown here, before any page object or byte exists.
 /// </summary>
 internal sealed class PagePlanner

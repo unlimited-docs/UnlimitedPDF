@@ -10,7 +10,7 @@ public sealed class EmployeeDirectoryInput
     /// <summary>
     /// Gets or sets the page bottom margin, in points. The table continues on a new page when a row would pass it.
     /// </summary>
-    public double BottomMargin { get; set; } = 50;
+    public double MarginBottom { get; set; } = 50;
 
     /// <summary>
     /// Gets or sets the company name shown in the title.
@@ -30,7 +30,7 @@ public sealed class EmployeeDirectoryInput
     /// <summary>
     /// Gets or sets the page top margin, in points. Continued rows resume below it.
     /// </summary>
-    public double TopMargin { get; set; } = 40;
+    public double MarginTop { get; set; } = 40;
 
     #endregion
 }

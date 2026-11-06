@@ -1,11 +1,10 @@
 using System.Diagnostics;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// <c>Body.Remaining</c> and <c>Body.MaxPages</c> (WR-033): the remaining height is exact at save or saving fails
+/// <c>Body.RemainingHeight</c> and <c>Body.MaxPages</c> (WR-033): the remaining height is exact at save or saving fails
 /// naming what changed, and a page limit makes saving fail naming the content that does not fit.
 /// </summary>
 public class BodyRemainingTests
@@ -25,10 +24,10 @@ public class BodyRemainingTests
     public void Remaining_is_the_height_left_where_the_next_item_lands()
     {
         var document = new PdfDocument();
-        Assert.Equal(A4Height, document.Body.Remaining, Precision);
+        Assert.Equal(A4Height, document.Body.RemainingHeight, Precision);
 
         document.Body.AddText("a");
-        double remaining = document.Body.Remaining;
+        double remaining = document.Body.RemainingHeight;
         Assert.Equal(A4Height - 14.4, remaining, Precision);
 
         // A rectangle exactly that tall fills the page to the body bottom.
@@ -36,7 +35,7 @@ public class BodyRemainingTests
         var pages = PdfPageReader.Save(document);
         Assert.Single(pages);
         Assert.Equal(0, pages[0].LayoutRectangles().Single().Y, Precision);
-        Assert.Equal(0, document.Body.Remaining, Precision);
+        Assert.Equal(0, document.Body.RemainingHeight, Precision);
     }
 
     [Fact]
@@ -46,10 +45,10 @@ public class BodyRemainingTests
         document.Header.Height = 40;
         document.Body.AddRectangle(100, 700, PdfColor.Black);
         document.Body.AddRectangle(100, 200, PdfColor.Black);
-        Assert.Equal(A4Height - 40 - 200, document.Body.Remaining, Precision);
+        Assert.Equal(A4Height - 40 - 200, document.Body.RemainingHeight, Precision);
 
         document.AddPage();
-        Assert.Equal(A4Height - 40, document.Body.Remaining, Precision);
+        Assert.Equal(A4Height - 40, document.Body.RemainingHeight, Precision);
         PdfPageReader.SaveBytes(document);
     }
 
@@ -58,12 +57,12 @@ public class BodyRemainingTests
     {
         var document = new PdfDocument();
         var table = Table(document.Body.AddTable(200), 3);
-        _ = document.Body.Remaining;
+        _ = document.Body.RemainingHeight;
         table.AddRow().GetCell(0).Text = "late";
 
         var error = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document));
 
-        Assert.Contains("Body.Remaining was read as 781.89 pt on page 1 before flow item 2", error.Message);
+        Assert.Contains("Body.RemainingHeight was read as 781.89 pt on page 1 before flow item 2", error.Message);
         Assert.Contains("flow item 1 (table) changed its layout", error.Message);
     }
 
@@ -73,7 +72,7 @@ public class BodyRemainingTests
         var document = new PdfDocument();
         var block = document.Body.AddBlock();
         block.AddText("one");
-        _ = document.Body.Remaining;
+        _ = document.Body.RemainingHeight;
         block.AddText("two");
 
         Assert.Contains("flow item 1 (block) changed its layout", Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document)).Message);
@@ -86,14 +85,14 @@ public class BodyRemainingTests
         {
             var document = new PdfDocument();
             document.Body.AddText("a");
-            _ = document.Body.Remaining;
+            _ = document.Body.RemainingHeight;
             change(document);
             Assert.Contains("page layout settings", Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document)).Message);
         }
 
         Check(d => d.Header.Height = 50);
         Check(d => d.Footer.Height = 30);
-        Check(d => d.Body.TopGap = 10);
+        Check(d => d.BodyMarginTop = 10);
         Check(d => d.AddPageRule(1).Header.Height = 30);
     }
 
@@ -102,10 +101,10 @@ public class BodyRemainingTests
     {
         var document = new PdfDocument();
         var table = Table(document.Body.AddTable(200), 3);
-        _ = document.Body.Remaining;
-        table.GetCell(0, 0).Background = PdfColor.LightGray;
+        _ = document.Body.RemainingHeight;
+        table.GetCell(0, 0).BackgroundColor = PdfColor.LightGray;
         table.GetCell(1, 0).Text = "renamed";
-        document.LeftMargin = 20;
+        document.MarginLeft = 20;
 
         PdfPageReader.SaveBytes(document);
     }
@@ -117,7 +116,7 @@ public class BodyRemainingTests
         var document = new PdfDocument();
         document.Footer.Height = 20;
         var page = document.AddPage();
-        _ = document.Body.Remaining;
+        _ = document.Body.RemainingHeight;
         var placed = page.AddTable(300, 400, 200);
         placed.AddColumn();
         for (int r = 0; r < 40; r++) placed.AddRow().GetCell(0).Text = "P" + r;
@@ -125,7 +124,7 @@ public class BodyRemainingTests
 
         // 19 table rows fit page 1 above the 20 pt footer; page 2 carries the other 21 down to 421.89. After 60 lines
         // (57 on page 1) the cursor is 3 lines below the carried rows.
-        Assert.Equal(421.89 - 3 * 14.4 - 20, document.Body.Remaining, Precision);
+        Assert.Equal(421.89 - 3 * 14.4 - 20, document.Body.RemainingHeight, Precision);
         PdfPageReader.SaveBytes(document);
     }
 
@@ -160,7 +159,7 @@ public class BodyRemainingTests
         }
 
         var (document, table) = Build();
-        _ = document.Body.Remaining;
+        _ = document.Body.RemainingHeight;
         Change(table, change);
         for (int i = 5; i < 60; i++) document.Body.AddText("x" + i);
 
@@ -168,8 +167,8 @@ public class BodyRemainingTests
         Change(freshTable, change);
         for (int i = 5; i < 60; i++) fresh.Body.AddText("x" + i);
 
-        Assert.Equal(fresh.Body.Remaining, document.Body.Remaining, Precision);
-        if (change == "y") Assert.Equal(558.69, document.Body.Remaining, Precision);
+        Assert.Equal(fresh.Body.RemainingHeight, document.Body.RemainingHeight, Precision);
+        if (change == "y") Assert.Equal(558.69, document.Body.RemainingHeight, Precision);
         PdfPageReader.SaveBytes(document);
     }
 
@@ -181,8 +180,8 @@ public class BodyRemainingTests
         document.Body.AddText("a");
         document.Body.AddRectangle(100, 2000, PdfColor.Black);
 
-        Assert.Throws<InvalidOperationException>(() => document.Body.Remaining);
-        Assert.Throws<InvalidOperationException>(() => document.Body.Remaining);
+        Assert.Throws<InvalidOperationException>(() => document.Body.RemainingHeight);
+        Assert.Throws<InvalidOperationException>(() => document.Body.RemainingHeight);
     }
 
     [Fact]
@@ -191,7 +190,7 @@ public class BodyRemainingTests
         // Review F-09: a read before any page was replayed with the old page size, so the save passed.
         var document = new PdfDocument();
         document.Footer.Height = 20;
-        Assert.Equal(A4Height - 20, document.Body.Remaining, Precision);
+        Assert.Equal(A4Height - 20, document.Body.RemainingHeight, Precision);
         document.PageSize = PdfPageSize.Letter;
         document.AddPage();
         document.Body.AddText("x");
@@ -229,7 +228,7 @@ public class BodyRemainingTests
         }
 
         var document = Build(waiting);
-        double remaining = document.Body.Remaining;
+        double remaining = document.Body.RemainingHeight;
         document.Body.AddRectangle(100, remaining, PdfColor.Black);
 
         var pages = PdfPageReader.Save(document);
@@ -254,7 +253,7 @@ public class BodyRemainingTests
         for (int i = 0; i < 1_000; i++)
         {
             document.Body.AddText("line " + i);
-            _ = document.Body.Remaining;
+            _ = document.Body.RemainingHeight;
         }
         PdfPageReader.SaveBytes(document);
         watch.Stop();
@@ -274,7 +273,7 @@ public class BodyRemainingTests
             table.AddColumn();
             table.AddRow().GetCell(0).Text = "a" + i;
             table.AddRow().GetCell(0).Text = "b" + i;
-            _ = document.Body.Remaining;
+            _ = document.Body.RemainingHeight;
         }
         PdfPageReader.SaveBytes(document);
         watch.Stop();
@@ -292,7 +291,7 @@ public class BodyRemainingTests
         for (int i = 0; i < 40_000; i++)
         {
             document.Body.AddText("line " + i, keepWithNext: i % 2 == 0);
-            _ = document.Body.Remaining;
+            _ = document.Body.RemainingHeight;
         }
         PdfPageReader.SaveBytes(document);
         watch.Stop();
@@ -308,7 +307,7 @@ public class BodyRemainingTests
         for (int i = 0; i < 10_000; i++)
         {
             document.Body.AddText("line " + i);
-            _ = document.Body.Remaining;
+            _ = document.Body.RemainingHeight;
         }
         PdfPageReader.SaveBytes(document);
         watch.Stop();

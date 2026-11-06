@@ -13,17 +13,17 @@ internal class PdfTextElement
     /// <summary>
     /// Gets or sets the font size in points.
     /// </summary>
-    public int FontSize { get; set; } = 12;
+    public double FontSize { get; set; } = 12;
 
     /// <summary>
     /// Gets or sets the X coordinate for the text's starting position.
     /// </summary>
-    public int X { get; set; }
+    public double X { get; set; }
 
     /// <summary>
     /// Gets or sets the Y coordinate for the text's starting position.
     /// </summary>
-    public int Y { get; set; }
+    public double Y { get; set; }
 
     /// <summary>
     /// Gets or sets the text string to be displayed.
@@ -42,6 +42,6 @@ internal class PdfTextElement
         // Tj = Show text
         // The text is escaped like every other string the library writes (WR-005); text without a backslash or an
         // unbalanced parenthesis is written unchanged.
-        return $"BT /{FontName} {FontSize} Tf {X} {Y} Td ({PdfLiteralString.Escape(Text)}) Tj ET";
+        return $"BT /{FontName} {PdfNumber.Format(FontSize)} Tf {PdfNumber.Format(X)} {PdfNumber.Format(Y)} Td ({PdfLiteralString.Escape(Text)}) Tj ET";
     }
 }

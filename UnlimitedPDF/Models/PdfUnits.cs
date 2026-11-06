@@ -25,7 +25,7 @@ public static class PdfUnits
     /// </summary>
     /// <param name="centimeters">A length in centimeters.</param>
     /// <returns>The length in points, for example 2.54 cm = 72 pt.</returns>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Converts centimeters to points.")]
     public static double FromCentimeters(double centimeters) => centimeters * 10 * PointsPerInch / MillimetersPerInch;
 
@@ -34,7 +34,7 @@ public static class PdfUnits
     /// </summary>
     /// <param name="inches">A length in inches.</param>
     /// <returns>The length in points, for example 1 in = 72 pt.</returns>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Converts inches to points.")]
     public static double FromInches(double inches) => inches * PointsPerInch;
 
@@ -43,7 +43,7 @@ public static class PdfUnits
     /// </summary>
     /// <param name="millimeters">A length in millimeters.</param>
     /// <returns>The length in points, for example 20 mm = 56.69 pt.</returns>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Converts millimeters to points.")]
     public static double FromMillimeters(double millimeters) => millimeters * PointsPerInch / MillimetersPerInch;
 
@@ -52,7 +52,7 @@ public static class PdfUnits
     /// </summary>
     /// <param name="pixels">A length in pixels.</param>
     /// <returns>The length in points, for example 96 px = 72 pt.</returns>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Converts pixels to points, with one pixel being 1/96 in.")]
     public static double FromPixels(double pixels) => pixels * PointsPerInch / PixelsPerInch;
 

@@ -19,11 +19,11 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 - **.NET CLI**
   
-  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 0.1.0`
+  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 1.0.0`
   
 - **Package Reference**
   
-  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="0.1.0" />`
+  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="1.0.0" />`
 
 ## Demos
 
@@ -38,6 +38,7 @@ dotnet run --project UnlimitedPDF.Demos.BlazorWasm
 ## Sample Code
 
 ```cs
+using UnlimitedPDF;
 
 var pdfFilePath = @"D:\\unlimited-pdf-sample.pdf";
 
@@ -60,8 +61,6 @@ pdfDocument.Save(pdfFilePath);
 
 ```cs
 using UnlimitedPDF;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
 
 Console.WriteLine("Start: Unlimited PDF");
 
@@ -97,37 +96,37 @@ itemsTable.SetColumnWidths(40, 210, 60, 100, 102);
 // Table Headers
 var headerRow = itemsTable.AddRow();
 headerRow.GetCell(0).Text = "S.No.";
-headerRow.GetCell(0).Background = PdfColor.LightGray;
+headerRow.GetCell(0).BackgroundColor = PdfColor.LightGray;
 headerRow.GetCell(1).Text = "Item Description";
-headerRow.GetCell(1).Background = PdfColor.LightGray;
+headerRow.GetCell(1).BackgroundColor = PdfColor.LightGray;
 headerRow.GetCell(2).Text = "Qty";
-headerRow.GetCell(2).Background = PdfColor.LightGray;
+headerRow.GetCell(2).BackgroundColor = PdfColor.LightGray;
 headerRow.GetCell(3).Text = "Rate (INR)";
-headerRow.GetCell(3).Background = PdfColor.LightGray;
+headerRow.GetCell(3).BackgroundColor = PdfColor.LightGray;
 headerRow.GetCell(4).Text = "Amount (INR)";
-headerRow.GetCell(4).Background = PdfColor.LightGray;
+headerRow.GetCell(4).BackgroundColor = PdfColor.LightGray;
 
 // Item 1
 var item1Row = itemsTable.AddRow();
 item1Row.GetCell(0).Text = "1";
 item1Row.GetCell(1).Text = "Wireless Keyboard";
 item1Row.GetCell(2).Text = "2";
-item1Row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+item1Row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 item1Row.GetCell(3).Text = "1250.00";
-item1Row.GetCell(3).HAlign = PdfCellHorizontalAlignment.Right;
+item1Row.GetCell(3).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 item1Row.GetCell(4).Text = "2500.00";
-item1Row.GetCell(4).HAlign = PdfCellHorizontalAlignment.Right;
+item1Row.GetCell(4).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
 // Item 2
 var item2Row = itemsTable.AddRow();
 item2Row.GetCell(0).Text = "2";
 item2Row.GetCell(1).Text = "USB-C Docking Station";
 item2Row.GetCell(2).Text = "1";
-item2Row.GetCell(2).HAlign = PdfCellHorizontalAlignment.Right;
+item2Row.GetCell(2).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 item2Row.GetCell(3).Text = "4500.00";
-item2Row.GetCell(3).HAlign = PdfCellHorizontalAlignment.Right;
+item2Row.GetCell(3).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 item2Row.GetCell(4).Text = "4500.00";
-item2Row.GetCell(4).HAlign = PdfCellHorizontalAlignment.Right;
+item2Row.GetCell(4).HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
 // 3. Totals Section
 double subtotal = 7000.00;
@@ -141,26 +140,26 @@ totalsTable.SetColumnWidths(110, 102);
 totalsTable.GetOrCreateCell(0, 0).Text = "Subtotal";
 var subtotalValueCell = totalsTable.GetOrCreateCell(0, 1);
 subtotalValueCell.Text = subtotal.ToString("F2");
-subtotalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+subtotalValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
 totalsTable.GetOrCreateCell(1, 0).Text = "CGST @ 9%";
 var cgstValueCell = totalsTable.GetOrCreateCell(1, 1);
 cgstValueCell.Text = cgst.ToString("F2");
-cgstValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+cgstValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
 totalsTable.GetOrCreateCell(2, 0).Text = "SGST @ 9%";
 var sgstValueCell = totalsTable.GetOrCreateCell(2, 1);
 sgstValueCell.Text = sgst.ToString("F2");
-sgstValueCell.HAlign = PdfCellHorizontalAlignment.Right;
+sgstValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
 
 var totalCell = totalsTable.GetOrCreateCell(3, 0);
 totalCell.Text = "Total";
-totalCell.Background = PdfColor.LightGray;
+totalCell.BackgroundColor = PdfColor.LightGray;
 
 var totalValueCell = totalsTable.GetOrCreateCell(3, 1);
 totalValueCell.Text = total.ToString("F2");
-totalValueCell.HAlign = PdfCellHorizontalAlignment.Right;
-totalValueCell.Background = PdfColor.LightGray;
+totalValueCell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
+totalValueCell.BackgroundColor = PdfColor.LightGray;
 
 // 4. Terms and Conditions
 page1.AddText("Terms & Conditions:", 50, 450, 10);
@@ -183,8 +182,6 @@ Load a JPEG or PNG once, then place it anywhere on any page, or inside table cel
 
 ```cs
 using UnlimitedPDF;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
 
 // Load from a file, a Stream, or a byte array; async loading takes a cancellation token.
 var logo = PdfImage.FromFile("logo.png");
@@ -207,7 +204,7 @@ page.AddImage(photo, PdfUnits.FromMillimeters(20), PdfUnits.FromMillimeters(20),
 // AtLeast rows grow to fit their content; Exactly rows (the default) keep their height and shrink images.
 var table = page.AddTable(50, 500, 300);
 table.SetColumnWidths(100, 200);
-table.RowHeightRule = PdfRowHeightRule.AtLeast;
+table.RowHeightMode = PdfRowHeightMode.AtLeast;
 table.GetOrCreateCell(0, 0).SetContent(photo, "Laptop", "SKU 123");
 table.GetOrCreateCell(0, 1).Text = "Image above two lines of text";
 
@@ -224,10 +221,9 @@ A table that runs past the bottom of the page continues on a new page by itself.
 
 ```cs
 using UnlimitedPDF;
-using UnlimitedPDF.Models.Table;
 
 // Margins apply to every page; both default to 0 (the page edges).
-var pdfDocument = new PdfDocument { TopMargin = 40, BottomMargin = 50 };
+var pdfDocument = new PdfDocument { MarginTop = 40, MarginBottom = 50 };
 var page = pdfDocument.AddPage();
 
 var table = page.AddTable(40, 760, 515);
@@ -260,10 +256,8 @@ Give every page a header and a footer, and let body content flow from page to pa
 
 ```cs
 using UnlimitedPDF;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
 
-var pdfDocument = new PdfDocument { TopMargin = 30, BottomMargin = 30, LeftMargin = 40, RightMargin = 40 };
+var pdfDocument = new PdfDocument { MarginTop = 30, MarginBottom = 30, MarginLeft = 40, MarginRight = 40 };
 
 // Drawn on every page. Offsets are measured from the band's top-left corner; content past the band is clipped.
 pdfDocument.Header.Height = 40;
@@ -279,7 +273,7 @@ first.Header.AddText("Quarterly report", 0, 10, 24, PdfTextAlignment.Center);
 
 // Body items stack below each other with a spacing and continue on new pages by themselves.
 var body = pdfDocument.Body;
-body.TopGap = 12;
+pdfDocument.BodyMarginTop = 12;
 body.AddText("Employees", fontSize: 14, keepWithNext: true);
 
 var table = body.AddTable(515, spacing: 6);
@@ -305,21 +299,51 @@ signOff.AddText("Approved by: ____________________", spacing: 10);
 pdfDocument.Save("report.pdf");
 ```
 
-- `{page}` and `{pages}` show each page's number and the page count; `Header.Build(...)` and `Footer.Build(...)` build the content per page instead.
-- Page rules for `First`, `Last`, `Odd`, `Even`, or a page number change a band's height, visibility, or content, the body gaps, or the side margins. A `Last` rule may change content only.
+- `{page}` and `{pages}` show each page's number and the page count; `Header.SetPageContent(...)` and `Footer.SetPageContent(...)` set the content per page instead.
+- Page rules for `First`, `Last`, `Odd`, `Even`, or a page number change a band's height, visibility, or content, the body margins, or the side margins. A `Last` rule may change content only.
 - `keepWithNext` keeps an item, such as a heading, on the page of the item after it. Anything taller than an empty body makes `Save` throw before anything is written.
-- `Body.Remaining` is the room left where the next item lands. If what it measured changes afterwards, `Save` throws instead of writing a different layout.
+- `Body.RemainingHeight` is the room left where the next item lands. If what it measured changes afterwards, `Save` throws instead of writing a different layout.
 - `Body.MaxPages` caps the page count; content that needs more pages makes `Save` throw, naming what does not fit.
 - `AddPage` still works: it starts a new page in the flow, and its page-coordinate content is drawn where you place it.
 - Text is aligned with the font's real character widths. It does not wrap.
 - Documents that use none of these features are written exactly as before.
 
-## Changes in 0.1.0
+## Upgrading to 1.0.0
 
-- New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.TopMargin`, `PdfDocument.BottomMargin`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
-- New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.AddPageRule`, `PdfDocument.LeftMargin`, `PdfDocument.RightMargin`), and filled rectangles (`PdfPageBuilder.AddRectangle`).
-- New: images (`PdfImage`, `PdfPageBuilder.AddImage`), images and stacked content in table cells, row height rules, and unit conversion (`PdfUnits`).
-- `PdfTableCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
-- Table cells with `VAlign` set to `Top` or `Bottom` are now drawn that way (it had no effect before).
-- Text containing a backslash or an unbalanced parenthesis is now escaped wherever it appears (table cells, `PdfPageBuilder.AddText`, headers, footers, and the body flow), so it displays as written. Text without those characters is written exactly as before.
+1.0.0 renames part of the API so that names follow one convention and are easier to guess. Old names are removed, so code written for 0.0.x reports compile errors until it uses the new names. Generated PDFs are unchanged. Every public type is now in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` you need.
+
+| 0.0.x name | 1.0.0 name |
+|---|---|
+| `using UnlimitedPDF.Enums;` | delete it (types are in `UnlimitedPDF`) |
+| `using UnlimitedPDF.Models.Table;` | delete it (types are in `UnlimitedPDF`) |
+| `using UnlimitedPDF.Extensions;` | delete it (types are in `UnlimitedPDF`) |
+| `PdfPageBuilder` | `PdfPage` |
+| `PdfTableRow` | `PdfRow` |
+| `PdfTableColumn` | `PdfColumn` |
+| `PdfTableCell` | `PdfCell` |
+| `PdfPageBuilder.AddText(string text, int x, int y, int fontSize, string fontName)` | `PdfPage.AddText(string text, double x, double y, double fontSize = 12)` (no font name; there is one font) |
+| `PdfTable.ColCount` | `PdfTable.ColumnCount` |
+| `PdfTable.TrimEmptyTrailingRowsAndCols()` | `PdfTable.TrimEmptyTrailingRowsAndColumns()` |
+| `PdfTable.EnsureSize(rows, cols)` | `PdfTable.EnsureSize(rows, columns)` |
+| `col` parameter of `PdfTable.GetCell`, `GetOrCreateCell`, `SetCell`, `SetText` | `column` (only named arguments change) |
+| `new PdfTableRow(index, initialCols)` | `new PdfRow(index, initialColumns)` |
+| `colIndex` parameter of `PdfTableRow.GetCell`, `SetCell` | `columnIndex` (only named arguments change) |
+| `PdfTableCell.Background` | `PdfCell.BackgroundColor` |
+| `PdfTableCell.ColSpan` | `PdfCell.ColumnSpan` |
+| `PdfTableCell.HAlign` | `PdfCell.HorizontalAlignment` |
+| `PdfTableCell.VAlign` | `PdfCell.VerticalAlignment` |
+| `PdfTableCell.TopBorder`, `BottomBorder`, `LeftBorder`, `RightBorder` | `PdfCell.BorderTop`, `BorderBottom`, `BorderLeft`, `BorderRight` |
+| `PdfTable.GetEffectiveColumnWidths()`, `NormalizeSpans()`, `IsSameSpanCell(...)` | removed (internal layout helpers) |
+| `PdfPageSize.ToMediaBoxString()` | removed (internal PDF syntax); use `ToDimensions()` for the size in points |
+
+## Changes in 1.0.0
+
+- New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.MarginTop`, `PdfDocument.MarginBottom`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
+- New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.BodyMarginTop`, `PdfDocument.BodyMarginBottom`, `PdfDocument.AddPageRule`, `PdfDocument.MarginLeft`, `PdfDocument.MarginRight`), and filled rectangles (`PdfPage.AddRectangle`).
+- New: images (`PdfImage`, `PdfPage.AddImage`), images and stacked content in table cells, row height modes (`PdfRowHeightMode`), and unit conversion (`PdfUnits`).
+- New: colors from 0–255 channels or hex strings (`PdfColor.FromRgb(0, 172, 140)`, `PdfColor.FromHex("#002A73")`).
+- Renamed: see [Upgrading to 1.0.0](#upgrading-to-100).
+- `PdfCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
+- Table cells with `VerticalAlignment` set to `Top` or `Bottom` are now drawn that way (it had no effect before).
+- Text containing a backslash or an unbalanced parenthesis is now escaped wherever it appears (table cells, `PdfPage.AddText`, headers, footers, and the body flow), so it displays as written. Text without those characters is written exactly as before.
 - Table numbers are written the same way in every culture, so documents saved under comma-decimal cultures are valid.

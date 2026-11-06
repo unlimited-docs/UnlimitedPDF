@@ -1,7 +1,6 @@
 using System.Globalization;
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -43,7 +42,7 @@ public static class TablesSample
         var table = page.AddTable(50, 760, width);
         table.SetColumnWidths(input.Column1Width, input.Column2Width, input.Column3Width);
         table.RowHeight = input.RowHeight;
-        table.RowHeightRule = input.RowHeightRule;
+        table.RowHeightMode = input.RowHeightMode;
 
         var header = table.AddRow();
         string[] headings = ["Product", "Category", "Price (INR)"];
@@ -62,7 +61,7 @@ public static class TablesSample
                 var cell = row.GetCell(column);
                 cell.Text = product[column];
                 Style(cell, input, ToPdfColor(input.BodyBackground));
-                cell.HAlign = input.HorizontalAlignment;
+                cell.HorizontalAlignment = input.HorizontalAlignment;
             }
         }
 
@@ -73,14 +72,14 @@ public static class TablesSample
 
     #region Private Methods
 
-    private static void Style(PdfTableCell cell, TablesInput input, PdfColor background)
+    private static void Style(PdfCell cell, TablesInput input, PdfColor background)
     {
-        cell.Background = background;
+        cell.BackgroundColor = background;
         cell.Padding = input.Padding;
-        cell.VAlign = input.VerticalAlignment;
+        cell.VerticalAlignment = input.VerticalAlignment;
 
         var borderColor = ToPdfColor(input.BorderColor);
-        foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+        foreach (var border in new[] { cell.BorderLeft, cell.BorderTop, cell.BorderRight, cell.BorderBottom })
         {
             border.Color = borderColor;
             border.Width = input.BorderWidth;

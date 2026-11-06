@@ -1,5 +1,4 @@
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -44,7 +43,7 @@ public class TablePaginationTests
         table.AddColumn();
         table.AddRow().GetCell(0).Text = "first";
         var row = table.AddRow();
-        row.HeightRule = PdfRowHeightRule.AtLeast;
+        row.HeightMode = PdfRowHeightMode.AtLeast;
         row.GetCell(0).AddContent(PdfImage.FromBytes(new JpegBuilder { Width = 200, Height = 80 }.Build()));
 
         var pages = PdfPageReader.Save(document);
@@ -79,7 +78,7 @@ public class TablePaginationTests
     {
         foreach (double topMargin in new[] { 0.0, 50.0 })
         {
-            var document = new PdfDocument { TopMargin = topMargin };
+            var document = new PdfDocument { MarginTop = topMargin };
             var page = document.AddPage();
             NumberedTable(page, 700, 60);
 
@@ -112,8 +111,8 @@ public class TablePaginationTests
         var document = new PdfDocument();
         var table = document.AddPage().AddTable(50, 700, 300);
 
-        Assert.Equal(0, document.TopMargin);
-        Assert.Equal(0, document.BottomMargin);
+        Assert.Equal(0, document.MarginTop);
+        Assert.Equal(0, document.MarginBottom);
         Assert.Equal(0, table.HeaderRowCount);
         Assert.False(table.RepeatHeaderRows);
     }
@@ -157,7 +156,7 @@ public class TablePaginationTests
     {
         foreach (bool repeat in new[] { true, false })
         {
-            var document = new PdfDocument { TopMargin = 36 };
+            var document = new PdfDocument { MarginTop = 36 };
             var page = document.AddPage();
             var table = HeaderTable(page, 700, 150);
             table.RepeatHeaderRows = repeat;
@@ -210,20 +209,20 @@ public class TablePaginationTests
         var document = new PdfDocument();
         foreach (double value in new[] { -1, double.NaN, double.PositiveInfinity })
         {
-            Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.TopMargin = value).ParamName);
-            Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.BottomMargin = value).ParamName);
+            Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.MarginTop = value).ParamName);
+            Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => document.MarginBottom = value).ParamName);
         }
 
         var table = document.AddPage().AddTable(50, 700, 300);
         Assert.Equal("value", Assert.Throws<ArgumentOutOfRangeException>(() => table.HeaderRowCount = -1).ParamName);
-        Assert.Equal(0, document.TopMargin);
+        Assert.Equal(0, document.MarginTop);
         Assert.Equal(0, table.HeaderRowCount);
     }
 
     [Fact]
     public void Margins_that_leave_no_room_make_saving_a_table_fail()
     {
-        var document = new PdfDocument { TopMargin = 500, BottomMargin = 400 };
+        var document = new PdfDocument { MarginTop = 500, MarginBottom = 400 };
         NumberedTable(document.AddPage(), 300, 1);
 
         Assert.Throws<InvalidOperationException>(() => SaveToMemory(document));
@@ -233,7 +232,7 @@ public class TablePaginationTests
     public void Readme_tables_across_pages_sample_runs_as_written()
     {
         // The code of README.md and nuget/README.md "Tables across pages", saved to memory instead of a file (PR-012).
-        var pdfDocument = new PdfDocument { TopMargin = 40, BottomMargin = 50 };
+        var pdfDocument = new PdfDocument { MarginTop = 40, MarginBottom = 50 };
         var page = pdfDocument.AddPage();
 
         var table = page.AddTable(40, 760, 515);
@@ -261,7 +260,7 @@ public class TablePaginationTests
     [Fact]
     public void Row_taller_than_the_page_fails_before_anything_is_written()
     {
-        foreach (var rule in new[] { PdfRowHeightRule.Exactly, PdfRowHeightRule.AtLeast })
+        foreach (var rule in new[] { PdfRowHeightMode.Exactly, PdfRowHeightMode.AtLeast })
         {
             var document = new PdfDocument();
             var page = document.AddPage();
@@ -269,8 +268,8 @@ public class TablePaginationTests
             table.AddColumn();
             table.AddRow().GetCell(0).Text = "before";
             var row = table.AddRow();
-            row.HeightRule = rule;
-            if (rule == PdfRowHeightRule.Exactly)
+            row.HeightMode = rule;
+            if (rule == PdfRowHeightMode.Exactly)
             {
                 row.Height = 900;
             }
@@ -300,11 +299,11 @@ public class TablePaginationTests
     {
         // Review F-15: the table starts above the body top, so its 750 pt row fits below it on page 1, but no empty
         // body can hold it; the release before this story failed before output, and so must this one.
-        var document = new PdfDocument { TopMargin = 100 };
+        var document = new PdfDocument { MarginTop = 100 };
         var table = document.AddPage().AddTable(50, 820, 160);
         table.AddColumn();
         var row = table.AddRow();
-        row.HeightRule = PdfRowHeightRule.Exactly;
+        row.HeightMode = PdfRowHeightMode.Exactly;
         row.Height = 750;
         row.GetCell(0).Text = "tall";
 
@@ -325,11 +324,11 @@ public class TablePaginationTests
         table.HeaderRowCount = 1;
         table.RepeatHeaderRows = true;
         var header = table.AddRow();
-        header.HeightRule = PdfRowHeightRule.Exactly;
+        header.HeightMode = PdfRowHeightMode.Exactly;
         header.Height = 100;
         header.GetCell(0).Text = "Header";
         var row = table.AddRow();
-        row.HeightRule = PdfRowHeightRule.Exactly;
+        row.HeightMode = PdfRowHeightMode.Exactly;
         row.Height = height;
         row.GetCell(0).Text = "tall";
 
@@ -358,7 +357,7 @@ public class TablePaginationTests
     [Fact]
     public async Task Save_async_writes_the_same_bytes_as_save()
     {
-        var document = new PdfDocument { BottomMargin = 36 };
+        var document = new PdfDocument { MarginBottom = 36 };
         var page = document.AddPage();
         NumberedTable(page, 700, 90);
 
@@ -396,7 +395,7 @@ public class TablePaginationTests
     [Fact]
     public void Table_whose_first_row_has_no_room_starts_on_the_next_page()
     {
-        var document = new PdfDocument { BottomMargin = 36 };
+        var document = new PdfDocument { MarginBottom = 36 };
         var page = document.AddPage();
         page.AddText("ABOVE", 50, 60);
         NumberedTable(page, 30, 5);
@@ -439,7 +438,7 @@ public class TablePaginationTests
         // A06: no amplification (at most one page per data row) and the same bytes in every culture.
         byte[] Build()
         {
-            var document = new PdfDocument { TopMargin = 36.5, BottomMargin = 36.5 };
+            var document = new PdfDocument { MarginTop = 36.5, MarginBottom = 36.5 };
             var table = HeaderTable(document.AddPage(), 700.25, 1000);
             table.RepeatHeaderRows = true;
             return PdfPageReader.SaveBytes(document);
@@ -480,7 +479,7 @@ public class TablePaginationTests
     {
         foreach (var (margin, lastOnFirstPage) in new[] { (0.0, 34), (72.0, 30) })
         {
-            var document = new PdfDocument { BottomMargin = margin };
+            var document = new PdfDocument { MarginBottom = margin };
             NumberedTable(document.AddPage(), 700, 60);
 
             var pages = PdfPageReader.Save(document);
@@ -495,7 +494,7 @@ public class TablePaginationTests
     public void The_table_end_query_is_not_public_api()
     {
         // WR-029: content after a table is placed through the body flow, so there is no table end query.
-        Assert.Null(typeof(PdfPageBuilder).GetMethod("GetTableEnd"));
+        Assert.Null(typeof(PdfPage).GetMethod("GetTableEnd"));
         Assert.DoesNotContain(typeof(PdfDocument).Assembly.GetExportedTypes(), type => type.Name == "PdfTableEnd");
     }
 
@@ -519,7 +518,7 @@ public class TablePaginationTests
     }
 
     // A one-column table whose first row is the header "H", followed by rows "R0" to "R{rows - 1}".
-    private static PdfTable HeaderTable(PdfPageBuilder page, double y, int rows)
+    private static PdfTable HeaderTable(PdfPage page, double y, int rows)
     {
         var table = page.AddTable(50, y, 300);
         table.AddColumn();
@@ -530,7 +529,7 @@ public class TablePaginationTests
     }
 
     // A one-column table of 20 pt rows labelled prefix + index.
-    private static PdfTable NumberedTable(PdfPageBuilder page, double y, int rows, double x = 50, double width = 300, string prefix = "R")
+    private static PdfTable NumberedTable(PdfPage page, double y, int rows, double x = 50, double width = 300, string prefix = "R")
     {
         var table = page.AddTable(x, y, width);
         table.AddColumn();

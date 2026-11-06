@@ -1,7 +1,6 @@
 using System.Text.RegularExpressions;
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 using UnlimitedPDF.Models.Internal;
-using UnlimitedPDF.Models.Table;
 
 namespace UnlimitedPDF.Tests;
 
@@ -29,7 +28,7 @@ public class TableRenderingTests
     public void At_least_row_grows_to_fit_an_image_and_rows_below_move_down()
     {
         // AC-10: in a 100 pt column with 4 pt padding the logo is 92 x 36.8 and the AtLeast row grows to 44.8 pt.
-        var table = SingleCellTable(cell => cell.AddContent(Logo), PdfRowHeightRule.AtLeast);
+        var table = SingleCellTable(cell => cell.AddContent(Logo), PdfRowHeightMode.AtLeast);
         table.GetOrCreateCell(1, 0).Text = "next";
 
         var layout = PdfTableRenderer.Layout(table, 1, 1);
@@ -50,7 +49,7 @@ public class TableRenderingTests
     public void At_least_text_row_uses_the_line_height_factor()
     {
         // AC-22: a 12 pt line takes 1.2 x 12 = 14.4 pt by default and 12 pt with a factor of 1.0.
-        var table = SingleCellTable(cell => cell.Text = "Text", PdfRowHeightRule.AtLeast, rowHeight: 10);
+        var table = SingleCellTable(cell => cell.Text = "Text", PdfRowHeightMode.AtLeast, rowHeight: 10);
         Assert.Equal(14.4 + 8, PdfTableRenderer.Layout(table, 1, 1).RowHeights[0], Precision);
 
         table.GetCell(0, 0).LineHeightFactor = 1.0;
@@ -81,7 +80,7 @@ public class TableRenderingTests
     [Fact]
     public void Empty_text_items_take_no_space_and_draw_nothing()
     {
-        var table = SingleCellTable(cell => cell.SetContent("", Logo, ""), PdfRowHeightRule.AtLeast);
+        var table = SingleCellTable(cell => cell.SetContent("", Logo, ""), PdfRowHeightMode.AtLeast);
 
         var layout = PdfTableRenderer.Layout(table, 1, 1);
         Assert.Single(layout.Cells[0, 0].Items);
@@ -108,7 +107,7 @@ public class TableRenderingTests
         var table = SingleCellTable(cell =>
         {
             cell.AddContent(Logo);
-            cell.HAlign = PdfCellHorizontalAlignment.Center;
+            cell.HorizontalAlignment = PdfCellHorizontalAlignment.Center;
         });
 
         var layout = PdfTableRenderer.Layout(table, 1, 1);
@@ -150,7 +149,7 @@ public class TableRenderingTests
         Assert.Equal(0, stream.Length);
         Assert.Contains("table 2 on page 2, row index 1, column index 0", exception.Message);
         Assert.Contains("an Exactly row of 20 pt", exception.Message);
-        Assert.Contains("PdfRowHeightRule.AtLeast", exception.Message);
+        Assert.Contains("PdfRowHeightMode.AtLeast", exception.Message);
     }
 
     [Fact]
@@ -180,7 +179,7 @@ public class TableRenderingTests
         {
             cell.AddContent(Logo);
             cell.Padding = 50;
-        }, PdfRowHeightRule.AtLeast);
+        }, PdfRowHeightMode.AtLeast);
 
         var exception = Assert.Throws<InvalidOperationException>(() => PdfTableRenderer.Layout(table, 1, 1));
         Assert.Contains("no width left", exception.Message);
@@ -192,8 +191,8 @@ public class TableRenderingTests
         var right = SingleCellTable(cell =>
         {
             cell.AddContent(PdfImage.FromBytes(new JpegBuilder { Width = 40, Height = 20 }.Build()));
-            cell.HAlign = PdfCellHorizontalAlignment.Right;
-        }, PdfRowHeightRule.AtLeast);
+            cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
+        }, PdfRowHeightMode.AtLeast);
 
         // 40 x 20 px = 30 x 15 pt; right aligned: 50 + 100 - 30 - 4 = 116.
         Assert.Contains("q 30 0 0 15 116 681 cm /Im1 Do Q", Render(right));
@@ -206,7 +205,7 @@ public class TableRenderingTests
         var page = document.AddPage();
         page.AddImage(Logo, 400, 760);
         var table = page.AddTable(50, 700, 100);
-        table.RowHeightRule = PdfRowHeightRule.AtLeast;
+        table.RowHeightMode = PdfRowHeightMode.AtLeast;
         table.GetOrCreateCell(0, 0).AddContent(Logo);
         table.GetOrCreateCell(1, 0).AddContent(PdfImage.FromBytes(new PngBuilder { ColorType = 6 }.Build()));
 
@@ -225,7 +224,7 @@ public class TableRenderingTests
     public void Larger_text_uses_its_own_line_height()
     {
         // FA-04: the formula scales with font size (24 pt text takes 28.8 pt); public cells use 12 pt.
-        var table = SingleCellTable(cell => cell.AddContent(new PdfCellText("Big", 24)), PdfRowHeightRule.AtLeast, rowHeight: 10);
+        var table = SingleCellTable(cell => cell.AddContent(new PdfCellText("Big", 24)), PdfRowHeightMode.AtLeast, rowHeight: 10);
 
         Assert.Equal(28.8, PdfTableRenderer.Layout(table, 1, 1).Cells[0, 0].BlockHeight, Precision);
     }
@@ -237,11 +236,11 @@ public class TableRenderingTests
         using var culture = new CultureScope("de-DE");
         var document = new PdfDocument();
         var table = document.AddPage().AddTable(36.5, 700.25, 220.75);
-        table.RowHeightRule = PdfRowHeightRule.AtLeast;
+        table.RowHeightMode = PdfRowHeightMode.AtLeast;
         table.SetColumnWidths(100.5, 120.25);
         var cell = table.GetOrCreateCell(0, 0);
         cell.SetContent(Logo, "Logo");
-        cell.Background = new PdfColor(0.2, 0.4, 0.6);
+        cell.BackgroundColor = new PdfColor(0.2, 0.4, 0.6);
         table.GetOrCreateCell(0, 1).Text = "Value";
 
         using var stream = new MemoryStream();
@@ -257,7 +256,7 @@ public class TableRenderingTests
     public void Stacked_content_draws_top_to_bottom_in_order()
     {
         // AC-11: photo, "Laptop", "SKU 123" in an AtLeast row are drawn in that order, each below the previous.
-        var table = SingleCellTable(cell => cell.SetContent(Logo, "Laptop", "SKU 123"), PdfRowHeightRule.AtLeast);
+        var table = SingleCellTable(cell => cell.SetContent(Logo, "Laptop", "SKU 123"), PdfRowHeightMode.AtLeast);
 
         var content = Render(table);
         int image = content.IndexOf(" Do Q", StringComparison.Ordinal);
@@ -276,7 +275,7 @@ public class TableRenderingTests
     public void Stacked_image_and_text_follow_story_example()
     {
         // AC-22: a logo scaled to 36.8 pt above 12 pt text in an AtLeast row with 4 pt padding makes the row 59.2 pt.
-        var table = SingleCellTable(cell => cell.SetContent(Logo, "Logo"), PdfRowHeightRule.AtLeast);
+        var table = SingleCellTable(cell => cell.SetContent(Logo, "Logo"), PdfRowHeightMode.AtLeast);
 
         Assert.Equal(59.2, PdfTableRenderer.Layout(table, 1, 1).RowHeights[0], Precision);
     }
@@ -287,7 +286,7 @@ public class TableRenderingTests
         var top = SingleCellTable(cell =>
         {
             cell.AddContent(PdfImage.FromBytes(new JpegBuilder { Width = 40, Height = 8 }.Build())); // 30 x 6 pt
-            cell.VAlign = PdfCellVerticalAlignment.Top;
+            cell.VerticalAlignment = PdfCellVerticalAlignment.Top;
         }, rowHeight: 30);
 
         // Top: bottom edge at 700 - 4 - 6.
@@ -305,7 +304,7 @@ public class TableRenderingTests
         var table = SingleCellTable(cell =>
         {
             cell.Text = "Text";
-            cell.VAlign = alignment;
+            cell.VerticalAlignment = alignment;
         });
 
         Assert.Contains(expected, Render(table));
@@ -327,9 +326,9 @@ public class TableRenderingTests
         });
     }
 
-    private static PdfTable SingleCellTable(Action<PdfTableCell> fill, PdfRowHeightRule rule = PdfRowHeightRule.Exactly, double rowHeight = 20)
+    private static PdfTable SingleCellTable(Action<PdfCell> fill, PdfRowHeightMode rule = PdfRowHeightMode.Exactly, double rowHeight = 20)
     {
-        var table = new PdfTable { X = 50, Y = 700, Width = 100, RowHeight = rowHeight, RowHeightRule = rule };
+        var table = new PdfTable { X = 50, Y = 700, Width = 100, RowHeight = rowHeight, RowHeightMode = rule };
         table.SetColumnWidths(100);
         fill(table.GetOrCreateCell(0, 0));
         return table;

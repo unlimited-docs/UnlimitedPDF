@@ -1,10 +1,10 @@
-using UnlimitedPDF.Models.Table;
-
 namespace UnlimitedPDF;
 
 /// <summary>
 /// A group of body items that moves to the next page as one piece (WR-033). Items stack below each other with their
 /// spacing; x offsets are measured from the block's own offset. A table in a block is drawn whole and never splits.
+/// Every <c>Add*</c> method here takes the content and its size first, then <c>spacing</c>, then the optional
+/// <c>x</c> offset (PR-016).
 /// </summary>
 public sealed class PdfFlowBlock
 {
@@ -28,7 +28,7 @@ public sealed class PdfFlowBlock
     #region Public Methods
 
     /// <summary>
-    /// Adds an image to the block. Sizes follow <see cref="PdfPageBuilder.AddImage"/>.
+    /// Adds an image to the block. Sizes follow <see cref="PdfPage.AddImage"/>.
     /// </summary>
     /// <param name="image">The image.</param>
     /// <param name="width">The width in points, or null.</param>
@@ -38,7 +38,7 @@ public sealed class PdfFlowBlock
     /// <param name="options">Placement options, or null for the defaults.</param>
     /// <exception cref="ArgumentNullException"><paramref name="image"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A size or offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds an image to the block.")]
     public void AddImage(PdfImage image, double? width = null, double? height = null, double spacing = 0, double x = 0, PdfImagePlacementOptions? options = null) =>
         _block.Children.Add(PdfBodyFlow.CreateImage(image, width, height, spacing, x, options, keepWithNext: false));
@@ -53,7 +53,7 @@ public sealed class PdfFlowBlock
     /// <param name="x">The offset from the block's left edge, in points.</param>
     /// <exception cref="ArgumentNullException"><paramref name="color"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A size or offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a filled rectangle to the block.")]
     public void AddRectangle(double width, double height, PdfColor color, double spacing = 0, double x = 0) =>
         _block.Children.Add(PdfBodyFlow.CreateRectangle(width, height, color, spacing, x, keepWithNext: false));
@@ -66,7 +66,7 @@ public sealed class PdfFlowBlock
     /// <param name="x">The offset from the block's left edge, in points.</param>
     /// <returns>The table, for configuration.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The width, spacing, or offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a table to the block.")]
     public PdfTable AddTable(double width, double spacing = 0, double x = 0)
     {
@@ -85,7 +85,7 @@ public sealed class PdfFlowBlock
     /// <param name="x">The offset used by the alignment, in points.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a line of text to the block.")]
     public void AddText(string text, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0) =>
         _block.Children.Add(PdfBodyFlow.CreateText(text, spacing, fontSize, alignment, x, keepWithNext: false));

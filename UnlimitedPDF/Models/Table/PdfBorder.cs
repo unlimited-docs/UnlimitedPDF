@@ -1,4 +1,4 @@
-﻿namespace UnlimitedPDF.Models.Table;
+﻿namespace UnlimitedPDF;
 
 public class PdfBorder
 {

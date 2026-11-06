@@ -68,7 +68,7 @@ public class PdfUnitsTests
 
         Assert.All(methods, method =>
         {
-            Assert.Equal("0.1.0", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
+            Assert.Equal("1.0.0", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
             Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
         });
     }

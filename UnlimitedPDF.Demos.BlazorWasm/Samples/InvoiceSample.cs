@@ -1,7 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Extensions;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -38,7 +36,7 @@ public static class InvoiceSample
     public static PdfDocument Build(InvoiceInput input, SampleImages images)
     {
         // The side margins stay 0 so the header band runs edge to edge; content is placed 50 pt in.
-        var document = new PdfDocument { BottomMargin = 24 };
+        var document = new PdfDocument { MarginBottom = 24 };
         var (pageWidth, _) = PdfPageSize.A4.ToDimensions();
 
         // The header and footer are drawn on every page the invoice needs.
@@ -53,8 +51,8 @@ public static class InvoiceSample
         document.Footer.AddText($"Invoice No: {input.InvoiceNumber}", Left, 12, 9);
         document.Footer.AddText("Page {page} of {pages}", Left, 12, 9, PdfTextAlignment.Right);
 
-        document.Body.TopGap = 20;
-        document.Body.BottomGap = 20;
+        document.BodyMarginTop = 20;
+        document.BodyMarginBottom = 20;
         var body = document.Body;
 
         // Seller and buyer side by side, in a table without borders.
@@ -79,7 +77,7 @@ public static class InvoiceSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         decimal subtotal = 0;
@@ -90,7 +88,7 @@ public static class InvoiceSample
             subtotal += amount;
 
             var row = items.AddRow();
-            row.HeightRule = PdfRowHeightRule.AtLeast;
+            row.HeightMode = PdfRowHeightMode.AtLeast;
             row.GetCell(0).Text = (index + 1).ToString();
             if (line.Photo.Length > 0)
             {
@@ -141,7 +139,7 @@ public static class InvoiceSample
             var cell = row.GetCell(column);
             cell.Text = texts[column];
             cell.Padding = 0;
-            foreach (var border in new[] { cell.LeftBorder, cell.TopBorder, cell.RightBorder, cell.BottomBorder })
+            foreach (var border in new[] { cell.BorderLeft, cell.BorderTop, cell.BorderRight, cell.BorderBottom })
             {
                 border.Color = PdfColor.White;
             }
@@ -157,15 +155,15 @@ public static class InvoiceSample
 
         if (highlight)
         {
-            labelCell.Background = _totalTint;
-            valueCell.Background = _totalTint;
+            labelCell.BackgroundColor = _totalTint;
+            valueCell.BackgroundColor = _totalTint;
         }
     }
 
-    private static void SetRight(PdfTableCell cell, string text)
+    private static void SetRight(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

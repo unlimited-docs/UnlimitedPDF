@@ -1,4 +1,4 @@
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -38,10 +38,10 @@ public class PageRuleTests
     {
         var document = Document(pages: 2);
         var odd = document.AddPageRule(PdfPageRuleTarget.Odd);
-        odd.LeftMargin = 60;
+        odd.MarginLeft = 60;
         odd.Footer.AddText("odd", 0, 0);
         var even = document.AddPageRule(PdfPageRuleTarget.Even);
-        even.RightMargin = 60;
+        even.MarginRight = 60;
         even.Footer.AddText("even", 0, 0);
 
         var pages = PdfPageReader.Save(document);
@@ -62,7 +62,7 @@ public class PageRuleTests
         document.AddPageRule(3).Header.Height = 100;
         var laterOdd = document.AddPageRule(PdfPageRuleTarget.Odd);
         laterOdd.Header.Height = 70;
-        laterOdd.BodyTopGap = 5;
+        laterOdd.BodyMarginTop = 5;
 
         var pages = PdfPageReader.Save(document);
 
@@ -87,8 +87,8 @@ public class PageRuleTests
         Assert.False(pages[1].Shows("F"));
         Assert.Throws<InvalidOperationException>(() => last.Footer.Height = 10);
         Assert.Throws<InvalidOperationException>(() => last.Header.IsHidden = true);
-        Assert.Throws<InvalidOperationException>(() => last.BodyTopGap = 10);
-        Assert.Throws<InvalidOperationException>(() => last.LeftMargin = 10);
+        Assert.Throws<InvalidOperationException>(() => last.BodyMarginTop = 10);
+        Assert.Throws<InvalidOperationException>(() => last.MarginLeft = 10);
     }
 
     [Fact]
@@ -99,7 +99,7 @@ public class PageRuleTests
 
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule(0));
         Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule((PdfPageRuleTarget)99));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule(PdfPageRuleTarget.Even).BodyBottomGap = -1);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule(PdfPageRuleTarget.Even).BodyMarginBottom = -1);
         Assert.Single(PdfPageReader.Save(document));
     }
 

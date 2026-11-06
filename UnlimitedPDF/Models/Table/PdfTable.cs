@@ -1,4 +1,4 @@
-﻿namespace UnlimitedPDF.Models.Table;
+﻿namespace UnlimitedPDF;
 
 /// <summary>
 /// A table drawn on a page: rows of cells in columns, positioned by its top-left corner.
@@ -7,9 +7,9 @@ public class PdfTable
 {
     #region Fields and Constants
 
-    private readonly List<PdfTableColumn> _cols = new();
+    private readonly List<PdfColumn> _cols = new();
     private int _headerRowCount;
-    private readonly List<PdfTableRow> _rows = new();
+    private readonly List<PdfRow> _rows = new();
 
     #endregion
 
@@ -21,164 +21,104 @@ public class PdfTable
     /// Adds a column; every existing row gets an empty cell for it.
     /// </summary>
     /// <returns>The new column.</returns>
-    public PdfTableColumn AddColumn()
+    public PdfColumn AddColumn()
     {
-        var col = new PdfTableColumn(_cols.Count) { Width = null };
-        _cols.Add(col);
+        var column = new PdfColumn(_cols.Count) { Width = null };
+        _cols.Add(column);
         // ensure all rows extend
-        foreach (var r in _rows) r.EnsureColumns(ColCount);
-        return col;
+        foreach (var r in _rows) r.EnsureColumns(ColumnCount);
+        return column;
     }
 
     /// <summary>
     /// Adds a row with one empty cell per column.
     /// </summary>
     /// <returns>The new row.</returns>
-    public PdfTableRow AddRow()
+    public PdfRow AddRow()
     {
-        var row = new PdfTableRow(_rows.Count, ColCount);
+        var row = new PdfRow(_rows.Count, ColumnCount);
         _rows.Add(row);
         return row;
     }
 
     /// <summary>
-    /// Adds rows and columns until the table has at least <paramref name="rows"/> rows and <paramref name="cols"/> columns.
+    /// Adds rows and columns until the table has at least <paramref name="rows"/> rows and <paramref name="columns"/> columns.
     /// </summary>
     /// <param name="rows">The minimum number of rows.</param>
-    /// <param name="cols">The minimum number of columns.</param>
+    /// <param name="columns">The minimum number of columns.</param>
     /// <exception cref="ArgumentOutOfRangeException">A count is negative.</exception>
     [AddedVersion("0.0.3")]
     [Description("Adds rows and columns until the table has at least the given number of rows and columns.")]
-    public void EnsureSize(int rows, int cols)
+    public void EnsureSize(int rows, int columns)
     {
         if (rows < 0) throw new ArgumentOutOfRangeException(nameof(rows));
-        if (cols < 0) throw new ArgumentOutOfRangeException(nameof(cols));
-        while (_cols.Count < cols) AddColumn();
+        if (columns < 0) throw new ArgumentOutOfRangeException(nameof(columns));
+        while (_cols.Count < columns) AddColumn();
         while (_rows.Count < rows) AddRow();
     }
 
     /// <summary>
-    /// Returns the cell at (<paramref name="row"/>, <paramref name="col"/>).
+    /// Returns the cell at (<paramref name="row"/>, <paramref name="column"/>). It never adds rows or columns; use
+    /// <see cref="GetOrCreateCell"/> to grow the table.
     /// </summary>
     /// <param name="row">The row index.</param>
-    /// <param name="col">The column index.</param>
+    /// <param name="column">The column index.</param>
     /// <returns>The cell.</returns>
     /// <exception cref="ArgumentOutOfRangeException">An index is outside the table.</exception>
     [AddedVersion("0.0.3")]
     [Description("Returns the cell at the given row and column.")]
-    public PdfTableCell GetCell(int row, int col)
+    public PdfCell GetCell(int row, int column)
     {
         if (row < 0 || row >= RowCount) throw new ArgumentOutOfRangeException(nameof(row));
-        if (col < 0 || col >= ColCount) throw new ArgumentOutOfRangeException(nameof(col));
-        return _rows[row].GetCell(col);
+        if (column < 0 || column >= ColumnCount) throw new ArgumentOutOfRangeException(nameof(column));
+        return _rows[row].GetCell(column);
     }
 
     /// <summary>
-    /// Return effective column widths: use fixed widths where set, distribute remaining equally.
-    /// </summary>
-    public double[] GetEffectiveColumnWidths()
-    {
-        if (ColCount == 0) return Array.Empty<double>();
-        double totalFixed = 0;
-        int fixedCount = 0;
-        foreach (var c in _cols)
-        {
-            if (c.Width.HasValue) { totalFixed += c.Width.Value; fixedCount++; }
-        }
-        int flexible = ColCount - fixedCount;
-        double remaining = Math.Max(0, Width - totalFixed);
-        double flexWidth = flexible > 0 ? remaining / flexible : 0;
-        var result = new double[ColCount];
-        for (int i = 0; i < ColCount; i++)
-        {
-            result[i] = _cols[i].Width ?? flexWidth;
-        }
-        return result;
-    }
-
-    /// <summary>
-    /// Returns the cell at (<paramref name="row"/>, <paramref name="col"/>), adding rows and columns first when needed.
+    /// Returns the cell at (<paramref name="row"/>, <paramref name="column"/>), adding rows and columns first when needed.
     /// </summary>
     /// <param name="row">The row index.</param>
-    /// <param name="col">The column index.</param>
+    /// <param name="column">The column index.</param>
     /// <returns>The cell.</returns>
     /// <exception cref="ArgumentOutOfRangeException">An index is negative.</exception>
     [AddedVersion("0.0.3")]
     [Description("Returns the cell at the given row and column, adding rows and columns first when needed.")]
-    public PdfTableCell GetOrCreateCell(int row, int col)
+    public PdfCell GetOrCreateCell(int row, int column)
     {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (col < 0) throw new ArgumentOutOfRangeException(nameof(col));
-        EnsureSize(row + 1, col + 1);
-        return _rows[row].GetCell(col);
+        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        EnsureSize(row + 1, column + 1);
+        return _rows[row].GetCell(column);
     }
 
     /// <summary>
     /// Inserts a column at <paramref name="index"/>; every row gets an empty cell for it.
     /// </summary>
-    public PdfTableColumn InsertColumn(int index)
+    public PdfColumn InsertColumn(int index)
     {
         if (index < 0 || index > _cols.Count) throw new ArgumentOutOfRangeException(nameof(index));
-        var col = new PdfTableColumn(index) { Width = null };
-        _cols.Insert(index, col);
+        var column = new PdfColumn(index) { Width = null };
+        _cols.Insert(index, column);
         // fix indices
         for (int i = 0; i < _cols.Count; i++) _cols[i].Index = i;
         // ensure rows update their cell lists
         foreach (var r in _rows) r.InsertColumnAt(index);
         NormalizeSpans();
-        return col;
+        return column;
     }
 
     /// <summary>
     /// Inserts a row with one empty cell per column at <paramref name="index"/>.
     /// </summary>
-    public PdfTableRow InsertRow(int index)
+    public PdfRow InsertRow(int index)
     {
         if (index < 0 || index > _rows.Count) throw new ArgumentOutOfRangeException(nameof(index));
-        var row = new PdfTableRow(index, ColCount);
+        var row = new PdfRow(index, ColumnCount);
         _rows.Insert(index, row);
         // fix indices
         for (int i = 0; i < _rows.Count; i++) _rows[i].Index = i;
         NormalizeSpans();
         return row;
-    }
-
-    /// <summary>
-    /// Checks if neighbour at (nr,nc) belongs to same span owner as (ownerR,ownerC).
-    /// </summary>
-    public bool IsSameSpanCell(int nr, int nc, int ownerR, int ownerC)
-    {
-        if (nr < 0 || nc < 0 || nr >= RowCount || nc >= ColCount) return false;
-        for (int r = 0; r <= nr; r++)
-        {
-            for (int c = 0; c <= nc; c++)
-            {
-                var cell = _rows[r].GetCell(c);
-                int rs = Math.Max(1, cell.RowSpan);
-                int cs = Math.Max(1, cell.ColSpan);
-                if (r + rs > nr && c + cs > nc && r <= nr && c <= nc)
-                    return (r == ownerR && c == ownerC);
-            }
-        }
-        return false;
-    }
-
-    /// <summary>
-    /// Ensure RowSpan/ColSpan are in-bounds and >=1 for every cell.
-    /// </summary>
-    public void NormalizeSpans()
-    {
-        for (int r = 0; r < RowCount; r++)
-        {
-            for (int c = 0; c < ColCount; c++)
-            {
-                var cell = _rows[r].GetCell(c);
-                if (cell.RowSpan < 1) cell.RowSpan = 1;
-                if (cell.ColSpan < 1) cell.ColSpan = 1;
-                if (r + cell.RowSpan > RowCount) cell.RowSpan = Math.Max(1, RowCount - r);
-                if (c + cell.ColSpan > ColCount) cell.ColSpan = Math.Max(1, ColCount - c);
-            }
-        }
     }
 
     /// <summary>
@@ -205,26 +145,26 @@ public class PdfTable
     }
 
     /// <summary>
-    /// Places <paramref name="cell"/>, with its content, at (<paramref name="row"/>, <paramref name="col"/>), adding rows
+    /// Places <paramref name="cell"/>, with its content, at (<paramref name="row"/>, <paramref name="column"/>), adding rows
     /// and columns first when needed. A null cell places a new empty cell.
     /// </summary>
     /// <param name="row">The row index.</param>
-    /// <param name="col">The column index.</param>
+    /// <param name="column">The column index.</param>
     /// <param name="cell">The cell to place.</param>
     /// <exception cref="ArgumentOutOfRangeException">An index is negative.</exception>
     [AddedVersion("0.0.3")]
     [Description("Places a cell, with its content, at the given row and column.")]
-    public void SetCell(int row, int col, PdfTableCell cell)
+    public void SetCell(int row, int column, PdfCell cell)
     {
         if (row < 0) throw new ArgumentOutOfRangeException(nameof(row));
-        if (col < 0) throw new ArgumentOutOfRangeException(nameof(col));
-        EnsureSize(row + 1, col + 1);
-        _rows[row].SetCell(col, cell ?? new PdfTableCell());
+        if (column < 0) throw new ArgumentOutOfRangeException(nameof(column));
+        EnsureSize(row + 1, column + 1);
+        _rows[row].SetCell(column, cell ?? new PdfCell());
         NormalizeSpans();
     }
 
     /// <summary>
-    /// Set absolute widths for columns. Length must be <= ColCount; if shorter it's padded.
+    /// Set absolute widths for columns. Length must be <= ColumnCount; if shorter it's padded.
     /// </summary>
     public void SetColumnWidths(params double[] widths)
     {
@@ -242,12 +182,12 @@ public class PdfTable
     }
 
     /// <summary>
-    /// Sets the first text item of the cell at (<paramref name="row"/>, <paramref name="col"/>), adding rows and columns
+    /// Sets the first text item of the cell at (<paramref name="row"/>, <paramref name="column"/>), adding rows and columns
     /// first when needed. Images and other text items in the cell are untouched.
     /// </summary>
-    public void SetText(int row, int col, string text)
+    public void SetText(int row, int column, string text)
     {
-        var cell = GetOrCreateCell(row, col);
+        var cell = GetOrCreateCell(row, column);
         cell.Text = text ?? "";
     }
 
@@ -255,15 +195,15 @@ public class PdfTable
     /// Removes trailing rows and columns whose cells are all empty. A cell holding an image, or any non-empty text,
     /// is not empty.
     /// </summary>
-    [AddedVersion("0.0.3")]
+    [AddedVersion("1.0.0")]
     [Description("Removes trailing rows and columns whose cells are all empty.")]
-    public void TrimEmptyTrailingRowsAndCols()
+    public void TrimEmptyTrailingRowsAndColumns()
     {
         // trim trailing empty rows
         for (int r = RowCount - 1; r >= 0; r--)
         {
             bool any = false;
-            for (int c = 0; c < ColCount; c++)
+            for (int c = 0; c < ColumnCount; c++)
             {
                 if (!_rows[r].GetCell(c).IsEmpty) { any = true; break; }
             }
@@ -271,11 +211,11 @@ public class PdfTable
             else break;
         }
 
-        // trim trailing cols
+        // trim trailing columns
         bool colTrim = true;
-        while (colTrim && ColCount > 0)
+        while (colTrim && ColumnCount > 0)
         {
-            int last = ColCount - 1;
+            int last = ColumnCount - 1;
             bool any = false;
             foreach (var row in _rows)
             {
@@ -293,6 +233,71 @@ public class PdfTable
 
     #endregion
 
+    #region Internal Methods
+
+    /// <summary>
+    /// Return effective column widths: use fixed widths where set, distribute remaining equally.
+    /// </summary>
+    internal double[] GetEffectiveColumnWidths()
+    {
+        if (ColumnCount == 0) return Array.Empty<double>();
+        double totalFixed = 0;
+        int fixedCount = 0;
+        foreach (var c in _cols)
+        {
+            if (c.Width.HasValue) { totalFixed += c.Width.Value; fixedCount++; }
+        }
+        int flexible = ColumnCount - fixedCount;
+        double remaining = Math.Max(0, Width - totalFixed);
+        double flexWidth = flexible > 0 ? remaining / flexible : 0;
+        var result = new double[ColumnCount];
+        for (int i = 0; i < ColumnCount; i++)
+        {
+            result[i] = _cols[i].Width ?? flexWidth;
+        }
+        return result;
+    }
+
+    /// <summary>
+    /// Checks if neighbour at (nr,nc) belongs to same span owner as (ownerR,ownerC).
+    /// </summary>
+    internal bool IsSameSpanCell(int nr, int nc, int ownerR, int ownerC)
+    {
+        if (nr < 0 || nc < 0 || nr >= RowCount || nc >= ColumnCount) return false;
+        for (int r = 0; r <= nr; r++)
+        {
+            for (int c = 0; c <= nc; c++)
+            {
+                var cell = _rows[r].GetCell(c);
+                int rs = Math.Max(1, cell.RowSpan);
+                int cs = Math.Max(1, cell.ColumnSpan);
+                if (r + rs > nr && c + cs > nc && r <= nr && c <= nc)
+                    return (r == ownerR && c == ownerC);
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Ensure RowSpan/ColumnSpan are in-bounds and >=1 for every cell.
+    /// </summary>
+    internal void NormalizeSpans()
+    {
+        for (int r = 0; r < RowCount; r++)
+        {
+            for (int c = 0; c < ColumnCount; c++)
+            {
+                var cell = _rows[r].GetCell(c);
+                if (cell.RowSpan < 1) cell.RowSpan = 1;
+                if (cell.ColumnSpan < 1) cell.ColumnSpan = 1;
+                if (r + cell.RowSpan > RowCount) cell.RowSpan = Math.Max(1, RowCount - r);
+                if (c + cell.ColumnSpan > ColumnCount) cell.ColumnSpan = Math.Max(1, ColumnCount - c);
+            }
+        }
+    }
+
+    #endregion
+
     #endregion
 
     #region Properties, Indexers
@@ -300,12 +305,13 @@ public class PdfTable
     /// <summary>
     /// Gets the number of columns.
     /// </summary>
-    public int ColCount => _cols.Count;
+    [AddedVersion("1.0.0")]
+    public int ColumnCount => _cols.Count;
 
     /// <summary>
     /// Gets the columns.
     /// </summary>
-    public IReadOnlyList<PdfTableColumn> Columns => _cols;
+    public IReadOnlyList<PdfColumn> Columns => _cols;
 
     /// <summary>
     /// Gets or sets how many leading rows are header rows. The default is 0 (no header rows). Header rows are never the
@@ -336,21 +342,22 @@ public class PdfTable
     public int RowCount => _rows.Count;
 
     /// <summary>
-    /// Gets or sets the default row height in points, used by rows that set no <see cref="PdfTableRow.Height"/>.
+    /// Gets or sets the default row height in points, used by rows that set no <see cref="PdfRow.Height"/>.
     /// The default is 20.
     /// </summary>
     public double RowHeight { get; set; } = 20;
 
     /// <summary>
-    /// Gets or sets the default height rule, used by rows that set no <see cref="PdfTableRow.HeightRule"/>. The default
-    /// is <see cref="PdfRowHeightRule.Exactly"/>, which keeps every row at its height as before.
+    /// Gets or sets the default height mode, used by rows that set no <see cref="PdfRow.HeightMode"/>. The default
+    /// is <see cref="PdfRowHeightMode.Exactly"/>, which keeps every row at its height as before.
     /// </summary>
-    public PdfRowHeightRule RowHeightRule { get; set; } = PdfRowHeightRule.Exactly;
+    [AddedVersion("1.0.0")]
+    public PdfRowHeightMode RowHeightMode { get; set; } = PdfRowHeightMode.Exactly;
 
     /// <summary>
     /// Gets the rows.
     /// </summary>
-    public IReadOnlyList<PdfTableRow> Rows => _rows;
+    public IReadOnlyList<PdfRow> Rows => _rows;
 
     /// <summary>
     /// Gets or sets the table width in points.

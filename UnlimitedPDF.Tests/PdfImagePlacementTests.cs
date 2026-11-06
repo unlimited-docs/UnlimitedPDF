@@ -1,8 +1,7 @@
 using System.ComponentModel;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -26,9 +25,9 @@ public class PdfImagePlacementTests
     [Fact]
     public void AddImage_carries_version_metadata()
     {
-        var method = typeof(PdfPageBuilder).GetMethod(nameof(PdfPageBuilder.AddImage))!;
+        var method = typeof(PdfPage).GetMethod(nameof(PdfPage.AddImage))!;
 
-        Assert.Equal("0.1.0", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
+        Assert.Equal("1.0.0", method.GetCustomAttribute<AddedVersionAttribute>()?.Version);
         Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
     }
 
@@ -318,7 +317,7 @@ public class PdfImagePlacementTests
         var table = page.AddTable(50, 700, 300);
         table.SetColumnWidths(100, 200);
         table.GetOrCreateCell(0, 0).Text = "Item";
-        table.GetOrCreateCell(0, 1).Background = PdfColor.LightGray;
+        table.GetOrCreateCell(0, 1).BackgroundColor = PdfColor.LightGray;
 
         PdfStructureChecker.AssertValid(Save(document));
     }
@@ -364,7 +363,7 @@ public class PdfImagePlacementTests
         return stream.ToArray();
     }
 
-    private static (double[] Matrix, string Name) SingleDraw(Action<PdfPageBuilder> place)
+    private static (double[] Matrix, string Name) SingleDraw(Action<PdfPage> place)
     {
         var page = new PdfDocument().AddPage();
         place(page);

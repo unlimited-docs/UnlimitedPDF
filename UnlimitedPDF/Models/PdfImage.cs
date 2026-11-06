@@ -40,7 +40,7 @@ public sealed class PdfImage
     /// <returns>The loaded image.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="data"/> is null.</exception>
     /// <exception cref="PdfImageException">The data is empty, unsupported, damaged, or over the pixel limit.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Loads an image from a byte array. The array is copied.")]
     public static PdfImage FromBytes(byte[] data, PdfImageLoadOptions? options = null)
     {
@@ -58,7 +58,7 @@ public sealed class PdfImage
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is null.</exception>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
     /// <exception cref="PdfImageException">The file is empty, unsupported, damaged, or over the pixel limit.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Loads an image from a file.")]
     public static PdfImage FromFile(string path, PdfImageLoadOptions? options = null)
     {
@@ -78,7 +78,7 @@ public sealed class PdfImage
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
     /// <exception cref="PdfImageException">The file is empty, unsupported, damaged, or over the pixel limit.</exception>
     /// <exception cref="OperationCanceledException">The load was cancelled; no image is produced.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Asynchronously loads an image from a file.")]
     public static async Task<PdfImage> FromFileAsync(string path, PdfImageLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
@@ -97,7 +97,7 @@ public sealed class PdfImage
     /// <returns>The loaded image.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
     /// <exception cref="PdfImageException">The data is empty, unsupported, damaged, or over the pixel limit.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Loads an image from a stream, reading from its current position to the end.")]
     public static PdfImage FromStream(Stream stream, PdfImageLoadOptions? options = null)
     {
@@ -119,7 +119,7 @@ public sealed class PdfImage
     /// <exception cref="ArgumentNullException"><paramref name="stream"/> is null.</exception>
     /// <exception cref="PdfImageException">The data is empty, unsupported, damaged, or over the pixel limit.</exception>
     /// <exception cref="OperationCanceledException">The load was cancelled; no image is produced.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Asynchronously loads an image from a stream, reading from its current position to the end.")]
     public static async Task<PdfImage> FromStreamAsync(Stream stream, PdfImageLoadOptions? options = null, CancellationToken cancellationToken = default)
     {

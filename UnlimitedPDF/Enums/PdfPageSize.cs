@@ -1,4 +1,4 @@
-﻿namespace UnlimitedPDF.Enums;
+﻿namespace UnlimitedPDF;
 
 /// <summary>
 /// Enum represents various standard PDF page sizes.

@@ -1,5 +1,4 @@
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Tests;
 
@@ -22,7 +21,7 @@ public class JpegFixtureTests
         var document = new PdfDocument();
         var page = document.AddPage();
         var table = page.AddTable(40, 800, 500);
-        table.RowHeightRule = PdfRowHeightRule.AtLeast;
+        table.RowHeightMode = PdfRowHeightMode.AtLeast;
         for (int i = 0; i < names.Length; i++)
         {
             var image = PdfImage.FromFile(Fixtures.Jpeg(names[i]));

@@ -1,9 +1,9 @@
-namespace UnlimitedPDF.Enums;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// How a table row's height relates to its content.
 /// </summary>
-public enum PdfRowHeightRule
+public enum PdfRowHeightMode
 {
     /// <summary>
     /// The row keeps its height, and image content is scaled down to fit.

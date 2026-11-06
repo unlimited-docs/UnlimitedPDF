@@ -1,12 +1,11 @@
-using UnlimitedPDF.Models.Table;
-
 namespace UnlimitedPDF;
 
 /// <summary>
 /// The body flow (WR-033): items stack below the previous one with a spacing, starting at the body top of the page they
 /// land on. An item that does not fit moves whole to the next page, which the library adds with its header and footer;
 /// a table splits by rows and repeats its header rows. Pages need not be added: the flow creates them as content needs
-/// them, and <see cref="PdfDocument.AddPage"/> or <see cref="PageBreak"/> starts a new one.
+/// them, and <see cref="PdfDocument.AddPage"/> or <see cref="PageBreak"/> starts a new one. Every <c>Add*</c> method
+/// here takes the content and its size first, then <c>spacing</c>, then the optional <c>x</c> offset (PR-016).
 /// </summary>
 public sealed class PdfBodyFlow
 {
@@ -14,9 +13,7 @@ public sealed class PdfBodyFlow
 
     private readonly PdfDocument _document;
     private readonly List<FlowItem> _items = new();
-    private double _bottomGap;
     private int? _maxPages;
-    private double _topGap;
 
     #endregion
 
@@ -41,7 +38,7 @@ public sealed class PdfBodyFlow
     /// <param name="keepWithNext">Whether the block stays on the same page as the next item.</param>
     /// <returns>The block, to add items to.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The spacing is negative or not finite.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a block of items that moves to the next page as one piece.")]
     public PdfFlowBlock AddBlock(double spacing = 0, bool keepWithNext = false)
     {
@@ -52,7 +49,7 @@ public sealed class PdfBodyFlow
     }
 
     /// <summary>
-    /// Adds an image. Sizes follow <see cref="PdfPageBuilder.AddImage"/>.
+    /// Adds an image. Sizes follow <see cref="PdfPage.AddImage"/>.
     /// </summary>
     /// <param name="image">The image.</param>
     /// <param name="width">The width in points, or null.</param>
@@ -63,7 +60,7 @@ public sealed class PdfBodyFlow
     /// <param name="keepWithNext">Whether the image stays on the same page as the next item.</param>
     /// <exception cref="ArgumentNullException"><paramref name="image"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A size, the spacing, or the offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds an image to the body flow.")]
     public void AddImage(PdfImage image, double? width = null, double? height = null, double spacing = 0, double x = 0, PdfImagePlacementOptions? options = null, bool keepWithNext = false) =>
         Add(CreateImage(image, width, height, spacing, x, options, keepWithNext));
@@ -79,7 +76,7 @@ public sealed class PdfBodyFlow
     /// <param name="keepWithNext">Whether the rectangle stays on the same page as the next item.</param>
     /// <exception cref="ArgumentNullException"><paramref name="color"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">A size, the spacing, or the offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a filled rectangle to the body flow.")]
     public void AddRectangle(double width, double height, PdfColor color, double spacing = 0, double x = 0, bool keepWithNext = false) =>
         Add(CreateRectangle(width, height, color, spacing, x, keepWithNext));
@@ -93,7 +90,7 @@ public sealed class PdfBodyFlow
     /// <param name="keepWithNext">Whether the table's last row stays on the same page as the next item.</param>
     /// <returns>The table, for configuration.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The width, spacing, or offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a table to the body flow.")]
     public PdfTable AddTable(double width, double spacing = 0, double x = 0, bool keepWithNext = false)
     {
@@ -114,7 +111,7 @@ public sealed class PdfBodyFlow
     /// <param name="keepWithNext">Whether the line stays on the same page as the next item, for example a heading.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Adds a line of text to the body flow.")]
     public void AddText(string text, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0, bool keepWithNext = false) =>
         Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext));
@@ -122,7 +119,7 @@ public sealed class PdfBodyFlow
     /// <summary>
     /// Starts a new page: the next item lands at the body top of a page the library adds.
     /// </summary>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Starts a new page in the body flow.")]
     public void PageBreak() => Add(new FlowBreak());
 
@@ -185,21 +182,6 @@ public sealed class PdfBodyFlow
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets or sets the gap between the footer band and the body, in points. The default is 0.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    public double BottomGap
-    {
-        get => _bottomGap;
-        set
-        {
-            Guard.NonNegative(value, nameof(value));
-            _bottomGap = value;
-            _document.LayoutChanged();
-        }
-    }
-
-    /// <summary>
     /// Gets or sets the most pages the document may have, or null (the default) for no limit. When the content needs
     /// more pages, saving fails before anything is written, naming the items that do not fit and by how much.
     /// </summary>
@@ -217,27 +199,13 @@ public sealed class PdfBodyFlow
     /// <summary>
     /// Gets the height, in points, from where the next item would land to the bottom of that page's body. The value
     /// stays exact at save: if anything it depends on later changes the layout (a flow item's height, a table's rows,
-    /// a block's items, a band height, a gap, a side margin, or a page rule), saving fails before anything is written.
+    /// a block's items, a band height, a body margin, a side margin, or a page rule), saving fails before anything is written.
     /// A read lays out the content added so far, so it throws the same layout error saving would, for example for an
     /// item taller than the body.
     /// </summary>
     /// <exception cref="InvalidOperationException">The content added so far cannot be laid out.</exception>
-    public double Remaining => _document.QueryRemaining();
-
-    /// <summary>
-    /// Gets or sets the gap between the header band and the body, in points. The default is 0.
-    /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    public double TopGap
-    {
-        get => _topGap;
-        set
-        {
-            Guard.NonNegative(value, nameof(value));
-            _topGap = value;
-            _document.LayoutChanged();
-        }
-    }
+    [AddedVersion("1.0.0")]
+    public double RemainingHeight => _document.QueryRemaining();
 
     /// <summary>
     /// Gets the flow items in the order they were added.

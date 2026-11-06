@@ -1,4 +1,4 @@
-﻿namespace UnlimitedPDF.Enums;
+﻿namespace UnlimitedPDF;
 
 /// <summary>
 /// Enum represents different styles of borders that can be applied to PDF elements.

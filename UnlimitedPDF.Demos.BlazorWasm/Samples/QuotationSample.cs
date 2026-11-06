@@ -1,6 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -33,7 +32,7 @@ public static class QuotationSample
     /// <returns>The document, ready to save.</returns>
     public static PdfDocument Build(QuotationInput input, SampleImages images)
     {
-        var document = new PdfDocument { TopMargin = 32, BottomMargin = 24, LeftMargin = 50, RightMargin = 50 };
+        var document = new PdfDocument { MarginTop = 32, MarginBottom = 24, MarginLeft = 50, MarginRight = 50 };
         var logo = images["quotation-logo.png"];
         var fit = new PdfImagePlacementOptions { Fit = PdfImageFit.Contain };
         DateTime validUntil = input.QuoteDate.AddDays(Math.Max(1, input.ValidDays));
@@ -61,8 +60,8 @@ public static class QuotationSample
         last.AddText("Thank you for your business", 0, 8, 8, PdfTextAlignment.Center);
         last.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
 
-        document.Body.TopGap = 18;
-        document.Body.BottomGap = 14;
+        document.BodyMarginTop = 18;
+        document.BodyMarginBottom = 14;
         var body = document.Body;
 
         body.AddText("Prepared for", fontSize: 9);
@@ -79,7 +78,7 @@ public static class QuotationSample
         for (int column = 0; column < headings.Length; column++)
         {
             header.GetCell(column).Text = headings[column];
-            header.GetCell(column).Background = _headerTint;
+            header.GetCell(column).BackgroundColor = _headerTint;
         }
 
         decimal subtotal = 0;
@@ -124,15 +123,15 @@ public static class QuotationSample
         Right(row.GetCell(1), value.ToString("F2"));
         if (highlight)
         {
-            row.GetCell(0).Background = _totalTint;
-            row.GetCell(1).Background = _totalTint;
+            row.GetCell(0).BackgroundColor = _totalTint;
+            row.GetCell(1).BackgroundColor = _totalTint;
         }
     }
 
-    private static void Right(PdfTableCell cell, string text)
+    private static void Right(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HAlign = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
     }
 
     #endregion

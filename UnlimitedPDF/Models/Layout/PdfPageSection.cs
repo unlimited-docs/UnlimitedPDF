@@ -37,9 +37,9 @@ public sealed class PdfPageSection : PdfSectionContent
     /// </summary>
     /// <param name="build">The callback.</param>
     /// <exception cref="ArgumentNullException"><paramref name="build"/> is null.</exception>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Sets a callback that builds the band's content for each saved page at save.")]
-    public void Build(Action<PdfSectionContent, PdfPageInfo> build)
+    public void SetPageContent(Action<PdfSectionContent, PdfPageInfo> build)
     {
         _build = build ?? throw new ArgumentNullException(nameof(build));
     }

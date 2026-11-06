@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Components.Forms;
-using UnlimitedPDF.Enums;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Services;
 

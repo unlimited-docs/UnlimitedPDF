@@ -1,7 +1,5 @@
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
-using UnlimitedPDF.Enums;
-using UnlimitedPDF.Extensions;
-using UnlimitedPDF.Models.Table;
+using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -45,7 +43,7 @@ public static class CertificateSample
 
         // The centered lines stack down the page in the body flow; each spacing is the gap above the line.
         var body = document.Body;
-        body.TopGap = 118;
+        document.BodyMarginTop = 118;
         body.AddText(input.Title, fontSize: 36, alignment: PdfTextAlignment.Center);
         body.AddText(input.Subtitle, spacing: 10, fontSize: 16, alignment: PdfTextAlignment.Center);
         body.AddText("This certificate is proudly presented to", spacing: 44, fontSize: 12, alignment: PdfTextAlignment.Center);
@@ -73,7 +71,7 @@ public static class CertificateSample
     #region Private Methods
 
     // A frame of four filled rectangles: bottom, top, left, and right edges of the given box.
-    private static void AddFrame(PdfPageBuilder page, double x, double y, double width, double height, double thickness)
+    private static void AddFrame(PdfPage page, double x, double y, double width, double height, double thickness)
     {
         page.AddRectangle(x, y, width, thickness, _gold);
         page.AddRectangle(x, y + height - thickness, width, thickness, _gold);

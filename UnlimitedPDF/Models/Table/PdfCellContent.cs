@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 
-namespace UnlimitedPDF.Models.Table;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// One item of a table cell's content: <see cref="PdfCellText"/> or <see cref="PdfCellImage"/>. Items are immutable,
@@ -26,7 +26,7 @@ public abstract class PdfCellContent
     /// Converts an image to an image item. A null image converts to null.
     /// </summary>
     /// <param name="image">The image.</param>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Converts an image to an image item.")]
     [return: NotNullIfNotNull("image")]
     public static implicit operator PdfCellContent?(PdfImage? image) => image is null ? null : new PdfCellImage(image);
@@ -35,7 +35,7 @@ public abstract class PdfCellContent
     /// Converts a string to a text item. A null string converts to null.
     /// </summary>
     /// <param name="text">The text.</param>
-    [AddedVersion("0.1.0")]
+    [AddedVersion("1.0.0")]
     [Description("Converts a string to a text item.")]
     [return: NotNullIfNotNull("text")]
     public static implicit operator PdfCellContent?(string? text) => text is null ? null : new PdfCellText(text);

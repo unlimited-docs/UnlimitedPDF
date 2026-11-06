@@ -1,4 +1,4 @@
-namespace UnlimitedPDF.Enums;
+namespace UnlimitedPDF;
 
 /// <summary>
 /// The pages a page rule applies to. A rule for one page number is added with <c>AddPageRule(int)</c>.
