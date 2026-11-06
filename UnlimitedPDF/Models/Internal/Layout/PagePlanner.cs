@@ -23,11 +23,13 @@ internal sealed class PagePlanner
     #region Fields and Constants
 
     // Kept items wait here until the item they keep with arrives (WR-033).
-    private readonly List<FlowItem> _pending = new();
+    private List<FlowItem> _pending = new();
     // For each kept table of the current kept run: what it keeps with before it, which moves with it when it moves whole.
-    private readonly Dictionary<FlowTable, Lead> _leads = new();
-    private readonly List<PlannedPage> _pages = new();
-    private readonly Dictionary<PdfTable, TablePlan> _plans = new();
+    private Dictionary<FlowTable, Lead> _leads = new();
+    private List<PlannedPage> _pages = new();
+    private Dictionary<PdfTable, TablePlan> _plans = new();
+    // On a copy made for a read: the plans it replaced in the shared dictionary, restored when the read ends.
+    private Dictionary<PdfTable, TablePlan?>? _planUndo;
     private readonly bool _checkBody;
     private readonly Func<int, PdfPageSize, PageGeometry> _geometry;
     private Cursor _cursor;
@@ -108,12 +110,25 @@ internal sealed class PagePlanner
     {
         if (_root is null) return (1, Math.Max(0, emptyDocumentGeometry.BodyHeight));
 
-        // A waiting run is ended on a copy, so this plan keeps waiting for the item that really ends it.
-        var planner = _pending.Count == 0 && _pendingTable is null ? this : Copy();
-        if (planner != this) planner.FinishPending();
+        if (_pending.Count == 0 && _pendingTable is null) return Where(this);
 
-        var cursor = planner._cursor;
-        return (planner._slots[0].Number + cursor.Slot, Math.Max(0, cursor.Y - planner.Geometry(cursor.Slot).BodyBottom));
+        // A waiting run is ended on a copy, so this plan keeps waiting for the item that really ends it.
+        var copy = Copy();
+        try
+        {
+            copy.FinishPending();
+            return Where(copy);
+        }
+        finally
+        {
+            copy.UndoPlans();
+        }
+
+        static (int, double) Where(PagePlanner planner)
+        {
+            var cursor = planner._cursor;
+            return (planner._slots[0].Number + cursor.Slot, Math.Max(0, cursor.Y - planner.Geometry(cursor.Slot).BodyBottom));
+        }
     }
 
     /// <summary>
@@ -214,28 +229,71 @@ internal sealed class PagePlanner
 
         if (_pending.Count > 1) KeepRunWith(null);
         foreach (var item in _pending) PlaceBox(item);
-        _pending.Clear();
-        _leads.Clear();
+
+        // New lists rather than cleared ones, since a copy made for a read shares them with the plan.
+        _pending = new List<FlowItem>();
+        _leads = new Dictionary<FlowTable, Lead>();
     }
 
-    // A copy of the plan for the current root, which can be planned further without changing this one.
+    // A copy of the plan for the current root that can end the waiting run without changing this one, at a cost that
+    // does not grow with the document. Ending the run changes only the pages from where it starts, so only those are
+    // copied; earlier pages and the finished pages are shared. The waiting items and leads are shared and only read.
+    // The table plans are shared too: the copy records each plan it replaces, and UndoPlans puts them back.
     private PagePlanner Copy()
     {
-        var copy = new PagePlanner(_geometry, _checkBody)
+        int from = RunStartSlot();
+        return new PagePlanner(_geometry, _checkBody)
         {
             _cursor = _cursor,
+            _leads = _leads,
             _nextItem = _nextItem,
             _nextNumber = _nextNumber,
+            _pages = _pages,
+            _pending = _pending,
             _pendingTable = _pendingTable,
+            _planUndo = new Dictionary<PdfTable, TablePlan?>(),
+            _plans = _plans,
             _root = _root,
             _rootIndex = _rootIndex,
-            _slots = _slots.Select(page => page.Copy()).ToList()
+            _slots = _slots.Select((page, slot) => slot < from ? page : page.Copy()).ToList()
         };
-        copy._pending.AddRange(_pending);
-        copy._pages.AddRange(_pages);
-        foreach (var plan in _plans) copy._plans.Add(plan.Key, plan.Value);
-        foreach (var lead in _leads) copy._leads.Add(lead.Key, lead.Value);
-        return copy;
+    }
+
+    // The first page that ending the waiting run can change: the cursor's page, or the page of the last part of the
+    // waiting kept table. An earlier kept table in its run is reached only through a table that moves whole, so the
+    // walk back stops at the first table whose last part is more than its head.
+    private int RunStartSlot()
+    {
+        int from = _cursor.Slot;
+        for (var table = _pendingTable; table is not null;)
+        {
+            if (!_plans.TryGetValue(table.Table, out var plan) || plan.Parts.Count == 0) break;
+            var last = plan.Parts[plan.Parts.Count - 1];
+            from = Math.Min(from, last.PageIndex - _pages.Count);
+            bool movesWhole = last.FirstRow == 0 && last.EndRow - 1 <= plan.HeaderRowCount;
+            if (!movesWhole || !_leads.TryGetValue(table, out var lead)) break;
+            table = lead.Predecessor;
+        }
+        return Math.Max(0, from);
+    }
+
+    // Replaces a table's plan; on a copy made for a read, remembers the plan it replaced.
+    private void SetPlan(PdfTable table, TablePlan plan)
+    {
+        if (_planUndo is not null && !_planUndo.ContainsKey(table))
+            _planUndo[table] = _plans.TryGetValue(table, out var old) ? old : null;
+        _plans[table] = plan;
+    }
+
+    // Puts back the plans a copy made for a read replaced in the shared dictionary.
+    private void UndoPlans()
+    {
+        foreach (var undo in _planUndo!)
+        {
+            if (undo.Value is null) _plans.Remove(undo.Key);
+            else _plans[undo.Key] = undo.Value;
+        }
+        _planUndo = null;
     }
 
     private void FinishRoot()
@@ -299,15 +357,31 @@ internal sealed class PagePlanner
         // Header rows never stay behind without a data row, so the whole first part moves with them.
         if (last.FirstRow == 0 && moveFrom <= headerRows) moveFrom = 0;
 
-        if (moveFrom == 0 && _leads.TryGetValue(kept, out var lead) && (lead.Items.Count > 0 || lead.Predecessor is not null))
+        if (moveFrom == 0)
         {
-            MoveWithLead(kept, lead, slot, heights.Take(last.EndRow).Sum(), need, run);
-            return;
+            _leads.TryGetValue(kept, out var lead);
+            double tableHeight = heights.Take(last.EndRow).Sum();
+
+            // The table and the kept items before it already start at the top of an empty body, so no page holds them
+            // together with the run (WR-033), as for any run that does not fit an empty body.
+            if (lead?.Predecessor is null && StartsEmptyBody(slot, kept, lead))
+                throw Oversize(run, GroupHeight(kept, lead, tableHeight, need, atTop: true), Geometry(slot).BodyHeight);
+
+            if (lead is not null && (lead.Items.Count > 0 || lead.Predecessor is not null))
+            {
+                MoveWithLead(kept, lead, slot, tableHeight, need, run);
+                return;
+            }
         }
 
         double moved = heights.Skip(moveFrom).Take(last.EndRow - moveFrom).Sum();
         bool repeats = kept.Table.RepeatHeaderRows && headerRows > 0 && moveFrom > 0;
         double headerHeight = repeats ? heights.Take(headerRows).Sum() : 0;
+
+        // The moving row is all of the table's part on a page whose body is otherwise empty, so no page holds it with
+        // the run (WR-033); moving it would leave that page blank.
+        if (moveFrom > 0 && moveFrom == last.FirstRow && StartsEmptyBody(slot, kept, null))
+            throw Oversize(run, headerHeight + moved + need, Geometry(slot).BodyHeight);
 
         // The moved rows go to the first following page whose free room holds them together with the run.
         int targetSlot = slot + 1;
@@ -335,7 +409,7 @@ internal sealed class PagePlanner
 
         parts[parts.Count - 1] = shortened;
         parts.Add(movedPart);
-        _plans[kept.Table] = new TablePlan(plan.Layout, parts, headerRows);
+        SetPlan(kept.Table, new TablePlan(plan.Layout, parts, headerRows));
 
         var placements = _slots[slot].Flow;
         int index = placements.FindIndex(p => p.Item == kept && p.Part == last);
@@ -350,15 +424,9 @@ internal sealed class PagePlanner
     // page, so they are taken off it and placed again where they fit together with the run after the table.
     private void MoveWithLead(FlowTable kept, Lead lead, int slot, double tableHeight, double need, string run)
     {
-        foreach (var page in _slots) page.Flow.RemoveAll(p => p.Item == kept || lead.Items.Contains(p.Item));
+        foreach (var page in _slots.Skip(slot)) page.Flow.RemoveAll(p => p.Item == kept || lead.Items.Contains(p.Item));
 
-        double Group(bool atTop)
-        {
-            double total = 0;
-            for (int i = 0; i < lead.Items.Count; i++)
-                total += (i == 0 && atTop ? 0 : lead.Items[i].Spacing) + MeasureSimple(lead.Items[i]);
-            return total + (lead.Items.Count == 0 && atTop ? 0 : kept.Spacing) + tableHeight + need;
-        }
+        double Group(bool atTop) => GroupHeight(kept, lead, tableHeight, need, atTop);
 
         if (lead.Predecessor is FlowTable predecessor)
         {
@@ -382,13 +450,22 @@ internal sealed class PagePlanner
         PlaceTable(kept);
     }
 
-    // The first item of the kept run that a kept table belongs to.
-    private FlowItem RunStart(FlowTable table)
+    // The height a kept table that moves whole needs with the kept items before it and the run after it.
+    private static double GroupHeight(FlowTable kept, Lead? lead, double tableHeight, double need, bool atTop)
     {
-        if (!_leads.TryGetValue(table, out var lead)) return table;
-        if (lead.Predecessor is FlowTable predecessor) return RunStart(predecessor);
-        return lead.Items.Count > 0 ? lead.Items[0] : table;
+        var items = lead?.Items ?? new List<FlowItem>();
+        double total = 0;
+        for (int i = 0; i < items.Count; i++)
+            total += (i == 0 && atTop ? 0 : items[i].Spacing) + MeasureSimple(items[i]);
+        return total + (items.Count == 0 && atTop ? 0 : kept.Spacing) + tableHeight + need;
     }
+
+    // Whether a kept table and the kept items before it are all that stands on a page whose body is otherwise empty.
+    private bool StartsEmptyBody(int slot, FlowTable kept, Lead? lead) =>
+        !Carried(slot) && _slots[slot].Flow.All(p => p.Item == kept || (lead?.Items.Contains(p.Item) ?? false));
+
+    // The first item of the kept run that a kept table belongs to.
+    private FlowItem RunStart(FlowTable table) => _leads.TryGetValue(table, out var lead) ? lead.First : table;
 
     // Moves the cursor to a fresh page when the kept run and the item's head (if any) do not fit together here.
     private void KeepRunWith(FlowItem? next)
@@ -418,7 +495,9 @@ internal sealed class PagePlanner
         double total = 0;
         for (int i = 0; i < _pending.Count; i++)
             total += (i == 0 && atTop ? 0 : _pending[i].Spacing) + MeasureSimple(_pending[i]);
-        return next is null ? total : total + next.Spacing + HeadHeight(next);
+        // A table without rows draws nothing, so it adds no spacing and no head (WR-033).
+        bool takesRoom = next is not null && next is not FlowTable { Table.RowCount: 0 };
+        return takesRoom ? total + next!.Spacing + HeadHeight(next) : total;
     }
 
     private void Place(FlowItem item)
@@ -428,6 +507,13 @@ internal sealed class PagePlanner
             FinishPending();
             _cursor = Fresh(_cursor.Slot + 1);
             Slot(_cursor.Slot);
+            return;
+        }
+
+        // A kept table without rows draws nothing and takes no room, so the kept run goes on past it (WR-033).
+        if (item is FlowTable { KeepWithNext: true } empty && empty.Table.RowCount == 0)
+        {
+            PlaceTable(empty);
             return;
         }
 
@@ -456,7 +542,8 @@ internal sealed class PagePlanner
             if (table.KeepWithNext && table.Table.RowCount > 0)
             {
                 _pendingTable = table;
-                _leads[table] = new Lead(lead, predecessor);
+                var first = predecessor is not null ? RunStart(predecessor) : lead.Count > 0 ? lead[0] : table;
+                _leads[table] = new Lead(lead, predecessor, first);
             }
         }
         else
@@ -481,7 +568,7 @@ internal sealed class PagePlanner
         if (table.RowCount == 0)
         {
             // A table without rows draws nothing and takes no room.
-            _plans[table] = new TablePlan(new TableLayout(Array.Empty<double>(), Array.Empty<double>(), new CellLayout[0, 0]), Array.Empty<TablePart>(), 0);
+            SetPlan(table, new TablePlan(new TableLayout(Array.Empty<double>(), Array.Empty<double>(), new CellLayout[0, 0]), Array.Empty<TablePart>(), 0));
             return;
         }
 
@@ -514,7 +601,7 @@ internal sealed class PagePlanner
             if (part.HasRows) page.Flow.Add(new FlowPlacement(item, page.Geometry.Left, page.Geometry.Right, split.Top, part));
         }
 
-        _plans[table] = new TablePlan(layout, parts, headerRows);
+        SetPlan(table, new TablePlan(layout, parts, headerRows));
         var last = parts[parts.Count - 1];
         _cursor = new Cursor(start.Slot + splits[splits.Count - 1].PageOffset, last.Bottom, false, false);
     }
@@ -540,7 +627,7 @@ internal sealed class PagePlanner
             var parts = splits
                 .Select(split => new TablePart(_pages.Count + split.PageOffset, split.FirstRow, split.EndRow, split.Top, split.Bottom, table.X, split.RepeatsHeader))
                 .ToList();
-            _plans[table] = new TablePlan(layout, parts, headerRows);
+            SetPlan(table, new TablePlan(layout, parts, headerRows));
 
             for (int i = 1; i < parts.Count; i++)
                 Slot(splits[i].PageOffset).Carry(table, parts[i]);
@@ -575,9 +662,10 @@ internal sealed class PagePlanner
 
     /// <summary>
     /// What a kept table keeps with before it in its kept run: the kept items placed just before it, and the kept
-    /// table before those, whose last row stays with them.
+    /// table before those, whose last row stays with them. <paramref name="First"/> is the first item of the whole kept
+    /// run, which names the run in errors.
     /// </summary>
-    private sealed record Lead(List<FlowItem> Items, FlowTable? Predecessor);
+    private sealed record Lead(List<FlowItem> Items, FlowTable? Predecessor, FlowItem First);
 
     #endregion
 }

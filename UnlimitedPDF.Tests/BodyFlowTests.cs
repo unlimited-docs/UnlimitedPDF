@@ -393,6 +393,93 @@ public class BodyFlowTests
         Assert.All(pages, page => Assert.False(page.Shows("H") && !page.Shows("B0")));
     }
 
+    [Theory]
+    [InlineData(true, "kept-together run of flow items 2 to 4 is 344.4 pt tall")]
+    [InlineData(false, "kept-together run of flow items 2 to 3 is 350 pt tall")]
+    public void A_kept_table_and_its_run_starting_at_the_top_of_an_empty_page_that_cannot_hold_them_fail(bool withTitle, string expected)
+    {
+        // Review F-28: page 2's body is 341.89 pt. The run starts at its top and does not fit; it moved on to page 3 and
+        // left page 2 blank, where a run of the same height without a table fails.
+        var document = new PdfDocument();
+        document.AddPageRule(2).BodyTopGap = 500;
+        document.Body.AddRectangle(150, A4Height, PdfColor.Black);
+        if (withTitle) document.Body.AddText("T", keepWithNext: true);
+        Rows(document.Body.AddTable(200, keepWithNext: true), 1, "A");
+        document.Body.AddRectangle(160, withTitle ? 310 : 330, PdfColor.Black);
+
+        var message = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document)).Message;
+
+        Assert.Contains(expected, message);
+        Assert.Contains("341.89 pt body height", message);
+    }
+
+    [Fact]
+    public void A_kept_table_without_rows_leaves_its_kept_run_together()
+    {
+        // Review F-29: the empty kept table ended the run, so the rectangle went alone to page 2.
+        var document = new PdfDocument();
+        document.Body.AddRectangle(100, A4Height - 70, PdfColor.Black);
+        document.Body.AddText("T", keepWithNext: true);
+        Rows(document.Body.AddTable(200, keepWithNext: true), 1, "A");
+        document.Body.AddTable(200, keepWithNext: true);
+        document.Body.AddRectangle(100, 100, PdfColor.Black);
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(2, pages.Count);
+        Assert.False(pages[0].Shows("T"));
+        Assert.False(pages[0].Shows("A0"));
+        Assert.True(pages[1].Shows("T"));
+        Assert.True(pages[1].Shows("A0"));
+        Assert.Single(pages[0].LayoutRectangles());
+        AssertRect((0, A4Height - 14.4 - 20 - 100, 100, 100), pages[1].LayoutRectangles().Single());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_kept_tables_last_row_alone_at_the_top_of_an_empty_page_that_cannot_hold_its_run_fails(bool repeatedHeader)
+    {
+        // Review F-30: page 2's body is 341.89 pt. The table's last row starts alone at its top (below the repeated
+        // header row when there is one) and does not fit with the rectangle; it moved to page 3 and left page 2 blank.
+        var document = new PdfDocument();
+        document.AddPageRule(2).BodyTopGap = 500;
+        document.Body.AddRectangle(150, repeatedHeader ? 790 : 810, PdfColor.Black);
+        var table = document.Body.AddTable(200, keepWithNext: true);
+        table.AddColumn();
+        if (repeatedHeader)
+        {
+            table.HeaderRowCount = 1;
+            table.RepeatHeaderRows = true;
+            table.AddRow().GetCell(0).Text = "H";
+        }
+        table.AddRow().GetCell(0).Text = "A0";
+        table.AddRow().GetCell(0).Text = "A1";
+        document.Body.AddRectangle(160, repeatedHeader ? 310 : 330, PdfColor.Black);
+
+        var message = Assert.Throws<InvalidOperationException>(() => PdfPageReader.SaveBytes(document)).Message;
+
+        Assert.Contains("kept-together run of flow items 2 to 3 is 350 pt tall", message);
+        Assert.Contains("341.89 pt body height", message);
+    }
+
+    [Fact]
+    public void A_table_without_rows_takes_no_room_when_it_ends_a_kept_run()
+    {
+        // Review F-31: the empty table's 20 pt spacing was reserved after the kept line, so the line moved to page 2.
+        var document = new PdfDocument();
+        document.Body.AddRectangle(150, 815, PdfColor.Black);
+        document.Body.AddText("K", keepWithNext: true);
+        document.Body.AddTable(200, spacing: 20);
+        document.Body.AddText("after");
+
+        var pages = PdfPageReader.Save(document);
+
+        Assert.Equal(2, pages.Count);
+        Assert.True(pages[0].Shows("K"));
+        Assert.True(pages[1].Shows("after"));
+    }
+
     [Fact]
     public void A_row_only_has_to_fit_the_page_it_lands_on()
     {

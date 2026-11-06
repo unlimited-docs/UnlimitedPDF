@@ -263,6 +263,44 @@ public class BodyRemainingTests
     }
 
     [Fact]
+    public void Reading_remaining_along_a_chain_of_kept_tables_stays_fast()
+    {
+        // Review F-32: each read copied the plan back to the chain's first kept table, so 4,000 kept tables took 2.9 s.
+        var document = new PdfDocument();
+        var watch = Stopwatch.StartNew();
+        for (int i = 0; i < 4_000; i++)
+        {
+            var table = document.Body.AddTable(200, keepWithNext: true);
+            table.AddColumn();
+            table.AddRow().GetCell(0).Text = "a" + i;
+            table.AddRow().GetCell(0).Text = "b" + i;
+            _ = document.Body.Remaining;
+        }
+        PdfPageReader.SaveBytes(document);
+        watch.Stop();
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+    }
+
+    [Fact]
+    public void Reading_remaining_inside_kept_runs_stays_fast()
+    {
+        // Review F-27: each read inside a waiting kept run copied the whole plan of the page sequence, so reads grew
+        // quadratically (40,000 lines took about 3.6 s).
+        var document = new PdfDocument();
+        var watch = Stopwatch.StartNew();
+        for (int i = 0; i < 40_000; i++)
+        {
+            document.Body.AddText("line " + i, keepWithNext: i % 2 == 0);
+            _ = document.Body.Remaining;
+        }
+        PdfPageReader.SaveBytes(document);
+        watch.Stop();
+
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+    }
+
+    [Fact]
     public void Reading_remaining_after_every_line_stays_fast()
     {
         var document = new PdfDocument();
