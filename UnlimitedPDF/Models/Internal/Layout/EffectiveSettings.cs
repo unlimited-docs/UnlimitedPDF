@@ -1,8 +1,8 @@
 namespace UnlimitedPDF.Models.Internal.Layout;
 
 /// <summary>
-/// The layout settings in effect on one page after the document defaults and the page rules are merged (WR-030,
-/// WR-032). Content is resolved separately because Last-page rules may change it.
+/// The layout settings in effect on one page after the document defaults and the page settings are merged (WR-030,
+/// WR-032). Content is resolved separately because Last-page settings may change it.
 /// </summary>
 /// <param name="MarginTop">The top margin.</param>
 /// <param name="MarginBottom">The bottom margin.</param>

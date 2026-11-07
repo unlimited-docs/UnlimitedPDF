@@ -400,7 +400,7 @@ public class BodyFlowTests
         // Review F-28: page 2's body is 341.89 pt. The run starts at its top and does not fit; it moved on to page 3 and
         // left page 2 blank, where a run of the same height without a table fails.
         var document = new PdfDocument();
-        document.AddPageRule(2).BodyMarginTop = 500;
+        document.AddPageSettings(2).BodyMarginTop = 500;
         document.Body.AddRectangle(150, A4Height, PdfColor.Black);
         if (withTitle) document.Body.AddText("T", keepWithNext: true);
         Rows(document.Body.AddTable(200, keepWithNext: true), 1, "A");
@@ -442,7 +442,7 @@ public class BodyFlowTests
         // Review F-30: page 2's body is 341.89 pt. The table's last row starts alone at its top (below the repeated
         // header row when there is one) and does not fit with the rectangle; it moved to page 3 and left page 2 blank.
         var document = new PdfDocument();
-        document.AddPageRule(2).BodyMarginTop = 500;
+        document.AddPageSettings(2).BodyMarginTop = 500;
         document.Body.AddRectangle(150, repeatedHeader ? 790 : 810, PdfColor.Black);
         var table = document.Body.AddTable(200, keepWithNext: true);
         table.AddColumn();
@@ -482,12 +482,12 @@ public class BodyFlowTests
     [Fact]
     public void A_row_only_has_to_fit_the_page_it_lands_on()
     {
-        // Review F-06: a 500 pt row fits page 1 (its header is hidden by a First rule) but not later pages.
+        // Review F-06: a 500 pt row fits page 1 (its header is hidden by First-page settings) but not later pages.
         static PdfDocument Build()
         {
             var document = new PdfDocument();
             document.Header.Height = 400;
-            document.AddPageRule(PdfPageRuleTarget.First).Header.IsHidden = true;
+            document.AddPageSettings(PdfPageTarget.First).Header.IsHidden = true;
             return document;
         }
 
@@ -520,7 +520,7 @@ public class BodyFlowTests
         pdfDocument.Footer.Height = 20;
         pdfDocument.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
 
-        var first = pdfDocument.AddPageRule(PdfPageRuleTarget.First);
+        var first = pdfDocument.AddPageSettings(PdfPageTarget.First);
         first.Header.Height = 70;
         first.Header.AddText("Quarterly report", 0, 10, 24, PdfTextAlignment.Center);
 

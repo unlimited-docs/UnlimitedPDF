@@ -93,7 +93,7 @@ public class BodyRemainingTests
         Check(d => d.Header.Height = 50);
         Check(d => d.Footer.Height = 30);
         Check(d => d.BodyMarginTop = 10);
-        Check(d => d.AddPageRule(1).Header.Height = 30);
+        Check(d => d.AddPageSettings(1).Header.Height = 30);
     }
 
     [Fact]

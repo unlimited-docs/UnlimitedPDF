@@ -10,7 +10,7 @@ public class PdfDocument
     private readonly List<PageEntry> _pageEntries = new();
     private readonly PdfPages _pages;
     private readonly List<RemainingQuery> _queries = new();
-    private readonly List<PdfPageRule> _rules = new();
+    private readonly List<PdfPageSettings> _rules = new();
     private double _bodyMarginBottom;
     private double _bodyMarginTop;
     private PageEntry? _flowRoot;
@@ -77,34 +77,34 @@ public class PdfDocument
     }
 
     /// <summary>
-    /// Adds a rule that overrides the header, footer, body margins, or side margins on the first, last, odd, or even pages
-    /// (WR-032). Only the values the rule sets apply; a Last rule may change header and footer content only.
+    /// Adds page settings that override the header, footer, body margins, or side margins on the first, last, odd, or even
+    /// pages (WR-032). Only the values they set apply; Last-page settings may change header and footer content only.
     /// </summary>
-    /// <param name="target">The pages the rule applies to.</param>
-    /// <returns>The rule, to set its overrides.</returns>
+    /// <param name="target">The pages the settings apply to.</param>
+    /// <returns>The page settings, to set their overrides.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="target"/> is not a defined value.</exception>
     [AddedVersion("1.0.0")]
-    [Description("Adds a rule that overrides the page layout on the first, last, odd, or even pages.")]
-    public PdfPageRule AddPageRule(PdfPageRuleTarget target)
+    [Description("Adds page settings that override the page layout on the first, last, odd, or even pages.")]
+    public PdfPageSettings AddPageSettings(PdfPageTarget target)
     {
-        if (!Enum.IsDefined(typeof(PdfPageRuleTarget), target))
+        if (!Enum.IsDefined(typeof(PdfPageTarget), target))
             throw new ArgumentOutOfRangeException(nameof(target), target, "The target must be First, Last, Odd, or Even.");
-        return AddRule(new PdfPageRule(target, null, _rules.Count, LayoutChanged));
+        return AddRule(new PdfPageSettings(target, null, _rules.Count, LayoutChanged));
     }
 
     /// <summary>
-    /// Adds a rule that overrides the header, footer, body margins, or side margins on one page, by its number among the
-    /// saved pages (WR-032). A number past the last page never matches.
+    /// Adds page settings that override the header, footer, body margins, or side margins on one page, by its number among
+    /// the saved pages (WR-032). A number past the last page never matches.
     /// </summary>
     /// <param name="pageNumber">The 1-based page number.</param>
-    /// <returns>The rule, to set its overrides.</returns>
+    /// <returns>The page settings, to set their overrides.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageNumber"/> is less than 1.</exception>
     [AddedVersion("1.0.0")]
-    [Description("Adds a rule that overrides the page layout on one page, by its number.")]
-    public PdfPageRule AddPageRule(int pageNumber)
+    [Description("Adds page settings that override the page layout on one page, by its number.")]
+    public PdfPageSettings AddPageSettings(int pageNumber)
     {
         if (pageNumber < 1) throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page numbers start at 1.");
-        return AddRule(new PdfPageRule(null, pageNumber, _rules.Count, LayoutChanged));
+        return AddRule(new PdfPageSettings(null, pageNumber, _rules.Count, LayoutChanged));
     }
 
     /// <summary>
@@ -245,7 +245,7 @@ public class PdfDocument
         root.Chain.Add(entry);
     }
 
-    private PdfPageRule AddRule(PdfPageRule rule)
+    private PdfPageSettings AddRule(PdfPageSettings rule)
     {
         _rules.Add(rule);
         LayoutChanged();
@@ -278,7 +278,7 @@ public class PdfDocument
             string cause;
             if (query.Settings != settings)
             {
-                cause = "the page layout settings (a margin, band height, body margin, or page rule) changed";
+                cause = "the page layout settings (a margin, band height, body margin, or page settings) changed";
             }
             else
             {
@@ -500,8 +500,8 @@ public class PdfDocument
         return sb.ToString();
     }
 
-    // The geometry of a page from the document settings and the page rules, without Last rules, which may change content
-    // only (WR-030, WR-032).
+    // The geometry of a page from the document settings and the page settings, without Last-page settings, which may
+    // change content only (WR-030, WR-032).
     private PageGeometry Geometry(int number, PdfPageSize size) => PageGeometry.Create(size, SettingsFor(number));
 
     private static string MaskKey(PdfImageData mask) => "mask:" + mask.ContentKey;
@@ -633,8 +633,8 @@ public class PdfDocument
         return roots;
     }
 
-    // The header or footer whose content a page shows: the most specific matching rule that sets content, Last rules
-    // included, or the document's (WR-032).
+    // The header or footer whose content a page shows: from the most specific matching page settings that set content,
+    // Last-page settings included, or the document's (WR-032).
     private PdfPageSection SectionFor(int number, int pageCount, bool footer)
     {
         PdfPageSection section = footer ? Footer : Header;
@@ -646,8 +646,9 @@ public class PdfDocument
         return section;
     }
 
-    // Matching rules from least to most specific; between rules of the same kind, the later one comes last and wins.
-    private IEnumerable<PdfPageRule> Ordered(int number, bool isLast) =>
+    // Matching page settings from least to most specific; between page settings of the same kind, the later ones come
+    // last and win.
+    private IEnumerable<PdfPageSettings> Ordered(int number, bool isLast) =>
         _rules.Where(rule => rule.Matches(number, isLast)).OrderBy(rule => rule.Specificity).ThenBy(rule => rule.Order);
 
     private EffectiveSettings SettingsFor(int number)
@@ -841,8 +842,8 @@ public class PdfDocument
     public PdfBodyFlow Body { get; }
 
     /// <summary>
-    /// Gets or sets the space between the body and the footer band on every page, in points. The default is 0. Page rules
-    /// can override it (<see cref="PdfPageRule.BodyMarginBottom"/>).
+    /// Gets or sets the space between the body and the footer band on every page, in points. The default is 0. Page
+    /// settings can override it (<see cref="PdfPageSettings.BodyMarginBottom"/>).
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     [AddedVersion("1.0.0")]
@@ -859,7 +860,7 @@ public class PdfDocument
 
     /// <summary>
     /// Gets or sets the space between the header band and the body on every page, in points. The default is 0. Page
-    /// rules can override it (<see cref="PdfPageRule.BodyMarginTop"/>).
+    /// settings can override it (<see cref="PdfPageSettings.BodyMarginTop"/>).
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
     [AddedVersion("1.0.0")]

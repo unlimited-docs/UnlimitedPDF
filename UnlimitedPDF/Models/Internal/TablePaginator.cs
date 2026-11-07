@@ -63,7 +63,7 @@ internal static class TablePaginator
             {
                 // Only the first part, or a part on a page whose room is partly taken, may stay empty.
                 var (top, pageBottom, empty) = edges(page);
-                // A row is checked against the empty body of the page it lands on, which page rules may size
+                // A row is checked against the empty body of the page it lands on, which page settings may size
                 // differently from the table's own page.
                 if (current.EndRow == current.FirstRow && page > 0 && empty)
                 {

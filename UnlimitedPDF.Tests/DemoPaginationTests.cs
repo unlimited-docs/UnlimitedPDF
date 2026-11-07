@@ -135,7 +135,7 @@ public class DemoPaginationTests
     }
 
     [Fact]
-    public void Headers_and_footers_sample_shows_rules_page_numbers_and_a_kept_block()
+    public void Headers_and_footers_sample_shows_page_settings_page_numbers_and_a_kept_block()
     {
         var pages = PdfPageReader.Save(HeadersFootersSample.Build(new HeadersFootersInput { SectionCount = 8, RowsPerSection = 20 }));
 

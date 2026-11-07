@@ -5,7 +5,7 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
 /// Headers and footers: a report whose pages the body flow creates as the content needs them. Each page has a header
-/// and a footer with "Page n of m"; page rules give the first page its own header and the last page its own footer;
+/// and a footer with "Page n of m"; page settings give the first page its own header and the last page its own footer;
 /// each section heading stays with its table; and a sign-off block stays together at the end.
 /// </summary>
 public static class HeadersFootersSample
@@ -42,17 +42,17 @@ public static class HeadersFootersSample
         document.BodyMarginTop = 16;
         document.BodyMarginBottom = 12;
 
-        // Page rules: a taller title on the first page, a closing note on the last page.
+        // Page settings: a taller title on the first page, a closing note on the last page.
         if (input.DifferentFirstPage)
         {
-            var first = document.AddPageRule(PdfPageRuleTarget.First);
+            var first = document.AddPageSettings(PdfPageTarget.First);
             first.Header.Height = 70;
             first.Header.AddText(input.Title, 0, 8, 22, PdfTextAlignment.Center);
             first.Header.AddText("Prepared by the finance team", 0, 40, 10, PdfTextAlignment.Center);
             first.Header.AddRectangle(0, 66, 495, 2, _accent);
         }
 
-        var last = document.AddPageRule(PdfPageRuleTarget.Last);
+        var last = document.AddPageSettings(PdfPageTarget.Last);
         last.Footer.AddRectangle(0, 0, 495, 0.5, PdfColor.Black);
         last.Footer.AddText("End of report", 0, 9, 9);
         last.Footer.AddText("Page {page} of {pages}", 0, 9, 9, PdfTextAlignment.Right);

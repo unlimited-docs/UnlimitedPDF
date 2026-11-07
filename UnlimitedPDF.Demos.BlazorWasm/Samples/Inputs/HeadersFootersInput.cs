@@ -9,7 +9,7 @@ public sealed class HeadersFootersInput
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets or sets whether the first page has its own, taller header (a First page rule).
+    /// Gets or sets whether the first page has its own, taller header (First-page settings).
     /// </summary>
     public bool DifferentFirstPage { get; set; } = true;
 

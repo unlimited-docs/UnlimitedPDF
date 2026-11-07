@@ -80,6 +80,24 @@ public class PublicSurfaceTests
     }
 
     [Fact]
+    public void PdfDocument_AddPageSettings_takes_a_target_or_a_page_number()
+    {
+        var overloads = typeof(PdfDocument).GetMethods(PublicMembers)
+            .Where(m => m.Name == nameof(PdfDocument.AddPageSettings))
+            .OrderBy(ParameterNames)
+            .ToList();
+
+        Assert.Equal(new[] { "pageNumber", "target" }, overloads.Select(ParameterNames));
+        Assert.Equal(typeof(int), overloads[0].GetParameters().Single().ParameterType);
+        Assert.Equal(typeof(PdfPageTarget), overloads[1].GetParameters().Single().ParameterType);
+        Assert.All(overloads, method => Assert.Equal(typeof(PdfPageSettings), method.ReturnType));
+        Assert.All(overloads, method => Assert.Equal("1.0.0", VersionOf(method)));
+        Assert.Contains(typeof(PdfPageSettings), Library.GetExportedTypes());
+        Assert.Contains(typeof(PdfPageTarget), Library.GetExportedTypes());
+        Assert.Equal(new[] { "First", "Last", "Odd", "Even" }, Enum.GetNames(typeof(PdfPageTarget)));
+    }
+
+    [Fact]
     public void PdfDocument_AddPage_returns_PdfPage()
     {
         Assert.Equal(typeof(PdfPage), typeof(PdfDocument).GetMethod(nameof(PdfDocument.AddPage))!.ReturnType);
@@ -110,10 +128,10 @@ public class PublicSurfaceTests
     [InlineData(typeof(PdfDocument), nameof(PdfDocument.MarginLeft), typeof(double))]
     [InlineData(typeof(PdfDocument), nameof(PdfDocument.MarginRight), typeof(double))]
     [InlineData(typeof(PdfDocument), nameof(PdfDocument.MarginTop), typeof(double))]
-    [InlineData(typeof(PdfPageRule), nameof(PdfPageRule.BodyMarginBottom), typeof(double?))]
-    [InlineData(typeof(PdfPageRule), nameof(PdfPageRule.BodyMarginTop), typeof(double?))]
-    [InlineData(typeof(PdfPageRule), nameof(PdfPageRule.MarginLeft), typeof(double?))]
-    [InlineData(typeof(PdfPageRule), nameof(PdfPageRule.MarginRight), typeof(double?))]
+    [InlineData(typeof(PdfPageSettings), nameof(PdfPageSettings.BodyMarginBottom), typeof(double?))]
+    [InlineData(typeof(PdfPageSettings), nameof(PdfPageSettings.BodyMarginTop), typeof(double?))]
+    [InlineData(typeof(PdfPageSettings), nameof(PdfPageSettings.MarginLeft), typeof(double?))]
+    [InlineData(typeof(PdfPageSettings), nameof(PdfPageSettings.MarginRight), typeof(double?))]
     [InlineData(typeof(PdfBodyFlow), nameof(PdfBodyFlow.RemainingHeight), typeof(double))]
     public void Renamed_properties_exist_and_first_ship_in_1_0_0(Type type, string name, Type propertyType)
     {
@@ -140,14 +158,15 @@ public class PublicSurfaceTests
     [InlineData(typeof(PdfTable), "RowHeightRule")]
     [InlineData(typeof(PdfTable), "TrimEmptyTrailingRowsAndCols")]
     [InlineData(typeof(PdfRow), "HeightRule")]
+    [InlineData(typeof(PdfDocument), "AddPageRule")]
     [InlineData(typeof(PdfDocument), "BottomMargin")]
     [InlineData(typeof(PdfDocument), "LeftMargin")]
     [InlineData(typeof(PdfDocument), "RightMargin")]
     [InlineData(typeof(PdfDocument), "TopMargin")]
-    [InlineData(typeof(PdfPageRule), "BodyBottomGap")]
-    [InlineData(typeof(PdfPageRule), "BodyTopGap")]
-    [InlineData(typeof(PdfPageRule), "LeftMargin")]
-    [InlineData(typeof(PdfPageRule), "RightMargin")]
+    [InlineData(typeof(PdfPageSettings), "BodyBottomGap")]
+    [InlineData(typeof(PdfPageSettings), "BodyTopGap")]
+    [InlineData(typeof(PdfPageSettings), "LeftMargin")]
+    [InlineData(typeof(PdfPageSettings), "RightMargin")]
     [InlineData(typeof(PdfBodyFlow), "BottomGap")]
     [InlineData(typeof(PdfBodyFlow), "Remaining")]
     [InlineData(typeof(PdfBodyFlow), "TopGap")]
@@ -161,6 +180,8 @@ public class PublicSurfaceTests
     [Theory]
     [InlineData("AddedVersionAttribute")]
     [InlineData("PdfPageBuilder")]
+    [InlineData("PdfPageRule")]
+    [InlineData("PdfPageRuleTarget")]
     [InlineData("PdfRowHeightRule")]
     [InlineData("PdfTableCell")]
     [InlineData("PdfTableColumn")]

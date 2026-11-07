@@ -1,9 +1,9 @@
 namespace UnlimitedPDF;
 
 /// <summary>
-/// The pages a page rule applies to. A rule for one page number is added with <c>AddPageRule(int)</c>.
+/// The pages that page settings apply to. Page settings for one page number are added with <c>AddPageSettings(int)</c>.
 /// </summary>
-public enum PdfPageRuleTarget
+public enum PdfPageTarget
 {
     /// <summary>
     /// The first saved page.
@@ -11,7 +11,7 @@ public enum PdfPageRuleTarget
     First,
 
     /// <summary>
-    /// The last saved page. A Last rule may change header and footer content only (WR-032).
+    /// The last saved page. Last-page settings may change header and footer content only (WR-032).
     /// </summary>
     Last,
 

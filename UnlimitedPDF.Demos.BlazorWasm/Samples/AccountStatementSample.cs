@@ -44,7 +44,7 @@ public static class AccountStatementSample
         document.Footer.Height = 22;
         document.Footer.AddText("Harborview Savings Bank. Report errors within 30 days.", 0, 8, 8);
         document.Footer.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
-        var last = document.AddPageRule(PdfPageRuleTarget.Last).Footer;
+        var last = document.AddPageSettings(PdfPageTarget.Last).Footer;
         last.AddText("End of statement", 0, 8, 8);
         last.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
         document.BodyMarginTop = 16;

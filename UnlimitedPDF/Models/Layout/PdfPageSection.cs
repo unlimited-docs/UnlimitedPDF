@@ -2,8 +2,8 @@ namespace UnlimitedPDF;
 
 /// <summary>
 /// A header or footer band (WR-030, WR-031): a fixed height, whether it is hidden, and its content, drawn on every saved
-/// page. On a page rule, only the values the rule sets apply; content added to a rule's section replaces the
-/// document's content on the pages the rule matches.
+/// page. In page settings, only the values they set apply; content added to their section replaces the document's
+/// content on the pages they match.
 /// </summary>
 public sealed class PdfPageSection : PdfSectionContent
 {
@@ -51,7 +51,7 @@ public sealed class PdfPageSection : PdfSectionContent
     private void EnsureLayoutAllowed(string member)
     {
         if (_contentOnly)
-            throw new InvalidOperationException($"A Last-page rule may change header and footer content only, so its {member} cannot be set: the layout of every page must be known before the last page is (WR-032).");
+            throw new InvalidOperationException($"Last-page settings may change header and footer content only, so its {member} cannot be set: the layout of every page must be known before the last page is (WR-032).");
     }
 
     #endregion
@@ -64,7 +64,7 @@ public sealed class PdfPageSection : PdfSectionContent
     /// Gets or sets the band height in points. The default is 0. A band of height 0 takes no space and draws nothing.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative or not finite.</exception>
-    /// <exception cref="InvalidOperationException">The section belongs to a Last-page rule.</exception>
+    /// <exception cref="InvalidOperationException">The section belongs to Last-page settings.</exception>
     public double Height
     {
         get => _height;
@@ -81,7 +81,7 @@ public sealed class PdfPageSection : PdfSectionContent
     /// <summary>
     /// Gets or sets whether the band is hidden. A hidden band gives its space to the body. The default is false.
     /// </summary>
-    /// <exception cref="InvalidOperationException">The section belongs to a Last-page rule.</exception>
+    /// <exception cref="InvalidOperationException">The section belongs to Last-page settings.</exception>
     public bool IsHidden
     {
         get => _isHidden;

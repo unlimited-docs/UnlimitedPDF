@@ -4,7 +4,7 @@ using UnlimitedPDF;
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// Quotation: a services quote. Page rules give the first page a taller header with the quote details and the last
+/// Quotation: a services quote. Page settings give the first page a taller header with the quote details and the last
 /// page its own footer; the terms heading stays with the terms and the acceptance signature.
 /// </summary>
 public static class QuotationSample
@@ -47,7 +47,7 @@ public static class QuotationSample
         document.Footer.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
 
         // The first page: a taller header with the quote details.
-        var first = document.AddPageRule(PdfPageRuleTarget.First);
+        var first = document.AddPageSettings(PdfPageTarget.First);
         first.Header.Height = 96;
         first.Header.AddImage(logo, 0, 0, 165, 55, fit);
         first.Header.AddText("QUOTATION", 0, 4, 24, PdfTextAlignment.Right);
@@ -56,7 +56,7 @@ public static class QuotationSample
         first.Header.AddRectangle(0, 92, Width, 2, _indigo);
 
         // The last page: a closing line in the footer.
-        var last = document.AddPageRule(PdfPageRuleTarget.Last).Footer;
+        var last = document.AddPageSettings(PdfPageTarget.Last).Footer;
         last.AddText("Thank you for your business", 0, 8, 8, PdfTextAlignment.Center);
         last.AddText("Page {page} of {pages}", 0, 8, 8, PdfTextAlignment.Right);
 

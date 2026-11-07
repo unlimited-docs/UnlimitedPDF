@@ -102,7 +102,7 @@ internal static class GoldenDocuments
     }
 
     // Header and footer bands: margins, clipped band content, a band table, page numbers, the per-page callback, and
-    // First and Last rules, on caller pages and on a page-coordinate table's continuation page.
+    // First and Last page settings, on caller pages and on a page-coordinate table's continuation page.
     private static PdfDocument BuildHeaderFooter()
     {
         var document = new PdfDocument { MarginTop = 24, MarginBottom = 24, MarginLeft = 40, MarginRight = 40 };
@@ -118,7 +118,7 @@ internal static class GoldenDocuments
         document.BodyMarginTop = 12;
         document.BodyMarginBottom = 12;
 
-        var first = document.AddPageRule(PdfPageRuleTarget.First);
+        var first = document.AddPageSettings(PdfPageTarget.First);
         first.Header.Height = 80;
         first.Header.AddText("Quarterly report", 0, 20, 24, PdfTextAlignment.Center);
         var codes = first.Header.AddTable(0, 56, 200);
@@ -126,7 +126,7 @@ internal static class GoldenDocuments
         var codeRow = codes.AddRow();
         codeRow.GetCell(0).Text = "Q3";
         codeRow.GetCell(1).Text = "2026";
-        document.AddPageRule(PdfPageRuleTarget.Last).Footer.AddText("End of report", 0, 10, 9, PdfTextAlignment.Center);
+        document.AddPageSettings(PdfPageTarget.Last).Footer.AddText("End of report", 0, 10, 9, PdfTextAlignment.Center);
 
         document.AddPage().AddText("Summary", 40, 640, 12);
         var detail = document.AddPage();

@@ -39,7 +39,7 @@ internal static class VisualCheckDocument
 
     /// <summary>
     /// Builds the page layout visual check (WR-030 to WR-034): header and footer bands, clipping, page numbers, page
-    /// rules, aligned text, the body flow across pages, a block kept together, and a flow image. Three pages.
+    /// settings, aligned text, the body flow across pages, a block kept together, and a flow image. Three pages.
     /// </summary>
     public static PdfDocument BuildLayout()
     {
@@ -55,13 +55,13 @@ internal static class VisualCheckDocument
         document.BodyMarginTop = 14;
         document.BodyMarginBottom = 14;
 
-        var first = document.AddPageRule(PdfPageRuleTarget.First);
+        var first = document.AddPageSettings(PdfPageTarget.First);
         first.Header.Height = 70;
         first.Header.AddText("Headers, footers, and flow", 0, 10, 20, PdfTextAlignment.Center);
         first.Header.AddText("The gray box below ends exactly at this band's bottom edge (clipped)", 0, 38, 9, PdfTextAlignment.Center);
         first.Header.AddRectangle(200, 52, 95, 40, PdfColor.LightGray);
         first.Header.AddRectangle(0, 68, 495, 2, new PdfColor(0, 0.67, 0.55));
-        var last = document.AddPageRule(PdfPageRuleTarget.Last).Footer;
+        var last = document.AddPageSettings(PdfPageTarget.Last).Footer;
         last.AddRectangle(0, 0, 495, 1, PdfColor.Black);
         last.AddText("Last page: this footer text is centered", 0, 10, 9, PdfTextAlignment.Center);
         last.AddText("Page {page} of {pages}", 0, 10, 9, PdfTextAlignment.Right);

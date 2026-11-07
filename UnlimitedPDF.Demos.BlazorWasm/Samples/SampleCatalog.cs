@@ -80,7 +80,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo HeadersFooters { get; } = new(
         "Headers and footers",
-        "A report with a header and footer on every page, page numbers, first and last page rules, and content that flows onto new pages.",
+        "A report with a header and footer on every page, page numbers, first and last page settings, and content that flows onto new pages.",
         "playground/create/headers-and-footers",
         "HeadersFootersSample.cs",
         "headers-and-footers.pdf",

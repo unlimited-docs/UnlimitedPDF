@@ -3,10 +3,10 @@ using UnlimitedPDF;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// Page rules (WR-032): First, Last, Odd, Even, and page-number rules override the header, footer, body gaps, and side
-/// margins; the most specific rule wins for each value; a Last rule may change content only.
+/// Page settings (WR-032): First, Last, Odd, Even, and page-number settings override the header, footer, body margins,
+/// and side margins; the most specific page settings win for each value; Last-page settings may change content only.
 /// </summary>
-public class PageRuleTests
+public class PageSettingsTests
 {
     #region Fields and Constants
 
@@ -20,10 +20,10 @@ public class PageRuleTests
     #region Public Methods
 
     [Fact]
-    public void A_first_page_rule_hides_the_header_and_gives_its_space_to_the_body()
+    public void First_page_settings_hide_the_header_and_give_its_space_to_the_body()
     {
         var document = Document(pages: 2);
-        document.AddPageRule(PdfPageRuleTarget.First).Header.IsHidden = true;
+        document.AddPageSettings(PdfPageTarget.First).Header.IsHidden = true;
 
         var pages = PdfPageReader.Save(document);
 
@@ -34,13 +34,13 @@ public class PageRuleTests
     }
 
     [Fact]
-    public void Odd_and_even_rules_change_side_margins_and_footer_content()
+    public void Odd_and_even_page_settings_change_side_margins_and_footer_content()
     {
         var document = Document(pages: 2);
-        var odd = document.AddPageRule(PdfPageRuleTarget.Odd);
+        var odd = document.AddPageSettings(PdfPageTarget.Odd);
         odd.MarginLeft = 60;
         odd.Footer.AddText("odd", 0, 0);
-        var even = document.AddPageRule(PdfPageRuleTarget.Even);
+        var even = document.AddPageSettings(PdfPageTarget.Even);
         even.MarginRight = 60;
         even.Footer.AddText("even", 0, 0);
 
@@ -54,30 +54,30 @@ public class PageRuleTests
     }
 
     [Fact]
-    public void The_most_specific_rule_wins_for_each_value()
+    public void The_most_specific_page_settings_win_for_each_value()
     {
         var document = Document(pages: 3);
-        document.AddPageRule(PdfPageRuleTarget.Odd).Header.Height = 60;
-        document.AddPageRule(PdfPageRuleTarget.First).Header.Height = 80;
-        document.AddPageRule(3).Header.Height = 100;
-        var laterOdd = document.AddPageRule(PdfPageRuleTarget.Odd);
+        document.AddPageSettings(PdfPageTarget.Odd).Header.Height = 60;
+        document.AddPageSettings(PdfPageTarget.First).Header.Height = 80;
+        document.AddPageSettings(3).Header.Height = 100;
+        var laterOdd = document.AddPageSettings(PdfPageTarget.Odd);
         laterOdd.Header.Height = 70;
         laterOdd.BodyMarginTop = 5;
 
         var pages = PdfPageReader.Save(document);
 
         // Page 1: First (80) beats Odd; Odd's gap still applies. Page 2: default 40. Page 3: page number (100) wins;
-        // between the two Odd rules the later one sets the gap.
+        // between the two Odd page settings the later one sets the gap.
         Assert.Equal(A4Height - 80 - 5 - LineOffset(12), FirstFlowBaseline(pages[0]), Precision);
         Assert.Equal(A4Height - 40 - LineOffset(12), FirstFlowBaseline(pages[1]), Precision);
         Assert.Equal(A4Height - 100 - 5 - LineOffset(12), FirstFlowBaseline(pages[2]), Precision);
     }
 
     [Fact]
-    public void A_last_page_rule_changes_content_only()
+    public void Last_page_settings_change_content_only()
     {
         var document = Document(pages: 2);
-        var last = document.AddPageRule(PdfPageRuleTarget.Last);
+        var last = document.AddPageSettings(PdfPageTarget.Last);
         last.Footer.AddText("End of report", 0, 0);
 
         var pages = PdfPageReader.Save(document);
@@ -85,21 +85,23 @@ public class PageRuleTests
         Assert.True(pages[0].Shows("F"));
         Assert.True(pages[1].Shows("End of report"));
         Assert.False(pages[1].Shows("F"));
-        Assert.Throws<InvalidOperationException>(() => last.Footer.Height = 10);
+        var sectionError = Assert.Throws<InvalidOperationException>(() => last.Footer.Height = 10);
+        Assert.StartsWith("Last-page settings may change header and footer content only", sectionError.Message);
         Assert.Throws<InvalidOperationException>(() => last.Header.IsHidden = true);
-        Assert.Throws<InvalidOperationException>(() => last.BodyMarginTop = 10);
+        var settingsError = Assert.Throws<InvalidOperationException>(() => last.BodyMarginTop = 10);
+        Assert.StartsWith("Last-page settings may change header and footer content only", settingsError.Message);
         Assert.Throws<InvalidOperationException>(() => last.MarginLeft = 10);
     }
 
     [Fact]
-    public void Page_number_rules_start_at_one_and_rules_past_the_last_page_never_match()
+    public void Page_numbers_start_at_one_and_page_settings_past_the_last_page_never_match()
     {
         var document = Document(pages: 1);
-        document.AddPageRule(5).Header.Height = 300;
+        document.AddPageSettings(5).Header.Height = 300;
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule(0));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule((PdfPageRuleTarget)99));
-        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageRule(PdfPageRuleTarget.Even).BodyMarginBottom = -1);
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageSettings(0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageSettings((PdfPageTarget)99));
+        Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPageSettings(PdfPageTarget.Even).BodyMarginBottom = -1);
         Assert.Single(PdfPageReader.Save(document));
     }
 
