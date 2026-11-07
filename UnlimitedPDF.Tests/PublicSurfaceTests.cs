@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Reflection;
 
 namespace UnlimitedPDF.Tests;
@@ -26,6 +27,24 @@ public class PublicSurfaceTests
 
         Assert.Equal(new[] { typeof(string), typeof(double), typeof(double), typeof(double) }, method.GetParameters().Select(p => p.ParameterType));
         Assert.Equal("text,x,y,fontSize", ParameterNames(method));
+    }
+
+    [Theory]
+    [InlineData(typeof(PdfPage), nameof(PdfPage.AddTable), "0.0.3")]
+    [InlineData(typeof(PdfPageSizeExtensions), nameof(PdfPageSizeExtensions.ToDimensions), "0.0.2")]
+    [InlineData(typeof(PdfRow), nameof(PdfRow.GetCell), "0.0.3")]
+    [InlineData(typeof(PdfRow), nameof(PdfRow.SetCell), "0.0.3")]
+    [InlineData(typeof(PdfTable), nameof(PdfTable.AddColumn), "0.0.3")]
+    [InlineData(typeof(PdfTable), nameof(PdfTable.AddRow), "0.0.3")]
+    [InlineData(typeof(PdfTable), nameof(PdfTable.InsertColumn), "0.0.3")]
+    [InlineData(typeof(PdfTable), nameof(PdfTable.InsertRow), "0.0.3")]
+    [InlineData(typeof(PdfTable), nameof(PdfTable.SetText), "0.0.3")]
+    public void Edited_shipped_methods_record_their_first_version_and_a_description(Type type, string name, string version)
+    {
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name);
+
+        Assert.Equal(version, VersionOf(method));
+        Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
     }
 
     [Fact]

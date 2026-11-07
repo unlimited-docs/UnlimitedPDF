@@ -21,6 +21,8 @@ public class PdfTable
     /// Adds a column; every existing row gets an empty cell for it.
     /// </summary>
     /// <returns>The new column.</returns>
+    [AddedVersion("0.0.3")]
+    [Description("Adds a column; every existing row gets an empty cell for it.")]
     public PdfColumn AddColumn()
     {
         var column = new PdfColumn(_cols.Count) { Width = null };
@@ -34,6 +36,8 @@ public class PdfTable
     /// Adds a row with one empty cell per column.
     /// </summary>
     /// <returns>The new row.</returns>
+    [AddedVersion("0.0.3")]
+    [Description("Adds a row with one empty cell per column.")]
     public PdfRow AddRow()
     {
         var row = new PdfRow(_rows.Count, ColumnCount);
@@ -94,6 +98,11 @@ public class PdfTable
     /// <summary>
     /// Inserts a column at <paramref name="index"/>; every row gets an empty cell for it.
     /// </summary>
+    /// <param name="index">The 0-based position of the new column, from 0 to <see cref="ColumnCount"/>.</param>
+    /// <returns>The new column.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or greater than the column count.</exception>
+    [AddedVersion("0.0.3")]
+    [Description("Inserts a column at the given index; every row gets an empty cell for it.")]
     public PdfColumn InsertColumn(int index)
     {
         if (index < 0 || index > _cols.Count) throw new ArgumentOutOfRangeException(nameof(index));
@@ -110,6 +119,11 @@ public class PdfTable
     /// <summary>
     /// Inserts a row with one empty cell per column at <paramref name="index"/>.
     /// </summary>
+    /// <param name="index">The 0-based position of the new row, from 0 to <see cref="RowCount"/>.</param>
+    /// <returns>The new row.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or greater than the row count.</exception>
+    [AddedVersion("0.0.3")]
+    [Description("Inserts a row with one empty cell per column at the given index.")]
     public PdfRow InsertRow(int index)
     {
         if (index < 0 || index > _rows.Count) throw new ArgumentOutOfRangeException(nameof(index));
@@ -185,6 +199,11 @@ public class PdfTable
     /// Sets the first text item of the cell at (<paramref name="row"/>, <paramref name="column"/>), adding rows and columns
     /// first when needed. Images and other text items in the cell are untouched.
     /// </summary>
+    /// <param name="row">The 0-based row index.</param>
+    /// <param name="column">The 0-based column index.</param>
+    /// <param name="text">The text.</param>
+    [AddedVersion("0.0.3")]
+    [Description("Sets the first text item of the cell at the given row and column, adding rows and columns first when needed.")]
     public void SetText(int row, int column, string text)
     {
         var cell = GetOrCreateCell(row, column);

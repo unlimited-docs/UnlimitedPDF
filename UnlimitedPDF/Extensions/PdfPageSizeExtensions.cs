@@ -10,6 +10,14 @@ public static class PdfPageSizeExtensions
     // Default PPI (points per inch) used in PDF measurements
     private const double DefaultPPI = 72.0;
 
+    /// <summary>
+    /// Returns the width and height of a page size, in points (1/72 in).
+    /// </summary>
+    /// <param name="pageSize">The page size.</param>
+    /// <returns>The width and height, in points.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageSize"/> is not a defined value.</exception>
+    [AddedVersion("0.0.2")]
+    [Description("Returns the width and height of a page size, in points.")]
     public static (double Width, double Height) ToDimensions(this PdfPageSize pageSize)
     {
         return pageSize switch

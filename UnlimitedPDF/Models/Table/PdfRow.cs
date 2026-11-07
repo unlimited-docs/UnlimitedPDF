@@ -34,6 +34,11 @@ public class PdfRow
     /// <summary>
     /// Returns the cell in column <paramref name="columnIndex"/>.
     /// </summary>
+    /// <param name="columnIndex">The 0-based column index.</param>
+    /// <returns>The cell.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="columnIndex"/> is outside the row.</exception>
+    [AddedVersion("0.0.3")]
+    [Description("Returns the cell in the given column.")]
     public PdfCell GetCell(int columnIndex)
     {
         if (columnIndex < 0 || columnIndex >= _cells.Count) throw new ArgumentOutOfRangeException(nameof(columnIndex));
@@ -43,6 +48,11 @@ public class PdfRow
     /// <summary>
     /// Places <paramref name="cell"/>, with its content, in column <paramref name="columnIndex"/>, adding cells first when needed.
     /// </summary>
+    /// <param name="columnIndex">The 0-based column index.</param>
+    /// <param name="cell">The cell; null places an empty cell.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="columnIndex"/> is negative.</exception>
+    [AddedVersion("0.0.3")]
+    [Description("Places a cell, with its content, in the given column, adding cells first when needed.")]
     public void SetCell(int columnIndex, PdfCell cell)
     {
         if (columnIndex < 0) throw new ArgumentOutOfRangeException(nameof(columnIndex));

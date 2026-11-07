@@ -91,6 +91,8 @@ public class PdfPage
     /// <param name="y">The y-coordinate of the table's top-left corner.</param>
     /// <param name="width">The total width of the table.</param>
     /// <returns>A <see cref="PdfTable"/> object for configuration.</returns>
+    [AddedVersion("0.0.3")]
+    [Description("Adds a new table to the page at the specified position and with the given width.")]
     public PdfTable AddTable(double x, double y, double width)
     {
         var table = new PdfTable
@@ -110,10 +112,17 @@ public class PdfPage
     /// <param name="x">The x-coordinate of the text's start, in points from the page's left edge.</param>
     /// <param name="y">The y-coordinate of the text's baseline, in points from the page's bottom edge.</param>
     /// <param name="fontSize">The font size, in points. The default is 12.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or the font size is zero, negative, or not finite.</exception>
     [AddedVersion("0.0.2")]
     [Description("Adds text at a page position, drawn with the document's font.")]
     public void AddText(string text, double x, double y, double fontSize = 12)
     {
+        if (text is null) throw new ArgumentNullException(nameof(text));
+        Guard.Finite(x, nameof(x));
+        Guard.Finite(y, nameof(y));
+        Guard.Positive(fontSize, nameof(fontSize));
+
         _contentElements.Add(new PdfTextElement
         {
             Text = text,
