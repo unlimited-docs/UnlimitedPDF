@@ -40,6 +40,7 @@ public class GoldenOutputTests
         GoldenDocuments.FlowKeep,
         GoldenDocuments.HeaderFooter,
         GoldenDocuments.Invoice,
+        GoldenDocuments.Merge,
         GoldenDocuments.MiddleTable,
         GoldenDocuments.PageLimit,
         GoldenDocuments.PaginatedTable,

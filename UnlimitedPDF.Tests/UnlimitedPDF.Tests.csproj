@@ -25,12 +25,15 @@
   <!-- The demo's document builder is compiled here too, so tests can check the demo PDF on every framework. -->
   <ItemGroup>
     <Compile Include="..\UnlimitedPDF.Demo.ConsoleApp\DemoDocument.cs" Link="Demo\DemoDocument.cs" />
+    <Compile Include="..\UnlimitedPDF.Demo.ConsoleApp\MergeDemo.cs" Link="Demo\MergeDemo.cs" />
   </ItemGroup>
 
   <!-- The demos app's document builders and their inputs are compiled here too, so tests can check the demo PDFs. -->
   <ItemGroup>
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\AccountStatementSample.cs" Link="Demo\Samples\AccountStatementSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DeliveryNoteSample.cs" Link="Demo\Samples\DeliveryNoteSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MergeSample.cs" Link="Demo\Samples\MergeSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\MergeInput.cs" Link="Demo\Samples\Inputs\MergeInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PayslipSample.cs" Link="Demo\Samples\PayslipSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PurchaseOrderSample.cs" Link="Demo\Samples\PurchaseOrderSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\QuotationSample.cs" Link="Demo\Samples\QuotationSample.cs" />

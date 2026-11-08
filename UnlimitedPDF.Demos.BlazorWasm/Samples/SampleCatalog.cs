@@ -23,8 +23,8 @@ public static class SampleCatalog
     [
         new SampleCategory(
             "Create",
-            "Build documents from code: pages, text, tables, images, and headers and footers.",
-            [TextAndPages, Tables, Images, HeadersFooters]),
+            "Build documents from code: pages, text, tables, images, headers and footers, and merged PDFs.",
+            [TextAndPages, Tables, Images, HeadersFooters, MergePdfs]),
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
@@ -107,6 +107,17 @@ public static class SampleCatalog
         "InvoiceSample.cs",
         "invoice.pdf",
         "invoice");
+
+    /// <summary>
+    /// Gets the Merge PDFs demo.
+    /// </summary>
+    public static SampleDemo MergePdfs { get; } = new(
+        "Merge PDFs",
+        "Join PDFs with a cover page and page ranges, in your browser. Try your own files.",
+        "playground/create/merge-pdfs",
+        "MergeSample.cs",
+        "merged.pdf",
+        "copy");
 
     /// <summary>
     /// Gets the Medical report demo.

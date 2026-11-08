@@ -14,6 +14,7 @@ internal static class GoldenDocuments
     public const string FlowKeep = "flow-keep";
     public const string HeaderFooter = "header-footer";
     public const string Invoice = "invoice";
+    public const string Merge = "merge";
     public const string MiddleTable = "middle-table";
     public const string PageLimit = "page-limit";
     public const string PaginatedTable = "paginated-table";
@@ -41,6 +42,7 @@ internal static class GoldenDocuments
             PageLimit => BuildPageLimit(),
             PaginatedTable => BuildPaginatedTable(),
             TextPages => BuildTextPages(),
+            Merge => BuildMerge(),
             _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown golden document.")
         };
 
@@ -322,6 +324,27 @@ internal static class GoldenDocuments
     }
 
     // Plain text on several pages, including a page size change between pages.
+    // A merge (WR-036): a built cover page with a numbered footer, then pages 2 to 3 of a file with bookmarks, a link,
+    // and a filled field, then a whole second file. The inputs are uncompressed, so the bytes do not depend on the
+    // runtime's compressor.
+    private static PdfDocument BuildMerge()
+    {
+        var withExtras = ReaderFixtureBuilder.Document(3, catalogEntries: "/Outlines 40 0 R ")
+            .AddObject(40, "<< /Type /Outlines /First 41 0 R /Last 42 0 R /Count 2 >>")
+            .AddObject(41, "<< /Title (Summary) /Parent 40 0 R /Next 42 0 R /Dest [6 0 R /Fit] >>")
+            .AddObject(42, "<< /Title (Details) /Parent 40 0 R /Prev 41 0 R /Dest [8 0 R /XYZ 0 792 0] >>")
+            .ToBytes();
+        var plain = ReaderFixtureBuilder.DocumentBytes(2, "(Appendix)");
+
+        var document = new PdfDocument();
+        document.Footer.Height = 20;
+        document.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
+        document.AddPage().AddText("Merged report", 72, 760, 18);
+        document.AddPages(PdfFile.FromBytes(withExtras), firstPage: 2, lastPage: 3, bookmarkTitle: "Report");
+        document.AddPages(PdfFile.FromBytes(plain));
+        return document;
+    }
+
     private static PdfDocument BuildTextPages()
     {
         var document = new PdfDocument();

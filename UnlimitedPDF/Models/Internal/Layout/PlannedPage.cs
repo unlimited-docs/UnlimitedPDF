@@ -37,7 +37,7 @@ internal sealed class PlannedPage
     /// <returns>The copy.</returns>
     public PlannedPage Copy()
     {
-        var copy = new PlannedPage(RootIndex, ChainIndex, Number, Geometry) { CarriedBottom = CarriedBottom };
+        var copy = new PlannedPage(RootIndex, ChainIndex, Number, Geometry) { CarriedBottom = CarriedBottom, IsImported = IsImported };
         copy.Carried.AddRange(Carried);
         copy.Flow.AddRange(Flow);
         return copy;
@@ -72,6 +72,11 @@ internal sealed class PlannedPage
     /// Gets the page's geometry.
     /// </summary>
     public PageGeometry Geometry { get; }
+
+    /// <summary>
+    /// Gets whether the page is an imported page, which counts in the numbering but gets no content (WR-036).
+    /// </summary>
+    public bool IsImported { get; init; }
 
     /// <summary>
     /// Gets the 1-based page number in reading order.

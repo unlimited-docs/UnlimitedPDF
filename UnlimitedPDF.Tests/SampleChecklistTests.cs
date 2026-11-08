@@ -85,7 +85,7 @@ public class SampleChecklistTests
 
     private static string RepositoryRoot() => Path.GetFullPath(Path.Combine(Fixtures.DemoAssets(), "..", ".."));
 
-    private static string SourcePath(string file) => file == "DemoDocument.cs"
+    private static string SourcePath(string file) => file is "DemoDocument.cs" or "MergeDemo.cs"
         ? Path.Combine(RepositoryRoot(), "UnlimitedPDF.Demo.ConsoleApp", file)
         : Path.Combine(SamplesDirectory(), file);
 
@@ -109,7 +109,7 @@ public class SampleChecklistTests
     {
         get
         {
-            var data = new TheoryData<string> { "DemoDocument.cs" };
+            var data = new TheoryData<string> { "DemoDocument.cs", "MergeDemo.cs" };
             foreach (var path in Directory.GetFiles(SamplesDirectory(), "*Sample.cs").OrderBy(p => p, StringComparer.Ordinal))
                 data.Add(Path.GetFileName(path));
             return data;

@@ -296,6 +296,34 @@ pdfDocument.Save("report.pdf");
 - Text is aligned with the font's real character widths. It does not wrap.
 - Documents that use none of these features are written exactly as before.
 
+## Merge PDFs
+
+Join existing PDFs into one file, or add their pages to a document you build. Each file is loaded and checked once with `PdfFile`, from a path, a stream, or bytes.
+
+```cs
+using UnlimitedPDF;
+
+// Join whole files in one call. Each file gets a top-level bookmark.
+var report = PdfFile.FromFile("report.pdf");
+var invoice = PdfFile.FromFile("invoice.pdf");
+PdfOperations.Merge("merged.pdf", report, invoice);
+
+// Or build a cover page and choose page ranges.
+var pdfDocument = new PdfDocument();
+pdfDocument.Footer.Height = 20;
+pdfDocument.Footer.AddText("Page {page} of {pages}", 0, 4, 9);
+pdfDocument.AddPage().AddText("Quarterly pack", 72, 700, 24);
+pdfDocument.AddPages(report, firstPage: 2, lastPage: 3, bookmarkTitle: "Quarterly report");
+pdfDocument.AddPages(invoice);
+pdfDocument.Save("pack.pdf");
+```
+
+- Imported pages keep their size, rotation, content, links, comments, layers, and bookmarks. Filled form fields keep their look but are no longer editable. Document metadata, attachments, and scripts are not copied.
+- Imported pages take no new content and get no header, footer, or page settings, but they count in `{page}` and `{pages}` and act as a page break in the body flow.
+- PDF 1.0 to 2.0 files load, including compressed cross-reference and object streams and incremental updates. A broken cross-reference table is repaired by scanning the file.
+- Bad input fails at load with `PdfFileException`: encrypted files (`Encrypted`; they are not opened), damaged data (`Damaged`), files without pages (`Empty`), and files over a limit (`TooLarge`). The limits are 500 MB per file, 100 MB per decompressed stream, and 5,000,000 objects; change them with `PdfFileLoadOptions` or `PdfFile.DefaultMaxFileSize`, `PdfFile.DefaultMaxStreamSize`, and `PdfFile.DefaultMaxObjectCount`.
+- Merging works in the browser too: load uploads with `PdfFile.FromStreamAsync`.
+
 ## Upgrading to 1.0.0
 
 1.0.0 renames part of the API so that names follow one convention and are easier to guess. Old names are removed, so code written for 0.0.x reports compile errors until it uses the new names. Generated PDFs are unchanged. Every public type is now in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` you need.
@@ -326,6 +354,7 @@ pdfDocument.Save("report.pdf");
 
 ## Changes in 1.0.0
 
+- New: merge PDFs (`PdfFile`, `PdfFileLoadOptions`, `PdfFileException`, `PdfDocument.AddPages`, `PdfOperations.Merge`): load existing PDFs, join whole files in one call, or add page ranges next to pages you build.
 - New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.MarginTop`, `PdfDocument.MarginBottom`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
 - New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.BodyMarginTop`, `PdfDocument.BodyMarginBottom`, `PdfDocument.AddPageSettings`, `PdfDocument.MarginLeft`, `PdfDocument.MarginRight`), and filled rectangles (`PdfPage.AddRectangle`).
 - New: images (`PdfImage`, `PdfPage.AddImage`), images and stacked content in table cells, row height modes (`PdfRowHeightMode`), and unit conversion (`PdfUnits`).

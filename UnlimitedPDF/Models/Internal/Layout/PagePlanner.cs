@@ -8,7 +8,9 @@ namespace UnlimitedPDF.Models.Internal.Layout;
 /// <param name="Size">The page size; the pages that continue it have the same size.</param>
 /// <param name="Tables">The page-coordinate tables on the page, in the order they were added.</param>
 /// <param name="FlowStart">The index of the first flow item added after the page, which starts on it.</param>
-internal sealed record PlanRoot(PdfPage? Builder, PdfPageSize Size, IReadOnlyList<PdfTable> Tables, int FlowStart);
+/// <param name="IsImported">Whether the root is an imported page: it takes no tables or flow, so flow added after it
+/// starts on a new page after it (WR-036).</param>
+internal sealed record PlanRoot(PdfPage? Builder, PdfPageSize Size, IReadOnlyList<PdfTable> Tables, int FlowStart, bool IsImported = false);
 
 /// <summary>
 /// Lays out every saved page in reading order (WR-027, WR-030, WR-033): each root page, then the pages that continue
@@ -210,7 +212,8 @@ internal sealed class PagePlanner
 
         PlanPageTables();
 
-        _cursor = Fresh(0);
+        // An imported page has no room for flow: what follows it starts on the next page (WR-036).
+        _cursor = Fresh(_root.IsImported ? 1 : 0);
         _nextItem = _root.FlowStart;
     }
 
@@ -639,8 +642,9 @@ internal sealed class PagePlanner
         {
             int number = _nextNumber + _slots.Count;
             var geometry = _geometry(number, _root!.Size);
-            if (_checkBody && (geometry.BodyHeight <= 0 || geometry.ContentWidth <= 0)) throw NoBody(number, geometry);
-            _slots.Add(new PlannedPage(_rootIndex, _slots.Count, number, geometry));
+            bool imported = _root.IsImported && _slots.Count == 0;
+            if (_checkBody && !imported && (geometry.BodyHeight <= 0 || geometry.ContentWidth <= 0)) throw NoBody(number, geometry);
+            _slots.Add(new PlannedPage(_rootIndex, _slots.Count, number, geometry) { IsImported = imported });
         }
         return _slots[index];
     }
