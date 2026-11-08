@@ -6,7 +6,10 @@ public class PdfDocument
 
     private readonly PdfHeader _fileHeader;
     private readonly Dictionary<string, int> _imageObjects = new(StringComparer.Ordinal);
+    private readonly Dictionary<PdfFile, Dictionary<int, int>> _importedObjects = new();
+    private readonly List<PageImport> _imports = new();
     private readonly PdfBody _objects;
+    private readonly List<PdfObject> _outlineObjects = new();
     private readonly List<PageEntry> _pageEntries = new();
     private readonly PdfPages _pages;
     private readonly List<RemainingQuery> _queries = new();
@@ -73,7 +76,57 @@ public class PdfDocument
         _pages.Kids.Add(new PdfIndirectReference(objectNumber: entry.PageObject.ObjectNumber));
         _pageEntries.Add(entry);
 
-        return entry.Builder;
+        return entry.Builder!;
+    }
+
+    /// <summary>
+    /// Adds pages of an existing PDF after the pages added so far: the whole file, or the pages from
+    /// <paramref name="firstPage"/> to <paramref name="lastPage"/>. The pages keep their size, rotation, content, links,
+    /// comments, and layers; filled form fields keep their look but are no longer editable. They take no new content
+    /// and no header, footer, or page settings, but count in page numbers. When the body flow is used, they act as a
+    /// page break: flow items added after them start on a new page. Each call adds one top-level bookmark holding the
+    /// file's own bookmarks (WR-036).
+    /// </summary>
+    /// <param name="file">The loaded PDF to take pages from.</param>
+    /// <param name="firstPage">The 1-based number of the first page to add, or null for the first page.</param>
+    /// <param name="lastPage">The 1-based number of the last page to add, or null for the last page.</param>
+    /// <param name="bookmarkTitle">The title of this call's top-level bookmark, or null to use the file's title, its
+    /// file name, or "Document N".</param>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="firstPage"/> or <paramref name="lastPage"/> is
+    /// outside the file's pages, or <paramref name="lastPage"/> comes before <paramref name="firstPage"/>.</exception>
+    [AddedVersion("1.0.0")]
+    [Description("Adds pages of an existing PDF after the pages added so far.")]
+    public void AddPages(PdfFile file, int? firstPage = null, int? lastPage = null, string? bookmarkTitle = null)
+    {
+        if (file is null) throw new ArgumentNullException(nameof(file));
+        int first = firstPage ?? 1;
+        int last = lastPage ?? file.PageCount;
+        if (first < 1 || first > file.PageCount)
+            throw new ArgumentOutOfRangeException(nameof(firstPage), firstPage, $"The first page must be from 1 to {file.PageCount}.");
+        if (last < 1 || last > file.PageCount)
+            throw new ArgumentOutOfRangeException(nameof(lastPage), lastPage, $"The last page must be from 1 to {file.PageCount}.");
+        if (last < first)
+            throw new ArgumentOutOfRangeException(nameof(lastPage), lastPage, "The last page must not come before the first page.");
+
+        // Every new object is built first; the document changes only once nothing can fail.
+        if (!_importedObjects.TryGetValue(file, out var shared)) shared = new Dictionary<int, int>();
+        var imported = new PageImporter(file, shared).Import(first - 1, last - 1, _objects.Objects.Max(o => o.ObjectNumber) + 1);
+
+        foreach (var obj in imported.Objects) _objects.AddObject(obj);
+        foreach (var (source, copy) in imported.Shareable) shared[source] = copy;
+        _importedObjects[file] = shared;
+
+        var entries = new List<PageEntry>();
+        foreach (int number in imported.PageNumbers)
+        {
+            var pageObject = imported.Objects.First(o => o.ObjectNumber == number);
+            var entry = new PageEntry(null, null, pageObject, PageSize) { FlowStart = Body.Items.Count };
+            _pages.Kids.Add(new PdfIndirectReference(objectNumber: number));
+            _pageEntries.Add(entry);
+            entries.Add(entry);
+        }
+        _imports.Add(new PageImport(file, first, last, bookmarkTitle, entries));
     }
 
     /// <summary>
@@ -166,6 +219,19 @@ public class PdfDocument
     #region Internal Methods
 
     /// <summary>
+    /// Appends an object whose syntax is already bytes, numbered after every existing object (WR-002).
+    /// </summary>
+    /// <param name="body">The value's bytes.</param>
+    /// <param name="streamData">The stream data, or null when the object is not a stream.</param>
+    /// <returns>The object, carrying its number.</returns>
+    internal PdfRawObject AddRawObject(byte[] body, byte[]? streamData = null)
+    {
+        var raw = new PdfRawObject(_objects.Objects.Max(o => o.ObjectNumber) + 1, body, streamData);
+        _objects.AddObject(raw);
+        return raw;
+    }
+
+    /// <summary>
     /// Records the page size of the library's first flow page when the first flow item comes before any caller page.
     /// </summary>
     internal void FlowItemAdding()
@@ -241,7 +307,8 @@ public class PdfDocument
     // (WR-002). Its place in /Kids, after the root page and its earlier continuation pages, is set at save.
     private void AddContinuationPage(PageEntry root)
     {
-        var entry = CreatePageEntry(root.PageSize, root.Builder.PageNumber, continuationIndex: root.Chain.Count + 1);
+        int pageNumber = root.Builder?.PageNumber ?? _pageEntries.IndexOf(root) + 1;
+        var entry = CreatePageEntry(root.PageSize, pageNumber, continuationIndex: root.Chain.Count + 1);
         root.Chain.Add(entry);
     }
 
@@ -508,6 +575,21 @@ public class PdfDocument
 
     private bool NeedsFlowRoot() => (_pageEntries.Count == 0 ? Body.Items.Count : _pageEntries[0].FlowStart) > 0;
 
+    // What the bookmark builder needs from one AddPages call: its source-to-document page map and its titles.
+    private static OutlineImport OutlineImportOf(PageImport import)
+    {
+        var pageMap = new Dictionary<int, int>();
+        for (int i = 0; i < import.Entries.Count; i++)
+            pageMap[import.File.Pages[import.FirstPage - 1 + i].ObjectNumber] = import.Entries[i].PageObject.ObjectNumber;
+        return new OutlineImport(
+            import.File.Source,
+            pageMap,
+            import.File.Pages[import.FirstPage - 1].ObjectNumber,
+            import.BookmarkTitle,
+            import.File.Title,
+            import.File.FileName);
+    }
+
     private void PrepareDocumentForSave()
     {
         // Plan every page first. Any layout error is thrown here, before a page object is added or anything is written.
@@ -526,6 +608,7 @@ public class PdfDocument
             for (int i = 0; i < planned.Count; i++)
             {
                 var page = planned[i];
+                if (page.IsImported) continue;
                 var info = new PdfPageInfo(page.Number, planned.Count);
                 if (page.Geometry.HeaderHeight > 0) headers[i] = PrepareBand(SectionFor(page.Number, planned.Count, footer: false), info);
                 if (page.Geometry.FooterHeight > 0) footers[i] = PrepareBand(SectionFor(page.Number, planned.Count, footer: true), info);
@@ -552,22 +635,24 @@ public class PdfDocument
             unused.AddRange(root.Chain.Skip(chain));
         }
 
-        var contents = new PdfPageContent[visible.Count];
+        // Imported pages keep the content they were copied with (WR-036).
+        var contents = new PdfPageContent?[visible.Count];
         for (int i = 0; i < visible.Count; i++)
         {
+            if (visible[i].Builder is not { } builder) continue;
             var page = planned[i];
             var header = headers[i];
             var footer = footers[i];
             Action<StringBuilder, Func<PdfImageData, string>>? after = drawLayout
                 ? (sb, name) => DrawLayout(sb, name, page, header, footer, plans)
                 : null;
-            contents[i] = visible[i].Builder.BuildContent(plans, page.Carried, after);
+            contents[i] = builder.BuildContent(plans, page.Carried, after);
         }
 
         // Store each distinct image once per document. Objects added by an earlier save are reused.
         foreach (var content in contents)
         {
-            foreach (var image in content.Images)
+            foreach (var image in content?.Images ?? Array.Empty<PdfImageData>())
             {
                 RegisterImage(image);
             }
@@ -577,23 +662,57 @@ public class PdfDocument
         for (int i = 0; i < visible.Count; i++)
         {
             var entry = visible[i];
-            entry.Builder.CommitContent(contents[i].Data);
-            entry.Page.Resources = CreateResources(contents[i].Images);
+            if (entry.Builder is null || contents[i] is not { } content) continue;
+            entry.Builder.CommitContent(content.Data);
+            entry.Page!.Resources = CreateResources(content.Images);
             entry.PageObject.Content = entry.Page.ToString();
         }
 
         foreach (var entry in unused)
         {
+            if (entry.Builder is null) continue;
             entry.Builder.CommitContent(Array.Empty<byte>());
-            entry.Page.Resources = new PdfDictionary();
+            entry.Page!.Resources = new PdfDictionary();
             entry.PageObject.Content = entry.Page.ToString();
         }
+
+        // The output declares the highest version among the imported files, and at least 1.7 (WR-036).
+        _fileHeader.Version = _imports
+            .Select(import => import.File.Source.Version)
+            .Append("1.7")
+            .OrderByDescending(version => Version.TryParse(version, out var parsed) ? parsed : new Version(0, 0))
+            .First();
 
         // List the pages in reading order in the main pages object (object 2).
         _pages.Kids.Clear();
         _pages.Kids.AddRange(visible.Select(entry => new PdfIndirectReference(objectNumber: entry.PageObject.ObjectNumber)));
         var pagesObject = _objects.Objects.First(o => o.ObjectNumber == 2);
         pagesObject.Content = _pages.ToString();
+
+        // Bookmarks for the imported files (WR-036). Their objects are created at the first save that needs them and
+        // rewritten by later saves; more are appended only when later imports add bookmarks.
+        var catalog = new PdfCatalog(new PdfIndirectReference(objectNumber: 2));
+        if (_imports.Count > 0)
+        {
+            var outlineImports = _imports.Select(OutlineImportOf).ToList();
+            int needed = OutlineBuilder.Build(outlineImports, index => index + 1).Count;
+            while (_outlineObjects.Count < needed)
+            {
+                var placeholder = new PdfObject(_objects.Objects.Max(o => o.ObjectNumber) + 1, string.Empty);
+                _objects.AddObject(placeholder);
+                _outlineObjects.Add(placeholder);
+            }
+
+            var outlines = OutlineBuilder.Build(outlineImports, index => _outlineObjects[index].ObjectNumber);
+            for (int i = 0; i < _outlineObjects.Count; i++)
+                _outlineObjects[i].Content = i < outlines.Count ? outlines[i] : "null";
+            catalog.Outlines = new PdfIndirectReference(objectNumber: _outlineObjects[0].ObjectNumber);
+            catalog.OptionalContent = OptionalContentMerger.Build(_imports
+                .Select(import => import.File)
+                .Distinct()
+                .Select(file => (file.Source, (IReadOnlyDictionary<int, int>)_importedObjects[file])));
+        }
+        _objects.Objects.First(o => o.ObjectNumber == 1).Content = catalog.ToString();
     }
 
     // Appends the image, and its mask unless an identical mask is already stored, as new objects numbered after every
@@ -629,7 +748,11 @@ public class PdfDocument
         var roots = new List<PlanRoot>(_pageEntries.Count + 1);
         if (NeedsFlowRoot()) roots.Add(new PlanRoot(null, _flowRoot?.PageSize ?? _flowRootSize ?? PageSize, Array.Empty<PdfTable>(), 0));
         foreach (var entry in _pageEntries)
-            roots.Add(new PlanRoot(entry.Builder, entry.PageSize, entry.Builder.Tables.ToList(), entry.FlowStart));
+        {
+            roots.Add(entry.Builder is { } builder
+                ? new PlanRoot(builder, entry.PageSize, builder.Tables.ToList(), entry.FlowStart)
+                : new PlanRoot(null, entry.PageSize, Array.Empty<PdfTable>(), entry.FlowStart, IsImported: true));
+        }
         return roots;
     }
 
@@ -680,7 +803,7 @@ public class PdfDocument
         sb.Append(_layoutVersion).Append('|').Append(roots.Count);
         foreach (var root in roots)
         {
-            sb.Append('|').Append(root.Size).Append(';').Append(root.FlowStart).Append(';').Append(root.Tables.Count);
+            sb.Append('|').Append(root.Size).Append(';').Append(root.FlowStart).Append(';').Append(root.Tables.Count).Append(root.IsImported ? ";i" : "");
             foreach (var table in root.Tables)
             {
                 sb.Append(':')
@@ -725,7 +848,24 @@ public class PdfDocument
         foreach (var obj in _objects.Objects)
         {
             offsets.Add(stream.Position);
-            if (obj is PdfStreamObject streamObj)
+            if (obj is PdfRawObject raw)
+            {
+                // Copied objects are bytes: write them unchanged around the text writer.
+                writer.WriteLine($"{raw.ObjectNumber} {raw.GenerationNumber} obj");
+                writer.Flush();
+                stream.Write(raw.Body, 0, raw.Body.Length);
+                writer.WriteLine();
+                if (raw.StreamData is not null)
+                {
+                    writer.WriteLine("stream");
+                    writer.Flush();
+                    stream.Write(raw.StreamData, 0, raw.StreamData.Length);
+                    writer.WriteLine();
+                    writer.WriteLine("endstream");
+                }
+                writer.WriteLine("endobj");
+            }
+            else if (obj is PdfStreamObject streamObj)
             {
                 // Custom writing for stream objects to handle byte arrays
                 writer.WriteLine($"{streamObj.ObjectNumber} {streamObj.GenerationNumber} obj");
@@ -784,7 +924,24 @@ public class PdfDocument
         {
             cancellationToken.ThrowIfCancellationRequested();
             offsets.Add(stream.Position);
-            if (obj is PdfStreamObject streamObj)
+            if (obj is PdfRawObject raw)
+            {
+                // Copied objects are bytes: write them unchanged around the text writer.
+                await writer.WriteLineAsync($"{raw.ObjectNumber} {raw.GenerationNumber} obj".AsMemory(), cancellationToken);
+                await writer.FlushAsync();
+                await stream.WriteAsync(raw.Body, cancellationToken);
+                await writer.WriteLineAsync();
+                if (raw.StreamData is not null)
+                {
+                    await writer.WriteLineAsync("stream".AsMemory(), cancellationToken);
+                    await writer.FlushAsync();
+                    await stream.WriteAsync(raw.StreamData, cancellationToken);
+                    await writer.WriteLineAsync();
+                    await writer.WriteLineAsync("endstream".AsMemory(), cancellationToken);
+                }
+                await writer.WriteLineAsync("endobj".AsMemory(), cancellationToken);
+            }
+            else if (obj is PdfStreamObject streamObj)
             {
                 // Custom writing for stream objects to handle byte arrays
                 await writer.WriteLineAsync($"{streamObj.ObjectNumber} {streamObj.GenerationNumber} obj".AsMemory(), cancellationToken);
@@ -980,14 +1137,21 @@ public class PdfDocument
 
     /// <summary>
     /// A page's builder together with its page dictionary, the object that serializes it, and its size. A root page
-    /// also lists its continuation pages in order and records where the body flow starts on it.
+    /// also lists its continuation pages in order and records where the body flow starts on it. An imported page has
+    /// no builder or dictionary: its object is the copied page, and its size is the one flow pages after it get.
     /// </summary>
-    private sealed record PageEntry(PdfPage Builder, PdfPageDictionary Page, PdfObject PageObject, PdfPageSize PageSize)
+    private sealed record PageEntry(PdfPage? Builder, PdfPageDictionary? Page, PdfObject PageObject, PdfPageSize PageSize)
     {
         public List<PageEntry> Chain { get; } = new();
 
         public int FlowStart { get; set; }
     }
+
+    /// <summary>
+    /// One <see cref="AddPages"/> call: the file, the 1-based page range, the bookmark title, and the page entries it
+    /// added, in order.
+    /// </summary>
+    private sealed record PageImport(PdfFile File, int FirstPage, int LastPage, string? BookmarkTitle, List<PageEntry> Entries);
 
     #endregion
 }

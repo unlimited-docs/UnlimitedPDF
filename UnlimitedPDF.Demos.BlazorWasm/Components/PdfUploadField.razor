@@ -1,0 +1,50 @@
+@* Lets the visitor add their own PDFs to a merge demo. Files are read in the browser with PdfFile.FromStreamAsync. *@
+<div class="field">
+    <label for="@Id">@Label</label>
+    <InputFile id="@Id" multiple="@Multiple" accept=".pdf,application/pdf" OnChange="OnChosenAsync" />
+    @if (_error is not null)
+    {
+        <p class="field-error" role="alert">@_error</p>
+    }
+    <p class="field-hint">Files are read in your browser and never uploaded. Encrypted PDFs can't be merged.</p>
+</div>
+
+@code {
+    private string? _error;
+
+    /// <summary>
+    /// Gets or sets the input's element id.
+    /// </summary>
+    [Parameter] public string Id { get; set; } = "pdf-upload";
+
+    /// <summary>
+    /// Gets or sets the label text.
+    /// </summary>
+    [Parameter] public string Label { get; set; } = "Add your own PDFs";
+
+    /// <summary>
+    /// Gets or sets whether several files can be chosen at once.
+    /// </summary>
+    [Parameter] public bool Multiple { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the callback that receives each loaded file.
+    /// </summary>
+    [Parameter] public EventCallback<MergeFileInput> OnLoaded { get; set; }
+
+    private async Task OnChosenAsync(InputFileChangeEventArgs args)
+    {
+        _error = null;
+        var files = Multiple ? args.GetMultipleFiles(10) : new[] { args.File };
+        foreach (var browserFile in files)
+        {
+            var (file, error) = await UploadedPdfLoader.LoadAsync(browserFile);
+            if (file is null)
+            {
+                _error = $"{browserFile.Name}: {error}";
+                continue;
+            }
+            await OnLoaded.InvokeAsync(new MergeFileInput(browserFile.Name, file));
+        }
+    }
+}

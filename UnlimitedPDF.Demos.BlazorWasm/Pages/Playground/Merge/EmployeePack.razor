@@ -1,0 +1,14 @@
+@page "/playground/merge/employee-pack"
+@inject SampleImageStore ImageStore
+
+<MergePackPage Demo="SampleCatalog.EmployeePack" CreateInput="CreateInput" Generate="GenerateAsync" />
+
+@code {
+    private static MergePackInput CreateInput() => new("Employee pack", "Payslip", "Certificate");
+
+    private Task<PdfFile> GenerateAsync(string name) => name switch
+    {
+        "Payslip" => MergeDemoFiles.PayslipAsync(ImageStore),
+        _ => MergeDemoFiles.CertificateAsync(ImageStore),
+    };
+}

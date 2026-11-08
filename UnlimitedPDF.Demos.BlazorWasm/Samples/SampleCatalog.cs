@@ -26,6 +26,10 @@ public static class SampleCatalog
             "Build documents from code: pages, text, tables, images, and headers and footers.",
             [TextAndPages, Tables, Images, HeadersFooters]),
         new SampleCategory(
+            "Merge",
+            "Join existing PDFs, pick their pages, and build complete document packs. Try your own files.",
+            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, MonthEndPack, EmployeePack, PatientPack]),
+        new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
             [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory])
@@ -43,6 +47,17 @@ public static class SampleCatalog
         "table");
 
     /// <summary>
+    /// Gets the Bookmarks and page numbers merge demo.
+    /// </summary>
+    public static SampleDemo BookmarksAndNumbers { get; } = new(
+        "Bookmarks & numbers",
+        "Name each file's bookmark and number every page of the merged document from the cover's footer.",
+        "playground/merge/bookmarks-and-numbers",
+        "BookmarksAndNumbersSample.cs",
+        "bookmarks-and-numbers.pdf",
+        "menu");
+
+    /// <summary>
     /// Gets the Certificate demo.
     /// </summary>
     public static SampleDemo Certificate { get; } = new(
@@ -52,6 +67,17 @@ public static class SampleCatalog
         "CertificateSample.cs",
         "certificate.pdf",
         "award");
+
+    /// <summary>
+    /// Gets the Cover and page ranges merge demo.
+    /// </summary>
+    public static SampleDemo CoverAndRanges { get; } = new(
+        "Cover + ranges",
+        "Put a built cover page in front of chosen page ranges from each file.",
+        "playground/merge/cover-and-ranges",
+        "CoverAndRangesSample.cs",
+        "cover-and-ranges.pdf",
+        "copy");
 
     /// <summary>
     /// Gets the Delivery note demo.
@@ -73,6 +99,17 @@ public static class SampleCatalog
         "playground/documents/employee-directory",
         "EmployeeDirectorySample.cs",
         "employee-directory.pdf",
+        "users");
+
+    /// <summary>
+    /// Gets the Employee pack merge demo.
+    /// </summary>
+    public static SampleDemo EmployeePack { get; } = new(
+        "Employee pack",
+        "A payslip and a certificate, generated and merged behind a cover page.",
+        "playground/merge/employee-pack",
+        "MergePackSample.cs",
+        "employee-pack.pdf",
         "users");
 
     /// <summary>
@@ -108,6 +145,18 @@ public static class SampleCatalog
         "invoice.pdf",
         "invoice");
 
+
+    /// <summary>
+    /// Gets the Join files merge demo.
+    /// </summary>
+    public static SampleDemo JoinFiles { get; } = new(
+        "Join files",
+        "Join whole PDFs in one call, in the order you choose.",
+        "playground/merge/join-files",
+        "JoinFilesSample.cs",
+        "joined.pdf",
+        "copy");
+
     /// <summary>
     /// Gets the Medical report demo.
     /// </summary>
@@ -120,6 +169,28 @@ public static class SampleCatalog
         "pulse");
 
     /// <summary>
+    /// Gets the Month-end pack merge demo.
+    /// </summary>
+    public static SampleDemo MonthEndPack { get; } = new(
+        "Month-end pack",
+        "An invoice, a receipt, and an account statement, generated and merged behind a cover page.",
+        "playground/merge/month-end-pack",
+        "MergePackSample.cs",
+        "month-end-pack.pdf",
+        "invoice");
+
+    /// <summary>
+    /// Gets the Patient pack merge demo.
+    /// </summary>
+    public static SampleDemo PatientPack { get; } = new(
+        "Patient pack",
+        "A medical report and a receipt, generated and merged behind a cover page.",
+        "playground/merge/patient-pack",
+        "MergePackSample.cs",
+        "patient-pack.pdf",
+        "pulse");
+
+    /// <summary>
     /// Gets the Payslip demo.
     /// </summary>
     public static SampleDemo Payslip { get; } = new(
@@ -129,6 +200,17 @@ public static class SampleCatalog
         "PayslipSample.cs",
         "payslip.pdf",
         "users");
+
+    /// <summary>
+    /// Gets the Pick pages merge demo.
+    /// </summary>
+    public static SampleDemo PickPages { get; } = new(
+        "Pick pages",
+        "Take the pages you want from a PDF, in the order you want, such as 3, 1-2.",
+        "playground/merge/pick-pages",
+        "PickPagesSample.cs",
+        "picked-pages.pdf",
+        "text");
 
     /// <summary>
     /// Gets the Purchase order demo.

@@ -1,0 +1,64 @@
+@* A merge pack demo: generates the pack's documents with the other demos, then merges the included ones. *@
+<SamplePage @ref="_page" Demo="Demo" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Pack">
+            <div class="field">
+                <label for="pack-title">Cover title</label>
+                <input id="pack-title" class="form-control" value="@Input.CoverTitle"
+                       @onchange="e => Change(() => Input.CoverTitle = e.Value?.ToString() ?? string.Empty)" />
+            </div>
+            @foreach (var document in Input.Documents)
+            {
+                <label class="check-field">
+                    <input type="checkbox" checked="@document.Include" @onchange="e => Change(() => document.Include = (bool)e.Value!)" /> @document.Name
+                </label>
+            }
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private readonly Dictionary<string, PdfFile> _generated = new(StringComparer.Ordinal);
+    private MergePackInput? _input;
+    private SamplePage? _page;
+
+    /// <summary>
+    /// Gets or sets the creator of the pack's default inputs.
+    /// </summary>
+    [Parameter, EditorRequired] public Func<MergePackInput> CreateInput { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the catalog entry.
+    /// </summary>
+    [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the generator that builds a document by its name and loads it as an existing PDF.
+    /// </summary>
+    [Parameter, EditorRequired] public Func<string, Task<PdfFile>> Generate { get; set; } = default!;
+
+    private MergePackInput Input => _input ??= CreateInput();
+
+    // Each document is generated once, the first time it is included.
+    private async Task<PdfDocument> BuildAsync()
+    {
+        foreach (var document in Input.Documents.Where(d => d.Include && d.File is null))
+        {
+            if (!_generated.TryGetValue(document.Name, out var file))
+            {
+                file = await Generate(document.Name);
+                _generated[document.Name] = file;
+            }
+            document.File = file;
+        }
+        return MergePackSample.Build(Input);
+    }
+
+    private void Change(Action change)
+    {
+        change();
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset() => _input = CreateInput();
+}

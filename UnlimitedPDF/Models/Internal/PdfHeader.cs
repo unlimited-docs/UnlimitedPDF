@@ -11,11 +11,10 @@ internal sealed class PdfHeader
     }
 
     /// <summary>
-    /// Gets the version of the application or component.
+    /// Gets or sets the PDF version the file declares, for example "1.7". A document with imported pages declares the
+    /// highest version among its inputs, at least 1.7 (WR-036).
     /// </summary>
-    /// <remarks>The version string follows semantic versioning conventions and can be used to identify the
-    /// specific release of the application or component.</remarks>
-    public string Version { get; }
+    public string Version { get; set; }
 
     /// <summary>
     /// Returns the formatted PDF header string.

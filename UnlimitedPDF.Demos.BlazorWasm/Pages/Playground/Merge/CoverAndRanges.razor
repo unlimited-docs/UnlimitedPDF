@@ -1,0 +1,67 @@
+@page "/playground/merge/cover-and-ranges"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.CoverAndRanges" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Cover page">
+            <label class="check-field">
+                <input type="checkbox" checked="@_input.AddCover" @onchange="e => Change(() => _input.AddCover = (bool)e.Value!)" /> Add a cover page
+            </label>
+            <div class="field">
+                <label for="cover-title">Title</label>
+                <input id="cover-title" class="form-control" value="@_input.CoverTitle" disabled="@(!_input.AddCover)"
+                       @onchange="e => Change(() => _input.CoverTitle = e.Value?.ToString() ?? string.Empty)" />
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Files">
+            @foreach (var file in _input.Files)
+            {
+                <div class="field">
+                    <span class="field-label">@file.Name (@file.File.PageCount pages)</span>
+                    <div class="field-row">
+                        <div class="field">
+                            <label for="first-@file.GetHashCode()">From page</label>
+                            <input id="first-@file.GetHashCode()" type="number" min="1" max="@file.File.PageCount" class="form-control"
+                                   value="@file.FirstPage" @onchange="e => Change(() => file.FirstPage = Page(e.Value, file))" />
+                        </div>
+                        <div class="field">
+                            <label for="last-@file.GetHashCode()">To page</label>
+                            <input id="last-@file.GetHashCode()" type="number" min="1" max="@file.File.PageCount" class="form-control"
+                                   value="@file.LastPage" @onchange="e => Change(() => file.LastPage = Page(e.Value, file))" />
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
+                </div>
+            }
+            <PdfUploadField Id="cover-upload" OnLoaded="file => Change(() => _input.Files.Add(file))" />
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private CoverAndRangesInput _input = Defaults();
+    private SamplePage? _page;
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(CoverAndRangesSample.Build(_input));
+
+    private void Change(Action change)
+    {
+        change();
+        _page?.NotifyInputsChanged();
+    }
+
+    // Two built-in files from other demos, so the demo works before any upload.
+    private static CoverAndRangesInput Defaults()
+    {
+        var input = new CoverAndRangesInput();
+        input.Files.Add(new MergeFileInput("Text and pages", MergeDemoFiles.TextAndPages()));
+        input.Files.Add(new MergeFileInput("Tables", MergeDemoFiles.Tables()));
+        return input;
+    }
+
+    // An empty or out-of-range page box means "from the start" or "to the end".
+    private static int? Page(object? value, MergeFileInput file) =>
+        int.TryParse(value?.ToString(), out int page) && page >= 1 && page <= file.File.PageCount ? page : null;
+
+    private void Reset() => _input = Defaults();
+}
