@@ -1,0 +1,64 @@
+@page "/playground/merge/bookmarks-and-numbers"
+@inject SampleImageStore ImageStore
+
+<SamplePage @ref="_page" Demo="SampleCatalog.BookmarksAndNumbers" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Page numbers">
+            <div class="field">
+                <label for="footer-text">Footer text</label>
+                <input id="footer-text" class="form-control" value="@_input.FooterText"
+                       @onchange="e => Change(() => _input.FooterText = e.Value?.ToString() ?? string.Empty)" />
+                <p class="field-hint">{page} and {pages} count every page. The footer is drawn on the built pages only.</p>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Bookmarks">
+            @foreach (var file in _input.Files)
+            {
+                <div class="field">
+                    <label for="bookmark-@file.GetHashCode()">@file.Name (@file.File.PageCount @(file.File.PageCount == 1 ? "page" : "pages"))</label>
+                    <input id="bookmark-@file.GetHashCode()" class="form-control" value="@(file.BookmarkTitle ?? file.Name)"
+                           @onchange="e => Change(() => file.BookmarkTitle = e.Value?.ToString())" />
+                    <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Remove @file.Name" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
+                </div>
+            }
+            <PdfUploadField Id="bookmarks-upload" OnLoaded="file => Change(() => _input.Files.Add(file))" />
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private BookmarksAndNumbersInput _input = new();
+    private Task? _loading;
+    private SamplePage? _page;
+
+    protected override void OnInitialized() => _loading = LoadDefaultsAsync();
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        await (_loading ??= LoadDefaultsAsync());
+        return BookmarksAndNumbersSample.Build(_input);
+    }
+
+    private void Change(Action change)
+    {
+        change();
+        _page?.NotifyInputsChanged();
+    }
+
+    // The Invoice and Quotation demos' documents, so the demo works before any upload.
+    private async Task LoadDefaultsAsync()
+    {
+        var input = new BookmarksAndNumbersInput();
+        input.Files.Add(new MergeFileInput("Invoice", await MergeDemoFiles.InvoiceAsync(ImageStore)) { BookmarkTitle = "Invoice INV-001" });
+        input.Files.Add(new MergeFileInput("Quotation", await MergeDemoFiles.QuotationAsync(ImageStore)) { BookmarkTitle = "Quotation" });
+        _input = input;
+        StateHasChanged();
+    }
+
+    private void Reset()
+    {
+        _input = new BookmarksAndNumbersInput();
+        _loading = LoadDefaultsAsync();
+    }
+}

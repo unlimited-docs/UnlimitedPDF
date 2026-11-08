@@ -1,6 +1,6 @@
-@page "/playground/create/merge-pdfs"
+@page "/playground/merge/cover-and-ranges"
 
-<SamplePage @ref="_page" Demo="SampleCatalog.MergePdfs" Build="BuildAsync" PageCount="null" OnReset="Reset">
+<SamplePage @ref="_page" Demo="SampleCatalog.CoverAndRanges" Build="BuildAsync" PageCount="null" OnReset="Reset">
     <Inputs>
         <CollapsibleSection Title="Cover page">
             <label class="check-field">
@@ -33,25 +33,16 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
                 </div>
             }
-            <div class="field">
-                <label for="merge-upload">Add your own PDFs</label>
-                <InputFile id="merge-upload" multiple accept=".pdf,application/pdf" OnChange="OnFilesChosenAsync" />
-                @if (_error is not null)
-                {
-                    <p class="field-error" role="alert">@_error</p>
-                }
-                <p class="field-hint">Files are read in your browser and never uploaded. Encrypted PDFs can't be merged.</p>
-            </div>
+            <PdfUploadField Id="cover-upload" OnLoaded="file => Change(() => _input.Files.Add(file))" />
         </CollapsibleSection>
     </Inputs>
 </SamplePage>
 
 @code {
-    private string? _error;
-    private MergeInput _input = Defaults();
+    private CoverAndRangesInput _input = Defaults();
     private SamplePage? _page;
 
-    private Task<PdfDocument> BuildAsync() => Task.FromResult(MergeSample.Build(_input));
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(CoverAndRangesSample.Build(_input));
 
     private void Change(Action change)
     {
@@ -59,45 +50,18 @@
         _page?.NotifyInputsChanged();
     }
 
-    // Two built-in files, made by other demos and loaded back as existing PDFs, so the demo works before any upload.
-    private static MergeInput Defaults()
+    // Two built-in files from other demos, so the demo works before any upload.
+    private static CoverAndRangesInput Defaults()
     {
-        var input = new MergeInput();
-        input.Files.Add(new MergeFileInput("Text and pages", PdfFile.FromBytes(ToBytes(TextBasicsSample.Build(new TextBasicsInput())))));
-        input.Files.Add(new MergeFileInput("Tables", PdfFile.FromBytes(ToBytes(TablesSample.Build(new TablesInput())))));
+        var input = new CoverAndRangesInput();
+        input.Files.Add(new MergeFileInput("Text and pages", MergeDemoFiles.TextAndPages()));
+        input.Files.Add(new MergeFileInput("Tables", MergeDemoFiles.Tables()));
         return input;
-    }
-
-    private async Task OnFilesChosenAsync(InputFileChangeEventArgs args)
-    {
-        _error = null;
-        foreach (var browserFile in args.GetMultipleFiles(10))
-        {
-            var (file, error) = await UploadedPdfLoader.LoadAsync(browserFile);
-            if (file is null)
-            {
-                _error = $"{browserFile.Name}: {error}";
-                continue;
-            }
-            _input.Files.Add(new MergeFileInput(browserFile.Name, file));
-        }
-        _page?.NotifyInputsChanged();
     }
 
     // An empty or out-of-range page box means "from the start" or "to the end".
     private static int? Page(object? value, MergeFileInput file) =>
         int.TryParse(value?.ToString(), out int page) && page >= 1 && page <= file.File.PageCount ? page : null;
 
-    private void Reset()
-    {
-        _error = null;
-        _input = Defaults();
-    }
-
-    private static byte[] ToBytes(PdfDocument document)
-    {
-        using var stream = new MemoryStream();
-        document.Save(stream);
-        return stream.ToArray();
-    }
+    private void Reset() => _input = Defaults();
 }

@@ -35,11 +35,11 @@ public class MergeDemoTests
     [Fact]
     public void Playground_merge_sample_builds_a_cover_and_the_chosen_ranges()
     {
-        var input = new MergeInput { CoverTitle = "Pack (draft)" };
+        var input = new CoverAndRangesInput { CoverTitle = "Pack (draft)" };
         input.Files.Add(new MergeFileInput("Report", PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(4))) { FirstPage = 2, LastPage = 3 });
         input.Files.Add(new MergeFileInput("Appendix", PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(1))));
 
-        var pdf = ImportedPagesTests.Save(MergeSample.Build(input));
+        var pdf = ImportedPagesTests.Save(CoverAndRangesSample.Build(input));
         var texts = ImportedPagesTests.PageTexts(PdfFile.FromBytes(pdf));
 
         PdfStructureChecker.AssertValid(pdf);
@@ -53,10 +53,10 @@ public class MergeDemoTests
     [Fact]
     public void Playground_merge_sample_without_a_cover_is_only_the_files()
     {
-        var input = new MergeInput { AddCover = false };
+        var input = new CoverAndRangesInput { AddCover = false };
         input.Files.Add(new MergeFileInput("One", PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(2))));
 
-        var texts = ImportedPagesTests.PageTexts(PdfFile.FromBytes(ImportedPagesTests.Save(MergeSample.Build(input))));
+        var texts = ImportedPagesTests.PageTexts(PdfFile.FromBytes(ImportedPagesTests.Save(CoverAndRangesSample.Build(input))));
 
         Assert.Equal(new[] { "Page 1", "Page 2" }, texts);
     }

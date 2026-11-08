@@ -32,8 +32,20 @@
   <ItemGroup>
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\AccountStatementSample.cs" Link="Demo\Samples\AccountStatementSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DeliveryNoteSample.cs" Link="Demo\Samples\DeliveryNoteSample.cs" />
-    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MergeSample.cs" Link="Demo\Samples\MergeSample.cs" />
-    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\MergeInput.cs" Link="Demo\Samples\Inputs\MergeInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\BookmarksAndNumbersSample.cs" Link="Demo\Samples\BookmarksAndNumbersSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\CoverAndRangesSample.cs" Link="Demo\Samples\CoverAndRangesSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\JoinFilesSample.cs" Link="Demo\Samples\JoinFilesSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MergePackSample.cs" Link="Demo\Samples\MergePackSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PickPagesSample.cs" Link="Demo\Samples\PickPagesSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCatalog.cs" Link="Demo\Samples\SampleCatalog.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCategory.cs" Link="Demo\Samples\SampleCategory.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleDemo.cs" Link="Demo\Samples\SampleDemo.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\BookmarksAndNumbersInput.cs" Link="Demo\Samples\Inputs\BookmarksAndNumbersInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\CoverAndRangesInput.cs" Link="Demo\Samples\Inputs\CoverAndRangesInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\JoinFilesInput.cs" Link="Demo\Samples\Inputs\JoinFilesInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\MergeFileInput.cs" Link="Demo\Samples\Inputs\MergeFileInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\MergePackInput.cs" Link="Demo\Samples\Inputs\MergePackInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\PickPagesInput.cs" Link="Demo\Samples\Inputs\PickPagesInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PayslipSample.cs" Link="Demo\Samples\PayslipSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PurchaseOrderSample.cs" Link="Demo\Samples\PurchaseOrderSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\QuotationSample.cs" Link="Demo\Samples\QuotationSample.cs" />

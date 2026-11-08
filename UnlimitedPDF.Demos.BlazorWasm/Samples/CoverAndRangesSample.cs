@@ -4,10 +4,10 @@ using UnlimitedPDF;
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// Builds the Merge PDFs demo: an optional cover page, then the chosen pages of each file. Each file adds one bookmark.
+/// Builds the Cover + ranges demo: an optional cover page, then the chosen pages of each file. Each file adds one bookmark.
 /// To join whole files without a cover, <c>PdfOperations.Merge(output, files)</c> does it in one call.
 /// </summary>
-public static class MergeSample
+public static class CoverAndRangesSample
 {
     #region Methods
 
@@ -18,7 +18,7 @@ public static class MergeSample
     /// </summary>
     /// <param name="input">The cover settings and the files to join.</param>
     /// <returns>The document, ready to save.</returns>
-    public static PdfDocument Build(MergeInput input)
+    public static PdfDocument Build(CoverAndRangesInput input)
     {
         var document = new PdfDocument();
 

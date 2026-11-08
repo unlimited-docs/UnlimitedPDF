@@ -1,0 +1,15 @@
+@page "/playground/merge/month-end-pack"
+@inject SampleImageStore ImageStore
+
+<MergePackPage Demo="SampleCatalog.MonthEndPack" CreateInput="CreateInput" Generate="GenerateAsync" />
+
+@code {
+    private static MergePackInput CreateInput() => new("Month-end pack", "Invoice", "Receipt", "Account statement");
+
+    private Task<PdfFile> GenerateAsync(string name) => name switch
+    {
+        "Invoice" => MergeDemoFiles.InvoiceAsync(ImageStore),
+        "Receipt" => MergeDemoFiles.ReceiptAsync(ImageStore),
+        _ => MergeDemoFiles.AccountStatementAsync(ImageStore),
+    };
+}
