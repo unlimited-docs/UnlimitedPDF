@@ -447,6 +447,12 @@ h1:focus { outline: none; }
 .field .form-control { font-size: 0.9rem; }
 .field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-line); border-radius: 8px; background: #fff; }
 .field-hint { font-size: 0.75rem; color: var(--app-muted); margin-top: 0.25rem; }
+.field-error { font-size: 0.75rem; color: var(--app-danger); margin: 0.25rem 0 0; }
+
+/* HTML to PDF: the HTML editor and the warning list. */
+.code-input { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.8rem; line-height: 1.45; resize: vertical; white-space: pre; }
+.warning-list { margin: 0; padding-left: 1.1rem; font-size: 0.8rem; }
+.warning-list li { margin-bottom: 0.3rem; }
 
 .check-field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
 .check-field input { width: 1.05rem; height: 1.05rem; accent-color: var(--app-accent); }

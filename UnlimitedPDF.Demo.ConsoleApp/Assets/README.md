@@ -17,4 +17,6 @@ powershell -NoProfile -STA -ExecutionPolicy Bypass -File Generate-DemoAssets.ps1
 | `dock.jpg` | 96 x 64 px | Baseline RGB JPEG | Docking station illustration |
 | `cmyk-sample.jpg` | 128 x 96 px | Baseline CMYK JPEG with Adobe segment | Cyan, magenta, yellow, and black quadrants |
 
-The build copies the image files to `Assets/` in the demo's output folder.
+`html-invoice.html` is the HTML to PDF sample invoice, written by hand for the project on 2026-11-10 (the same text as the playground's invoice template, `UnlimitedPDF.Demos.BlazorWasm/Samples/HtmlTemplates.cs`). It shows `logo.png` from this folder.
+
+The build copies the image files and the sample HTML to `Assets/` in the demo's output folder.

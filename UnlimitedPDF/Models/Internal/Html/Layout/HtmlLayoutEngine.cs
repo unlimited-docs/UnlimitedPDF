@@ -300,7 +300,8 @@ internal sealed partial class HtmlLayoutEngine
             fragment.Commands.InsertRange(Math.Min(index, fragment.Commands.Count), commands);
             foreach (var other in _open)
             {
-                if (other.InsertAt.TryGetValue(page, out int otherIndex) && otherIndex >= index) other.InsertAt[page] = otherIndex + commands.Count;
+                // An outer box that starts at the same spot stays underneath: only later positions move.
+                if (other.InsertAt.TryGetValue(page, out int otherIndex) && otherIndex > index) other.InsertAt[page] = otherIndex + commands.Count;
             }
         }
     }

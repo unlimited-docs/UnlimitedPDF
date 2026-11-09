@@ -1,0 +1,130 @@
+@page "/playground/html/html-to-pdf"
+@inject HttpClient Http
+
+<SamplePage @ref="_page" Demo="SampleCatalog.HtmlToPdf" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Template">
+            <div class="field">
+                <label for="html-template">Start from</label>
+                <select id="html-template" class="form-control" value="@_template" @onchange="e => Change(() => UseTemplate(e.Value?.ToString()))">
+                    @foreach (var template in Templates)
+                    {
+                        <option value="@template.Key">@template.Key</option>
+                    }
+                </select>
+                <p class="field-hint">Each template shows part of the supported HTML: nested tables, lists, images, links, and page breaks.</p>
+            </div>
+            <div class="field">
+                <label for="html-upload">Use your own HTML file</label>
+                <InputFile id="html-upload" class="form-control" accept=".html,.htm,text/html" OnChange="UploadAsync" />
+                <p class="field-hint">Files are read in your browser and never uploaded. Up to 5 MB.</p>
+                @if (_uploadError is not null)
+                {
+                    <p class="field-error" role="alert">@_uploadError</p>
+                }
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="HTML">
+            <div class="field">
+                <label for="html-source">HTML</label>
+                <textarea id="html-source" class="form-control code-input" rows="18" spellcheck="false"
+                          value="@_html" @onchange="e => Change(() => _html = e.Value?.ToString() ?? string.Empty)"></textarea>
+                <p class="field-hint">Images named logo.png and banner.png come from this site; other references are not loaded.</p>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Warnings">
+            @if (_warnings.Count == 0)
+            {
+                <p class="field-hint">Nothing was skipped.</p>
+            }
+            else
+            {
+                <ul class="warning-list" aria-label="Warnings">
+                    @foreach (var warning in _warnings)
+                    {
+                        <li><strong>@warning.Kind</strong> @warning.Message</li>
+                    }
+                </ul>
+            }
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    // Uploaded HTML is limited here to keep the browser responsive; the library's own limit is 50 MB.
+    private const long MaxUpload = 5 * 1024 * 1024;
+
+    private static readonly Dictionary<string, Func<string>> Templates = new()
+    {
+        ["Invoice"] = () => HtmlTemplates.Invoice,
+        ["Report (nested tables)"] = () => HtmlTemplates.Report,
+        ["Newsletter (lists and images)"] = () => HtmlTemplates.Newsletter,
+        ["Letter"] = () => HtmlTemplates.Letter,
+        ["Résumé"] = () => HtmlTemplates.Resume,
+        ["Account statement (several pages)"] = () => HtmlTemplates.Statement()
+    };
+
+    private string _html = HtmlTemplates.Invoice;
+    private SamplePage? _page;
+    private string _template = "Invoice";
+    private string? _uploadError;
+    private IReadOnlyList<PdfHtmlWarning> _warnings = Array.Empty<PdfHtmlWarning>();
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var (document, html) = await HtmlToPdfSample.BuildAsync(_html, ImagesAsync);
+        _warnings = html.Warnings;
+        StateHasChanged();
+        return document;
+    }
+
+    private void Change(Action change)
+    {
+        change();
+        _page?.NotifyInputsChanged();
+    }
+
+    // The templates' images, from this site's image folder.
+    private async Task<Stream?> ImagesAsync(string reference, CancellationToken cancellationToken)
+    {
+        string? path = reference switch
+        {
+            "logo.png" => "images/invoice-logo.png",
+            "banner.png" => "images/unlimitedpdf-demos-hero-800.jpg",
+            _ => null
+        };
+        return path is null ? null : new MemoryStream(await Http.GetByteArrayAsync(path, cancellationToken));
+    }
+
+    private void Reset()
+    {
+        _template = "Invoice";
+        _html = HtmlTemplates.Invoice;
+        _uploadError = null;
+    }
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        _uploadError = null;
+        try
+        {
+            using var stream = e.File.OpenReadStream(MaxUpload);
+            using var reader = new StreamReader(stream);
+            string text = await reader.ReadToEndAsync();
+            Change(() => _html = text);
+        }
+        catch (IOException)
+        {
+            _uploadError = "The file is larger than 5 MB.";
+        }
+    }
+
+    private void UseTemplate(string? name)
+    {
+        if (name is null || !Templates.TryGetValue(name, out var template)) return;
+        _template = name;
+        _html = template();
+    }
+}

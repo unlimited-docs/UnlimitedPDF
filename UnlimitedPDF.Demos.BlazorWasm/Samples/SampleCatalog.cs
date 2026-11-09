@@ -34,6 +34,10 @@ public static class SampleCatalog
             "Split a PDF into parts: every few pages, or the page ranges you choose. Try your own file.",
             [SplitEveryN, SplitRanges]),
         new SampleCategory(
+            "HTML to PDF",
+            "Convert HTML with CSS, tables, lists, and images into PDF in your browser. Edit a template or try your own file.",
+            [HtmlToPdf]),
+        new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
             [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory])
@@ -126,6 +130,17 @@ public static class SampleCatalog
         "HeadersFootersSample.cs",
         "headers-and-footers.pdf",
         "spark");
+
+    /// <summary>
+    /// Gets the HTML to PDF demo.
+    /// </summary>
+    public static SampleDemo HtmlToPdf { get; } = new(
+        "HTML to PDF",
+        "Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.",
+        "playground/html/html-to-pdf",
+        "HtmlToPdfSample.cs",
+        "html-to-pdf.pdf",
+        "text");
 
     /// <summary>
     /// Gets the Images demo.

@@ -43,7 +43,9 @@ internal sealed partial class HtmlLayoutEngine
                     }
                     line += token.Width;
                     bool wraps = token.Item.Style.WhiteSpace is CssWhiteSpace.Normal or CssWhiteSpace.PreWrap or CssWhiteSpace.PreLine;
-                    if (token.Kind != TokenKind.Space) min = Math.Max(min, wraps ? token.Width : 0);
+                    // Images scale down to fit (D-016), so they set no narrowest width.
+                    bool scalable = token.Kind == TokenKind.Atomic && ((AtomicItem)token.Item).Box is HtmlImageBox;
+                    if (token.Kind != TokenKind.Space) min = Math.Max(min, wraps && !scalable ? token.Width : 0);
                 }
                 max = Math.Max(max, line);
                 if (s.WhiteSpace is CssWhiteSpace.NoWrap or CssWhiteSpace.Pre) min = max;
