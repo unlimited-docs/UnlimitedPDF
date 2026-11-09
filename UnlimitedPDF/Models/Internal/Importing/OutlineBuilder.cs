@@ -17,17 +17,25 @@ internal static class OutlineBuilder
     /// </summary>
     /// <param name="imports">The imports in call order.</param>
     /// <param name="numberAt">Returns the object number of the object at an index in the result (0 is the root).</param>
-    /// <returns>The objects' syntax, starting with the root.</returns>
-    public static List<string> Build(IReadOnlyList<OutlineImport> imports, Func<int, int> numberAt)
+    /// <param name="wrap">True to put each import's bookmarks under one new top-level bookmark (merge, WR-036); false
+    /// to keep the imported bookmarks at their own levels with no wrapper (split, WR-037).</param>
+    /// <returns>The objects' syntax, starting with the root; empty when there is no bookmark to write.</returns>
+    public static List<string> Build(IReadOnlyList<OutlineImport> imports, Func<int, int> numberAt, bool wrap = true)
     {
         var top = new List<OutlineNode>();
         for (int i = 0; i < imports.Count; i++)
         {
             var import = imports[i];
+            if (!wrap)
+            {
+                top.AddRange(Convert(import));
+                continue;
+            }
             var node = new OutlineNode(TitleBytes(import, i + 1), $"[{import.PageMap[import.FirstSourcePage]} 0 R /Fit]", null, open: true);
             node.Children.AddRange(Convert(import));
             top.Add(node);
         }
+        if (top.Count == 0) return new List<string>();
 
         // Number the root, then every bookmark depth first.
         int firstNumber = numberAt(0);

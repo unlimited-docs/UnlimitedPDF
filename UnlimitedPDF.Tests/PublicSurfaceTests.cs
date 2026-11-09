@@ -211,6 +211,40 @@ public class PublicSurfaceTests
     }
 
     [Fact]
+    public void Split_api_has_the_approved_names_and_first_ships_in_1_0_0()
+    {
+        var split = typeof(PdfOperations).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Where(m => m.Name is nameof(PdfOperations.Split) or nameof(PdfOperations.SplitAsync))
+            .ToList();
+        Assert.Equal(new[]
+        {
+            "Split(file,pagesPerPart,openPart)", "Split(file,pagesPerPart,outputFolder)",
+            "Split(file,ranges,openPart)", "Split(file,ranges,outputFolder)",
+            "SplitAsync(file,pagesPerPart,openPart,cancellationToken)", "SplitAsync(file,pagesPerPart,outputFolder,cancellationToken)",
+            "SplitAsync(file,ranges,openPart,cancellationToken)", "SplitAsync(file,ranges,outputFolder,cancellationToken)",
+        }, split.Select(m => $"{m.Name}({ParameterNames(m)})").OrderBy(s => s, StringComparer.Ordinal));
+        Assert.All(split.Where(m => m.Name == nameof(PdfOperations.Split)), m => Assert.Equal(typeof(IReadOnlyList<PdfSplitPart>), m.ReturnType));
+        Assert.All(split.Where(m => m.Name == nameof(PdfOperations.SplitAsync)), m => Assert.Equal(typeof(Task<IReadOnlyList<PdfSplitPart>>), m.ReturnType));
+        Assert.All(split, m => Assert.Contains(m.GetParameters()[2].ParameterType, new[] { typeof(string), typeof(Func<PdfSplitPart, Stream>) }));
+
+        var range = Assert.Single(typeof(PdfPageRange).GetConstructors());
+        Assert.Equal("firstPage,lastPage", ParameterNames(range));
+        Assert.Empty(typeof(PdfSplitPart).GetConstructors());
+        Assert.Equal(new[] { "FileName", "FirstPage", "LastPage", "Number" }, typeof(PdfSplitPart).GetProperties().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
+        var exception = Assert.Single(typeof(PdfSplitException).GetConstructors());
+        Assert.Equal("message,partNumber,partsWritten,innerException", ParameterNames(exception));
+        Assert.NotNull(typeof(PdfSplitException).GetProperty(nameof(PdfSplitException.PartNumber)));
+        Assert.NotNull(typeof(PdfSplitException).GetProperty(nameof(PdfSplitException.PartsWritten)));
+
+        var members = split.Cast<MethodBase>().Append(range).Append(exception).Append(typeof(PdfPageRange).GetMethod(nameof(ToString))!);
+        foreach (var member in members)
+        {
+            Assert.Equal("1.0.0", VersionOf(member));
+            Assert.False(string.IsNullOrWhiteSpace(member.GetCustomAttribute<DescriptionAttribute>()?.Description));
+        }
+    }
+
+    [Fact]
     public void Table_building_helpers_and_position_stay_public()
     {
         Assert.NotNull(typeof(PdfTable).GetMethod(nameof(PdfTable.EnsureSize)));

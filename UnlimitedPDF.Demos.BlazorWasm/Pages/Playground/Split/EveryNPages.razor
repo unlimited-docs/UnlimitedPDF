@@ -1,0 +1,47 @@
+@page "/playground/split/every-n-pages"
+@using System.Globalization
+
+<SplitPartsPage @ref="_page" Demo="SampleCatalog.SplitEveryN" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="File">
+            @if (_input.File is { } file)
+            {
+                <p class="field-label">@file.Name (@file.File.PageCount @(file.File.PageCount == 1 ? "page" : "pages"))</p>
+            }
+            <PdfUploadField Id="split-every-upload" Label="Use your own PDF" Multiple="false" Hint="@UploadHint"
+                            OnLoaded="file => Change(() => _input.File = file)" />
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Parts">
+            <div class="field">
+                <label for="split-every">Pages per part</label>
+                <input id="split-every" type="number" min="1" step="1" class="form-control" value="@_input.PagesPerPart"
+                       @onchange="e => Change(() => _input.PagesPerPart = PagesPerPart(e.Value))" />
+                <p class="field-hint">1 makes one file per page. The last part is shorter when the pages don't divide evenly.</p>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SplitPartsPage>
+
+@code {
+    private const string UploadHint = "Files are read in your browser and never uploaded. Encrypted PDFs can't be split.";
+    private SplitInput _input = Defaults();
+    private SplitPartsPage? _page;
+
+    private Task<IReadOnlyList<SplitPartFile>> BuildAsync() => Task.FromResult(SplitEveryNSample.Build(_input));
+
+    private void Change(Action change)
+    {
+        change();
+        _page?.NotifyInputsChanged();
+    }
+
+    // The Employee directory demo's several pages, so the demo works before any upload.
+    private static SplitInput Defaults() => new() { File = new MergeFileInput("Employee directory", MergeDemoFiles.EmployeeDirectory()) };
+
+    // A value that is not a whole number becomes 0, which the split rejects with its own message.
+    private static int PagesPerPart(object? value) =>
+        int.TryParse(value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int pages) ? pages : 0;
+
+    private void Reset() => _input = Defaults();
+}

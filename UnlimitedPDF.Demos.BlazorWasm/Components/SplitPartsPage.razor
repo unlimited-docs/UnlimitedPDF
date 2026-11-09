@@ -1,0 +1,110 @@
+@* The page frame of the Split demos: options with Split, the list of parts with preview and download, all parts as one
+   zip, the C# code, and the status line. *@
+<PageTitle>@Demo.Title · UnlimitedPDF Demos</PageTitle>
+
+<article class="demo">
+    <header class="demo-header">
+        <h1>@Demo.Title</h1>
+        <p class="demo-lead">@Demo.Description</p>
+    </header>
+
+    <div class="demo-grid">
+        <section class="panel demo-inputs" aria-label="Options">
+            <div class="demo-inputs-body" @oninput="OnInputsChanged" @onchange="OnInputsChanged" @onkeydown="OnInputsKeyDownAsync">
+                @Inputs
+            </div>
+            <div class="demo-actions">
+                <button type="button" class="btn btn-solid theme-primary btn-generate" disabled="@_busy" @onclick="() => SplitAsync(userStarted: true)">
+                    @if (_busy)
+                    {
+                        <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span>
+                        <span>Splitting...</span>
+                    }
+                    else
+                    {
+                        <span>Split PDF</span>
+                    }
+                </button>
+                <button type="button" class="btn btn-text" disabled="@_busy" @onclick="ResetAsync">Reset to defaults</button>
+                <span class="demo-shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
+            </div>
+        </section>
+
+        <section class="panel demo-output" @ref="_outputSection" aria-label="Output">
+            <div class="output-head">
+                <div class="output-tabs" role="tablist">
+                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-preview")" aria-controls="@($"{_id}-panel-preview")"
+                            aria-selected="@(_tab == OutputTab.Preview ? "true" : "false")" @onclick="() => _tab = OutputTab.Preview">Parts</button>
+                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-code")" aria-controls="@($"{_id}-panel-code")"
+                            aria-selected="@(_tab == OutputTab.Code ? "true" : "false")" @onclick="() => _tab = OutputTab.Code">C# code</button>
+                </div>
+                <div class="output-actions">
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@(_parts.Count == 0 || _busy)" @onclick="DownloadZipAsync" title="Download every part in one zip file">
+                        <Icon Name="download" Size="16" /> Download all (.zip)
+                    </button>
+                </div>
+            </div>
+
+            @if (_error is not null)
+            {
+                <div class="error-box" role="alert">
+                    <p><strong>Couldn't split the PDF.</strong> @_error</p>
+                    <button type="button" class="btn btn-sm btn-outline" @onclick="() => SplitAsync(userStarted: true)">Try again</button>
+                </div>
+            }
+
+            <div class="output-body">
+                <div id="@($"{_id}-panel-preview")" role="tabpanel" aria-labelledby="@($"{_id}-tab-preview")" hidden="@(_tab != OutputTab.Preview)">
+                    @if (_parts.Count > 0)
+                    {
+                        <ol class="split-parts" aria-label="Parts">
+                            @for (int i = 0; i < _parts.Count; i++)
+                            {
+                                int index = i;
+                                var part = _parts[index].Part;
+                                <li class="split-part@(index == _selected ? " is-selected" : string.Empty)">
+                                    <span class="split-part-name">@part.FileName</span>
+                                    <span class="split-part-pages">@PagesText(part)</span>
+                                    <span class="split-part-size">@FormatSize(_parts[index].Bytes.Length)</span>
+                                    <span class="split-part-actions">
+                                        <button type="button" class="btn btn-sm btn-text" disabled="@_busy" aria-pressed="@(index == _selected ? "true" : "false")"
+                                                aria-label="Preview @part.FileName" @onclick="() => SelectAsync(index)">Preview</button>
+                                        <button type="button" class="btn btn-sm btn-outline" disabled="@_busy"
+                                                aria-label="Download @part.FileName" @onclick="() => DownloadPartAsync(index)">
+                                            <Icon Name="download" Size="16" /> Download
+                                        </button>
+                                    </span>
+                                </li>
+                            }
+                        </ol>
+                    }
+                    <PdfPreview @ref="_preview" Busy="_busy" />
+                </div>
+                <div id="@($"{_id}-panel-code")" role="tabpanel" aria-labelledby="@($"{_id}-tab-code")" hidden="@(_tab != OutputTab.Code)">
+                    <CodeView Source="@_source" AriaLabel="@($"{Demo.SourceFile} source")" />
+                </div>
+            </div>
+
+            <div class="status-bar">
+                @if (_result is { } result)
+                {
+                    <span class="status-meta">
+                        <span><strong>@result.Parts</strong> @(result.Parts == 1 ? "part" : "parts")</span>
+                        <span><strong>@FormatSize(result.Bytes)</strong> in all</span>
+                        <span>split in <strong>@result.Milliseconds ms</strong></span>
+                    </span>
+                }
+                else if (!_busy)
+                {
+                    <span>Every PDF is split locally. Nothing is uploaded.</span>
+                }
+                @if (_stale && !_busy)
+                {
+                    <span class="stale-note">Inputs changed. <button type="button" @onclick="() => SplitAsync(userStarted: true)">Split to update</button></span>
+                }
+            </div>
+        </section>
+    </div>
+
+    <div class="visually-hidden" role="status" aria-live="polite">@_announcement</div>
+</article>

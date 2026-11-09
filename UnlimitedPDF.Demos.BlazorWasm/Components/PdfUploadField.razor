@@ -1,4 +1,4 @@
-@* Lets the visitor add their own PDFs to a merge demo. Files are read in the browser with PdfFile.FromStreamAsync. *@
+@* Lets the visitor add their own PDFs to a merge or split demo. Files are read in the browser with PdfFile.FromStreamAsync. *@
 <div class="field">
     <label for="@Id">@Label</label>
     <InputFile id="@Id" multiple="@Multiple" accept=".pdf,application/pdf" OnChange="OnChosenAsync" />
@@ -6,11 +6,16 @@
     {
         <p class="field-error" role="alert">@_error</p>
     }
-    <p class="field-hint">Files are read in your browser and never uploaded. Encrypted PDFs can't be merged.</p>
+    <p class="field-hint">@Hint</p>
 </div>
 
 @code {
     private string? _error;
+
+    /// <summary>
+    /// Gets or sets the hint shown under the field.
+    /// </summary>
+    [Parameter] public string Hint { get; set; } = "Files are read in your browser and never uploaded. Encrypted PDFs can't be merged.";
 
     /// <summary>
     /// Gets or sets the input's element id.

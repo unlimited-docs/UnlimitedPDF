@@ -1,4 +1,5 @@
-﻿using UnlimitedPDF.Demo.ConsoleApp;
+﻿using UnlimitedPDF;
+using UnlimitedPDF.Demo.ConsoleApp;
 
 Console.WriteLine("Start: Unlimited PDF");
 
@@ -12,10 +13,15 @@ var pdfDocument = DemoDocument.Build(assetsDirectory);
 pdfDocument.Save(pdfFilePath);
 
 // The merge demo is written next to the sample, for example unlimited-pdf-sample-merged.pdf.
-var mergedFilePath = Path.Combine(
-    Path.GetDirectoryName(Path.GetFullPath(pdfFilePath)) ?? AppContext.BaseDirectory,
-    Path.GetFileNameWithoutExtension(pdfFilePath) + "-merged.pdf");
+var outputDirectory = Path.GetDirectoryName(Path.GetFullPath(pdfFilePath)) ?? AppContext.BaseDirectory;
+var mergedFilePath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(pdfFilePath) + "-merged.pdf");
 MergeDemo.Build(assetsDirectory).Save(mergedFilePath);
+
+// The split demo writes one file per page of the sample into a folder next to it, for example
+// unlimited-pdf-sample-split\unlimited-pdf-sample-1.pdf.
+var splitFolder = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(pdfFilePath) + "-split");
+var parts = PdfOperations.Split(PdfFile.FromFile(pdfFilePath), 1, splitFolder);
+Console.WriteLine($"Split into {parts.Count} files in {splitFolder}");
 
 Console.WriteLine("End: Unlimited PDF");
 Console.ReadLine();

@@ -30,6 +30,10 @@ public static class SampleCatalog
             "Join existing PDFs, pick their pages, and build complete document packs. Try your own files.",
             [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, MonthEndPack, EmployeePack, PatientPack]),
         new SampleCategory(
+            "Split",
+            "Split a PDF into parts: every few pages, or the page ranges you choose. Try your own file.",
+            [SplitEveryN, SplitRanges]),
+        new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
             [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory])
@@ -244,6 +248,28 @@ public static class SampleCatalog
         "ReceiptSample.cs",
         "receipt.pdf",
         "receipt");
+
+    /// <summary>
+    /// Gets the Every N pages split demo.
+    /// </summary>
+    public static SampleDemo SplitEveryN { get; } = new(
+        "Every N pages",
+        "Split a PDF into parts of the same number of pages, such as one file per page or every 10 pages.",
+        "playground/split/every-n-pages",
+        "SplitEveryNSample.cs",
+        "every-n-pages.zip",
+        "copy");
+
+    /// <summary>
+    /// Gets the Page ranges split demo.
+    /// </summary>
+    public static SampleDemo SplitRanges { get; } = new(
+        "Page ranges",
+        "Make one PDF per page range you choose, such as 1-2, 3, 2-4. Ranges may overlap and leave pages out.",
+        "playground/split/page-ranges",
+        "SplitRangesSample.cs",
+        "page-ranges.zip",
+        "copy");
 
     /// <summary>
     /// Gets the Tables demo.
