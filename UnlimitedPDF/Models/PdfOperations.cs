@@ -293,14 +293,31 @@ public static class PdfOperations
 
     #region Internal Methods
 
-    // Folder split with a replaceable file opener, so tests can fail or pause a write part-way (V-10).
+    /// <summary>
+    /// Splits a PDF every <paramref name="pagesPerPart"/> pages into <paramref name="outputFolder"/>, opening each part
+    /// file with <paramref name="openFile"/>, so tests can fail or pause a write part-way (V-10).
+    /// </summary>
+    /// <param name="file">The loaded file to split.</param>
+    /// <param name="pagesPerPart">The number of pages in each part.</param>
+    /// <param name="outputFolder">The folder to write the parts to.</param>
+    /// <param name="openFile">Opens the stream for a part file's full path.</param>
+    /// <returns>The parts, in the order written.</returns>
     internal static IReadOnlyList<PdfSplitPart> Split(PdfFile file, int pagesPerPart, string outputFolder, Func<string, Stream> openFile)
     {
         var parts = Plan(file, pagesPerPart);
         return WriteToFolder(file, parts, FullFolder(outputFolder), openFile);
     }
 
-    // Asynchronous folder split with a replaceable file opener (V-10).
+    /// <summary>
+    /// Asynchronously splits a PDF every <paramref name="pagesPerPart"/> pages into <paramref name="outputFolder"/>,
+    /// opening each part file with <paramref name="openFile"/>, so tests can fail or pause a write part-way (V-10).
+    /// </summary>
+    /// <param name="file">The loaded file to split.</param>
+    /// <param name="pagesPerPart">The number of pages in each part.</param>
+    /// <param name="outputFolder">The folder to write the parts to.</param>
+    /// <param name="openFile">Opens the stream for a part file's full path.</param>
+    /// <param name="cancellationToken">A token to cancel the split.</param>
+    /// <returns>The parts, in the order written.</returns>
     internal static Task<IReadOnlyList<PdfSplitPart>> SplitAsync(PdfFile file, int pagesPerPart, string outputFolder, Func<string, Stream> openFile, CancellationToken cancellationToken)
     {
         var parts = Plan(file, pagesPerPart);
@@ -310,6 +327,18 @@ public static class PdfOperations
     #endregion
 
     #region Private Methods
+
+    // The base of every part file name: the source file name without its extension, else "part". Characters that are
+    // not allowed in a file name, including directory separators, become "_", so a part is always written straight
+    // inside the output folder (A01).
+    private static string BaseName(PdfFile file)
+    {
+        string name = file.FileName is null ? string.Empty : Path.GetFileNameWithoutExtension(file.FileName);
+        if (name.Length == 0 || name == "." || name == "..") return DefaultPartName;
+        var invalid = Path.GetInvalidFileNameChars();
+        var chars = name.Select(c => c == Path.DirectorySeparatorChar || c == Path.AltDirectorySeparatorChar || invalid.Contains(c) ? '_' : c);
+        return new string(chars.ToArray());
+    }
 
     // The merged document: one AddPages call per input, so its bytes equal the AddPages path (WR-036).
     private static PdfDocument Build(IEnumerable<PdfFile>? inputs, string parameter)
@@ -332,16 +361,35 @@ public static class PdfOperations
         return document;
     }
 
-    // The base of every part file name: the source file name without its extension, else "part". Characters that are
-    // not allowed in a file name, including directory separators, become "_", so a part is always written straight
-    // inside the output folder (A01).
-    private static string BaseName(PdfFile file)
+    // Closes a part file whose write failed and removes it. Errors while closing or removing are ignored, so the
+    // failure that stopped the split is the one reported (WR-037, A08, A10).
+    private static void CloseFailed(Stream? stream, string path)
     {
-        string name = file.FileName is null ? string.Empty : Path.GetFileNameWithoutExtension(file.FileName);
-        if (name.Length == 0 || name == "." || name == "..") return DefaultPartName;
-        var invalid = Path.GetInvalidFileNameChars();
-        var chars = name.Select(c => c == Path.DirectorySeparatorChar || c == Path.AltDirectorySeparatorChar || invalid.Contains(c) ? '_' : c);
-        return new string(chars.ToArray());
+        if (stream is null) return;
+        try
+        {
+            stream.Dispose();
+        }
+        catch (Exception)
+        {
+            // The part is removed below whatever closing it did; the original failure is reported.
+        }
+        RemoveHalfWritten(path);
+    }
+
+    // Asynchronous twin of CloseFailed.
+    private static async Task CloseFailedAsync(Stream? stream, string path)
+    {
+        if (stream is null) return;
+        try
+        {
+            await stream.DisposeAsync().ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            // The part is removed below whatever closing it did; the original failure is reported.
+        }
+        RemoveHalfWritten(path);
     }
 
     private static PdfSplitException Failure(PdfSplitPart part, int partCount, Exception cause) => new(
@@ -365,19 +413,25 @@ public static class PdfOperations
         }
     }
 
+    // Only the caller's own token cancels a split; any other exception, including a cancellation raised by a callback
+    // or a stream for its own reasons, is a failure of the part (WR-037).
+    private static bool IsCancellation(Exception exception, CancellationToken cancellationToken) =>
+        exception is OperationCanceledException && cancellationToken.IsCancellationRequested;
+
     private static Stream OpenFile(string path) => new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
 
-    // The parts of an every-N split. Positions are counted as long so a very large pagesPerPart cannot overflow.
-    private static List<PdfSplitPart> Plan(PdfFile? file, int pagesPerPart)
+    // Numbers the parts and names them <base>-<number>.pdf, the number zero-padded to the part count's width (WR-037).
+    private static List<PdfSplitPart> Parts(PdfFile file, List<(int First, int Last)> ranges)
     {
-        if (file is null) throw new ArgumentNullException(nameof(file));
-        if (pagesPerPart < 1)
-            throw new ArgumentOutOfRangeException(nameof(pagesPerPart), pagesPerPart, "Each part must have at least one page.");
-
-        var ranges = new List<(int First, int Last)>();
-        for (long first = 1; first <= file.PageCount; first += pagesPerPart)
-            ranges.Add(((int)first, (int)Math.Min(first + pagesPerPart - 1, file.PageCount)));
-        return Parts(file, ranges);
+        string baseName = BaseName(file);
+        int width = ranges.Count.ToString(CultureInfo.InvariantCulture).Length;
+        return ranges
+            .Select((range, index) =>
+            {
+                string number = (index + 1).ToString(CultureInfo.InvariantCulture).PadLeft(width, '0');
+                return new PdfSplitPart(index + 1, range.First, range.Last, baseName + "-" + number + ".pdf");
+            })
+            .ToList();
     }
 
     // The parts of a range split, in the order given. Every range is checked before anything is written.
@@ -400,18 +454,17 @@ public static class PdfOperations
         return Parts(file, list.Select(range => (range.FirstPage, range.LastPage)).ToList());
     }
 
-    // Numbers the parts and names them <base>-<number>.pdf, the number zero-padded to the part count's width (WR-037).
-    private static List<PdfSplitPart> Parts(PdfFile file, List<(int First, int Last)> ranges)
+    // The parts of an every-N split. Positions are counted as long so a very large pagesPerPart cannot overflow.
+    private static List<PdfSplitPart> Plan(PdfFile? file, int pagesPerPart)
     {
-        string baseName = BaseName(file);
-        int width = ranges.Count.ToString(CultureInfo.InvariantCulture).Length;
-        return ranges
-            .Select((range, index) =>
-            {
-                string number = (index + 1).ToString(CultureInfo.InvariantCulture).PadLeft(width, '0');
-                return new PdfSplitPart(index + 1, range.First, range.Last, baseName + "-" + number + ".pdf");
-            })
-            .ToList();
+        if (file is null) throw new ArgumentNullException(nameof(file));
+        if (pagesPerPart < 1)
+            throw new ArgumentOutOfRangeException(nameof(pagesPerPart), pagesPerPart, "Each part must have at least one page.");
+
+        var ranges = new List<(int First, int Last)>();
+        for (long first = 1; first <= file.PageCount; first += pagesPerPart)
+            ranges.Add(((int)first, (int)Math.Min(first + pagesPerPart - 1, file.PageCount)));
+        return Parts(file, ranges);
     }
 
     // Deletes the half-written part this call created; an error here must not hide the failure that caused it.
@@ -441,9 +494,8 @@ public static class PdfOperations
             }
             catch (Exception exception)
             {
-                stream?.Dispose();
-                if (stream is not null) RemoveHalfWritten(path);
-                if (exception is OperationCanceledException) throw;
+                // The synchronous overloads take no token, so every exception here is a failure of the part.
+                CloseFailed(stream, path);
                 throw Failure(part, parts.Count, exception);
             }
         }
@@ -452,6 +504,7 @@ public static class PdfOperations
 
     private static async Task<IReadOnlyList<PdfSplitPart>> WriteToFolderAsync(PdfFile file, List<PdfSplitPart> parts, string folder, Func<string, Stream> openFile, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Directory.CreateDirectory(folder);
         foreach (var part in parts)
         {
@@ -466,12 +519,8 @@ public static class PdfOperations
             }
             catch (Exception exception)
             {
-                if (stream is not null)
-                {
-                    await stream.DisposeAsync().ConfigureAwait(false);
-                    RemoveHalfWritten(path);
-                }
-                if (exception is OperationCanceledException) throw;
+                await CloseFailedAsync(stream, path).ConfigureAwait(false);
+                if (IsCancellation(exception, cancellationToken)) throw;
                 throw Failure(part, parts.Count, exception);
             }
         }
@@ -487,8 +536,9 @@ public static class PdfOperations
                 var stream = openPart(part) ?? throw new InvalidOperationException("The stream for the part is null.");
                 BuildPart(file, part).Save(new PdfPartStream(stream));
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            catch (Exception exception)
             {
+                // The synchronous overloads take no token, so every exception here is a failure of the part.
                 throw Failure(part, parts.Count, exception);
             }
         }
@@ -505,7 +555,7 @@ public static class PdfOperations
                 var stream = openPart(part) ?? throw new InvalidOperationException("The stream for the part is null.");
                 await BuildPart(file, part).SaveAsync(new PdfPartStream(stream), cancellationToken).ConfigureAwait(false);
             }
-            catch (Exception exception) when (exception is not OperationCanceledException)
+            catch (Exception exception) when (!IsCancellation(exception, cancellationToken))
             {
                 throw Failure(part, parts.Count, exception);
             }

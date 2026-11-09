@@ -913,7 +913,9 @@ public class PdfDocument
 
     private async Task WriteToStreamAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
+        // Disposed asynchronously: a synchronous dispose would write and flush the trailer synchronously, which streams
+        // that allow only asynchronous I/O reject (WR-037).
+        await using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
 
         // Keep track of object offsets to build the xref table
         var offsets = new List<long>();

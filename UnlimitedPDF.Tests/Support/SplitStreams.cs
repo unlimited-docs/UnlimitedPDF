@@ -3,7 +3,8 @@ namespace UnlimitedPDF.Tests.Support;
 /// <summary>
 /// Wraps a real file stream and throws <see cref="IOException"/> once more than a set number of bytes would be
 /// written, or waits for cancellation in an asynchronous write, so folder-output tests can fail a part on disk (V-10).
-/// Disposing it disposes the file stream.
+/// Disposing it disposes the file stream, then throws when set to, the way a file stream that failed to write throws
+/// again when it flushes on dispose (review F-01).
 /// </summary>
 internal sealed class FailingFileStream : Stream
 {
@@ -11,6 +12,7 @@ internal sealed class FailingFileStream : Stream
 
     private readonly Stream _inner;
     private readonly long? _failAfterBytes;
+    private readonly bool _failOnDispose;
     private readonly long? _pauseAfterBytes;
     private long _written;
 
@@ -18,11 +20,12 @@ internal sealed class FailingFileStream : Stream
 
     #region Constructors and Finalizers
 
-    public FailingFileStream(string path, long? failAfterBytes = null, long? pauseAfterBytes = null)
+    public FailingFileStream(string path, long? failAfterBytes = null, long? pauseAfterBytes = null, bool failOnDispose = false)
     {
         _inner = new FileStream(path, FileMode.Create, FileAccess.Write);
         _failAfterBytes = failAfterBytes;
         _pauseAfterBytes = pauseAfterBytes;
+        _failOnDispose = failOnDispose;
     }
 
     #endregion
@@ -67,6 +70,7 @@ internal sealed class FailingFileStream : Stream
     {
         if (disposing) _inner.Dispose();
         base.Dispose(disposing);
+        if (disposing && _failOnDispose) throw new IOException("Disk full while closing.");
     }
 
     #endregion
@@ -103,8 +107,9 @@ internal sealed class FailingFileStream : Stream
 }
 
 /// <summary>
-/// A write-only, non-seekable stream that collects its bytes, logs when it is written and disposed, and can fail or
-/// wait part-way through a write (split tests, V-06, V-07, V-10).
+/// A write-only, non-seekable stream that collects its bytes, logs when it is written and disposed, and can fail,
+/// wait part-way through a write, or reject synchronous I/O like a web response body (split tests, V-06, V-07, V-10,
+/// review F-02).
 /// </summary>
 internal sealed class SplitTargetStream : Stream
 {
@@ -134,7 +139,12 @@ internal sealed class SplitTargetStream : Stream
 
     #region Public Methods
 
-    public override void Flush() { }
+    public override void Flush()
+    {
+        if (AsyncOnly) throw new InvalidOperationException("Synchronous operations are disallowed.");
+    }
+
+    public override Task FlushAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
 
@@ -149,8 +159,8 @@ internal sealed class SplitTargetStream : Stream
 
     public override void Write(byte[] buffer, int offset, int count)
     {
-        BeforeWrite(count);
-        _inner.Write(buffer, offset, count);
+        if (AsyncOnly) throw new InvalidOperationException("Synchronous operations are disallowed.");
+        WriteCore(buffer, offset, count);
     }
 
     public override async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
@@ -160,7 +170,7 @@ internal sealed class SplitTargetStream : Stream
             Paused.TrySetResult();
             await Resume.Task.WaitAsync(cancellationToken);
         }
-        Write(buffer, offset, count);
+        WriteCore(buffer, offset, count);
     }
 
     public override ValueTask WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default) =>
@@ -181,11 +191,12 @@ internal sealed class SplitTargetStream : Stream
 
     #region Private Methods
 
-    private void BeforeWrite(int count)
+    private void WriteCore(byte[] buffer, int offset, int count)
     {
         if (IsDisposed) throw new ObjectDisposedException(_name);
         if (_inner.Length == 0) _log?.Add("write " + _name);
         if (FailAfterBytes is not null && _inner.Length + count > FailAfterBytes) throw new IOException("Disk full.");
+        _inner.Write(buffer, offset, count);
     }
 
     #endregion
@@ -193,6 +204,12 @@ internal sealed class SplitTargetStream : Stream
     #endregion
 
     #region Properties, Indexers
+
+    /// <summary>
+    /// Gets or sets whether synchronous <see cref="Write"/> and <see cref="Flush"/> throw, as on a web response body
+    /// that allows only asynchronous I/O.
+    /// </summary>
+    public bool AsyncOnly { get; set; }
 
     public override bool CanRead => false;
 

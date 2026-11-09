@@ -123,6 +123,52 @@ public sealed class SplitFailureTests : IDisposable
         Assert.IsType<InvalidOperationException>(exception.InnerException);
     }
 
+    [Fact]
+    public void Part_whose_file_also_fails_to_close_is_removed_and_the_write_failure_reported()
+    {
+        // Review F-01: a file stream that failed to write throws again when it is closed.
+        Directory.CreateDirectory(_root);
+
+        var exception = Assert.Throws<PdfSplitException>(() => PdfOperations.Split(
+            PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(3)), 1, _root,
+            path => Path.GetFileName(path) == "part-2.pdf"
+                ? new FailingFileStream(path, failAfterBytes: 300, failOnDispose: true)
+                : new FailingFileStream(path)));
+
+        Assert.Equal(2, exception.PartNumber);
+        Assert.Equal(1, exception.PartsWritten);
+        Assert.Equal("Disk full.", Assert.IsType<IOException>(exception.InnerException).Message);
+        Assert.Equal(new[] { "part-1.pdf" }, Directory.GetFiles(_root).Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public void Cancellation_raised_by_a_stream_callback_is_a_part_failure()
+    {
+        // Review F-03: the synchronous overloads take no token, so a callback's own cancellation is a failure.
+        var cause = new OperationCanceledException("The upload timed out.");
+
+        var exception = Assert.Throws<PdfSplitException>(() => PdfOperations.Split(
+            PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(3)), 1, part => part.Number == 2 ? throw cause : new MemoryStream()));
+
+        Assert.Equal(2, exception.PartNumber);
+        Assert.Equal(1, exception.PartsWritten);
+        Assert.Same(cause, exception.InnerException);
+    }
+
+    [Fact]
+    public void Cancellation_raised_while_opening_a_folder_part_is_a_part_failure()
+    {
+        Directory.CreateDirectory(_root);
+
+        var exception = Assert.Throws<PdfSplitException>(() => PdfOperations.Split(
+            PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(3)), 1, _root,
+            path => Path.GetFileName(path) == "part-2.pdf" ? throw new OperationCanceledException() : new FailingFileStream(path)));
+
+        Assert.Equal(2, exception.PartNumber);
+        Assert.IsType<OperationCanceledException>(exception.InnerException);
+        Assert.Equal(new[] { "part-1.pdf" }, Directory.GetFiles(_root).Select(Path.GetFileName));
+    }
+
     #endregion
 
     #endregion

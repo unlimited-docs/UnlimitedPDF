@@ -8,6 +8,13 @@ public sealed class PdfSplitPart
 {
     #region Constructors and Finalizers
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="PdfSplitPart"/> class.
+    /// </summary>
+    /// <param name="number">The 1-based number of the part.</param>
+    /// <param name="firstPage">The 1-based number, in the source file, of the part's first page.</param>
+    /// <param name="lastPage">The 1-based number, in the source file, of the part's last page.</param>
+    /// <param name="fileName">The part's file name.</param>
     internal PdfSplitPart(int number, int firstPage, int lastPage, string fileName)
     {
         Number = number;
