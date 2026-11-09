@@ -49,6 +49,23 @@ public sealed class PdfBodyFlow
     }
 
     /// <summary>
+    /// Adds loaded HTML (WR-038). It is laid out at the body width of the page where it starts and continues on the
+    /// following pages, which the library adds with their header and footer: lines and images never split, table rows
+    /// move whole unless taller than the body, and <c>thead</c> rows repeat. Layout warnings are added to
+    /// <see cref="PdfHtml.Warnings"/> when the document is laid out; in strict mode the first one fails saving.
+    /// </summary>
+    /// <param name="html">The loaded HTML.</param>
+    /// <param name="spacing">The space above the HTML, in points; dropped when it is the first item on a page.</param>
+    /// <param name="headingBookmarks">Whether h1 to h6 headings become bookmarks at their heading levels.</param>
+    /// <param name="keepWithNext">Whether HTML that fits on one page stays on the same page as the next item.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="html"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The spacing is negative or not finite.</exception>
+    [AddedVersion("1.0.0")]
+    [Description("Adds loaded HTML to the body flow.")]
+    public void AddHtml(PdfHtml html, double spacing = 0, bool headingBookmarks = false, bool keepWithNext = false) =>
+        Add(CreateHtml(html, spacing, headingBookmarks, keepWithNext));
+
+    /// <summary>
     /// Adds an image. Sizes follow <see cref="PdfPage.AddImage"/>.
     /// </summary>
     /// <param name="image">The image.</param>
@@ -126,12 +143,6 @@ public sealed class PdfBodyFlow
     #endregion
 
     #region Internal Methods
-
-    /// <summary>
-    /// Adds HTML to the flow (WR-038). Made public with the HTML entry points.
-    /// </summary>
-    internal void AddHtml(PdfHtml html, double spacing = 0, bool headingBookmarks = false, bool keepWithNext = false) =>
-        Add(CreateHtml(html, spacing, headingBookmarks, keepWithNext));
 
     internal static FlowHtml CreateHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext)
     {

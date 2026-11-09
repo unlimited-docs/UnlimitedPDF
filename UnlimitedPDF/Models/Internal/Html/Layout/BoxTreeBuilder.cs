@@ -153,6 +153,14 @@ internal sealed class BoxTreeBuilder
             string? text = MarkerText(style.ListStyleType, number);
             if (style.ListStyleType != CssListStyleType.None) block.Marker = new ListMarker(style.ListStyleType, text, style.ListStyleInside);
         }
+
+        // An image displayed as a block is a block holding the image on its own line.
+        if (element.Name == "img")
+        {
+            if (_model.Images.TryGetValue(element, out var image)) block.Inlines.Add(new AtomicItem(new HtmlImageBox(style, element, image)));
+            else if (element.Attribute("alt") is { Length: > 0 } alt) block.Inlines.Add(new TextItem(alt, style));
+            return block;
+        }
         BuildBlockChildren(block, element.Children);
         return block;
     }
