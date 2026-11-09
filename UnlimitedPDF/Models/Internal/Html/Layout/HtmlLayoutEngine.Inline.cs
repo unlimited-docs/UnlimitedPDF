@@ -144,6 +144,7 @@ internal sealed partial class HtmlLayoutEngine
         var tokens = Tokenize(box, width);
         double indent = Resolve(s.TextIndent, width);
         var lines = BreakLines(tokens, width, indent);
+        bool clipReported = false;
 
         for (int index = 0; index < lines.Count; index++)
         {
@@ -240,8 +241,17 @@ internal sealed partial class HtmlLayoutEngine
                 x += runWidth;
                 i = j;
             }
+            // A line that cannot wrap and passes the body edge is clipped there (D-016).
+            bool overflow = lineLeft + line.Width > _width + Tolerance && !_measuring;
+            if (overflow)
+            {
+                if (!clipReported) Warn(PdfHtmlWarningKind.ContentClipped, box.Element?.Name ?? "text", "A line of text is wider than the body; it is clipped at the body edge.");
+                clipReported = true;
+                fragment.Commands.Add(new ClipBeginCommand(0, _y - 1, _width, height + 2));
+            }
             fragment.Commands.AddRange(backgrounds);
             fragment.Commands.AddRange(texts);
+            if (overflow) fragment.Commands.Add(new ClipEndCommand());
         }
     }
 
@@ -252,7 +262,7 @@ internal sealed partial class HtmlLayoutEngine
         if (uri is null && target is null)
         {
             if (!_measuring && _reportedLinks.Add(href))
-                _warnings.Add(new PdfHtmlWarning(PdfHtmlWarningKind.LinkDropped, href, $"The link \"{href}\" is not http, https, mailto, or #id; its text is kept.", pageNumber: null));
+                Warn(PdfHtmlWarningKind.LinkDropped, href, $"The link \"{href}\" is not http, https, mailto, or #id; its text is kept.");
             return;
         }
         // Adjacent pieces of one link on a line become one rectangle.

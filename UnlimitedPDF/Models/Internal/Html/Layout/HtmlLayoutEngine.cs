@@ -366,6 +366,7 @@ internal sealed partial class HtmlLayoutEngine
 
     private void NextPage()
     {
+        foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
         var room = Room(_page);
         _y = room.Top;

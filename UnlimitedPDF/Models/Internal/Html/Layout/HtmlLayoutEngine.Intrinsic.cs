@@ -19,15 +19,14 @@ internal sealed partial class HtmlLayoutEngine
         return Fixed(s.Margins[1]) + Fixed(s.Margins[3]) + s.Borders[1].UsedWidth + s.Borders[3].UsedWidth + Fixed(s.Paddings[1]) + Fixed(s.Paddings[3]);
     }
 
-    private (double Min, double Max) IntrinsicWidths(HtmlBox box)
+    // A table cell's width is a preference (preferredWidth): its narrowest width stays its content's, and its widest
+    // is at least the preferred width.
+    private (double Min, double Max) IntrinsicWidths(HtmlBox box, bool preferredWidth = false)
     {
         var s = box.Style;
         double outside = FixedHorizontal(s);
-        if (s.Width is { Unit: not CssUnit.Percent } width)
-        {
-            double w = Resolve(width, 0) + outside;
-            return (w, w);
-        }
+        double? preferred = s.Width is { Unit: not CssUnit.Percent } width ? Resolve(width, 0) + outside : null;
+        if (preferred is double fixedWidth && !preferredWidth) return (fixedWidth, fixedWidth);
 
         double min = 0, max = 0;
         switch (box)
@@ -63,7 +62,9 @@ internal sealed partial class HtmlLayoutEngine
         }
         if (s.MinWidth is { Unit: not CssUnit.Percent } minWidth) { min = Math.Max(min, Resolve(minWidth, 0)); max = Math.Max(max, Resolve(minWidth, 0)); }
         if (s.MaxWidth is { Unit: not CssUnit.Percent } maxWidth) max = Math.Min(max, Math.Max(min, Resolve(maxWidth, 0)));
-        return (min + outside, Math.Max(min, max) + outside);
+        double resultMin = min + outside, resultMax = Math.Max(min, max) + outside;
+        if (preferred is double p) resultMax = Math.Max(resultMin, p);
+        return (resultMin, resultMax);
     }
 
     #endregion
