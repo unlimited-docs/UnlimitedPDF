@@ -12,6 +12,28 @@ internal static class PdfLiteralString
     #region Public Methods
 
     /// <summary>
+    /// Returns single-byte character codes (for example WinAnsi text, WR-038) escaped for use between the parentheses
+    /// of a literal string, as ASCII: a backslash and both parentheses are always escaped, and codes outside printable
+    /// ASCII are written as three-digit octal escapes.
+    /// </summary>
+    /// <param name="codes">The character codes.</param>
+    /// <returns>The escaped text, for example "Caf\351" for the WinAnsi codes of "Café".</returns>
+    public static string EscapeBytes(IReadOnlyList<byte> codes)
+    {
+        var sb = new StringBuilder(codes.Count + 8);
+        foreach (byte b in codes)
+        {
+            if (b == '\\' || b == '(' || b == ')')
+                sb.Append('\\').Append((char)b);
+            else if (b < 32 || b > 126)
+                sb.Append('\\').Append(Convert.ToString(b, 8).PadLeft(3, '0'));
+            else
+                sb.Append((char)b);
+        }
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Returns <paramref name="text"/> escaped for use between the parentheses of a literal string.
     /// </summary>
     /// <param name="text">The text to escape.</param>

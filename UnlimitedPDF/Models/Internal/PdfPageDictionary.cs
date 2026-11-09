@@ -26,6 +26,12 @@ internal class PdfPageDictionary
     public PdfDictionary Resources { get; set; } = new PdfDictionary();
 
     /// <summary>
+    /// Gets or sets the syntax of the page's <c>/Annots</c> array for HTML links (WR-038), or null for none. Pages
+    /// without links write no entry, exactly as before.
+    /// </summary>
+    public string? Annots { get; set; }
+
+    /// <summary>
     /// Returns the string representation of the PDF page dictionary.
     /// </summary>
     /// <returns>A string representing the page dictionary.</returns>
@@ -44,6 +50,9 @@ internal class PdfPageDictionary
 
         if (Resources is not null)
             sb.AppendLine($"/Resources {Resources}");
+
+        if (Annots is not null)
+            sb.AppendLine($"/Annots {Annots}");
 
         sb.AppendLine(">>");
         return sb.ToString();

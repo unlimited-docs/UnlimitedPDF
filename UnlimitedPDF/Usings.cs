@@ -3,6 +3,7 @@ global using System.Globalization;
 global using System.Text;
 global using UnlimitedPDF.Models.Internal;
 global using UnlimitedPDF.Models.Internal.Attributes;
+global using UnlimitedPDF.Models.Internal.Fonts;
 global using UnlimitedPDF.Models.Internal.Imaging;
 global using UnlimitedPDF.Models.Internal.Importing;
 global using UnlimitedPDF.Models.Internal.Layout;

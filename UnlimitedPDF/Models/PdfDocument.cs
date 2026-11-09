@@ -14,6 +14,7 @@ public class PdfDocument
     private readonly PdfPages _pages;
     private readonly List<RemainingQuery> _queries = new();
     private readonly List<PdfPageSettings> _rules = new();
+    private readonly Dictionary<StandardFont, int> _standardFontObjects = new();
     private double _bodyMarginBottom;
     private double _bodyMarginTop;
     private PageEntry? _flowRoot;
@@ -418,20 +419,29 @@ public class PdfDocument
         return new PageEntry(builder, pageInternal, pageObject, size);
     }
 
-    // Pages without images keep an empty resource dictionary, exactly as before images existed.
-    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images)
+    // Pages without images keep an empty resource dictionary, exactly as before images existed. Pages with HTML text
+    // also map their standard fonts, and /F1 to the document font (WR-038); other pages get no font entry, as before.
+    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images, IReadOnlyCollection<StandardFont> fonts)
     {
         var resources = new PdfDictionary();
-        if (images.Count == 0) return resources;
-
-        var entries = images.Select((image, i) => $"/Im{i + 1} {new PdfIndirectReference(_imageObjects[image.ContentKey])}");
-        resources.AddEntry("XObject", $"<< {string.Join(" ", entries)} >>");
+        if (images.Count > 0)
+        {
+            var entries = images.Select((image, i) => $"/Im{i + 1} {new PdfIndirectReference(_imageObjects[image.ContentKey])}");
+            resources.AddEntry("XObject", $"<< {string.Join(" ", entries)} >>");
+        }
+        if (fonts.Count > 0)
+        {
+            var entries = new[] { $"/F1 {new PdfIndirectReference(objectNumber: 3)}" }
+                .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"));
+            resources.AddEntry("Font", $"<< {string.Join(" ", entries)} >>");
+        }
         return resources;
     }
 
     // Draws a page's body flow content, then its header and footer bands (WR-031, WR-033).
-    private static void DrawLayout(StringBuilder sb, Func<PdfImageData, string> imageName, PlannedPage page, BandContent? header, BandContent? footer, IReadOnlyDictionary<PdfTable, TablePlan> plans)
+    private static void DrawLayout(StringBuilder sb, PageDrawSink sink, PlannedPage page, BandContent? header, BandContent? footer, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
+        var imageName = sink.ImageName;
         foreach (var placement in page.Flow) DrawFlow(sb, imageName, placement, plans);
 
         var g = page.Geometry;
@@ -637,19 +647,22 @@ public class PdfDocument
 
         // Imported pages keep the content they were copied with (WR-036).
         var contents = new PdfPageContent?[visible.Count];
+        var sinks = new PageDrawSink?[visible.Count];
         for (int i = 0; i < visible.Count; i++)
         {
             if (visible[i].Builder is not { } builder) continue;
             var page = planned[i];
             var header = headers[i];
             var footer = footers[i];
+            int index = i;
             Action<StringBuilder, Func<PdfImageData, string>>? after = drawLayout
-                ? (sb, name) => DrawLayout(sb, name, page, header, footer, plans)
+                ? (sb, name) => DrawLayout(sb, sinks[index] = new PageDrawSink(name), page, header, footer, plans)
                 : null;
             contents[i] = builder.BuildContent(plans, page.Carried, after);
         }
 
-        // Store each distinct image once per document. Objects added by an earlier save are reused.
+        // Store each distinct image once per document, and each standard font HTML text uses (WR-038). Objects added by
+        // an earlier save are reused.
         foreach (var content in contents)
         {
             foreach (var image in content?.Images ?? Array.Empty<PdfImageData>())
@@ -657,14 +670,34 @@ public class PdfDocument
                 RegisterImage(image);
             }
         }
+        foreach (var sink in sinks)
+        {
+            foreach (var font in sink?.Fonts ?? Array.Empty<StandardFont>())
+            {
+                RegisterStandardFont(font);
+            }
+        }
 
-        // Commit page content and rewrite each page dictionary with the images it uses.
+        // Where each element id first appears, for links that jump to it (WR-038).
+        var targets = new Dictionary<string, (int PageObject, double X, double Y)>(StringComparer.Ordinal);
+        for (int i = 0; i < visible.Count; i++)
+        {
+            foreach (var mark in sinks[i]?.Marks ?? new List<PageMark>())
+            {
+                if (mark.Id is not null && !targets.ContainsKey(mark.Id)) targets[mark.Id] = (visible[i].PageObject.ObjectNumber, mark.X, mark.Y);
+            }
+        }
+
+        // Commit page content and rewrite each page dictionary with the images and fonts it uses and its links.
         for (int i = 0; i < visible.Count; i++)
         {
             var entry = visible[i];
             if (entry.Builder is null || contents[i] is not { } content) continue;
             entry.Builder.CommitContent(content.Data);
-            entry.Page!.Resources = CreateResources(content.Images);
+            entry.Page!.Resources = CreateResources(content.Images, sinks[i]?.Fonts ?? Array.Empty<StandardFont>());
+            entry.Page.Annots = sinks[i] is { Links.Count: > 0 } sink
+                ? LinkAnnotations.Syntax(sink.Links, id => targets.TryGetValue(id, out var target) ? target : null)
+                : null;
             entry.PageObject.Content = entry.Page.ToString();
         }
 
@@ -673,6 +706,7 @@ public class PdfDocument
             if (entry.Builder is null) continue;
             entry.Builder.CommitContent(Array.Empty<byte>());
             entry.Page!.Resources = new PdfDictionary();
+            entry.Page.Annots = null;
             entry.PageObject.Content = entry.Page.ToString();
         }
 
@@ -692,11 +726,32 @@ public class PdfDocument
         // Bookmarks for the imported files (WR-036; without wrappers for split parts, WR-037). Their objects are created
         // at the first save that needs them and rewritten by later saves; more are appended only when later imports add
         // bookmarks. A document with no bookmark to write gets no outline.
+        // HTML heading bookmarks (WR-038) join the same outline, in page order with the imports.
         var catalog = new PdfCatalog(new PdfIndirectReference(objectNumber: 2));
-        if (_imports.Count > 0)
+        var headings = new List<(int Page, OutlineSource Source)>();
+        for (int i = 0; i < visible.Count; i++)
         {
-            var outlineImports = _imports.Select(OutlineImportOf).ToList();
-            int needed = OutlineBuilder.Build(outlineImports, index => index + 1, WrapImportBookmarks).Count;
+            foreach (var mark in sinks[i]?.Marks ?? new List<PageMark>())
+            {
+                if (mark.HeadingLevel > 0)
+                    headings.Add((i, OutlineSource.ForHeading(new OutlineHeading(mark.Title ?? string.Empty, mark.HeadingLevel, visible[i].PageObject.ObjectNumber, mark.X, mark.Y))));
+            }
+        }
+        if (_imports.Count > 0 || headings.Count > 0)
+        {
+            var pagePosition = new Dictionary<PageEntry, int>();
+            for (int i = 0; i < visible.Count; i++) pagePosition[visible[i]] = i;
+            var outlineImports = _imports
+                .Select(import => (Page: import.Entries.Count > 0 && pagePosition.TryGetValue(import.Entries[0], out int p) ? p : int.MaxValue, Source: OutlineSource.ForImport(OutlineImportOf(import))))
+                .ToList();
+
+            // A stable merge: imports and headings on earlier pages first; on the same page, imports first.
+            var sources = outlineImports.Select((item, order) => (item.Page, Kind: 0, Order: order, item.Source))
+                .Concat(headings.Select((item, order) => (item.Page, Kind: 1, Order: order, item.Source)))
+                .OrderBy(item => item.Page).ThenBy(item => item.Kind).ThenBy(item => item.Order)
+                .Select(item => item.Source)
+                .ToList();
+            int needed = OutlineBuilder.Build(sources, index => index + 1, WrapImportBookmarks).Count;
             while (_outlineObjects.Count < needed)
             {
                 var placeholder = new PdfObject(_objects.Objects.Max(o => o.ObjectNumber) + 1, string.Empty);
@@ -706,16 +761,28 @@ public class PdfDocument
 
             var outlines = needed == 0
                 ? new List<string>()
-                : OutlineBuilder.Build(outlineImports, index => _outlineObjects[index].ObjectNumber, WrapImportBookmarks);
+                : OutlineBuilder.Build(sources, index => _outlineObjects[index].ObjectNumber, WrapImportBookmarks);
             for (int i = 0; i < _outlineObjects.Count; i++)
                 _outlineObjects[i].Content = i < outlines.Count ? outlines[i] : "null";
             if (outlines.Count > 0) catalog.Outlines = new PdfIndirectReference(objectNumber: _outlineObjects[0].ObjectNumber);
+        }
+        if (_imports.Count > 0)
+        {
             catalog.OptionalContent = OptionalContentMerger.Build(_imports
                 .Select(import => import.File)
                 .Distinct()
                 .Select(file => (file.Source, (IReadOnlyDictionary<int, int>)_importedObjects[file])));
         }
         _objects.Objects.First(o => o.ObjectNumber == 1).Content = catalog.ToString();
+    }
+
+    // Appends a standard font's dictionary as a new object numbered after every existing object, once per document.
+    private void RegisterStandardFont(StandardFont font)
+    {
+        if (_standardFontObjects.ContainsKey(font)) return;
+        int number = _objects.Objects.Max(o => o.ObjectNumber) + 1;
+        _objects.AddObject(new PdfObject(number, new StandardFontObject(font).ToString()));
+        _standardFontObjects[font] = number;
     }
 
     // Appends the image, and its mask unless an identical mask is already stored, as new objects numbered after every
