@@ -17,17 +17,26 @@ internal static class OutlineBuilder
     /// </summary>
     /// <param name="imports">The imports in call order.</param>
     /// <param name="numberAt">Returns the object number of the object at an index in the result (0 is the root).</param>
-    /// <returns>The objects' syntax, starting with the root.</returns>
-    public static List<string> Build(IReadOnlyList<OutlineImport> imports, Func<int, int> numberAt)
+    /// <param name="wrap">True to put each import's bookmarks under one new top-level bookmark and keep web-link
+    /// bookmarks (merge, WR-036); false to keep, at their own levels with no wrapper, only the bookmarks that point to
+    /// an imported page (split, WR-037).</param>
+    /// <returns>The objects' syntax, starting with the root; empty when there is no bookmark to write.</returns>
+    public static List<string> Build(IReadOnlyList<OutlineImport> imports, Func<int, int> numberAt, bool wrap = true)
     {
         var top = new List<OutlineNode>();
         for (int i = 0; i < imports.Count; i++)
         {
             var import = imports[i];
+            if (!wrap)
+            {
+                top.AddRange(Convert(import, keepLinks: false));
+                continue;
+            }
             var node = new OutlineNode(TitleBytes(import, i + 1), $"[{import.PageMap[import.FirstSourcePage]} 0 R /Fit]", null, open: true);
-            node.Children.AddRange(Convert(import));
+            node.Children.AddRange(Convert(import, keepLinks: true));
             top.Add(node);
         }
+        if (top.Count == 0) return new List<string>();
 
         // Number the root, then every bookmark depth first.
         int firstNumber = numberAt(0);
@@ -59,7 +68,9 @@ internal static class OutlineBuilder
 
     #region Private Methods
 
-    private static List<OutlineNode> Convert(OutlineImport import)
+    // The import's bookmarks that survive: those pointing to an imported page, and, when keepLinks is set (merge), web
+    // links. A split part keeps only bookmarks pointing into its own pages (WR-037).
+    private static List<OutlineNode> Convert(OutlineImport import, bool keepLinks)
     {
         var table = import.Source.Objects;
         var annotations = new AnnotationImporter(import.Source);
@@ -88,7 +99,7 @@ internal static class OutlineBuilder
                     else if (kind == "URI" && table.Resolve(a["URI"]) is PdfReadString uri) action = "<< /S /URI /URI " + Hex(uri.Bytes) + " >>";
                 }
 
-                bool hasTarget = destination is not null || action is not null;
+                bool hasTarget = destination is not null || (keepLinks && action is not null);
                 bool targetsElsewhere = !hasTarget && (item.ContainsKey("Dest") || item.ContainsKey("A"));
                 if (targetsElsewhere || (!hasTarget && children.Count == 0))
                 {

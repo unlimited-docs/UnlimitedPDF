@@ -689,13 +689,14 @@ public class PdfDocument
         var pagesObject = _objects.Objects.First(o => o.ObjectNumber == 2);
         pagesObject.Content = _pages.ToString();
 
-        // Bookmarks for the imported files (WR-036). Their objects are created at the first save that needs them and
-        // rewritten by later saves; more are appended only when later imports add bookmarks.
+        // Bookmarks for the imported files (WR-036; without wrappers for split parts, WR-037). Their objects are created
+        // at the first save that needs them and rewritten by later saves; more are appended only when later imports add
+        // bookmarks. A document with no bookmark to write gets no outline.
         var catalog = new PdfCatalog(new PdfIndirectReference(objectNumber: 2));
         if (_imports.Count > 0)
         {
             var outlineImports = _imports.Select(OutlineImportOf).ToList();
-            int needed = OutlineBuilder.Build(outlineImports, index => index + 1).Count;
+            int needed = OutlineBuilder.Build(outlineImports, index => index + 1, WrapImportBookmarks).Count;
             while (_outlineObjects.Count < needed)
             {
                 var placeholder = new PdfObject(_objects.Objects.Max(o => o.ObjectNumber) + 1, string.Empty);
@@ -703,10 +704,12 @@ public class PdfDocument
                 _outlineObjects.Add(placeholder);
             }
 
-            var outlines = OutlineBuilder.Build(outlineImports, index => _outlineObjects[index].ObjectNumber);
+            var outlines = needed == 0
+                ? new List<string>()
+                : OutlineBuilder.Build(outlineImports, index => _outlineObjects[index].ObjectNumber, WrapImportBookmarks);
             for (int i = 0; i < _outlineObjects.Count; i++)
                 _outlineObjects[i].Content = i < outlines.Count ? outlines[i] : "null";
-            catalog.Outlines = new PdfIndirectReference(objectNumber: _outlineObjects[0].ObjectNumber);
+            if (outlines.Count > 0) catalog.Outlines = new PdfIndirectReference(objectNumber: _outlineObjects[0].ObjectNumber);
             catalog.OptionalContent = OptionalContentMerger.Build(_imports
                 .Select(import => import.File)
                 .Distinct()
@@ -910,7 +913,9 @@ public class PdfDocument
 
     private async Task WriteToStreamAsync(Stream stream, CancellationToken cancellationToken = default)
     {
-        using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
+        // Disposed asynchronously: a synchronous dispose would write and flush the trailer synchronously, which streams
+        // that allow only asynchronous I/O reject (WR-037).
+        await using var writer = new StreamWriter(stream, Encoding.ASCII, 1024, leaveOpen: true);
 
         // Keep track of object offsets to build the xref table
         var offsets = new List<long>();
@@ -1124,6 +1129,12 @@ public class PdfDocument
     /// Gets or sets the default page size for the document.
     /// </summary>
     public PdfPageSize PageSize { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether each <see cref="AddPages"/> call adds one top-level bookmark holding the file's bookmarks
+    /// (true, WR-036), or the file's bookmarks keep their own levels with no wrapper (false, split parts, WR-037).
+    /// </summary>
+    internal bool WrapImportBookmarks { get; set; } = true;
 
     #endregion
 

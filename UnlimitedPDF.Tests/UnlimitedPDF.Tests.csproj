@@ -40,6 +40,10 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCatalog.cs" Link="Demo\Samples\SampleCatalog.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCategory.cs" Link="Demo\Samples\SampleCategory.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleDemo.cs" Link="Demo\Samples\SampleDemo.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitEveryNSample.cs" Link="Demo\Samples\SplitEveryNSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitPartFile.cs" Link="Demo\Samples\SplitPartFile.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitRangesSample.cs" Link="Demo\Samples\SplitRangesSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\SplitInput.cs" Link="Demo\Samples\Inputs\SplitInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\BookmarksAndNumbersInput.cs" Link="Demo\Samples\Inputs\BookmarksAndNumbersInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\CoverAndRangesInput.cs" Link="Demo\Samples\Inputs\CoverAndRangesInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\JoinFilesInput.cs" Link="Demo\Samples\Inputs\JoinFilesInput.cs" />

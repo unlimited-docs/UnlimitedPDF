@@ -106,7 +106,8 @@ public class PdfOperationsMergeTests
         Assert.Equal(new[] { "file", "firstPage", "lastPage", "bookmarkTitle" }, addPages.GetParameters().Select(p => p.Name));
         Assert.Equal(new[] { "FromBytes", "FromFile", "FromFileAsync", "FromStream", "FromStreamAsync" },
             typeof(PdfFile).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
-        Assert.Equal(new[] { "Merge", "Merge", "MergeAsync", "MergeAsync" },
+        // Merge, plus the split operations added beside it (PR-017, WR-037).
+        Assert.Equal(new[] { "Merge", "Merge", "MergeAsync", "MergeAsync", "Split", "Split", "Split", "Split", "SplitAsync", "SplitAsync", "SplitAsync", "SplitAsync" },
             typeof(PdfOperations).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
         Assert.Equal(new[] { "Damaged", "Empty", "Encrypted", "TooLarge" }, Enum.GetNames(typeof(PdfFileErrorReason)).OrderBy(n => n, StringComparer.Ordinal));
 

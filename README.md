@@ -27,7 +27,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 ## Demos
 
-`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); splits PDFs, including your own uploads, in a Split category (every N pages and page ranges, with each part or a zip of all parts to download); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
 
 Run it locally:
 
@@ -336,6 +336,42 @@ pdfDocument.Save("pack.pdf");
 - Bad input fails at load with `PdfFileException`: encrypted files (`Encrypted`; they are not opened), damaged data (`Damaged`), files without pages (`Empty`), and files over a limit (`TooLarge`). The limits are 500 MB per file, 100 MB per decompressed stream, and 5,000,000 objects; change them with `PdfFileLoadOptions` or `PdfFile.DefaultMaxFileSize`, `PdfFile.DefaultMaxStreamSize`, and `PdfFile.DefaultMaxObjectCount`.
 - Merging works in the browser too: load uploads with `PdfFile.FromStreamAsync`.
 
+## Split PDFs
+
+Split an existing PDF into smaller files: every few pages, or one file per page range. The file is loaded once with `PdfFile`, and each part is written as soon as it is built.
+
+```cs
+using System.IO.Compression;
+using UnlimitedPDF;
+
+var report = PdfFile.FromFile("report.pdf");
+
+// One file per page, into a folder: pages/report-01.pdf, pages/report-02.pdf, ...
+PdfOperations.Split(report, 1, "pages");
+
+// One file per page range, in the order given. Ranges may overlap and leave pages out.
+PdfOperations.Split(report, new[] { new PdfPageRange(1, 3), new PdfPageRange(8, 10) }, "chapters");
+
+// Or write each part to a stream, for example a zip entry. Streams are left open, and a zip writes one entry at a
+// time, so close each entry when the next part asks for its stream.
+using (var zip = new ZipArchive(File.Create("report-parts.zip"), ZipArchiveMode.Create))
+{
+    Stream? entry = null;
+    PdfOperations.Split(report, 4, part =>
+    {
+        entry?.Dispose();
+        return entry = zip.CreateEntry(part.FileName).Open();
+    });
+    entry?.Dispose();
+}
+```
+
+- Every N pages makes parts of N pages from the first page; the last part is shorter when the pages don't divide evenly. `PdfPageRange` pages are 1-based and inclusive. Every overload has a `SplitAsync` twin that takes a `CancellationToken`.
+- Folder parts are named after the file and numbered, padded to the part count (`report-1.pdf` to `report-9.pdf`, or `report-01.pdf` to `report-12.pdf`); files loaded from a stream or bytes are named `part-1.pdf` and so on. The folder is created when missing, and existing files with those names are overwritten. Each call returns the parts (`PdfSplitPart`: `Number`, `FirstPage`, `LastPage`, `FileName`).
+- Each part's pages keep their size, rotation, content, links, comments, and layers, and the part keeps the file's bookmarks that point into it, at their own levels. Links and bookmarks to pages in other parts are removed. Document metadata, attachments, and scripts are not copied.
+- Parts are written one at a time. If a part can't be written, the parts before it are kept, its half-written file is removed, and `PdfSplitException` says which part failed (`PartNumber`) and how many were written (`PartsWritten`). An existing file with the failed part's name is removed too. A cancelled `SplitAsync` keeps the finished parts in the same way.
+- Each page's fonts and images are copied as the file lists them. A file that lists all of its fonts and images for every page gives large parts.
+
 ## Upgrading to 1.0.0
 
 1.0.0 renames part of the API so that names follow one convention and are easier to guess. Old names are removed, so code written for 0.0.x reports compile errors until it uses the new names. Generated PDFs are unchanged. Every public type is now in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` you need.
@@ -367,6 +403,7 @@ pdfDocument.Save("pack.pdf");
 ## Changes in 1.0.0
 
 - New: merge PDFs (`PdfFile`, `PdfFileLoadOptions`, `PdfFileException`, `PdfDocument.AddPages`, `PdfOperations.Merge`): load existing PDFs, join whole files in one call, or add page ranges next to pages you build.
+- New: split PDFs (`PdfOperations.Split`, `PdfOperations.SplitAsync`, `PdfPageRange`, `PdfSplitPart`, `PdfSplitException`): split a PDF every N pages or into one file per page range, written to a folder or to a stream per part.
 - New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.MarginTop`, `PdfDocument.MarginBottom`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
 - New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.BodyMarginTop`, `PdfDocument.BodyMarginBottom`, `PdfDocument.AddPageSettings`, `PdfDocument.MarginLeft`, `PdfDocument.MarginRight`), and filled rectangles (`PdfPage.AddRectangle`).
 - New: images (`PdfImage`, `PdfPage.AddImage`), images and stacked content in table cells, row height modes (`PdfRowHeightMode`), and unit conversion (`PdfUnits`).

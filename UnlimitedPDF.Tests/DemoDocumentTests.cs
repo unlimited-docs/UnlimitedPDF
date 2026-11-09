@@ -41,6 +41,28 @@ public class DemoDocumentTests
         Assert.Contains("(USB-C Docking Station) Tj", text);
     }
 
+    [Fact]
+    public void Demo_document_splits_into_one_valid_file_per_page()
+    {
+        // The console demo's split call (WR-037, AC-14): the saved sample, one page per part, into a folder.
+        string root = Path.Combine(Path.GetTempPath(), $"demo-split-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            string sample = Path.Combine(root, "unlimited-pdf-sample.pdf");
+            DemoDocument.Build(Fixtures.DemoAssets()).Save(sample);
+
+            var parts = PdfOperations.Split(PdfFile.FromFile(sample), 1, Path.Combine(root, "unlimited-pdf-sample-split"));
+
+            Assert.Equal(new[] { "unlimited-pdf-sample-1.pdf", "unlimited-pdf-sample-2.pdf", "unlimited-pdf-sample-3.pdf" }, parts.Select(p => p.FileName));
+            Assert.All(parts, part => PdfStructureChecker.AssertValid(File.ReadAllBytes(Path.Combine(root, "unlimited-pdf-sample-split", part.FileName))));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     #endregion
 
     #endregion

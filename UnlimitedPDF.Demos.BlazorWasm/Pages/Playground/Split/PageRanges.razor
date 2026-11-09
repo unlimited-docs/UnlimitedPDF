@@ -1,0 +1,42 @@
+@page "/playground/split/page-ranges"
+
+<SplitPartsPage @ref="_page" Demo="SampleCatalog.SplitRanges" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="File">
+            @if (_input.File is { } file)
+            {
+                <p class="field-label">@file.Name (@file.File.PageCount @(file.File.PageCount == 1 ? "page" : "pages"))</p>
+            }
+            <PdfUploadField Id="split-ranges-upload" Label="Use your own PDF" Multiple="false" Hint="@UploadHint"
+                            OnLoaded="file => Change(() => _input.File = file)" />
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Parts">
+            <div class="field">
+                <label for="split-ranges">One part per range</label>
+                <input id="split-ranges" class="form-control" value="@_input.Ranges" placeholder="1-2, 3, 2-4"
+                       @onchange="e => Change(() => _input.Ranges = e.Value?.ToString() ?? string.Empty)" />
+                <p class="field-hint">Pages and ranges separated by commas, for example 1-2, 3, 2-4. Ranges may overlap and leave pages out.</p>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SplitPartsPage>
+
+@code {
+    private const string UploadHint = "Files are read in your browser and never uploaded. Encrypted PDFs can't be split.";
+    private SplitInput _input = Defaults();
+    private SplitPartsPage? _page;
+
+    private Task<IReadOnlyList<SplitPartFile>> BuildAsync() => Task.FromResult(SplitRangesSample.Build(_input));
+
+    private void Change(Action change)
+    {
+        change();
+        _page?.NotifyInputsChanged();
+    }
+
+    // The Employee directory demo's several pages, so the demo works before any upload.
+    private static SplitInput Defaults() => new() { File = new MergeFileInput("Employee directory", MergeDemoFiles.EmployeeDirectory()) };
+
+    private void Reset() => _input = Defaults();
+}
