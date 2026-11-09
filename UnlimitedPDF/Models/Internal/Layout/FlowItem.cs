@@ -285,4 +285,78 @@ internal sealed class FlowBreak : FlowItem
 /// <param name="Right">The right edge of the item's area, in points.</param>
 /// <param name="Top">The y-coordinate of the item's top edge, in points (unused for table parts).</param>
 /// <param name="Part">The table part drawn on the page, for a table.</param>
-internal sealed record FlowPlacement(FlowItem Item, double Left, double Right, double Top, TablePart? Part);
+/// <param name="Html">The part of laid-out HTML drawn on the page, for HTML.</param>
+internal sealed record FlowPlacement(FlowItem Item, double Left, double Right, double Top, TablePart? Part, HtmlPageFragment? Html = null);
+
+/// <summary>
+/// HTML in the flow (WR-038): laid out at the body width of the page where it starts and split across pages at line,
+/// row, and block boundaries.
+/// </summary>
+internal sealed class FlowHtml : FlowItem
+{
+    #region Fields and Constants
+
+    private double? _measuredHeight;
+    private double _measuredWidth = double.NaN;
+
+    #endregion
+
+    #region Constructors and Finalizers
+
+    /// <summary>
+    /// Creates the item.
+    /// </summary>
+    public FlowHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext)
+        : base(spacing, 0, keepWithNext)
+    {
+        Html = html;
+        HeadingBookmarks = headingBookmarks;
+    }
+
+    #endregion
+
+    #region Methods
+
+    #region Public Methods
+
+    /// <summary>
+    /// Returns the height the HTML takes on one page of unlimited height at the layout width.
+    /// </summary>
+    /// <returns>The height in points.</returns>
+    public double MeasuredHeight()
+    {
+        double width = LayoutWidth ?? 0;
+        if (_measuredHeight is null || _measuredWidth != width)
+        {
+            _measuredHeight = width > 0 ? HtmlLayoutEngine.MeasureHeight(Html.Model, new BoxTreeBuilder(Html.Model).Build(), width) : 0;
+            _measuredWidth = width;
+        }
+        return _measuredHeight.Value;
+    }
+
+    #endregion
+
+    #endregion
+
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets whether h1 to h6 headings become bookmarks.
+    /// </summary>
+    public bool HeadingBookmarks { get; }
+
+    /// <summary>
+    /// Gets the HTML.
+    /// </summary>
+    public PdfHtml Html { get; }
+
+    /// <inheritdoc />
+    public override string Kind => "html";
+
+    /// <summary>
+    /// Gets or sets the width the HTML is laid out at, set by the planner from the page where it starts.
+    /// </summary>
+    public double? LayoutWidth { get; set; }
+
+    #endregion
+}

@@ -48,7 +48,7 @@ public sealed class PdfHtmlLoadingTests : IDisposable
     }
 
     [Fact]
-    public void Strings_files_and_streams_load_the_same_content()
+    public async Task Strings_files_and_streams_load_the_same_content()
     {
         const string html = "<p>Café</p>";
         string path = Path.Combine(_folder, "site", "page.html");
@@ -59,9 +59,9 @@ public sealed class PdfHtmlLoadingTests : IDisposable
             PdfHtml.FromString(html),
             PdfHtml.FromFile(path),
             PdfHtml.FromStream(new MemoryStream(Encoding.UTF8.GetBytes(html))),
-            PdfHtml.FromStringAsync(html).GetAwaiter().GetResult(),
-            PdfHtml.FromFileAsync(path).GetAwaiter().GetResult(),
-            PdfHtml.FromStreamAsync(new MemoryStream(Encoding.UTF8.GetBytes(html))).GetAwaiter().GetResult()
+            await PdfHtml.FromStringAsync(html),
+            await PdfHtml.FromFileAsync(path),
+            await PdfHtml.FromStreamAsync(new MemoryStream(Encoding.UTF8.GetBytes(html)))
         })
         {
             Assert.Equal("Café", loaded.Model.Tree.Body.TextContent());

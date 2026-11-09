@@ -30,6 +30,33 @@ internal static class HtmlOperators
         $"q {N(x)} {N(bottom)} {N(Math.Max(0, width))} {N(Math.Max(0, height))} re W n";
 
     /// <summary>
+    /// Returns the operators that fill or stroke a circle, drawn as four Bézier curves.
+    /// </summary>
+    /// <param name="centerX">The center x.</param>
+    /// <param name="centerY">The center y.</param>
+    /// <param name="radius">The radius.</param>
+    /// <param name="color">The color.</param>
+    /// <param name="filled">True to fill, false to stroke a thin outline.</param>
+    /// <returns>The operators.</returns>
+    public static string Circle(double centerX, double centerY, double radius, PdfColor color, bool filled)
+    {
+        // k places the control points so the four curves approximate a circle.
+        const double k = 0.5523;
+        double r = radius, c = radius * k, x = centerX, y = centerY;
+        var sb = new StringBuilder("q ");
+        sb.Append(Color(color)).Append(filled ? " rg " : " RG ");
+        if (!filled) sb.Append(N(Math.Max(0.5, radius / 4))).Append(" w ");
+        // m = move, c = Bézier curve, f = fill, S = stroke
+        sb.Append(N(x + r)).Append(' ').Append(N(y)).Append(" m ")
+          .Append($"{N(x + r)} {N(y + c)} {N(x + c)} {N(y + r)} {N(x)} {N(y + r)} c ")
+          .Append($"{N(x - c)} {N(y + r)} {N(x - r)} {N(y + c)} {N(x - r)} {N(y)} c ")
+          .Append($"{N(x - r)} {N(y - c)} {N(x - c)} {N(y - r)} {N(x)} {N(y - r)} c ")
+          .Append($"{N(x + c)} {N(y - r)} {N(x + r)} {N(y - c)} {N(x + r)} {N(y)} c ")
+          .Append(filled ? "f Q" : "S Q");
+        return sb.ToString();
+    }
+
+    /// <summary>
     /// Returns the operators that fill a rectangle.
     /// </summary>
     /// <param name="x">The left edge.</param>

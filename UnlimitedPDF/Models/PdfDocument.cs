@@ -442,7 +442,13 @@ public class PdfDocument
     private static void DrawLayout(StringBuilder sb, PageDrawSink sink, PlannedPage page, BandContent? header, BandContent? footer, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
         var imageName = sink.ImageName;
-        foreach (var placement in page.Flow) DrawFlow(sb, imageName, placement, plans);
+        foreach (var placement in page.Flow)
+        {
+            if (placement.Html is { } fragment)
+                HtmlPainter.Draw(sb, sink, fragment, placement.Left, ((FlowHtml)placement.Item).HeadingBookmarks);
+            else
+                DrawFlow(sb, imageName, placement, plans);
+        }
 
         var g = page.Geometry;
         if (header is not null) DrawSection(sb, imageName, header, g, g.HeaderTop, g.HeaderHeight);

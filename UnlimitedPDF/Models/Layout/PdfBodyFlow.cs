@@ -127,6 +127,19 @@ public sealed class PdfBodyFlow
 
     #region Internal Methods
 
+    /// <summary>
+    /// Adds HTML to the flow (WR-038). Made public with the HTML entry points.
+    /// </summary>
+    internal void AddHtml(PdfHtml html, double spacing = 0, bool headingBookmarks = false, bool keepWithNext = false) =>
+        Add(CreateHtml(html, spacing, headingBookmarks, keepWithNext));
+
+    internal static FlowHtml CreateHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext)
+    {
+        if (html is null) throw new ArgumentNullException(nameof(html));
+        Guard.NonNegative(spacing, nameof(spacing));
+        return new FlowHtml(html, spacing, headingBookmarks, keepWithNext);
+    }
+
     internal static FlowImage CreateImage(PdfImage image, double? width, double? height, double spacing, double x, PdfImagePlacementOptions? options, bool keepWithNext)
     {
         if (image is null) throw new ArgumentNullException(nameof(image));
