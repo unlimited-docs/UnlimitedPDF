@@ -15,6 +15,13 @@ public sealed class PdfHtml
 
     private const long BuiltInDefaultMaxInputSize = 50L * 1024 * 1024;
     private const int BuiltInDefaultMaxNestingDepth = 256;
+
+    /// <summary>
+    /// The highest nesting limit that can be set: deeper nesting could exhaust a 1 MB thread stack during layout (tables nested about 250 deep do).
+    /// </summary>
+    internal const int MaxSupportedNestingDepth = 512;
+
+    internal const string NestingDepthRange = "The limit must be from 1 to 512.";
     private const long BuiltInDefaultMaxResourceSize = 50L * 1024 * 1024;
     private const long BuiltInDefaultMaxTotalResourceSize = 200L * 1024 * 1024;
 
@@ -252,14 +259,16 @@ public sealed class PdfHtml
     }
 
     /// <summary>
-    /// Gets or sets the process-wide deepest element nesting; the default is 256.
+    /// Gets or sets the process-wide deepest element nesting, from 1 to 512; the default is 256.
     /// <see cref="PdfHtmlLoadOptions.MaxNestingDepth"/> overrides it for one load.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The value is less than 1 or more than 512.</exception>
     public static int DefaultMaxNestingDepth
     {
         get => _defaultMaxNestingDepth;
-        set => _defaultMaxNestingDepth = value < 1 ? throw new ArgumentOutOfRangeException(nameof(value), value, "The limit must be at least 1.") : value;
+        set => _defaultMaxNestingDepth = value is < 1 or > MaxSupportedNestingDepth
+            ? throw new ArgumentOutOfRangeException(nameof(value), value, NestingDepthRange)
+            : value;
     }
 
     /// <summary>

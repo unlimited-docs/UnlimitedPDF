@@ -610,7 +610,7 @@ public class PdfDocument
     {
         // Plan every page first. Any layout error is thrown here, before a page object is added or anything is written.
         var roots = Roots();
-        var planner = new PagePlanner(Geometry, checkBody: UsesLayout);
+        var planner = new PagePlanner(Geometry, checkBody: UsesLayout) { MaxPages = Body.MaxPages };
         CheckQueries(roots, planner);
         var (planned, plans) = planner.Finish(roots, Body.Items);
         CheckPageLimit(planned);

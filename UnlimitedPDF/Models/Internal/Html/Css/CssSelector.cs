@@ -64,15 +64,20 @@ internal sealed class CssSelector
     /// </summary>
     /// <param name="element">The element.</param>
     /// <returns>True when it matches.</returns>
-    public bool Matches(HtmlElement element)
+    public bool Matches(HtmlElement element) => Matches(element, new MatchMemo());
+
+    /// <summary>
+    /// Returns whether the selector matches an element, reusing what <paramref name="memo"/> already knows about the
+    /// element's ancestors.
+    /// </summary>
+    /// <param name="element">The element.</param>
+    /// <param name="memo">Results shared by every match in one cascade pass over one document.</param>
+    /// <returns>True when it matches.</returns>
+    public bool Matches(HtmlElement element, MatchMemo memo)
     {
         if (NeverMatches || !_compounds[_compounds.Count - 1].Matches(element)) return false;
         if (_compounds.Count == 1) return true;
-
-        // Each (element, compound) pair is tried at most once (A06): without memory, descendant combinators would
-        // retry every combination of ancestors, which grows combinatorially with nesting depth.
-        var failed = new HashSet<(HtmlElement, int)>();
-        return MatchFrom(element, _compounds.Count - 1, failed);
+        return MatchFrom(element, _compounds.Count - 1, memo);
     }
 
     #endregion
@@ -80,25 +85,27 @@ internal sealed class CssSelector
     #region Private Methods
 
     // Whether the compounds from 0 to index match, the compound at index matching this element. Recursion depth is the
-    // compound count, not the nesting depth: ancestors are walked in a loop.
-    private bool MatchFrom(HtmlElement element, int index, HashSet<(HtmlElement, int)> failed)
+    // compound count, not the nesting depth: ancestors are walked in a loop. Each (selector, element, compound) result
+    // is computed once per document (A06): without that memory, descendant combinators retry ancestor combinations
+    // for every element, which grows with the number of elements times the square of the nesting depth.
+    private bool MatchFrom(HtmlElement element, int index, MatchMemo memo)
     {
         if (index == 0) return true;
-        if (failed.Contains((element, index))) return false;
+        if (memo.Results.TryGetValue((this, element, index), out bool known)) return known;
 
         bool matched = false;
         if (_combinators[index - 1] == '>')
         {
-            matched = element.Parent is { } parent && _compounds[index - 1].Matches(parent) && MatchFrom(parent, index - 1, failed);
+            matched = element.Parent is { } parent && _compounds[index - 1].Matches(parent) && MatchFrom(parent, index - 1, memo);
         }
         else
         {
             for (var ancestor = element.Parent; ancestor is not null && !matched; ancestor = ancestor.Parent)
             {
-                if (_compounds[index - 1].Matches(ancestor) && MatchFrom(ancestor, index - 1, failed)) matched = true;
+                if (_compounds[index - 1].Matches(ancestor) && MatchFrom(ancestor, index - 1, memo)) matched = true;
             }
         }
-        if (!matched) failed.Add((element, index));
+        memo.Results[(this, element, index)] = matched;
         return matched;
     }
 
@@ -162,6 +169,18 @@ internal sealed class CssSelector
     #endregion
 
     #region Nested Types
+
+    /// <summary>
+    /// Selector results for one cascade pass over one document: whether the compounds up to an index match from an
+    /// element. Not shared between documents or threads.
+    /// </summary>
+    public sealed class MatchMemo
+    {
+        /// <summary>
+        /// Gets the known results.
+        /// </summary>
+        public Dictionary<(CssSelector Selector, HtmlElement Element, int Index), bool> Results { get; } = new();
+    }
 
     private sealed class Compound
     {

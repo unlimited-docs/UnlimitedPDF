@@ -16,6 +16,9 @@ public class HtmlScenarioTests
     // The sample's body: 36 pt margins, and an 18 pt footer above the bottom margin.
     private const double BodyBottom = 36 + 18;
 
+    // The descent of 10 pt Helvetica below its baseline, about 2 pt.
+    private const double TextDescent = 2;
+
     #endregion
 
     #region Methods
@@ -86,6 +89,11 @@ public class HtmlScenarioTests
             Assert.Equal(orders, runs.Count(r => r.Text.StartsWith("Delivered to", StringComparison.Ordinal)));
         }
         Assert.Equal(45, result.Runs.Sum(runs => runs.Count(r => r.Text.StartsWith("SO-", StringComparison.Ordinal))));
+
+        // The scenario only tests something if the next row's first line (3 pt padding and a 12 pt line) would fit
+        // below the last row on page 1 (review F-26).
+        double lastRowBottom = result.Runs[0].Where(r => r.Text.StartsWith("Delivered to", StringComparison.Ordinal)).Min(r => r.Y) - TextDescent - 3;
+        Assert.True(lastRowBottom - BodyBottom >= 15, $"only {lastRowBottom - BodyBottom:F1} pt left below the last row");
     }
 
     [Fact]
@@ -115,9 +123,14 @@ public class HtmlScenarioTests
     {
         var result = await Convert("break-inside-avoid");
         Assert.Equal(2, result.Pages.Count);
-        Assert.Contains(result.Runs[0], r => r.Text == "Line 57 of the agreement text.");
+        var last = Assert.Single(result.Runs[0], r => r.Text == "Line 55 of the agreement text.");
         foreach (string line in new[] { "Signed for the buyer", "Name: ____________________", "Place: ____________________" })
             Assert.Contains(result.Runs[1], r => r.Text == line);
+
+        // Two lines of the block would fit on page 1, so without the rule it starts there (review F-25).
+        Assert.True(last.Y - TextDescent - BodyBottom >= 30, $"only {last.Y - BodyBottom:F1} pt left");
+        var control = await ConvertHtml(HtmlScenarios.Find("break-inside-avoid")!.Html.Replace("break-inside: avoid; ", string.Empty, StringComparison.Ordinal));
+        Assert.Contains(control.Runs[0], r => r.Text == "Signed for the buyer");
     }
 
     [Fact]
@@ -168,7 +181,8 @@ public class HtmlScenarioTests
         var runs = result.Runs[0];
         string[] texts = { "Level 1 spans two columns", "Level 1 left", "Level 2 spans two rows", "Level 2 top", "Level 3 header", "Level 3 A", "Level 3 B" };
         Assert.All(texts, t => Assert.Single(runs, r => r.Text == t));
-        // The shaded spanning cells contain their own text.
+        // No cell's text crosses a cell border, and the shaded spanning cells contain their own text.
+        Assert.All(runs, r => Assert.False(CrossesBorder(page, r), $"'{r.Text}' crosses a cell border"));
         var fills = Fills(page);
         foreach (string shaded in new[] { "Level 1 spans two columns", "Level 2 spans two rows", "Level 3 header" })
         {
@@ -197,6 +211,9 @@ public class HtmlScenarioTests
         Assert.Equal("REF-2026-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789-ABCDEFGHIJKLMNOPQRSTUVWXYZ-0123456789", string.Concat(pieces.Select(p => p.Text)));
         var paid = result.Runs[0].Single(r => r.Text.StartsWith("Paid", StringComparison.Ordinal));
         Assert.All(pieces, p => Assert.True(p.X + Width(p) <= paid.X, $"{p.Text} reaches the next cell"));
+        // Only the long word breaks; the other cells keep their words whole (review F-23, F-27).
+        Assert.Contains(result.Runs[0], r => r.Text == "Invoice");
+        Assert.Contains(result.Runs[0], r => r.Text == "Paid in full on 3 March.");
     }
 
     [Fact]
@@ -205,6 +222,8 @@ public class HtmlScenarioTests
         var result = await Convert("cell-styles-at-break");
         Assert.Equal(2, result.Pages.Count);
         Assert.All(result.Pages, page => Assert.True(Fills(page).Count >= 2));
+        // Both parts of the split row have their side borders (review F-27).
+        Assert.All(result.Pages, page => Assert.True(Borders(page).Count(b => Math.Abs(b.X1 - b.X2) < 0.01) >= 3, "side borders missing"));
         Assert.Contains(result.Runs[1], r => r.Text.StartsWith("Note 75", StringComparison.Ordinal));
     }
 
@@ -226,6 +245,10 @@ public class HtmlScenarioTests
         var result = await Convert("mixed-nested-lists");
         var markers = result.Runs[0].Where(r => Regex.IsMatch(r.Text, @"^([0-9]+|[a-z]+)\.$")).Select(r => r.Text);
         Assert.Equal(new[] { "1.", "c.", "iii.", "ii.", "10.", "11.", "i.", "d.", "2." }, markers);
+        // Bullets are drawn shapes. Levels two and four are circles: a bulleted list inside another list defaults to
+        // circles (HTML Standard rendering), and level four sets it (review F-27).
+        Assert.Empty(Regex.Matches(result.Pages[0].Content, " c f Q"));
+        Assert.Equal(2, Regex.Matches(result.Pages[0].Content, " c S Q").Count);
     }
 
     [Fact]
@@ -406,15 +429,30 @@ public class HtmlScenarioTests
 
     #region Private Methods
 
-    private static async Task<Result> Convert(string id)
+    private static Task<Result> Convert(string id) =>
+        ConvertHtml((HtmlScenarios.Find(id) ?? throw new ArgumentException("Unknown scenario " + id, nameof(id))).Html);
+
+    private static async Task<Result> ConvertHtml(string scenarioHtml)
     {
-        var scenario = HtmlScenarios.Find(id) ?? throw new ArgumentException("Unknown scenario " + id, nameof(id));
-        var (document, html) = await HtmlToPdfSample.BuildAsync(scenario.Html, (reference, _) => Task.FromResult(HtmlGoldenTests.Images(reference)));
+        var (document, html) = await HtmlToPdfSample.BuildAsync(scenarioHtml, (reference, _) => Task.FromResult(HtmlGoldenTests.Images(reference)));
         var bytes = PdfPageReader.SaveBytes(document);
         PdfStructureChecker.AssertValid(bytes);
         var pages = PdfPageReader.Read(bytes);
         return new Result(pages, pages.Select(Runs).ToList(), Encoding.Latin1.GetString(bytes), html);
     }
+
+    // The border lines HTML draws (cell and box borders), as their end points.
+    private static IReadOnlyList<(double X1, double Y1, double X2, double Y2)> Borders(PdfPageReader.Page page) =>
+        Regex.Matches(page.Content, @"(-?[\d.]+) (-?[\d.]+) m (-?[\d.]+) (-?[\d.]+) l S Q")
+            .Select(m => (D(m.Groups[1].Value), D(m.Groups[2].Value), D(m.Groups[3].Value), D(m.Groups[4].Value)))
+            .ToList();
+
+    // Whether a vertical border passes through a run of text: the text runs over its cell's edge.
+    private static bool CrossesBorder(PdfPageReader.Page page, Run run) =>
+        Borders(page).Any(b => Math.Abs(b.X1 - b.X2) < 0.01 && b.X1 > run.X + 0.5 && b.X1 < run.X + Width(run) - 0.5 &&
+                               run.Y >= Math.Min(b.Y1, b.Y2) && run.Y <= Math.Max(b.Y1, b.Y2));
+
+    private static double D(string value) => double.Parse(value, CultureInfo.InvariantCulture);
 
     // Background fills HTML draws, as (x, y, width, height).
     private static IReadOnlyList<(double X, double Y, double Width, double Height)> Fills(PdfPageReader.Page page) => page.LayoutRectangles();

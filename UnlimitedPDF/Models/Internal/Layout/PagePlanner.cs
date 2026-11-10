@@ -58,6 +58,15 @@ internal sealed class PagePlanner
 
     #endregion
 
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the page limit HTML layout stops at, or null for none.
+    /// </summary>
+    public int? MaxPages { get; init; }
+
+    #endregion
+
     #region Methods
 
     #region Public Methods
@@ -246,6 +255,7 @@ internal sealed class PagePlanner
         int from = RunStartSlot();
         return new PagePlanner(_geometry, _checkBody)
         {
+            MaxPages = MaxPages,
             _cursor = _cursor,
             _leads = _leads,
             _nextItem = _nextItem,
@@ -583,6 +593,14 @@ internal sealed class PagePlanner
         HtmlPageRoom Room(int offset)
         {
             int slot = start.Slot + offset;
+            // A few bytes of HTML can ask for any number of pages (a huge height or padding); with a page limit set, the
+            // layout stops at the first page past it instead of planning them all (WR-033, A06).
+            if (MaxPages is int max && _nextNumber + slot > max)
+                throw new InvalidOperationException(string.Format(
+                    CultureInfo.InvariantCulture,
+                    "The content needs more than {0} pages, but Body.MaxPages is {0}: {1} does not fit. Shorten the content or raise the limit.",
+                    max,
+                    item.Description));
             if (offset == 0) return new HtmlPageRoom(startY, Geometry(slot).BodyBottom, start.EmptyBody);
             var fresh = Fresh(slot);
             return new HtmlPageRoom(fresh.Y, Geometry(slot).BodyBottom, fresh.EmptyBody);

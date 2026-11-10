@@ -39,13 +39,14 @@ internal static class CssCascade
         foreach (var rule in authorRules) Report(rule.Declarations, rule.Line, warnings);
 
         var styles = new Dictionary<HtmlElement, ComputedStyle>();
+        var memo = new CssSelector.MatchMemo();
         var pending = new Stack<HtmlElement>();
         pending.Push(tree.Root);
         while (pending.Count > 0)
         {
             var element = pending.Pop();
             var parent = element.Parent is { } p && styles.TryGetValue(p, out var parentStyle) ? parentStyle : null;
-            styles[element] = Compute(element, parent, authorRules, warnings);
+            styles[element] = Compute(element, parent, authorRules, warnings, memo);
             for (int i = element.Children.Count - 1; i >= 0; i--)
             {
                 if (element.Children[i] is HtmlElement child) pending.Push(child);
@@ -58,7 +59,7 @@ internal static class CssCascade
 
     #region Private Methods
 
-    private static ComputedStyle Compute(HtmlElement element, ComputedStyle? parent, IReadOnlyList<CssRule> authorRules, HtmlWarnings warnings)
+    private static ComputedStyle Compute(HtmlElement element, ComputedStyle? parent, IReadOnlyList<CssRule> authorRules, HtmlWarnings warnings, CssSelector.MatchMemo memo)
     {
         var entries = new List<(int Layer, int Specificity, int Order, CssDeclaration Declaration)>();
 
@@ -69,7 +70,7 @@ internal static class CssCascade
                 int specificity = -1;
                 foreach (var selector in rule.Selectors)
                 {
-                    if (selector.Specificity > specificity && selector.Matches(element)) specificity = selector.Specificity;
+                    if (selector.Specificity > specificity && selector.Matches(element, memo)) specificity = selector.Specificity;
                 }
                 if (specificity < 0) continue;
                 foreach (var declaration in rule.Declarations)

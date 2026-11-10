@@ -36,7 +36,7 @@ public static class SampleCatalog
         new SampleCategory(
             "HTML to PDF",
             "Convert HTML with CSS, tables, lists, and images into PDF in your browser. Edit a template, try your own file, or see how known HTML to PDF problems come out.",
-            [HtmlToPdf, TrickyHtml]),
+            [HtmlToPdf, CommonProblems]),
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
@@ -75,6 +75,18 @@ public static class SampleCatalog
         "CertificateSample.cs",
         "certificate.pdf",
         "award");
+
+    /// <summary>
+    /// Gets the Common problems demo: known HTML to PDF problems, each as a small editable document.
+    /// </summary>
+    public static SampleDemo CommonProblems { get; } = new(
+        "Common problems",
+        "Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.",
+        "playground/html/common-problems",
+        "HtmlToPdfSample.cs",
+        "common-html-to-pdf-problems.pdf",
+        "text",
+        "Common HTML to PDF problems");
 
     /// <summary>
     /// Gets the Cover and page ranges merge demo.
@@ -308,16 +320,6 @@ public static class SampleCatalog
         "text-and-pages.pdf",
         "text");
 
-    /// <summary>
-    /// Gets the Tricky HTML demo: known HTML to PDF problems, each as a small editable document.
-    /// </summary>
-    public static SampleDemo TrickyHtml { get; } = new(
-        "Tricky HTML",
-        "Page breaks through table rows, missing headers, long URLs, nested tables and lists, images, links, and print styles: see what happens to HTML that often goes wrong in PDF, and edit it.",
-        "playground/html/tricky-html",
-        "HtmlToPdfSample.cs",
-        "tricky-html.pdf",
-        "text");
 
     #endregion
 }

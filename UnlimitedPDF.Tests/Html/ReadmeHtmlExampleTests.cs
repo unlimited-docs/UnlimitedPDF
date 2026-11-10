@@ -69,10 +69,10 @@ public sealed class ReadmeHtmlExampleTests : IDisposable
 
         // Every scenario whose outcome is a fallback is listed as a known limitation, with the demo that shows it (AC-30).
         Assert.Contains("- Known limitations:", readme, StringComparison.Ordinal);
-        Assert.Contains("Tricky HTML", readme, StringComparison.Ordinal);
+        Assert.Contains("Common problems demo", readme, StringComparison.Ordinal);
         foreach (string topic in new[] { "Flexbox and grid", "Floats and positioning", "Background images", "SVG and WebP", "Characters outside Western European", "`pre` lines don't wrap" })
             Assert.Contains(topic, readme, StringComparison.Ordinal);
-        Assert.Contains("Tricky HTML: common HTML to PDF problems", File.ReadAllText(RepositoryFile("README.md")), StringComparison.Ordinal);
+        Assert.Contains("Common problems: HTML that often goes wrong in PDF", File.ReadAllText(RepositoryFile("README.md")), StringComparison.Ordinal);
 
         foreach (var file in new[] { "README.md", Path.Combine("nuget", "README.md") })
         {

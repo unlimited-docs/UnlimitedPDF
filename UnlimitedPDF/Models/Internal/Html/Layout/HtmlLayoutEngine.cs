@@ -100,7 +100,13 @@ internal sealed partial class HtmlLayoutEngine
     /// <returns>The page fragments in page order.</returns>
     public IReadOnlyList<HtmlPageFragment> Layout()
     {
-        var root = new BoxTreeBuilder(_model).Build();
+        var builder = new BoxTreeBuilder(_model);
+        var root = builder.Build();
+        if (builder.FlattenedInlineBlock is { } flattened)
+        {
+            Warn(PdfHtmlWarningKind.UnsupportedValue, flattened.Name, string.Format(CultureInfo.InvariantCulture,
+                "Inline-blocks nested more than {0} deep are laid out inline.", BoxTreeBuilder.MaxInlineBlockNesting));
+        }
         LayoutBox(root, 0, _width);
         Flush(0);
         Current.Bottom = Math.Min(Current.Bottom, _y);
@@ -301,11 +307,13 @@ internal sealed partial class HtmlLayoutEngine
             return true;
         });
 
-        if (pb + bb > 0 || s.Height is not null) Flush(0);
-        if (s.Height is { } h && open.StartY is double startY && open.StartPage is int startPage)
+        // A zero height adds nothing, so margins still collapse through the block (F-41).
+        double setHeight = s.Height is { } h ? Resolve(h, 0) : 0;
+        if (pb + bb > 0 || setHeight > Tolerance) Flush(0);
+        if (setHeight > Tolerance && open.StartY is double startY && open.StartPage is int startPage)
         {
             // A set height makes room across pages like any other content (F-08).
-            double missing = bt + pt + Resolve(h, 0) - ContentSince(startPage, startY);
+            double missing = bt + pt + setHeight - ContentSince(startPage, startY);
             if (missing > Tolerance) Advance(missing);
         }
         if (pb + bb > 0)

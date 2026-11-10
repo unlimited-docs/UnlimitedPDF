@@ -13,7 +13,15 @@ internal sealed class BoxTreeBuilder
 {
     #region Fields and Constants
 
+    /// <summary>
+    /// The deepest inline-block nesting laid out as inline-blocks. Each level lays its content out on its own, which
+    /// takes far more stack than other nesting, so deeper ones are laid out inline (A06): 250 levels overflow a
+    /// 1 MB stack.
+    /// </summary>
+    public const int MaxInlineBlockNesting = 64;
+
     private readonly HtmlModel _model;
+    private int _inlineBlockDepth;
 
     #endregion
 
@@ -23,6 +31,16 @@ internal sealed class BoxTreeBuilder
     {
         _model = model;
     }
+
+    #endregion
+
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the first inline-block laid out inline because it is nested deeper than
+    /// <see cref="MaxInlineBlockNesting"/>, or null when there is none.
+    /// </summary>
+    public HtmlElement? FlattenedInlineBlock { get; private set; }
 
     #endregion
 
@@ -169,7 +187,19 @@ internal sealed class BoxTreeBuilder
         {
             var target = block;
             while (target.Inlines.Count == 0 && target.Children.FirstOrDefault() is BlockBox first) target = first;
-            target.Inlines.Insert(0, new TextItem(inside.Text is { } text ? text + " " : "• ", style));
+            var marker = new TextItem(inside.Text is { } text ? text + " " : "• ", style);
+            if (target.Inlines.Count == 0 && target.Children.Count > 0)
+            {
+                // The first content is a table or another box without lines: the marker gets a line of its own before
+                // it, since a block draws either its lines or its children (F-36).
+                var line = new BlockBox(ComputedStyle.Compute(new Dictionary<string, string> { ["display"] = "block" }, target.Style), null);
+                line.Inlines.Add(marker);
+                target.Children.Insert(0, line);
+            }
+            else
+            {
+                target.Inlines.Insert(0, marker);
+            }
             block.Marker = null;
         }
         return block;
@@ -206,14 +236,17 @@ internal sealed class BoxTreeBuilder
             else if (element.Attribute("alt") is { Length: > 0 } alt)
                 block.Inlines.Add(new TextItem(alt, style) { Link = ownLink, Background = ownBackground });
         }
-        else if (style.Display == CssDisplay.InlineBlock)
+        else if (style.Display == CssDisplay.InlineBlock && _inlineBlockDepth < MaxInlineBlockNesting)
         {
             var inner = new BlockBox(style, element);
+            _inlineBlockDepth++;
             BuildBlockChildren(inner, element.Children);
+            _inlineBlockDepth--;
             block.Inlines.Add(new AtomicItem(inner) { Link = ownLink });
         }
         else
         {
+            if (style.Display == CssDisplay.InlineBlock) FlattenedInlineBlock ??= element;
             foreach (var child in element.Children) AddInline(block, child, style, ownLink, ownBackground, promoted);
         }
 

@@ -41,14 +41,14 @@ public sealed class PdfHtmlLoadOptions
     }
 
     /// <summary>
-    /// Gets or sets the deepest element nesting, or null for <see cref="PdfHtml.DefaultMaxNestingDepth"/>.
+    /// Gets or sets the deepest element nesting, from 1 to 512, or null for <see cref="PdfHtml.DefaultMaxNestingDepth"/>.
     /// </summary>
-    /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The value is less than 1 or more than 512.</exception>
     public int? MaxNestingDepth
     {
         get => _maxNestingDepth;
-        set => _maxNestingDepth = value is int v && v < 1
-            ? throw new ArgumentOutOfRangeException(nameof(MaxNestingDepth), value, "The limit must be at least 1.")
+        set => _maxNestingDepth = value is int v && (v < 1 || v > PdfHtml.MaxSupportedNestingDepth)
+            ? throw new ArgumentOutOfRangeException(nameof(MaxNestingDepth), value, PdfHtml.NestingDepthRange)
             : value;
     }
 

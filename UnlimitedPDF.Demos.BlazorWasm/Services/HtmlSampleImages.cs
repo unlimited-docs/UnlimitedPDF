@@ -9,7 +9,6 @@ public sealed class HtmlSampleImages
 {
     #region Fields and Constants
 
-    private readonly Dictionary<string, Task<byte[]>> _cache = new(StringComparer.Ordinal);
     private readonly HttpClient _http;
 
     #endregion
@@ -46,22 +45,7 @@ public sealed class HtmlSampleImages
             "banner.png" => "images/unlimitedpdf-demos-hero-800.jpg",
             _ => null
         };
-        if (path is null) return null;
-        if (!_cache.TryGetValue(path, out var bytes))
-        {
-            bytes = _http.GetByteArrayAsync(path, cancellationToken);
-            _cache[path] = bytes;
-        }
-        try
-        {
-            return new MemoryStream(await bytes);
-        }
-        catch
-        {
-            // A failed or cancelled download is not kept, so the next generation tries again.
-            _cache.Remove(path);
-            throw;
-        }
+        return path is null ? null : new MemoryStream(await _http.GetByteArrayAsync(path, cancellationToken));
     }
 
     #endregion

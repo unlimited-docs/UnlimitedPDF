@@ -46,8 +46,46 @@ internal sealed partial class HtmlLayoutEngine
         return (cells, Math.Max(columns, table.Columns.Count));
     }
 
-    // Column widths (border-box widths of the cells in that column) for the room available.
-    private double[] ColumnWidths(TableBox table, List<GridCell> cells, int columns, double available, bool fixedWidth, out double minimumTotal, bool breakWords = false)
+    // Column widths (border-box widths of the cells in that column) for the room available. When the columns'
+    // narrowest widths are wider than fitRoom (the room before the table would be clipped), the columns held open by
+    // the longest words may narrow down to their widest character; those words then break between characters, as line
+    // layout breaks them, while shorter words and non-breaking runs elsewhere stay whole (WR-038).
+    private double[] ColumnWidths(TableBox table, List<GridCell> cells, int columns, double available, bool fixedWidth, double fitRoom, out double minimumTotal)
+    {
+        var (min, max, percent) = ColumnRanges(table, cells, columns, breakWords: false);
+        if (min.Sum() > fitRoom + Tolerance)
+        {
+            var (hard, _, _) = ColumnRanges(table, cells, columns, breakWords: true);
+            // When even broken words cannot fit, the narrowest whole-word widths stay and the table is clipped.
+            if (hard.Sum() <= fitRoom + Tolerance) min = LongWordColumns(min, hard, fitRoom);
+        }
+        for (int c = 0; c < columns; c++) max[c] = Math.Max(max[c], min[c]);
+        minimumTotal = min.Sum();
+        return Distribute(min, max, percent, available, fixedWidth);
+    }
+
+    // Finds the highest level at which the narrowest widths, capped at that level but never below what breaking words
+    // allows (hard), fit in room. Columns wider than that level are the ones held open by long words: their narrowest
+    // width becomes the broken-word width, and the room is then shared as usual, so they still get the most of it.
+    private static double[] LongWordColumns(double[] min, double[] hard, double room)
+    {
+        double Total(double level)
+        {
+            double sum = 0;
+            for (int c = 0; c < min.Length; c++) sum += Math.Max(hard[c], Math.Min(min[c], level));
+            return sum;
+        }
+        double low = 0, high = min.Length == 0 ? 0 : min.Max();
+        for (int i = 0; i < 60 && high - low > 0.001; i++)
+        {
+            double mid = (low + high) / 2;
+            if (Total(mid) <= room) low = mid; else high = mid;
+        }
+        return min.Select((m, c) => m > low + Tolerance ? hard[c] : m).ToArray();
+    }
+
+    // Each column's narrowest and widest widths and its percentage, from the columns' and cells' widths and content.
+    private (double[] Min, double[] Max, double?[] Percent) ColumnRanges(TableBox table, List<GridCell> cells, int columns, bool breakWords)
     {
         var min = new double[columns];
         var max = new double[columns];
@@ -84,8 +122,13 @@ internal sealed partial class HtmlLayoutEngine
             }
         }
         for (int c = 0; c < columns; c++) max[c] = Math.Max(max[c], min[c]);
+        return (min, max, percent);
+    }
 
-        minimumTotal = min.Sum();
+    // Shares the room available among the columns between their narrowest and widest widths.
+    private static double[] Distribute(double[] min, double[] max, double?[] percent, double available, bool fixedWidth)
+    {
+        int columns = min.Length;
         var widths = new double[columns];
         double room = Math.Max(0, available);
 
@@ -180,11 +223,9 @@ internal sealed partial class HtmlLayoutEngine
         double outerRoom = width - ml - mr;
         double? specified = s.Width is { } sw ? Resolve(sw, width) : null;
         double target = Math.Min(specified ?? outerRoom, outerRoom);
-        var widths = ColumnWidths(table, cells, columns, target - extras, specified is not null, out double minimumTotal);
-        // Words wider than their columns would push the table past the room: size the columns again with long words
-        // broken between characters, as line layout breaks them (WR-038), before clipping anything.
-        if (minimumTotal > target - extras + Tolerance)
-            widths = ColumnWidths(table, cells, columns, target - extras, specified is not null, out minimumTotal, breakWords: true);
+        // A table narrower than its words grows past its set width (CSS 2.1, 17.5.2); long words break only when the
+        // table would otherwise be wider than its container.
+        var widths = ColumnWidths(table, cells, columns, target - extras, specified is not null, outerRoom - extras, out _);
         double tableWidth = widths.Sum() + extras;
 
         // A table is at least as wide as its captions' narrowest content (CSS 2.1, 17.4).
@@ -255,6 +296,13 @@ internal sealed partial class HtmlLayoutEngine
         double startNeed = captionHeight + bt + pt + spacingV + headerHeight + firstRow;
         var room = Room(_page);
         if (!_measuring && !_atTop && startNeed <= freshBody && _y - _pendingMargin - startNeed < room.Bottom - Tolerance) _forceBreak = true;
+
+        // break-inside: avoid moves a table that fits a fresh page whole to the next page, as for blocks (F-38).
+        if (s.AvoidBreakInside && !_measuring && !_atTop)
+        {
+            double whole = captionHeight + bt + pt + spacingV + heights.Sum(h => h + spacingV) + pb + bb;
+            if (whole <= freshBody && _y - _pendingMargin - whole < room.Bottom - Tolerance) _forceBreak = true;
+        }
 
         foreach (var caption in table.Captions) LayoutBlock(caption, tableLeft, tableWidth);
 
@@ -438,11 +486,28 @@ internal sealed partial class HtmlLayoutEngine
         // Where the row ends on its last page: below the lowest cell that reaches it.
         double endBottom = parts.Where(p => p.Fragments.Count > 0 && p.Fragments[p.Fragments.Count - 1].PageOffset == lastOffset).Select(p => p.Bottom).DefaultIfEmpty(Room(startPage + lastOffset).Top - headerHeight).Min();
 
+        // Each part's bottom. A set row or cell height taller than the content continues below it, onto further pages
+        // when needed, so the row keeps its height (F-39).
+        double PartTop(int offset) => offset == 0 ? rowTop : Room(startPage + offset).Top - headerHeight;
+        var bottoms = Enumerable.Range(0, lastOffset + 1).Select(o => o == lastOffset ? endBottom : Room(startPage + o).Bottom).ToList();
+        double remaining = layout.Heights[row] - bottoms.Select((bottom, o) => PartTop(o) - bottom).Sum();
+        while (remaining > Tolerance)
+        {
+            int o = bottoms.Count - 1;
+            double floor = Room(startPage + o).Bottom;
+            double extend = Math.Min(remaining, bottoms[o] - floor);
+            bottoms[o] -= extend;
+            remaining -= extend;
+            if (remaining <= Tolerance || PartTop(o + 1) - Room(startPage + o + 1).Bottom <= Tolerance) break;
+            bottoms.Add(PartTop(o + 1));
+        }
+        lastOffset = bottoms.Count - 1;
+
         for (int offset = 0; offset <= lastOffset; offset++)
         {
             if (offset > 0) NextPage();
             double top = offset == 0 ? rowTop : _y;
-            double bottom = offset == lastOffset ? endBottom : Room(startPage + offset).Bottom;
+            double bottom = bottoms[offset];
             var commands = new List<HtmlCommand>();
             foreach (var part in parts)
                 CellDecoration(commands, layout.Table.Rows[row], part.Cell.Cell, layout.ColumnLeft[part.Cell.Column], layout.CellRight(part.Cell), top, bottom, offset == 0, offset == lastOffset, layout.Collapse);
@@ -462,7 +527,9 @@ internal sealed partial class HtmlLayoutEngine
         var (cells, columns) = BuildGrid(table);
         var s = table.Style;
         double spacing = s.BorderCollapse ? 0 : s.BorderSpacingHorizontal * (columns + 1);
-        var widths = ColumnWidths(table, cells, columns, 1e9, fixedWidth: false, out double minimum, breakWords);
+        var (min, max, percent) = ColumnRanges(table, cells, columns, breakWords);
+        var widths = Distribute(min, max, percent, 1e9, fixedWidth: false);
+        double minimum = min.Sum();
         return (minimum + spacing, widths.Sum() + spacing);
     }
 

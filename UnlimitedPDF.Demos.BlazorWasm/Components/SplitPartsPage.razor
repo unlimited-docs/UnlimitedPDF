@@ -1,10 +1,10 @@
 @* The page frame of the Split demos: options with Split, the list of parts with preview and download, all parts as one
    zip, the C# code, and the status line. *@
-<PageTitle>@Demo.Title · UnlimitedPDF Demos</PageTitle>
+<PageTitle>@(Demo.Heading ?? Demo.Title) · UnlimitedPDF Demos</PageTitle>
 
 <article class="demo">
     <header class="demo-header">
-        <h1>@Demo.Title</h1>
+        <h1>@(Demo.Heading ?? Demo.Title)</h1>
         <p class="demo-lead">@Demo.Description</p>
     </header>
 

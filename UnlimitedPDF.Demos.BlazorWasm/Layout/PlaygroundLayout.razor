@@ -16,7 +16,7 @@
                     @foreach (var demo in category.Demos)
                     {
                         <li>
-                            <NavLink class="sidebar-link" href="@demo.Route" Match="NavLinkMatch.All" @onclick="CloseMenu">
+                            <NavLink class="sidebar-link" href="@demo.Route" Match="NavLinkMatch.Prefix" @onclick="CloseMenu">
                                 <Icon Name="@demo.Icon" Size="18" /> @demo.Title
                             </NavLink>
                         </li>

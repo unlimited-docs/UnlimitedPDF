@@ -241,17 +241,32 @@ internal sealed partial class HtmlLayoutEngine
                 x += runWidth;
                 i = j;
             }
-            // A line that cannot wrap and passes the body edge is clipped there (D-016).
+            // A line that cannot wrap and passes the body edge is clipped there (D-016). A line taller than the body (an
+            // inline-block taller than a page) is clipped at the body bottom on its page, and later content continues
+            // on the next page (F-37).
             bool overflow = lineLeft + line.Width > _width + Tolerance && !_measuring;
-            if (overflow)
+            double bodyBottom = Room(_page).Bottom;
+            bool tooTall = _y < bodyBottom - Tolerance && !_measuring;
+            if (overflow || tooTall)
             {
-                if (!clipReported) Warn(PdfHtmlWarningKind.ContentClipped, box.Element?.Name ?? "text", "A line of text is wider than the body; it is clipped at the body edge.");
+                if (!clipReported)
+                {
+                    Warn(PdfHtmlWarningKind.ContentClipped, box.Element?.Name ?? "text", tooTall
+                        ? "A line is taller than the body; it is clipped at the bottom of the page."
+                        : "A line of text is wider than the body; it is clipped at the body edge.");
+                }
                 clipReported = true;
-                fragment.Commands.Add(new ClipBeginCommand(0, _y - 1, _width, height + 2));
+                double clipBottom = Math.Max(_y, bodyBottom);
+                fragment.Commands.Add(new ClipBeginCommand(0, clipBottom - 1, _width, top - clipBottom + 2));
+                if (tooTall)
+                {
+                    _y = bodyBottom;
+                    fragment.Bottom = Math.Max(fragment.Bottom, bodyBottom);
+                }
             }
             fragment.Commands.AddRange(backgrounds);
             fragment.Commands.AddRange(texts);
-            if (overflow) fragment.Commands.Add(new ClipEndCommand());
+            if (overflow || tooTall) fragment.Commands.Add(new ClipEndCommand());
         }
     }
 

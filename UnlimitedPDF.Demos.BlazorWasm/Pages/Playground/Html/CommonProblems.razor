@@ -1,9 +1,9 @@
-@page "/playground/html/tricky-html"
-@page "/playground/html/tricky-html/{ScenarioId}"
+@page "/playground/html/common-problems"
+@page "/playground/html/common-problems/{ScenarioId}"
 @inject HtmlSampleImages Images
 
 @* A new SamplePage per scenario, so each one generates its PDF as soon as it opens. *@
-<SamplePage @key="_scenario.Id" @ref="_page" Demo="SampleCatalog.TrickyHtml" Build="BuildAsync" PageCount="null" OnReset="Reset">
+<SamplePage @key="_scenario.Id" @ref="_page" Demo="SampleCatalog.CommonProblems" Build="BuildAsync" PageCount="null" OnReset="Reset">
     <Inputs>
         <CollapsibleSection Title="Scenario">
             @if (_notFound)
@@ -81,7 +81,7 @@
         var found = HtmlScenarios.Find(ScenarioId);
         _notFound = ScenarioId is not null && found is null;
         var scenario = found ?? HtmlScenarios.All[0];
-        if (!ReferenceEquals(scenario, _scenario) || _html.Length == 0)
+        if (!ReferenceEquals(scenario, _scenario))
         {
             _scenario = scenario;
             _html = scenario.Html;
@@ -89,7 +89,7 @@
         }
     }
 
-    private static string Link(HtmlScenario scenario) => "playground/html/tricky-html/" + scenario.Id;
+    private static string Link(HtmlScenario scenario) => SampleCatalog.CommonProblems.Route + "/" + scenario.Id;
 
     private async Task<PdfDocument> BuildAsync()
     {

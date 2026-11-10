@@ -26,7 +26,7 @@ public sealed record HtmlScenario(
 
 /// <summary>
 /// Known HTML to PDF problems gathered from developer reports about HTML converters, each as a scenario the
-/// playground's "Tricky HTML" demo shows and the library's tests check. Content is project-authored (PR-011);
+/// playground's "Common problems" demo shows and the library's tests check. Content is project-authored (PR-011);
 /// images are named "logo.png" and "banner.png" or written inline as <c>data:</c> URIs.
 /// </summary>
 public static class HtmlScenarios
@@ -94,7 +94,7 @@ public static class HtmlScenarios
         Scenario("row-cut-in-half", "Page breaks", "Table row cut in half",
             "At a page break, a table row is cut through its text: the top half of the row is on one page and the bottom half on the next.",
             "Rows are never cut. A row that does not fit in the space left starts the next page whole.",
-            false, Page("Order lines", "Each row has two lines of text. Look at the last row on page 1: it is complete, and the next row starts page 2.",
+            false, Page("Order lines", "Each row has two lines of text. Look at the last row on page 1: it is complete, and the next row starts page 2, although its first line would fit below. A converter that cuts rows would draw that first line there.",
                 "<table style=\"width:100%\"><tr><th>Order</th><th>Description</th><th>Amount</th></tr>"
                 + Rows(45, i => $"<tr><td>SO-{1000 + i}</td><td>Replacement filter, size {i % 4 + 1}<br>Delivered to warehouse {i % 3 + 1}</td><td>{(i * 7.25m + 12).ToString("N2", Invariant)}</td></tr>")
                 + "</table>")),
@@ -116,7 +116,7 @@ public static class HtmlScenarios
             "A block marked break-inside: avoid (or page-break-inside: avoid) is still split across two pages.",
             "A block marked break-inside: avoid moves whole to the next page when it does not fit, if it fits on a page.",
             false, Page("Signature block", "The bordered signature block would cross the page end, so it starts page 2 whole.",
-                Rows(57, i => $"<div>Line {i} of the agreement text.</div>")
+                Rows(55, i => $"<div>Line {i} of the agreement text.</div>")
                 + "<div style=\"break-inside: avoid; border: 1px solid #9ca3af; padding: 6pt; margin-top: 6pt\">"
                 + "<div><b>Signed for the buyer</b></div><div>Name: ____________________</div><div>Title: ____________________</div>"
                 + "<div>Date: ____________________</div><div>Signature: ____________________</div><div>Place: ____________________</div></div>")),
@@ -192,7 +192,7 @@ public static class HtmlScenarios
         Scenario("mixed-nested-lists", "Lists", "Six-level mixed lists",
             "Deeply nested lists that mix numbers and bullets, with start, reversed, or value, show the wrong markers.",
             "Each level shows the marker its type and numbering attributes ask for.",
-            false, Page("Nested outline", "Levels: 1. / disc / c. / circle / iii. reversed / 10. from value.",
+            false, Page("Nested outline", "Levels: 1. / circle (a list inside a list) / c. / circle / iii. reversed / 10. from value.",
                 "<ol><li>Level one<ul><li>Level two<ol type=\"a\" start=\"3\"><li>Level three"
                 + "<ul style=\"list-style-type:circle\"><li>Level four<ol type=\"i\" reversed><li>Level five A</li><li>Level five B"
                 + "<ol><li value=\"10\">Level six from ten</li><li>Level six next</li></ol></li><li>Level five C</li></ol></li></ul>"
@@ -226,8 +226,8 @@ public static class HtmlScenarios
                 "<p>Café Müller, Señora Ñúñez, Øresund: 25,00 € – “quoted”</p>"
                 + "<p>Привет, 你好, 🙂</p>")),
         Scenario("nbsp-and-whitespace", "Text", "Non-breaking spaces and whitespace",
-            "Amounts joined with &amp;nbsp; still break across lines, or runs of spaces and line breaks in the source show up as gaps.",
-            "Words joined by &amp;nbsp; stay on one line, and runs of spaces and line breaks collapse to one space.",
+            "Amounts joined with &nbsp; still break across lines, or runs of spaces and line breaks in the source show up as gaps.",
+            "Words joined by &nbsp; stay on one line, and runs of spaces and line breaks collapse to one space.",
             false, Page("Amounts in a narrow column", "The amount stays on one line; the spaced-out source text reads as one sentence.",
                 "<table><tr><td style=\"width:90px\">Total:&nbsp;1&nbsp;250.00&nbsp;EUR</td></tr></table>"
                 + "<p>Spaced      out\n      source     text</p>")),
