@@ -232,13 +232,60 @@ public class HtmlRevision2ReviewTests
         over.Body.AddHtml(PdfHtml.FromString(string.Concat(Enumerable.Range(1, 60).Select(i => $"<div>line {i}</div>")) + "<table><tr><td>cell</td></tr></table>"));
         Assert.Contains("needs 2 pages, but Body.MaxPages is 1", Assert.Throws<InvalidOperationException>(() => over.Save(new MemoryStream())).Message, StringComparison.Ordinal);
 
+        // Content after a huge set height fails fast; the blank space stops at the limit instead of making its pages.
         var huge = Document();
         huge.Body.MaxPages = 1;
-        huge.Body.AddHtml(PdfHtml.FromString("<table><tr><td style='height:1000000000pt'>x</td></tr></table>"));
+        huge.Body.AddHtml(PdfHtml.FromString("<table><tr><td style='height:1000000000pt'>x</td></tr></table><p>after</p>"));
         var watch = Stopwatch.StartNew();
         var ex = Assert.Throws<InvalidOperationException>(() => huge.Save(new MemoryStream()));
-        Assert.Contains("needs more than 1 page, but Body.MaxPages is 1", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("but Body.MaxPages is 1", ex.Message, StringComparison.Ordinal);
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"took {watch.Elapsed}");
+    }
+
+    [Theory]
+    [InlineData("<table><tr><td><div style='height:5000000000pt'>x</div></td></tr></table><p>after</p>")]
+    [InlineData("<table><tr><td><div style='height:1000000000pt'>x</div></td><td><div style='height:1000000000pt'>y</div></td></tr></table><p>after</p>")]
+    [InlineData("<table><tr><td><table><tr><td style='height:1000000000pt'>x</td></tr></table></td></tr></table><p>after</p>")]
+    public void Tall_content_inside_split_table_cells_stops_at_the_page_limit(string html)
+    {
+        // F-48: cells split across pages were laid out without the limit: 5e9 pt took 8.5 s and 2.8 GB.
+        var doc = Document();
+        doc.Body.MaxPages = 3;
+        doc.Body.AddHtml(PdfHtml.FromString(html));
+        var watch = Stopwatch.StartNew();
+        Assert.Throws<InvalidOperationException>(() => doc.Save(new MemoryStream()));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"took {watch.Elapsed}");
+    }
+
+    [Theory]
+    [InlineData("<p>x</p><div style='height:2000pt'></div>")]
+    [InlineData("<table><tr><td rowspan=2 style='height:1800pt'>x</td><td>a</td></tr><tr><td>b</td></tr></table>")]
+    public void Trailing_blank_height_saves_within_the_page_limit_as_without_one(string html)
+    {
+        // F-49: trailing blank pages are dropped without a limit, but a limit of 1 failed the same document.
+        var free = Document();
+        free.Body.AddHtml(PdfHtml.FromString(html));
+        int pages = PdfPageReader.Save(free).Count;
+        var limited = Document();
+        limited.Body.MaxPages = pages;
+        limited.Body.AddHtml(PdfHtml.FromString(html));
+        Assert.Equal(pages, PdfPageReader.Save(limited).Count);
+    }
+
+    [Fact]
+    public void Long_selectors_take_memory_only_for_the_elements_they_reach()
+    {
+        // F-50: each selector reserved two bits per element and compound for the whole document (5 GB for 200 rules of
+        // 2,000 compounds over 50,000 elements).
+        var html = new StringBuilder("<style>");
+        for (int r = 0; r < 50; r++) html.Append(string.Concat(Enumerable.Repeat("div ", 1999))).Append(".k").Append(r).Append("{color:red}");
+        html.Append("</style>");
+        for (int i = 0; i < 50000; i++) html.Append(i < 50 ? "<i class='k" + i.ToString(CultureInfo.InvariantCulture) + "'>x</i>" : "<i>x</i>");
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        _ = PdfHtml.FromString(html.ToString());
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        // The old memo alone reserved about 1.25 GB here, on top of the parse.
+        Assert.True(allocated < 1024L * 1024 * 1024, $"allocated {allocated / 1048576} MB");
     }
 
     [Fact]
@@ -269,12 +316,25 @@ public class HtmlRevision2ReviewTests
     }
 
     [Fact]
-    public void Only_the_column_that_must_break_breaks()
+    public void Columns_that_must_break_break_evenly()
     {
-        // F-45: a 10-word non-breaking run broke beside a URL although breaking only the URL column fits.
+        // F-51: breaking one column at a time cut seven of eight non-breaking columns into 3-character pieces while one
+        // stayed whole; the room is shared among the broken columns as browsers share a too-wide table.
         string run = string.Join("&nbsp;", Enumerable.Range(1, 10).Select(i => "word" + i.ToString(CultureInfo.InvariantCulture)));
-        var texts = Texts(PdfHtml.FromString($"<table><tr><td>{run}</td><td>{Url}</td></tr></table>"));
-        Assert.Contains(string.Join(" ", Enumerable.Range(1, 10).Select(i => "word" + i.ToString(CultureInfo.InvariantCulture))), texts);
+        var texts = Texts(PdfHtml.FromString("<table><tr>" + string.Concat(Enumerable.Repeat($"<td>{run}</td>", 8)) + "</tr></table>"));
+        Assert.True(texts.Min(t => t.Length) >= 8, string.Join(" | ", texts));
+        Assert.True(texts.Max(t => t.Length) <= 2 * texts.Min(t => t.Length), string.Join(" | ", texts));
+    }
+
+    [Fact]
+    public void A_long_non_breaking_run_beside_a_url_shares_the_room()
+    {
+        // F-45 (low, deferred): both columns break, in proportion to their content, as in a browser; nothing is clipped.
+        string run = string.Join("&nbsp;", Enumerable.Range(1, 10).Select(i => "word" + i.ToString(CultureInfo.InvariantCulture)));
+        var html = PdfHtml.FromString($"<table><tr><td>{run}</td><td>{Url}</td></tr></table>");
+        var texts = Texts(html);
+        Assert.Empty(html.Warnings);
+        Assert.Equal(Url, string.Concat(texts.Where(t => Url.Contains(t))));
         Assert.DoesNotContain(Url, texts);
     }
 

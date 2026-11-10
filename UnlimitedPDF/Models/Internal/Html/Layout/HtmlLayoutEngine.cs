@@ -59,16 +59,15 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="width">The width HTML is laid out at: the body width of the page it starts on.</param>
     /// <param name="edges">The free room on each page, counted from the page the HTML starts on.</param>
     /// <param name="warnings">Receives layout warnings.</param>
-    /// <param name="lastPage">The last page offset layout may move to, or null for no limit; moving past it throws
-    /// <see cref="HtmlPageLimitException"/>.</param>
+    /// <param name="lastPage">The last page offset blank space (heights, padding) may reach, or null for no limit.</param>
     public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, int? lastPage = null)
-        : this(model, width, edges, warnings, measuring: false, new LayoutCache())
+        : this(model, width, edges, warnings, measuring: false, new LayoutCache(), lastPage)
     {
-        _lastPage = lastPage;
     }
 
-    private HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, bool measuring, LayoutCache cache)
+    private HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, bool measuring, LayoutCache cache, int? lastPage = null)
     {
+        _lastPage = lastPage;
         _model = model;
         _width = width;
         _edges = edges;
@@ -128,7 +127,8 @@ internal sealed partial class HtmlLayoutEngine
     private static HtmlPageRoom Unlimited(int page) => new(0, -1e12, true);
 
     // Places vertical space (padding, borders, set heights) of any size: what does not fit continues on the next pages
-    // (F-08). Anything placed means the page is no longer empty.
+    // (F-08). Anything placed means the page is no longer empty. Blank space reaching the page limit stops there:
+    // trailing blank pages are dropped anyway, and content after it fails at the limit (F-49).
     private void Advance(double amount)
     {
         while (amount > Tolerance)
@@ -142,6 +142,7 @@ internal sealed partial class HtmlLayoutEngine
             amount -= Math.Max(0, room);
             _y = Room(_page).Bottom;
             Current.Bottom = Math.Min(Current.Bottom, _y);
+            if (AtPageLimit) break;
             NextPage();
         }
         _atTop = false;
@@ -449,7 +450,6 @@ internal sealed partial class HtmlLayoutEngine
     {
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
-        CheckPageLimit(_page);
         var room = Room(_page);
         _y = room.Top;
         _atTop = room.EmptyBody;
@@ -462,12 +462,10 @@ internal sealed partial class HtmlLayoutEngine
         DrawRepeatedHeaders();
     }
 
-    // Fails when layout moves past the last page it may use. Looking at a later page's room does not count; only
-    // moving there does (F-42).
-    private void CheckPageLimit(int page)
-    {
-        if (_lastPage is int last && page > last) throw new HtmlPageLimitException();
-    }
+    // Whether layout is on the last page blank space may reach. Blank space is the only thing that can ask for any
+    // number of pages from a few bytes; every other page move comes from content, so it is bounded by the input, and
+    // the save's page check reports content past the limit (F-42, F-48, F-49).
+    private bool AtPageLimit => _lastPage is int last && _page >= last;
 
     private static double Resolve(CssLength? length, double percentBase) =>
         length is { } l ? l.ToPoints(ComputedStyle.DefaultFontSize, ComputedStyle.DefaultFontSize, percentBase) : 0;
@@ -487,13 +485,6 @@ internal sealed partial class HtmlLayoutEngine
     #endregion
 
     #region Nested Types
-
-    /// <summary>
-    /// Thrown when HTML layout moves past the page limit it was given.
-    /// </summary>
-    internal sealed class HtmlPageLimitException : Exception
-    {
-    }
 
     // A block whose background or borders are drawn once its extent is known.
     private sealed class OpenBox

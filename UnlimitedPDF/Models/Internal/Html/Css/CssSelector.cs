@@ -175,8 +175,9 @@ internal sealed class CssSelector
     public sealed class MatchMemo
     {
         private readonly IReadOnlyDictionary<HtmlElement, int> _ordinals;
-        // Per selector: two bits per (element, compound), unknown, true, or false, indexed by element ordinal.
-        private readonly Dictionary<CssSelector, byte[]> _states = new();
+        // Per selector: the states of the (element, compound) pairs actually asked about, unknown, true, or false, two
+        // bits each, 32 to a word keyed by element ordinal and compound block. Only asked pairs take memory (F-50).
+        private readonly Dictionary<CssSelector, Dictionary<long, ulong>> _states = new();
 
         /// <summary>
         /// Creates a memo for the elements numbered in <paramref name="ordinals"/>: every element whose ancestors
@@ -203,9 +204,8 @@ internal sealed class CssSelector
         internal bool TryGet(CssSelector selector, HtmlElement element, int index, out bool value)
         {
             value = false;
-            if (!_states.TryGetValue(selector, out var states)) return false;
-            int slot = Slot(selector, element, index);
-            int bits = (states[slot >> 2] >> ((slot & 3) * 2)) & 3;
+            if (!_states.TryGetValue(selector, out var states) || !states.TryGetValue(Key(selector, element, index), out ulong word)) return false;
+            int bits = (int)(word >> (index % 32 * 2)) & 3;
             value = bits == 1;
             return bits != 0;
         }
@@ -214,14 +214,16 @@ internal sealed class CssSelector
         {
             if (!_states.TryGetValue(selector, out var states))
             {
-                states = new byte[(_ordinals.Count * selector._compounds.Count + 3) / 4];
+                states = new Dictionary<long, ulong>();
                 _states[selector] = states;
             }
-            int slot = Slot(selector, element, index);
-            states[slot >> 2] |= (byte)((value ? 1 : 2) << ((slot & 3) * 2));
+            long key = Key(selector, element, index);
+            states.TryGetValue(key, out ulong word);
+            states[key] = word | ((ulong)(value ? 1 : 2) << (index % 32 * 2));
         }
 
-        private int Slot(CssSelector selector, HtmlElement element, int index) => _ordinals[element] * selector._compounds.Count + index;
+        private long Key(CssSelector selector, HtmlElement element, int index) =>
+            (long)_ordinals[element] * ((selector._compounds.Count + 31) / 32) + index / 32;
     }
 
     private sealed class Compound

@@ -64,18 +64,25 @@ internal sealed partial class HtmlLayoutEngine
         return Distribute(min, max, percent, available, fixedWidth);
     }
 
-    // Lets the columns held open by long words narrow to what breaking their words allows (hard), the widest column
-    // first and one at a time, until the narrowest widths fit in room: a column breaks its words only when the
-    // others cannot make room (F-45). The room is then shared as usual, so broken columns still get the most of it.
+    // Finds the highest level at which the narrowest widths, capped at that level but never below what breaking words
+    // allows (hard), fit in room. Columns wider than that level are the ones held open by long words: their narrowest
+    // width becomes the broken-word width, and the room is then shared as usual, in proportion to their content, so
+    // several such columns break evenly, as browsers share a table that is too wide (F-51).
     private static double[] LongWordColumns(double[] min, double[] hard, double room)
     {
-        var result = (double[])min.Clone();
-        foreach (int c in Enumerable.Range(0, min.Length).OrderByDescending(c => min[c]))
+        double Total(double level)
         {
-            if (result.Sum() <= room + Tolerance) break;
-            result[c] = hard[c];
+            double sum = 0;
+            for (int c = 0; c < min.Length; c++) sum += Math.Max(hard[c], Math.Min(min[c], level));
+            return sum;
         }
-        return result;
+        double low = 0, high = min.Length == 0 ? 0 : min.Max();
+        for (int i = 0; i < 60 && high - low > 0.001; i++)
+        {
+            double mid = (low + high) / 2;
+            if (Total(mid) <= room) low = mid; else high = mid;
+        }
+        return min.Select((m, c) => m > low + Tolerance ? hard[c] : m).ToArray();
     }
 
     // Each column's narrowest and widest widths and its percentage, from the columns' and cells' widths and content.
@@ -465,7 +472,8 @@ internal sealed partial class HtmlLayoutEngine
                 ? new HtmlPageRoom(rowTop - it, Room(startPage).Bottom + ib, false)
                 : new HtmlPageRoom(Room(startPage + offset).Top - headerHeight - it, Room(startPage + offset).Bottom + ib, true);
             var cellWarnings = new List<PdfHtmlWarning>();
-            var engine = new HtmlLayoutEngine(_model, content.Width, Edges, cellWarnings, measuring: false, _cache);
+            // The cell's pages count from the row's page, so it gets what is left of the page limit (F-48).
+            var engine = new HtmlLayoutEngine(_model, content.Width, Edges, cellWarnings, measuring: false, _cache, _lastPage - startPage);
             engine.LayoutBox(content.Box, 0, content.Width);
             engine.Flush(0);
             var fragments = engine._fragments.OrderBy(p => p.Key).Select(p => p.Value).ToList();
@@ -492,8 +500,7 @@ internal sealed partial class HtmlLayoutEngine
             double extend = Math.Min(remaining, bottoms[o] - floor);
             bottoms[o] -= extend;
             remaining -= extend;
-            if (remaining <= Tolerance) break;
-            CheckPageLimit(startPage + o + 1);
+            if (remaining <= Tolerance || (_lastPage is int last && startPage + o + 1 > last)) break;
             if (PartTop(o + 1) - Room(startPage + o + 1).Bottom <= Tolerance) break;
             bottoms.Add(PartTop(o + 1));
         }

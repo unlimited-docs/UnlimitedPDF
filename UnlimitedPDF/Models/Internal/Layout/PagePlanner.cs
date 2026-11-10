@@ -600,24 +600,11 @@ internal sealed class PagePlanner
 
         var warnings = new List<PdfHtmlWarning>();
         double width = item.LayoutWidth ?? Geometry(start.Slot).ContentWidth;
-        // A few bytes of HTML can ask for any number of pages (a huge height or padding). With a page limit set, layout
-        // stops once it moves past the page after the last allowed one (WR-033, A06); a single page past the limit is
-        // still laid out, and the save's page check reports it.
+        // A few bytes of HTML can ask for any number of pages (a huge height or padding). With a page limit set, blank
+        // space stops one page past the last allowed one (WR-033, A06); content past the limit is reported by the
+        // save's page check, and trailing blank pages are dropped as without a limit.
         int? lastOffset = MaxPages is int max ? max - (_nextNumber + start.Slot) + 1 : null;
-        IReadOnlyList<HtmlPageFragment> fragments;
-        try
-        {
-            fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings, lastOffset).Layout();
-        }
-        catch (HtmlLayoutEngine.HtmlPageLimitException)
-        {
-            throw new InvalidOperationException(string.Format(
-                CultureInfo.InvariantCulture,
-                "The content needs more than {0} {1}, but Body.MaxPages is {0}: {2} does not fit. Shorten the content or raise the limit.",
-                MaxPages,
-                MaxPages == 1 ? "page" : "pages",
-                item.Description));
-        }
+        var fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings, lastOffset).Layout();
         var numbered = warnings
             .Select(w => new PdfHtmlWarning(w.Kind, w.Source, w.Message, w.Line, w.PageNumber is int offset ? _nextNumber + start.Slot + offset : null))
             .ToList();
