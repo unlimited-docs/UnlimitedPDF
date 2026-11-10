@@ -302,6 +302,19 @@ internal sealed partial class HtmlLayoutEngine
         var room = Room(_page);
         if (!_measuring && !_atTop && startNeed <= freshBody && _y - _pendingMargin - startNeed < room.Bottom - Tolerance) _forceBreak = true;
 
+        // A first row taller than the body is split where the table starts. When one of its cells cannot continue and
+        // would be cut here, the table starts on the next page with it, if that shows the cell whole (F-64, F-67);
+        // when it does not, the row loop below may still move the row alone. This holds while the caption and header
+        // rows fit here, so that the row would start on this page. The margin before the table is dropped on the
+        // next page, as before any break the layout chooses.
+        double lead = startNeed - firstRow, firstRowTop = _y - _pendingMargin - lead;
+        if (!_measuring && !_atTop && !_forceBreak && table.Rows.Count > headerRows && startNeed > freshBody && firstRowTop >= room.Bottom - Tolerance
+            && BetterOnNextPage(layout, headerRows, firstRowTop, repeatHeader ? headerHeight : 0, lead))
+        {
+            NextPage();
+            _pendingMargin = 0;
+        }
+
         // break-inside: avoid moves a table that fits a fresh page whole to the next page, as for blocks (F-38).
         if (s.AvoidBreakInside && !_measuring && !_atTop)
         {
@@ -309,11 +322,15 @@ internal sealed partial class HtmlLayoutEngine
             if (whole <= freshBody && _y - _pendingMargin - whole < room.Bottom - Tolerance) _forceBreak = true;
         }
 
+        // Whether the table starts at the top of a page: nothing but its own caption and frame stand above its rows.
+        bool topBefore = _atTop;
+        int pageBefore = _page;
         foreach (var caption in table.Captions) LayoutBlock(caption, tableLeft, tableWidth);
 
         var open = new OpenBox(table, tableLeft, tableLeft + tableWidth, _page);
         _open.Add(open);
         Flush(bt + pt + spacingV);
+        bool startsAtTop = topBefore || _page != pageBefore;
         if (clipped && !_measuring)
         {
             // The clip opens before the table's own background and border (F-16), and the warning names this page (F-15).
@@ -353,7 +370,8 @@ internal sealed partial class HtmlLayoutEngine
             for (int i = r; i < end; i++)
                 foreach (var g in byRow[i]) if (!degraded.Contains(g)) end = Math.Max(end, g.Row + g.RowSpan);
             double GroupHeight() => Enumerable.Range(r, end - r).Sum(i => heights[i] + spacingV);
-            double fullRoom = FreshBodyHeight() - (r >= headerRows && repeatHeader ? headerHeight : 0);
+            double rowHeader = r >= headerRows && repeatHeader ? headerHeight : 0;
+            double fullRoom = FreshBodyHeight() - rowHeader;
 
             // A row group taller than a page body is placed row by row, its spanning cells kept to their first row
             // (F-10), so each row can move or split on its own.
@@ -394,10 +412,12 @@ internal sealed partial class HtmlLayoutEngine
                 continue;
             }
 
-            // A split row starts on the next page when not even one line fits here (F-11), or when a cell that cannot
-            // continue would lose content here that a fresh page shows whole (F-64).
-            double rowHeader = r >= headerRows && repeatHeader ? headerHeight : 0;
-            if (!_atTop && (_y - Room(_page).Bottom < table.Style.LineHeight * 2 || CutOnlyHere(layout, r, rowHeader))) NextPage();
+            // A split row starts on the next page when not even one line fits here (F-11). So does a row with a cell
+            // that cannot continue and would be cut here, when a fresh page shows that cell whole (F-64). A row stays
+            // when the table starts at the top of this page and nothing stands above the row that the next page would
+            // not repeat: moving it would leave a page with nothing but the table's start (F-67).
+            bool aloneAtTop = startsAtTop && (r == 0 || (r == headerRows && repeatHeader));
+            if (_y - Room(_page).Bottom < table.Style.LineHeight * 2 || (!aloneAtTop && BetterOnNextPage(layout, r, _y, rowHeader, rowHeader))) NextPage();
             SplitRow(layout, r, rowHeader);
         }
         _tables.Remove(repeat);
@@ -463,26 +483,39 @@ internal sealed partial class HtmlLayoutEngine
         }
     }
 
-    // Whether a cell of the row that cannot continue on a next page (see SplitRow) would have its content cut at the
-    // bottom of this page, although the content fits below the row's top on a fresh page (F-64).
-    private bool CutOnlyHere(TableLayoutState layout, int row, double headerHeight)
+    // Whether a cell's borders and padding leave it less than a line of a page's room, so that it can never continue
+    // on such a page (F-59, F-61).
+    private static bool WithoutRoom(double room, double insetTop, double insetBottom) => room - insetTop - insetBottom < MinimumSplitRoom;
+
+    // Whether content with this lowest mark draws below a bottom edge when its top is at contentTop (F-65).
+    private static bool DrawsBelow(double? lowestMark, double contentTop, double bottom) => lowestMark is double lowest && contentTop + lowest < bottom - Tolerance;
+
+    // Whether a row about to be split with its top at rowTop is better started on the next page: one of its cells that
+    // cannot continue (see SplitRow) would have marks cut at the bottom of this page, and the next page shows them
+    // whole below what stands above the row there (F-64). A cell that can continue from this page must still be able
+    // to from the next one, which differs when pages have bodies of their own (F-66).
+    private bool BetterOnNextPage(TableLayoutState layout, int row, double rowTop, double repeatedHeader, double above)
     {
-        double fresh = FreshBodyHeight() - headerHeight;
+        double next = FreshBodyHeight(), after = FreshBodyHeight(2);
+        bool better = false;
         foreach (var g in layout.ByRow[row])
         {
             var (_, _, it, ib) = CellInsets(g.Cell, layout.Collapse);
-            var content = layout.Contents[g].Layout;
-            if (fresh - it - ib >= MinimumSplitRoom || content.Commands.Count == 0) continue;
-            double reach = it + content.Height;
-            if (_y - reach < Room(_page).Bottom - Tolerance && reach <= fresh + Tolerance) return true;
+            if (LowestMark(layout.Contents[g].Layout.Commands) is not double lowest) continue;
+            if (!WithoutRoom(next - repeatedHeader, it, ib))
+            {
+                if (WithoutRoom(after - repeatedHeader, it, ib)) return false;
+                continue;
+            }
+            if (DrawsBelow(lowest, rowTop - it, Room(_page).Bottom) && above + it - lowest <= next + Tolerance) better = true;
         }
-        return false;
+        return better;
     }
 
     // Lays out a row taller than the body: each cell continues on the next pages on its own, below repeated headers.
     // A cell's borders and padding are kept on every page it continues on. A cell they leave less than a line of room
     // on a fresh page can never continue, whatever it holds: its content is drawn once, on the row's first page, and
-    // clipped at the body bottom when it reaches past it (F-59, F-61). The other cells split as usual, and the row
+    // clipped at the body bottom when it draws past it (F-59, F-61, F-65). The other cells split as usual, and the row
     // keeps its height (F-62).
     private void SplitRow(TableLayoutState layout, int row, double headerHeight)
     {
@@ -499,14 +532,14 @@ internal sealed partial class HtmlLayoutEngine
             var (il, _, it, ib) = CellInsets(g.Cell, layout.Collapse);
             var content = layout.Contents[g];
             double left = layout.ColumnLeft[g.Column] + il;
-            if (fresh - it - ib < MinimumSplitRoom)
+            if (WithoutRoom(fresh, it, ib))
             {
                 var once = new Dictionary<int, HtmlPageFragment>();
                 double contentTop = rowTop - it;
                 if (content.Layout.Commands.Count > 0)
                 {
                     var fragment = new HtmlPageFragment(0, contentTop);
-                    bool cut = contentTop - content.Layout.Height < pageBottom - Tolerance;
+                    bool cut = DrawsBelow(LowestMark(content.Layout.Commands), contentTop, pageBottom);
                     if (cut)
                     {
                         Warn(PdfHtmlWarningKind.ContentClipped, g.Cell.Element?.Name ?? "td",

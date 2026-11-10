@@ -168,11 +168,41 @@ internal sealed partial class HtmlLayoutEngine
         return total + Room(_page).Top - _y;
     }
 
-    // The body height of a fresh page, for "fits on a page" checks (F-11).
-    private double FreshBodyHeight()
+    // The body height of a fresh page, for "fits on a page" checks (F-11): the next page, or one further ahead.
+    private double FreshBodyHeight(int ahead = 1)
     {
-        var room = Room(_page + 1);
+        var room = Room(_page + ahead);
         return room.Top - room.Bottom;
+    }
+
+    // The y of the lowest mark the commands draw, or null when they draw nothing. Blank height, such as a last margin
+    // or a line's leading, draws nothing; a mark inside a clip of its own counts only down to that clip (F-65).
+    private static double? LowestMark(List<HtmlCommand> commands)
+    {
+        double? lowest = null;
+        var clips = new List<double>();
+        foreach (var command in commands)
+        {
+            double bottom;
+            switch (command)
+            {
+                case ClipBeginCommand c:
+                    clips.Add(clips.Count > 0 ? Math.Max(c.Bottom, clips[^1]) : c.Bottom);
+                    continue;
+                case ClipEndCommand:
+                    if (clips.Count > 0) clips.RemoveAt(clips.Count - 1);
+                    continue;
+                case FillCommand f: bottom = f.Bottom; break;
+                case ImageCommand i: bottom = i.Bottom; break;
+                case TextCommand t: bottom = t.Baseline - Descent * t.FontSize; break;
+                case LineCommand l: bottom = Math.Min(l.Y1, l.Y2) - l.Width / 2; break;
+                case CircleCommand c: bottom = c.CenterY - c.Radius; break;
+                default: continue;
+            }
+            if (clips.Count > 0) bottom = Math.Max(bottom, clips[^1]);
+            if (lowest is not double low || bottom < low) lowest = bottom;
+        }
+        return lowest;
     }
 
     // Lays a box out once per width on a page of unlimited height (F-05), with its warnings kept for when it is placed.
