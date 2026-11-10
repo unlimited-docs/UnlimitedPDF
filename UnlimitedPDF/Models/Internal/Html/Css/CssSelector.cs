@@ -174,18 +174,13 @@ internal sealed class CssSelector
     /// </summary>
     public sealed class MatchMemo
     {
-        // A selector whose states fit in this many two-bit slots (2 MB) keeps them in a dense array, while the dense
-        // arrays of one pass stay under the budget; other selectors keep only the states asked about (F-50, F-53, F-55).
-        private const long DenseLimit = 8L * 1024 * 1024;
-        private const long DenseBudget = 64L * 1024 * 1024;
-
-        private long _denseBytes;
+        // States are kept in pages of this many two-bit slots (1 KB), created on first write, so memory follows the
+        // (element, compound) pairs actually asked about at two bits each, for every selector (F-50, F-53, F-55, F-58).
+        private const int PageSlots = 4096;
 
         private readonly IReadOnlyDictionary<HtmlElement, int> _ordinals;
-        // Per selector: unknown, true, or false for each (element, compound) pair, two bits each. Dense: indexed by
-        // element ordinal × compounds + compound. Sparse: 32 states to a word keyed by element ordinal and block.
-        private readonly Dictionary<CssSelector, byte[]> _dense = new();
-        private readonly Dictionary<CssSelector, Dictionary<long, ulong>> _sparse = new();
+        // Per selector: its pages by page number (null until written); slot = element ordinal × compounds + compound.
+        private readonly Dictionary<CssSelector, byte[]?[]> _pages = new();
 
         /// <summary>
         /// Creates a memo for the elements numbered in <paramref name="ordinals"/>: every element whose ancestors
@@ -210,21 +205,18 @@ internal sealed class CssSelector
         }
 
         /// <summary>
-        /// Gets the bytes the dense arrays of this pass hold, at most 64 MB.
+        /// Gets the bytes the pages of this pass hold.
         /// </summary>
-        internal long DenseBytes => _denseBytes;
+        internal long Bytes { get; private set; }
 
         internal bool TryGet(CssSelector selector, HtmlElement element, int index, out bool value)
         {
             int bits = 0;
-            if (_dense.TryGetValue(selector, out var dense))
+            long slot = Slot(selector, element, index);
+            if (_pages.TryGetValue(selector, out var pages) && pages[slot / PageSlots] is { } page)
             {
-                long slot = DenseSlot(selector, element, index);
-                bits = (dense[slot >> 2] >> (int)((slot & 3) * 2)) & 3;
-            }
-            else if (_sparse.TryGetValue(selector, out var sparse) && sparse.TryGetValue(Key(selector, element, index), out ulong word))
-            {
-                bits = (int)(word >> (index % 32 * 2)) & 3;
+                int offset = (int)(slot % PageSlots);
+                bits = (page[offset >> 2] >> ((offset & 3) * 2)) & 3;
             }
             value = bits == 1;
             return bits != 0;
@@ -232,34 +224,24 @@ internal sealed class CssSelector
 
         internal void Set(CssSelector selector, HtmlElement element, int index, bool value)
         {
-            int state = value ? 1 : 2;
-            long slots = (long)_ordinals.Count * selector._compounds.Count;
-            if (!_dense.TryGetValue(selector, out var dense) && !_sparse.ContainsKey(selector) && slots <= DenseLimit && _denseBytes + (slots + 3) / 4 <= DenseBudget)
+            if (!_pages.TryGetValue(selector, out var pages))
             {
-                dense = new byte[(slots + 3) / 4];
-                _dense[selector] = dense;
-                _denseBytes += dense.Length;
+                pages = new byte[]?[((long)_ordinals.Count * selector._compounds.Count + PageSlots - 1) / PageSlots];
+                _pages[selector] = pages;
+                Bytes += pages.Length * 8L;
             }
-            if (dense is not null)
+            long slot = Slot(selector, element, index);
+            if (pages[slot / PageSlots] is not { } page)
             {
-                long slot = DenseSlot(selector, element, index);
-                dense[slot >> 2] |= (byte)(state << (int)((slot & 3) * 2));
-                return;
+                page = new byte[PageSlots / 4];
+                pages[slot / PageSlots] = page;
+                Bytes += page.Length;
             }
-            if (!_sparse.TryGetValue(selector, out var sparse))
-            {
-                sparse = new Dictionary<long, ulong>();
-                _sparse[selector] = sparse;
-            }
-            long key = Key(selector, element, index);
-            sparse.TryGetValue(key, out ulong word);
-            sparse[key] = word | ((ulong)state << (index % 32 * 2));
+            int offset = (int)(slot % PageSlots);
+            page[offset >> 2] |= (byte)((value ? 1 : 2) << ((offset & 3) * 2));
         }
 
-        private long DenseSlot(CssSelector selector, HtmlElement element, int index) => (long)_ordinals[element] * selector._compounds.Count + index;
-
-        private long Key(CssSelector selector, HtmlElement element, int index) =>
-            (long)_ordinals[element] * ((selector._compounds.Count + 31) / 32) + index / 32;
+        private long Slot(CssSelector selector, HtmlElement element, int index) => (long)_ordinals[element] * selector._compounds.Count + index;
     }
 
     private sealed class Compound

@@ -351,7 +351,29 @@ public class HtmlRevision2ReviewTests
         "<p>x</p><div style='height:2000pt;break-after:page'></div>",
         "<div style='background:#eee'>" + Repeat("<p>t</p>", 80) + "</div>",
         Repeat("<p style='break-before:page'>x</p>", 5) + Repeat("<br>", 300),
+        // F-56: boxes whose decoration draws only on their first or last page.
+        "<div style='border-top:1px solid'><p>x</p>" + Repeat("<br>", 300) + "</div>",
+        "<div style='border-bottom:1px solid'><p>x</p>" + Repeat("<br>", 300) + "</div>",
+        Repeat("<div style='border-top:1px solid'>", 3) + "<p>x</p>" + Repeat("<div style='break-before:page;height:1pt'></div>", 4),
+        "<table style='border-top:1px solid'><tr><td>x" + Repeat("<br>", 300) + "</td></tr></table>",
+        "<table style='border-collapse:collapse;border-top:1px solid'><tr><td>x" + Repeat("<br>", 300) + "</td></tr></table>",
+        "<table><tr><td><div style='border-top:1px solid'>x" + Repeat("<br>", 300) + "</div></td></tr></table>",
+        "<div style='border-left:1px solid'><p>x</p>" + Repeat("<br>", 300) + "</div>",
     }.Select(html => new object[] { html });
+
+    [Fact]
+    public void Deep_plain_wrappers_with_many_page_moves_stay_cheap()
+    {
+        // F-57: an insert position per open box per page made 250 plain wrappers around 90,000 blank breaks take 4.4 s
+        // and 1 GB although the document fits on one page.
+        string html = "<style>.b{break-before:page;height:1pt}</style>" + Repeat("<div>", 250) + "<p>x</p>" + Repeat("<p class=b></p>", 90000);
+        var doc = Document();
+        doc.Body.MaxPages = 1;
+        doc.Body.AddHtml(PdfHtml.FromString(html));
+        var watch = Stopwatch.StartNew();
+        Assert.Single(PdfPageReader.Save(doc));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"took {watch.Elapsed}");
+    }
 
     [Theory]
     [MemberData(nameof(ExactnessShapes))]
@@ -381,9 +403,9 @@ public class HtmlRevision2ReviewTests
     }
 
     [Fact]
-    public void The_dense_selector_memo_stays_within_its_budget()
+    public void The_selector_memo_holds_only_the_pages_it_writes()
     {
-        // F-55: every selector up to 2 MB took a dense array, so 1,000 long rules held 2 GB for one pass.
+        // F-55, F-58: every selector up to 2 MB took a dense array, so 1,000 long rules held 2 GB for one pass.
         var root = new UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement("html", Array.Empty<KeyValuePair<string, string>>(), 1);
         var parent = root;
         for (int i = 0; i < 20; i++)
@@ -408,7 +430,8 @@ public class HtmlRevision2ReviewTests
             Assert.True(UnlimitedPDF.Models.Internal.Html.Css.CssSelector.TryParseList(Repeat("div ", 79) + "br.c" + r.ToString(CultureInfo.InvariantCulture), out var selectors));
             Assert.False(selectors[0].Matches(leaves[r], memo));
         }
-        Assert.InRange(memo.DenseBytes, 1, 64L * 1024 * 1024);
+        // Rarely matching long rules touch a few 1 KB pages each, not two bits for every element (F-58).
+        Assert.InRange(memo.Bytes, 1, 16L * 1024 * 1024);
     }
 
     [Fact]

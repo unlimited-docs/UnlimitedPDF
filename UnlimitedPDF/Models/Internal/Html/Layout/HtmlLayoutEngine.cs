@@ -359,6 +359,9 @@ internal sealed partial class HtmlLayoutEngine
 
     private static bool HasDecoration(ComputedStyle s) => s.BackgroundColor is not null || s.Borders.Any(b => b.UsedWidth > 0);
 
+    // Whether a box's decoration draws on every page it spans: a background, or a left or right border.
+    private static bool DrawsOnEveryPage(ComputedStyle s) => s.BackgroundColor is not null || s.Borders[1].UsedWidth > 0 || s.Borders[3].UsedWidth > 0;
+
     // Draws a block's background and borders on every page it spans, before its content there.
     private void Decorate(OpenBox box)
     {
@@ -448,10 +451,11 @@ internal sealed partial class HtmlLayoutEngine
     // and before repeated table headers (F-16). A page below carried rows is not empty (F-08).
     private void NextPage()
     {
-        // Leaving a page past the page limit that has something drawn on it, or that an open box will decorate, means
-        // the document cannot fit: the save keeps exactly such pages (F-54). Stopping here keeps content-driven runs
+        // Leaving a page past the page limit that has something drawn on it, or that an open box draws on at every page
+        // (a background or a side border; top and bottom borders draw only on its first and last pages), means the
+        // document cannot fit: the save keeps exactly such pages (F-54, F-56). Stopping here keeps content-driven runs
         // short (F-52); pages with nothing drawn are dropped by the save, so they never fail a document that fits.
-        if (_lastPage is int last && _page >= last && (Current.Commands.Count > 0 || _open.Any(o => o.StartPage is not null && HasDecoration(o.Box.Style))))
+        if (_lastPage is int last && _page >= last && (Current.Commands.Count > 0 || _open.Any(o => o.StartPage is not null && DrawsOnEveryPage(o.Box.Style))))
             throw new HtmlPageLimitException();
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
@@ -462,7 +466,8 @@ internal sealed partial class HtmlLayoutEngine
         var fragment = Current;
         foreach (var box in _open)
         {
-            if (!box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = fragment.Commands.Count;
+            // Only decorated boxes read their insert positions, so plain wrappers cost nothing per page (F-57).
+            if (HasDecoration(box.Box.Style) && !box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = fragment.Commands.Count;
         }
         DrawRepeatedHeaders();
     }
