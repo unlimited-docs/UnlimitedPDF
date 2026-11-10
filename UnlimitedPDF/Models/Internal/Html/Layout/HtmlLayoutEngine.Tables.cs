@@ -198,9 +198,7 @@ internal sealed partial class HtmlLayoutEngine
 
         // The narrowest columns are still wider than the room: clipped at the body edge (D-016).
         bool clipped = tableLeft + tableWidth > _width + Tolerance;
-        if (clipped && !_measuring)
-            Warn(PdfHtmlWarningKind.ContentClipped, table.Element?.Name ?? "table",
-                string.Format(CultureInfo.InvariantCulture, "A table needs {0:0.##} pt but the body has {1:0.##} pt; it is clipped at the body edge.", tableLeft + tableWidth, _width));
+        string clipMessage = string.Format(CultureInfo.InvariantCulture, "A table needs {0:0.##} pt but the body has {1:0.##} pt; it is clipped at the body edge.", tableLeft + tableWidth, _width);
 
         // Column positions (left edges of the cell border boxes).
         var columnLeft = new double[columns + 1];
@@ -213,9 +211,10 @@ internal sealed partial class HtmlLayoutEngine
         columnLeft[columns] = x;
         double CellRight(GridCell g) => columnLeft[Math.Min(columns, g.Column + g.Cell.ColumnSpan)] - spacingH;
 
-        // Row heights from each cell's content; a spanning cell adds what it still needs to its last row.
-        var contents = new Dictionary<GridCell, (BlockBox Box, double Width, double Height)>();
-        var heights = new double[table.Rows.Count];
+        // Each cell is laid out once (F-05); a spanning cell adds what it still needs to its last row.
+        var byRow = cells.ToLookup(g => g.Row);
+        var layout = new TableLayoutState(table, byRow, new Dictionary<GridCell, CellContentLayout>(), new double[table.Rows.Count], columnLeft, CellRight, collapse, spacingV);
+        var heights = layout.Heights;
         for (int r = 0; r < table.Rows.Count; r++)
         {
             if (table.Rows[r].Style.Height is { Unit: not CssUnit.Percent } rh) heights[r] = Resolve(rh, 0);
@@ -225,9 +224,9 @@ internal sealed partial class HtmlLayoutEngine
             var (il, ir, it, ib) = CellInsets(g.Cell, collapse);
             double innerWidth = Math.Max(0, CellRight(g) - columnLeft[g.Column] - il - ir);
             var content = CellContent(g.Cell);
-            double contentHeight = MeasureHeight(_model, content, innerWidth);
-            double needed = contentHeight + it + ib;
-            contents[g] = (content, innerWidth, needed);
+            var laidOut = LayoutUnbounded(content, innerWidth);
+            double needed = laidOut.Height + it + ib;
+            layout.Contents[g] = new CellContentLayout(content, innerWidth, needed, laidOut);
             if (g.Cell.Style.Height is { Unit: not CssUnit.Percent } ch) needed = Math.Max(needed, Resolve(ch, 0));
             if (g.RowSpan == 1) heights[g.Row] = Math.Max(heights[g.Row], needed);
             else
@@ -240,46 +239,83 @@ internal sealed partial class HtmlLayoutEngine
         int headerRows = Math.Min(table.HeaderRowCount, table.Rows.Count);
         double headerHeight = Enumerable.Range(0, headerRows).Sum(r => heights[r] + spacingV);
 
-        // The table starts where its header and first body row fit together.
+        // Header rows repeat only when they leave room for the body (F-09): a header taller than half a page body would
+        // leave too little room on each page, so it is drawn once with a warning instead.
+        double freshBody = FreshBodyHeight();
+        bool repeatHeader = headerRows > 0 && headerRows < table.Rows.Count && headerHeight <= freshBody / 2;
+
+        // The table starts where its header and first body row fit together, judged against a fresh page (F-11).
         _pendingMargin = Collapse(_pendingMargin, mt);
-        double captionHeight = table.Captions.Sum(c => MeasureHeight(_model, c, tableWidth));
+        double captionHeight = table.Captions.Sum(c => Measure(c, tableWidth));
         double firstRow = table.Rows.Count > headerRows ? heights[headerRows] + spacingV : 0;
         double startNeed = captionHeight + bt + pt + spacingV + headerHeight + firstRow;
         var room = Room(_page);
-        if (!_measuring && !_atTop && startNeed <= room.Top - room.Bottom && _y - _pendingMargin - startNeed < room.Bottom - Tolerance) _forceBreak = true;
+        if (!_measuring && !_atTop && startNeed <= freshBody && _y - _pendingMargin - startNeed < room.Bottom - Tolerance) _forceBreak = true;
 
         foreach (var caption in table.Captions) LayoutBlock(caption, tableLeft, tableWidth);
 
         var open = new OpenBox(table, tableLeft, tableLeft + tableWidth);
         _open.Add(open);
         Flush(bt + pt + spacingV);
-        if (clipped && !_measuring) BeginClip();
-        _y -= bt + pt + spacingV;
-        _atTop = false;
+        if (clipped && !_measuring)
+        {
+            // The clip opens before the table's own background and border (F-16), and the warning names this page (F-15).
+            BeginClip();
+            open.InsertAt[_page] = Current.Commands.Count;
+            Warn(PdfHtmlWarningKind.ContentClipped, table.Element?.Name ?? "table", clipMessage);
+        }
+        if (headerRows > 0 && headerRows < table.Rows.Count && !repeatHeader && !_measuring)
+            Warn(PdfHtmlWarningKind.ContentClipped, "thead", "The table's header rows take more than half the page body; they are not repeated on the following pages.");
+        Advance(bt + pt + spacingV);
 
-        // Header rows prepared once, for the first page and for every page the table continues on.
+        // Marks of list items whose content starts with this table go on its first row (F-13).
+        if (_pendingMarkers.Count > 0)
+        {
+            foreach (var marker in _pendingMarkers) DrawMarker(marker, _y - marker.Style.FontSize, Current);
+            _pendingMarkers.Clear();
+        }
+
+        // Header rows prepared once for the pages the table continues on, without marks (F-18).
         var headerCommands = new List<HtmlCommand>();
         double headerY = 0;
         for (int r = 0; r < headerRows; r++)
         {
-            DrawRow(table, cells, r, contents, heights, columnLeft, CellRight, headerY, collapse, spacingV, headerCommands);
+            DrawRow(layout, r, headerY, headerCommands, report: false);
             headerY -= heights[r] + spacingV;
         }
+        headerCommands.RemoveAll(c => c is MarkCommand);
         var repeat = new OpenTable(headerCommands, headerHeight);
 
+        var degraded = new HashSet<GridCell>();
         for (int r = 0; r < table.Rows.Count; r++)
         {
-            if (r == headerRows && headerRows > 0) _tables.Add(repeat);
+            if (r == headerRows && repeatHeader) _tables.Add(repeat);
 
             // Rows joined by a row span move together.
             int end = r + 1;
             for (int i = r; i < end; i++)
-                foreach (var g in cells.Where(g => g.Row == i)) end = Math.Max(end, g.Row + g.RowSpan);
-            if (r < headerRows) end = r + 1;
-            double groupHeight = Enumerable.Range(r, end - r).Sum(i => heights[i] + spacingV);
+                foreach (var g in byRow[i]) if (!degraded.Contains(g)) end = Math.Max(end, g.Row + g.RowSpan);
+            double GroupHeight() => Enumerable.Range(r, end - r).Sum(i => heights[i] + spacingV);
+            double fullRoom = FreshBodyHeight() - (r >= headerRows && repeatHeader ? headerHeight : 0);
 
+            // A row group taller than a page body is placed row by row, its spanning cells kept to their first row
+            // (F-10), so each row can move or split on its own.
+            if (end - r > 1 && GroupHeight() > fullRoom + Tolerance && !_measuring)
+            {
+                for (int i = r; i < end; i++)
+                {
+                    foreach (var g in byRow[i].Where(g => g.RowSpan > 1))
+                    {
+                        degraded.Add(g);
+                        heights[g.Row] = Math.Max(heights[g.Row], layout.Contents[g].Needed);
+                    }
+                }
+                layout.Degraded = degraded;
+                end = r + 1;
+            }
+
+            double groupHeight = GroupHeight();
             room = Room(_page);
-            double fullRoom = Room(_page + 1).Top - Room(_page + 1).Bottom - (r >= headerRows ? headerHeight : 0);
             bool fits = _y - groupHeight >= room.Bottom - Tolerance;
             if (!fits && !_measuring && !_atTop && groupHeight <= fullRoom + Tolerance)
             {
@@ -287,12 +323,12 @@ internal sealed partial class HtmlLayoutEngine
                 fits = true;
             }
 
-            if (fits || _measuring || end - r > 1 || r < headerRows)
+            if (fits || _measuring || end - r > 1)
             {
                 for (int i = r; i < end; i++)
                 {
                     if (i > r && !_measuring && _y - heights[i] < Room(_page).Bottom - Tolerance) NextPage();
-                    DrawRow(table, cells, i, contents, heights, columnLeft, CellRight, _y, collapse, spacingV, Current.Commands);
+                    DrawRow(layout, i, _y, Current.Commands, report: true);
                     _y -= heights[i] + spacingV;
                     _atTop = false;
                     Current.Bottom = Math.Min(Current.Bottom, _y);
@@ -301,20 +337,23 @@ internal sealed partial class HtmlLayoutEngine
                 continue;
             }
 
-            SplitRow(table, cells, r, contents, heights, columnLeft, CellRight, collapse, spacingV, headerHeight);
+            // A split row starts on the next page when not even one line fits here (F-11).
+            if (!_atTop && _y - Room(_page).Bottom < table.Style.LineHeight * 2) NextPage();
+            SplitRow(layout, r, r >= headerRows && repeatHeader ? headerHeight : 0);
         }
-        if (headerRows > 0 && headerRows < table.Rows.Count) _tables.Remove(repeat);
+        _tables.Remove(repeat);
 
         Flush(pb + bb);
-        _y -= pb + bb;
-        if (clipped && !_measuring) EndClip();
+        Advance(pb + bb);
         if (_open.Remove(open) && (s.BackgroundColor is not null || (!collapse && s.Borders.Any(b => b.UsedWidth > 0)))) Decorate(open);
-        if (collapse && s.Borders.Any(b => b.UsedWidth > 0)) DrawCollapsedTableBorder(open);
+        if (collapse && s.Borders.Any(b => b.UsedWidth > 0)) DrawCollapsedTableBorder(open, clipped && !_measuring);
+        if (clipped && !_measuring) EndClip();
         _pendingMargin = Collapse(_pendingMargin, mb);
     }
 
-    // The outer border of a collapsed table, centered on its outline, sliced at page breaks.
-    private void DrawCollapsedTableBorder(OpenBox box)
+    // The outer border of a collapsed table, centered on its outline, sliced at page breaks. On earlier pages, whose
+    // clip has already closed, a clipped table's border gets its own clip (F-16).
+    private void DrawCollapsedTableBorder(OpenBox box, bool clipped)
     {
         var s = box.Box.Style;
         int first = box.StartPage ?? _page;
@@ -323,6 +362,8 @@ internal sealed partial class HtmlLayoutEngine
             double top = page == first ? box.StartY ?? _y : Room(page).Top;
             double bottom = page == _page ? _y : Math.Min(FragmentAt(page).Bottom, Room(page).Bottom);
             var fragment = FragmentAt(page);
+            bool ownClip = clipped && page < _page;
+            if (ownClip) fragment.Commands.Add(new ClipBeginCommand(0, Room(page).Bottom - 1, _width, Room(page).Top - Room(page).Bottom + 2));
             var b = s.Borders;
             void Edge(CssBorderSide side, double x1, double y1, double x2, double y2)
             {
@@ -332,57 +373,62 @@ internal sealed partial class HtmlLayoutEngine
             if (page == _page) Edge(b[2], box.Left, bottom, box.Right, bottom);
             Edge(b[3], box.Left, top, box.Left, bottom);
             Edge(b[1], box.Right, top, box.Right, bottom);
+            if (ownClip) fragment.Commands.Add(new ClipEndCommand());
         }
     }
 
-    // Draws the cells that start in a row with their top at rowTop.
-    private void DrawRow(TableBox table, List<GridCell> cells, int row, Dictionary<GridCell, (BlockBox Box, double Width, double Height)> contents,
-        double[] heights, double[] columnLeft, Func<GridCell, double> cellRight, double rowTop, bool collapse, double spacingV, List<HtmlCommand> output)
-    {
-        foreach (var g in cells.Where(g => g.Row == row))
-        {
-            double height = Enumerable.Range(g.Row, g.RowSpan).Sum(r => heights[r]) + spacingV * (g.RowSpan - 1);
-            double cellLeft = columnLeft[g.Column], right = cellRight(g);
-            CellDecoration(output, table.Rows[row], g.Cell, cellLeft, right, rowTop, rowTop - height, drawTop: true, drawBottom: true, collapse);
+    // The number of rows a cell spans here: one when its row group was too tall to keep together (F-10).
+    private static int Span(TableLayoutState layout, GridCell g) => layout.Degraded?.Contains(g) == true ? 1 : g.RowSpan;
 
-            var (il, _, it, ib) = CellInsets(g.Cell, collapse);
-            var (content, innerWidth, needed) = contents[g];
+    // Draws the cells that start in a row with their top at rowTop. The cell layouts were made once; their warnings
+    // are reported the first time the cell is placed, with the page it is placed on (F-14, F-15).
+    private void DrawRow(TableLayoutState layout, int row, double rowTop, List<HtmlCommand> output, bool report)
+    {
+        foreach (var g in layout.ByRow[row])
+        {
+            int span = Span(layout, g);
+            double height = Enumerable.Range(g.Row, span).Sum(r => layout.Heights[r]) + layout.SpacingV * (span - 1);
+            double cellLeft = layout.ColumnLeft[g.Column], right = layout.CellRight(g);
+            CellDecoration(output, layout.Table.Rows[row], g.Cell, cellLeft, right, rowTop, rowTop - height, drawTop: true, drawBottom: true, layout.Collapse);
+
+            var (il, _, it, _) = CellInsets(g.Cell, layout.Collapse);
+            var content = layout.Contents[g];
             double offset = g.Cell.Style.VerticalAlign switch
             {
-                CssVerticalAlign.Middle => (height - needed) / 2,
-                CssVerticalAlign.Bottom => height - needed,
+                CssVerticalAlign.Middle => (height - content.Needed) / 2,
+                CssVerticalAlign.Bottom => height - content.Needed,
                 _ => 0
             };
-            var engine = Unbounded(_model, innerWidth);
-            engine.LayoutBox(content, 0, innerWidth);
-            engine.Flush(0);
-            if (!engine._fragments.TryGetValue(0, out var fragment)) continue;
-            foreach (var command in fragment.Commands) output.Add(Translate(command, cellLeft + il, rowTop - it - Math.Max(0, offset)));
-            foreach (var warning in engine._warnings) _warnings.Add(warning);
+            foreach (var command in content.Layout.Commands) output.Add(Translate(command, cellLeft + il, rowTop - it - Math.Max(0, offset)));
+            if (report) ReportOnce(content.Layout);
         }
     }
 
     // Lays out a row taller than the body: each cell continues on the next pages on its own, below repeated headers.
-    private void SplitRow(TableBox table, List<GridCell> cells, int row, Dictionary<GridCell, (BlockBox Box, double Width, double Height)> contents,
-        double[] heights, double[] columnLeft, Func<GridCell, double> cellRight, bool collapse, double spacingV, double headerHeight)
+    private void SplitRow(TableLayoutState layout, int row, double headerHeight)
     {
         int startPage = _page;
         double rowTop = _y;
         var parts = new List<(GridCell Cell, IReadOnlyList<HtmlPageFragment> Fragments, double Left, double Bottom)>();
         int lastOffset = 0;
-        foreach (var g in cells.Where(g => g.Row == row))
+        foreach (var g in layout.ByRow[row])
         {
-            var (il, _, it, ib) = CellInsets(g.Cell, collapse);
-            var (content, innerWidth, _) = contents[g];
+            var (il, _, it, ib) = CellInsets(g.Cell, layout.Collapse);
+            var content = layout.Contents[g];
             HtmlPageRoom Edges(int offset) => offset == 0
                 ? new HtmlPageRoom(rowTop - it, Room(startPage).Bottom + ib, false)
                 : new HtmlPageRoom(Room(startPage + offset).Top - headerHeight - it, Room(startPage + offset).Bottom + ib, true);
-            var engine = new HtmlLayoutEngine(_model, innerWidth, Edges, _warnings, measuring: false);
-            engine.LayoutBox(content, 0, innerWidth);
+            var cellWarnings = new List<PdfHtmlWarning>();
+            var engine = new HtmlLayoutEngine(_model, content.Width, Edges, cellWarnings, measuring: false, _cache);
+            engine.LayoutBox(content.Box, 0, content.Width);
             engine.Flush(0);
             var fragments = engine._fragments.OrderBy(p => p.Key).Select(p => p.Value).ToList();
             lastOffset = Math.Max(lastOffset, fragments.Count == 0 ? 0 : fragments[fragments.Count - 1].PageOffset);
-            parts.Add((g, fragments, columnLeft[g.Column] + il, engine._y - ib));
+            parts.Add((g, fragments, layout.ColumnLeft[g.Column] + il, engine._y - ib));
+
+            // The cell's own page offsets count from the row's first page (F-15).
+            foreach (var w in cellWarnings)
+                _warnings.Add(new PdfHtmlWarning(w.Kind, w.Source, w.Message, w.Line, startPage + (w.PageNumber ?? 0)));
         }
 
         // Where the row ends on its last page: below the lowest cell that reaches it.
@@ -395,7 +441,7 @@ internal sealed partial class HtmlLayoutEngine
             double bottom = offset == lastOffset ? endBottom : Room(startPage + offset).Bottom;
             var commands = new List<HtmlCommand>();
             foreach (var part in parts)
-                CellDecoration(commands, table.Rows[row], part.Cell.Cell, columnLeft[part.Cell.Column], cellRight(part.Cell), top, bottom, offset == 0, offset == lastOffset, collapse);
+                CellDecoration(commands, layout.Table.Rows[row], part.Cell.Cell, layout.ColumnLeft[part.Cell.Column], layout.CellRight(part.Cell), top, bottom, offset == 0, offset == lastOffset, layout.Collapse);
             foreach (var part in parts)
                 foreach (var fragment in part.Fragments.Where(f => f.PageOffset == offset))
                     foreach (var command in fragment.Commands) commands.Add(Translate(command, part.Left, 0));
@@ -403,7 +449,7 @@ internal sealed partial class HtmlLayoutEngine
             _y = bottom;
             Current.Bottom = Math.Min(Current.Bottom, _y);
         }
-        _y -= spacingV;
+        _y -= layout.SpacingV;
         _atTop = false;
     }
 
@@ -416,11 +462,16 @@ internal sealed partial class HtmlLayoutEngine
         return (minimum + spacing, widths.Sum() + spacing);
     }
 
-    // Called when layout moves to a new page: open clips continue there, and repeated table headers are drawn first.
-    private void OnPageStarted()
+    // On a new page: open clips continue there first, so decorations recorded after them are clipped too.
+    private void ReopenClips()
     {
         var room = Room(_page);
         foreach (var clip in _clips) Current.Commands.Add(new ClipBeginCommand(clip.X, room.Bottom - 1, clip.Width, room.Top - room.Bottom + 2));
+    }
+
+    // On a new page: the header rows of the tables that continue here are drawn at the top.
+    private void DrawRepeatedHeaders()
+    {
         foreach (var table in _tables)
         {
             foreach (var command in table.Header) Current.Commands.Add(Translate(command, 0, _y));
@@ -454,8 +505,46 @@ internal sealed partial class HtmlLayoutEngine
 
     private sealed record GridCell(TableCellBox Cell, int Row, int Column, int RowSpan);
 
+    // A cell's content block, its width, the height it needs with insets, and its one layout.
+    private sealed record CellContentLayout(BlockBox Box, double Width, double Needed, CachedLayout Layout);
+
     // A table whose header rows repeat on the pages it continues on.
     private sealed record OpenTable(List<HtmlCommand> Header, double HeaderHeight);
+
+    // What drawing a table's rows needs.
+    private sealed class TableLayoutState
+    {
+        public TableLayoutState(TableBox table, ILookup<int, GridCell> byRow, Dictionary<GridCell, CellContentLayout> contents, double[] heights,
+            double[] columnLeft, Func<GridCell, double> cellRight, bool collapse, double spacingV)
+        {
+            Table = table;
+            ByRow = byRow;
+            Contents = contents;
+            Heights = heights;
+            ColumnLeft = columnLeft;
+            CellRight = cellRight;
+            Collapse = collapse;
+            SpacingV = spacingV;
+        }
+
+        public ILookup<int, GridCell> ByRow { get; }
+
+        public Func<GridCell, double> CellRight { get; }
+
+        public bool Collapse { get; }
+
+        public double[] ColumnLeft { get; }
+
+        public Dictionary<GridCell, CellContentLayout> Contents { get; }
+
+        public HashSet<GridCell>? Degraded { get; set; }
+
+        public double[] Heights { get; }
+
+        public double SpacingV { get; }
+
+        public TableBox Table { get; }
+    }
 
     #endregion
 }

@@ -23,6 +23,15 @@ internal sealed partial class HtmlLayoutEngine
     // is at least the preferred width.
     private (double Min, double Max) IntrinsicWidths(HtmlBox box, bool preferredWidth = false)
     {
+        // Computed once per box (F-05): nested tables and inline-blocks would otherwise recompute it at every level.
+        if (_cache.Intrinsic.TryGetValue((box, preferredWidth), out var known)) return known;
+        var result = ComputeIntrinsicWidths(box, preferredWidth);
+        _cache.Intrinsic[(box, preferredWidth)] = result;
+        return result;
+    }
+
+    private (double Min, double Max) ComputeIntrinsicWidths(HtmlBox box, bool preferredWidth)
+    {
         var s = box.Style;
         double outside = FixedHorizontal(s);
         double? preferred = s.Width is { Unit: not CssUnit.Percent } width ? Resolve(width, 0) + outside : null;
@@ -33,7 +42,7 @@ internal sealed partial class HtmlLayoutEngine
         {
             case BlockBox block when block.Inlines.Count > 0:
                 double line = Resolve(s.TextIndent is { Unit: not CssUnit.Percent } indent ? indent : CssLength.Zero, 0);
-                foreach (var token in Tokenize(block, 1e9))
+                foreach (var token in Tokenize(block, 1e9, layoutAtomics: false))
                 {
                     if (token.Kind == TokenKind.Break)
                     {
@@ -44,8 +53,14 @@ internal sealed partial class HtmlLayoutEngine
                     line += token.Width;
                     bool wraps = token.Item.Style.WhiteSpace is CssWhiteSpace.Normal or CssWhiteSpace.PreWrap or CssWhiteSpace.PreLine;
                     // Images scale down to fit (D-016), so they set no narrowest width.
-                    bool scalable = token.Kind == TokenKind.Atomic && ((AtomicItem)token.Item).Box is HtmlImageBox;
-                    if (token.Kind != TokenKind.Space) min = Math.Max(min, wraps && !scalable ? token.Width : 0);
+                    var atomicBox = token.Kind == TokenKind.Atomic ? ((AtomicItem)token.Item).Box : null;
+                    double narrowest = atomicBox switch
+                    {
+                        HtmlImageBox => 0,
+                        BlockBox inlineBlock => IntrinsicWidths(inlineBlock).Min,
+                        _ => token.Width
+                    };
+                    if (token.Kind != TokenKind.Space) min = Math.Max(min, wraps ? narrowest : 0);
                 }
                 max = Math.Max(max, line);
                 if (s.WhiteSpace is CssWhiteSpace.NoWrap or CssWhiteSpace.Pre) min = max;

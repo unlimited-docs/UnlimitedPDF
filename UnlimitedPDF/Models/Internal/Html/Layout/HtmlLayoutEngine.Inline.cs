@@ -170,7 +170,7 @@ internal sealed partial class HtmlLayoutEngine
             var fragment = Current;
             fragment.Bottom = Math.Min(fragment.Bottom, _y);
 
-            foreach (var marker in _pendingMarkers) DrawMarker(marker, baseline);
+            foreach (var marker in _pendingMarkers) DrawMarker(marker, baseline, fragment);
             _pendingMarkers.Clear();
 
             double lineLeft = left + (first ? indent : 0);
@@ -261,7 +261,7 @@ internal sealed partial class HtmlLayoutEngine
         string? uri = Classify(href, out string? target);
         if (uri is null && target is null)
         {
-            if (!_measuring && _reportedLinks.Add(href))
+            if ((_report || !_measuring) && _reportedLinks.Add(href))
                 Warn(PdfHtmlWarningKind.LinkDropped, href, $"The link \"{href}\" is not http, https, mailto, or #id; its text is kept.");
             return;
         }
@@ -304,10 +304,10 @@ internal sealed partial class HtmlLayoutEngine
             case HtmlImageBox image:
                 commands.Add(new ImageCommand(image.Image, x, bottom, token.Width, token.Height));
                 break;
-            case BlockBox inlineBlock when token.Inner is { } inner:
+            case BlockBox when token.Inner is { } inner:
                 double dy = bottom + token.Height;
-                foreach (var command in inner) commands.Add(Translate(command, x, dy));
-                _ = inlineBlock;
+                foreach (var command in inner.Commands) commands.Add(Translate(command, x, dy));
+                if (_report || !_measuring) ReportOnce(inner);
                 break;
         }
     }
@@ -327,12 +327,15 @@ internal sealed partial class HtmlLayoutEngine
         var sb = new StringBuilder();
         double available = firstWidth;
         double current = 0;
+        bool first = true;
         foreach (char c in token.Text)
         {
             double w = StandardFontMetrics.Measure(font, c.ToString(), style.FontSize) + style.LetterSpacing;
             if (sb.Length > 0 && current + w > available + Tolerance)
             {
-                yield return token with { Text = sb.ToString(), Width = current, Starts = sb.Length == token.Text.Length ? token.Starts : new List<HtmlElement>() };
+                // The first piece keeps the ids and headings that start at the word (F-17).
+                yield return token with { Text = sb.ToString(), Width = current, Starts = first ? token.Starts : new List<HtmlElement>() };
+                first = false;
                 sb.Clear();
                 current = 0;
                 available = width;
@@ -340,7 +343,7 @@ internal sealed partial class HtmlLayoutEngine
             sb.Append(c);
             current += w;
         }
-        if (sb.Length > 0) yield return token with { Text = sb.ToString(), Width = current, Starts = new List<HtmlElement>() };
+        if (sb.Length > 0) yield return token with { Text = sb.ToString(), Width = current, Starts = first ? token.Starts : new List<HtmlElement>() };
     }
 
     private static double StrutAbove(ComputedStyle style)
@@ -349,7 +352,9 @@ internal sealed partial class HtmlLayoutEngine
         return Ascent * size + (style.LineHeight - size) / 2;
     }
 
-    private List<Token> Tokenize(BlockBox box, double width)
+    // With layoutAtomics false (intrinsic widths), inline-blocks are sized from their intrinsic widths without being
+    // laid out, so intrinsic sizing stays linear in nesting depth (F-05).
+    private List<Token> Tokenize(BlockBox box, double width, bool layoutAtomics = true)
     {
         var tokens = new List<Token>();
         bool lastWasSpace = true;
@@ -363,7 +368,7 @@ internal sealed partial class HtmlLayoutEngine
                     lastWasSpace = true;
                     continue;
                 case AtomicItem atomic:
-                    tokens.Add(AtomicToken(atomic, width));
+                    tokens.Add(AtomicToken(atomic, width, layoutAtomics));
                     lastWasSpace = false;
                     continue;
             }
@@ -443,7 +448,7 @@ internal sealed partial class HtmlLayoutEngine
         return tokens;
     }
 
-    private Token AtomicToken(AtomicItem atomic, double width)
+    private Token AtomicToken(AtomicItem atomic, double width, bool layout)
     {
         switch (atomic.Box)
         {
@@ -454,14 +459,11 @@ internal sealed partial class HtmlLayoutEngine
                 var s = block.Style;
                 double innerWidth = s.Width is { } sw ? Resolve(sw, width) : Math.Min(IntrinsicWidths(block).Max, width);
                 innerWidth = Math.Min(innerWidth, width);
-                var engine = Unbounded(_model, innerWidth);
-                engine.LayoutBox(block, 0, innerWidth);
-                engine.Flush(0);
-                double height = -engine._y;
                 var (ml, mr, bl, br, pl, pr, cw) = Horizontal(s, innerWidth);
                 double outer = s.Width is null ? innerWidth : ml + bl + pl + cw + pr + br + mr;
-                var commands = engine._fragments.TryGetValue(0, out var fragment) ? fragment.Commands : new List<HtmlCommand>();
-                return new Token(TokenKind.Atomic, string.Empty, atomic, Math.Min(outer, width), false, atomic.Starts) { Height = height, Inner = commands };
+                if (!layout) return new Token(TokenKind.Atomic, string.Empty, atomic, Math.Min(outer, width), false, atomic.Starts);
+                var laidOut = LayoutUnbounded(block, innerWidth);
+                return new Token(TokenKind.Atomic, string.Empty, atomic, Math.Min(outer, width), false, atomic.Starts) { Height = laidOut.Height, Inner = laidOut };
             default:
                 return new Token(TokenKind.Atomic, string.Empty, atomic, 0, false, atomic.Starts);
         }
@@ -499,7 +501,7 @@ internal sealed partial class HtmlLayoutEngine
     {
         public double Height { get; init; }
 
-        public List<HtmlCommand>? Inner { get; init; }
+        public CachedLayout? Inner { get; init; }
     }
 
     private sealed class Line

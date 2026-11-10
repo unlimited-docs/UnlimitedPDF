@@ -504,8 +504,9 @@ internal sealed class PagePlanner
 
     private void Place(FlowItem item)
     {
-        // HTML is laid out at the body width of the page where it starts (WR-038).
-        if (item is FlowHtml html && html.LayoutWidth is null) html.LayoutWidth = Geometry(_cursor.Slot).ContentWidth;
+        // HTML is laid out at the body width of the page where it starts (WR-038), found again at every planning pass so
+        // changed margins or page settings take effect (F-21).
+        if (item is FlowHtml html) html.LayoutWidth = Geometry(_cursor.Slot).ContentWidth;
 
         if (item is FlowBreak)
         {

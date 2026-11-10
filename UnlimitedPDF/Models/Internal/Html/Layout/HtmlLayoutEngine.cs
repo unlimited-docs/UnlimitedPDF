@@ -29,12 +29,14 @@ internal sealed partial class HtmlLayoutEngine
     // Room for floating-point rounding when comparing positions, matching the body flow.
     private const double Tolerance = 0.0001;
 
+    private readonly LayoutCache _cache;
     private readonly Func<int, HtmlPageRoom> _edges;
     private readonly Dictionary<int, HtmlPageFragment> _fragments = new();
     private readonly bool _measuring;
     private readonly HtmlModel _model;
     private readonly List<OpenBox> _open = new();
     private readonly List<PendingMarker> _pendingMarkers = new();
+    private readonly HashSet<CachedLayout> _reported = new();
     private readonly Dictionary<int, HtmlPageRoom> _rooms = new();
     private readonly List<PdfHtmlWarning> _warnings;
     private readonly double _width;
@@ -42,6 +44,7 @@ internal sealed partial class HtmlLayoutEngine
     private bool _forceBreak;
     private int _page;
     private double _pendingMargin;
+    private bool _report;
     private double _y;
 
     #endregion
@@ -56,20 +59,23 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="edges">The free room on each page, counted from the page the HTML starts on.</param>
     /// <param name="warnings">Receives layout warnings.</param>
     public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings)
-        : this(model, width, edges, warnings, measuring: false)
+        : this(model, width, edges, warnings, measuring: false, new LayoutCache())
     {
     }
 
-    private HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, bool measuring)
+    private HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, bool measuring, LayoutCache cache)
     {
         _model = model;
         _width = width;
         _edges = edges;
         _warnings = warnings;
         _measuring = measuring;
+        _cache = cache;
         var room = Room(0);
         _y = room.Top;
-        _atTop = true;
+
+        // HTML that starts below other content is not at the top of its page (F-08).
+        _atTop = room.EmptyBody;
     }
 
     #endregion
@@ -85,13 +91,8 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="box">The box.</param>
     /// <param name="width">The width.</param>
     /// <returns>The height in points.</returns>
-    public static double MeasureHeight(HtmlModel model, HtmlBox box, double width)
-    {
-        var engine = Unbounded(model, width);
-        engine.LayoutBox(box, 0, width);
-        engine.Flush(0);
-        return -engine._y;
-    }
+    public static double MeasureHeight(HtmlModel model, HtmlBox box, double width) =>
+        new HtmlLayoutEngine(model, width, Unlimited, new List<PdfHtmlWarning>(), measuring: true, new LayoutCache()).Measure(box, width);
 
     /// <summary>
     /// Lays out the whole HTML.
@@ -113,9 +114,72 @@ internal sealed partial class HtmlLayoutEngine
     private static double Collapse(double a, double b) =>
         a >= 0 && b >= 0 ? Math.Max(a, b) : a < 0 && b < 0 ? Math.Min(a, b) : a + b;
 
-    // An engine on one page of unlimited height, for measuring and for inline-blocks.
-    private static HtmlLayoutEngine Unbounded(HtmlModel model, double width) =>
-        new(model, width, _ => new HtmlPageRoom(0, -1e12, true), new List<PdfHtmlWarning>(), measuring: true);
+    // One page of unlimited height, for measuring, table cells, and inline-blocks.
+    private static HtmlPageRoom Unlimited(int page) => new(0, -1e12, true);
+
+    // Places vertical space (padding, borders, set heights) of any size: what does not fit continues on the next pages
+    // (F-08). Anything placed means the page is no longer empty.
+    private void Advance(double amount)
+    {
+        while (amount > Tolerance)
+        {
+            double room = _y - Room(_page).Bottom;
+            if (_measuring || amount <= room + Tolerance)
+            {
+                _y -= amount;
+                break;
+            }
+            amount -= Math.Max(0, room);
+            _y = Room(_page).Bottom;
+            Current.Bottom = Math.Min(Current.Bottom, _y);
+            NextPage();
+        }
+        _atTop = false;
+        Current.Bottom = Math.Min(Current.Bottom, _y);
+    }
+
+    // The height laid out since a position: on its page, plus the bodies of the pages between, plus this page so far.
+    private double ContentSince(int page, double y)
+    {
+        if (page == _page) return y - _y;
+        double total = y - Room(page).Bottom;
+        for (int p = page + 1; p < _page; p++) total += Room(p).Top - Room(p).Bottom;
+        return total + Room(_page).Top - _y;
+    }
+
+    // The body height of a fresh page, for "fits on a page" checks (F-11).
+    private double FreshBodyHeight()
+    {
+        var room = Room(_page + 1);
+        return room.Top - room.Bottom;
+    }
+
+    // Lays a box out once per width on a page of unlimited height (F-05), with its warnings kept for when it is placed.
+    private CachedLayout LayoutUnbounded(HtmlBox box, double width)
+    {
+        if (_cache.Layouts.TryGetValue((box, width), out var known)) return known;
+        var warnings = new List<PdfHtmlWarning>();
+        var engine = new HtmlLayoutEngine(_model, width, Unlimited, warnings, measuring: true, _cache) { _report = true };
+        engine.LayoutBox(box, 0, width);
+        engine.Flush(0);
+        var commands = engine._fragments.TryGetValue(0, out var fragment) ? fragment.Commands : new List<HtmlCommand>();
+        var result = new CachedLayout(commands, -engine._y, warnings);
+        _cache.Layouts[(box, width)] = result;
+        return result;
+    }
+
+    private double Measure(HtmlBox box, double width) => LayoutUnbounded(box, width).Height;
+
+    // Reports a laid-out part's warnings once, on the page where it is placed (F-14, F-15).
+    private void ReportOnce(CachedLayout layout)
+    {
+        if (!_reported.Add(layout)) return;
+        foreach (var w in layout.Warnings)
+        {
+            if (w.Kind == PdfHtmlWarningKind.LinkDropped && !_reportedLinks.Add(w.Source)) continue;
+            _warnings.Add(new PdfHtmlWarning(w.Kind, w.Source, w.Message, w.Line, _page));
+        }
+    }
 
     private HtmlPageFragment Current => FragmentAt(_page);
 
@@ -186,9 +250,9 @@ internal sealed partial class HtmlLayoutEngine
         if (s.BreakBefore == CssBreak.Page && !_measuring) _forceBreak = true;
         if (s.AvoidBreakInside && !_atTop && !_measuring)
         {
-            double needed = MeasureHeight(_model, box, width);
-            var room = Room(_page);
-            if (needed <= room.Top - room.Bottom && _y - _pendingMargin - needed < room.Bottom - Tolerance) _forceBreak = true;
+            // Judged against a fresh page's body, not the room left here (F-11).
+            double needed = Measure(box, width);
+            if (needed <= FreshBodyHeight() && _y - _pendingMargin - needed < Room(_page).Bottom - Tolerance) _forceBreak = true;
         }
 
         _pendingMargin = Collapse(_pendingMargin, mt);
@@ -207,12 +271,12 @@ internal sealed partial class HtmlLayoutEngine
             if (id is not null || level > 0)
                 FragmentAt(open.StartPage ?? _page).Commands.Add(new MarkCommand(id, level, level > 0 ? Collapsed(element.TextContent()) : null, borderLeft, open.StartY ?? _y));
         }
-        if (bt + pt > 0) { Mark(); _y -= bt + pt; }
+        if (bt + pt > 0) { Mark(); Advance(bt + pt); }
 
         double contentTop = _y;
+        int contentPage = _page;
         double contentLeft = borderLeft + bl + pl;
         if (box.Marker is { Inside: false } marker) _pendingMarkers.Add(new PendingMarker(marker, s, contentLeft));
-        else if (box.Marker is { Inside: true } inside) PrependInsideMarker(box, inside);
 
         if (box.Inlines.Count > 0)
         {
@@ -220,7 +284,7 @@ internal sealed partial class HtmlLayoutEngine
         }
         else
         {
-            if (box.Children.Count == 0) { Flush(0); Mark(); }
+            // An empty block lets margins collapse through it (F-20).
             foreach (var child in box.Children)
             {
                 LayoutBox(child, contentLeft, cw);
@@ -229,24 +293,25 @@ internal sealed partial class HtmlLayoutEngine
         }
         Mark();
 
-        // A marker whose item has no line is drawn at the item's top.
+        // A marker whose item has no line is drawn at the item's top, on the page where the item starts (F-13).
         _pendingMarkers.RemoveAll(p =>
         {
             if (p.Style != s) return false;
-            DrawMarker(p, contentTop - p.Style.FontSize);
+            DrawMarker(p, contentTop - p.Style.FontSize, FragmentAt(contentPage));
             return true;
         });
 
         if (pb + bb > 0 || s.Height is not null) Flush(0);
-        if (s.Height is { } h)
+        if (s.Height is { } h && open.StartY is double startY && open.StartPage is int startPage)
         {
-            double minimum = (open.StartY ?? contentTop) - bt - pt - Resolve(h, 0);
-            if (open.StartPage == _page && _y > minimum) _y = minimum;
+            // A set height makes room across pages like any other content (F-08).
+            double missing = bt + pt + Resolve(h, 0) - ContentSince(startPage, startY);
+            if (missing > Tolerance) Advance(missing);
         }
         if (pb + bb > 0)
         {
             Flush(pb + bb);
-            _y -= pb + bb;
+            Advance(pb + bb);
         }
         if (_open.Remove(open) && HasDecoration(s)) Decorate(open);
         _pendingMargin = Collapse(_pendingMargin, mb);
@@ -339,8 +404,9 @@ internal sealed partial class HtmlLayoutEngine
 
     private static string Collapsed(string text) => string.Join(" ", text.Split(new[] { ' ', '\t', '\n', '\r', '\f', ' ' }, StringSplitOptions.RemoveEmptyEntries));
 
-    private void DrawMarker(PendingMarker pending, double baseline)
+    private void DrawMarker(PendingMarker pending, double baseline, HtmlPageFragment fragment)
     {
+        void Emit(HtmlCommand command) => fragment.Commands.Add(command);
         var s = pending.Style;
         double size = s.FontSize;
         var font = StandardFonts.Select(s.FontFamily, s.FontWeight, s.Italic);
@@ -365,27 +431,22 @@ internal sealed partial class HtmlLayoutEngine
         }
     }
 
+    // Moves to the next page: open clips close here and reopen there; decorations of open blocks go after the clips
+    // and before repeated table headers (F-16). A page below carried rows is not empty (F-08).
     private void NextPage()
     {
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
         var room = Room(_page);
         _y = room.Top;
-        _atTop = true;
+        _atTop = room.EmptyBody;
+        ReopenClips();
         var fragment = Current;
         foreach (var box in _open)
         {
             if (!box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = fragment.Commands.Count;
         }
-        OnPageStarted();
-    }
-
-    private static void PrependInsideMarker(BlockBox box, ListMarker marker)
-    {
-        string text = marker.Text is { } t ? t + " " : "• ";
-        var target = box;
-        while (target.Inlines.Count == 0 && target.Children.FirstOrDefault() is BlockBox first) target = first;
-        target.Inlines.Insert(0, new TextItem(text, box.Style));
+        DrawRepeatedHeaders();
     }
 
     private static double Resolve(CssLength? length, double percentBase) =>
@@ -431,6 +492,17 @@ internal sealed partial class HtmlLayoutEngine
     }
 
     private sealed record PendingMarker(ListMarker Marker, ComputedStyle Style, double ContentLeft);
+
+    // A box laid out on one page of unlimited height: its commands (top at 0, left at 0), height, and warnings.
+    private sealed record CachedLayout(List<HtmlCommand> Commands, double Height, List<PdfHtmlWarning> Warnings);
+
+    // Results shared by every engine of one layout: intrinsic widths per box and layouts per box and width (F-05).
+    private sealed class LayoutCache
+    {
+        public Dictionary<(HtmlBox Box, bool Preferred), (double Min, double Max)> Intrinsic { get; } = new();
+
+        public Dictionary<(HtmlBox Box, double Width), CachedLayout> Layouts { get; } = new();
+    }
 
     #endregion
 }

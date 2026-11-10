@@ -162,6 +162,16 @@ internal sealed class BoxTreeBuilder
             return block;
         }
         BuildBlockChildren(block, element.Children);
+
+        // An inside marker is text at the start of the item's first line, added once here so layout passes and
+        // measuring never add it again (F-13).
+        if (block.Marker is { Inside: true } inside)
+        {
+            var target = block;
+            while (target.Inlines.Count == 0 && target.Children.FirstOrDefault() is BlockBox first) target = first;
+            target.Inlines.Insert(0, new TextItem(inside.Text is { } text ? text + " " : "• ", style));
+            block.Marker = null;
+        }
         return block;
     }
 
