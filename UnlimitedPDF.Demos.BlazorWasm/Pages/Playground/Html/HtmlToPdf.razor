@@ -1,5 +1,5 @@
 @page "/playground/html/html-to-pdf"
-@inject HttpClient Http
+@inject HtmlSampleImages Images
 
 <SamplePage @ref="_page" Demo="SampleCatalog.HtmlToPdf" Build="BuildAsync" PageCount="null" OnReset="Reset">
     <Inputs>
@@ -74,7 +74,7 @@
 
     private async Task<PdfDocument> BuildAsync()
     {
-        var (document, html) = await HtmlToPdfSample.BuildAsync(_html, ImagesAsync);
+        var (document, html) = await HtmlToPdfSample.BuildAsync(_html, Images.ResolveAsync);
         _warnings = html.Warnings;
         StateHasChanged();
         return document;
@@ -84,18 +84,6 @@
     {
         change();
         _page?.NotifyInputsChanged();
-    }
-
-    // The templates' images, from this site's image folder.
-    private async Task<Stream?> ImagesAsync(string reference, CancellationToken cancellationToken)
-    {
-        string? path = reference switch
-        {
-            "logo.png" => "images/invoice-logo.png",
-            "banner.png" => "images/unlimitedpdf-demos-hero-800.jpg",
-            _ => null
-        };
-        return path is null ? null : new MemoryStream(await Http.GetByteArrayAsync(path, cancellationToken));
     }
 
     private void Reset()

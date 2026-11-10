@@ -56,9 +56,12 @@ public class HtmlPlaygroundTests
     {
         var names = SampleCatalog.Categories.Select(c => c.Title).ToList();
         Assert.Equal(names.IndexOf("Split") + 1, names.IndexOf("HTML to PDF"));
-        var demo = Assert.Single(SampleCatalog.Categories.Single(c => c.Title == "HTML to PDF").Demos);
-        Assert.Equal("playground/html/html-to-pdf", demo.Route);
-        Assert.Equal("HtmlToPdfSample.cs", demo.SourceFile);
+        // The templates page first, then the known-problem scenarios (14-html-to-pdf AC-28).
+        var demos = SampleCatalog.Categories.Single(c => c.Title == "HTML to PDF").Demos;
+        Assert.Equal(new[] { "HTML to PDF", "Tricky HTML" }, demos.Select(d => d.Title));
+        Assert.Equal(new[] { "playground/html/html-to-pdf", "playground/html/tricky-html" }, demos.Select(d => d.Route));
+        Assert.All(demos, d => Assert.Equal("HtmlToPdfSample.cs", d.SourceFile));
+        Assert.Equal("tricky-html.pdf", demos[1].FileName);
     }
 
     #endregion
