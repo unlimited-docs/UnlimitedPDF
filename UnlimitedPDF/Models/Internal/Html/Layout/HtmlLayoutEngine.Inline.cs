@@ -32,12 +32,14 @@ internal sealed partial class HtmlLayoutEngine
     };
 
     // Breaks the tokens into lines that fit the width, wrapping at spaces and splitting a word only when it alone is
-    // wider than its line.
+    // wider than its line. An inline-block taller than a page body gets a line of its own, so the text around it
+    // stays on lines that fit instead of sharing a line that is clipped at the page bottom (F-44).
     private List<Line> BreakLines(List<Token> tokens, double width, double indent)
     {
         var lines = new List<Line>();
         var line = new Line();
         double available = width - indent;
+        double towering = _measuring ? double.MaxValue : FreshBodyHeight();
 
         void Finish(bool forced)
         {
@@ -64,6 +66,12 @@ internal sealed partial class HtmlLayoutEngine
                     if (token.Collapsible && line.Tokens.All(t => t.Kind == TokenKind.Space || (t.Kind == TokenKind.Word && t.Text.Length == 0))) continue;
                     line.Tokens.Add(token);
                     line.Width += token.Width;
+                    break;
+                case TokenKind.Atomic when token.Height > towering + Tolerance:
+                    if (line.Tokens.Any(t => t.Kind != TokenKind.Space && t.Width > 0)) Finish(forced: false);
+                    line.Tokens.Add(token);
+                    line.Width += token.Width;
+                    Finish(forced: false);
                     break;
                 default:
                     bool wraps = token.Item.Style.WhiteSpace is CssWhiteSpace.Normal or CssWhiteSpace.PreWrap or CssWhiteSpace.PreLine;

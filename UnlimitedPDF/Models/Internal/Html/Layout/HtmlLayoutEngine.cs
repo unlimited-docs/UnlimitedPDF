@@ -33,6 +33,7 @@ internal sealed partial class HtmlLayoutEngine
     private readonly Func<int, HtmlPageRoom> _edges;
     private readonly Dictionary<int, HtmlPageFragment> _fragments = new();
     private readonly bool _measuring;
+    private readonly int? _lastPage;
     private readonly HtmlModel _model;
     private readonly List<OpenBox> _open = new();
     private readonly List<PendingMarker> _pendingMarkers = new();
@@ -58,9 +59,12 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="width">The width HTML is laid out at: the body width of the page it starts on.</param>
     /// <param name="edges">The free room on each page, counted from the page the HTML starts on.</param>
     /// <param name="warnings">Receives layout warnings.</param>
-    public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings)
+    /// <param name="lastPage">The last page offset layout may move to, or null for no limit; moving past it throws
+    /// <see cref="HtmlPageLimitException"/>.</param>
+    public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, int? lastPage = null)
         : this(model, width, edges, warnings, measuring: false, new LayoutCache())
     {
+        _lastPage = lastPage;
     }
 
     private HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, bool measuring, LayoutCache cache)
@@ -445,6 +449,7 @@ internal sealed partial class HtmlLayoutEngine
     {
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
+        CheckPageLimit(_page);
         var room = Room(_page);
         _y = room.Top;
         _atTop = room.EmptyBody;
@@ -455,6 +460,13 @@ internal sealed partial class HtmlLayoutEngine
             if (!box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = fragment.Commands.Count;
         }
         DrawRepeatedHeaders();
+    }
+
+    // Fails when layout moves past the last page it may use. Looking at a later page's room does not count; only
+    // moving there does (F-42).
+    private void CheckPageLimit(int page)
+    {
+        if (_lastPage is int last && page > last) throw new HtmlPageLimitException();
     }
 
     private static double Resolve(CssLength? length, double percentBase) =>
@@ -475,6 +487,13 @@ internal sealed partial class HtmlLayoutEngine
     #endregion
 
     #region Nested Types
+
+    /// <summary>
+    /// Thrown when HTML layout moves past the page limit it was given.
+    /// </summary>
+    internal sealed class HtmlPageLimitException : Exception
+    {
+    }
 
     // A block whose background or borders are drawn once its extent is known.
     private sealed class OpenBox

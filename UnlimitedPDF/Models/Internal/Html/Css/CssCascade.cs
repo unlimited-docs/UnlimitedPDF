@@ -39,7 +39,7 @@ internal static class CssCascade
         foreach (var rule in authorRules) Report(rule.Declarations, rule.Line, warnings);
 
         var styles = new Dictionary<HtmlElement, ComputedStyle>();
-        var memo = new CssSelector.MatchMemo();
+        var memo = new CssSelector.MatchMemo(Number(tree.Root));
         var pending = new Stack<HtmlElement>();
         pending.Push(tree.Root);
         while (pending.Count > 0)
@@ -58,6 +58,24 @@ internal static class CssCascade
     #endregion
 
     #region Private Methods
+
+    // Numbers every element from 0, for the selector memo.
+    private static Dictionary<HtmlElement, int> Number(HtmlElement root)
+    {
+        var ordinals = new Dictionary<HtmlElement, int>();
+        var pending = new Stack<HtmlElement>();
+        pending.Push(root);
+        while (pending.Count > 0)
+        {
+            var element = pending.Pop();
+            ordinals[element] = ordinals.Count;
+            foreach (var child in element.Children)
+            {
+                if (child is HtmlElement e) pending.Push(e);
+            }
+        }
+        return ordinals;
+    }
 
     private static ComputedStyle Compute(HtmlElement element, ComputedStyle? parent, IReadOnlyList<CssRule> authorRules, HtmlWarnings warnings, CssSelector.MatchMemo memo)
     {

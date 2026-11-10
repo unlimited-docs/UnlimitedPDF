@@ -208,6 +208,76 @@ public class HtmlRevision2ReviewTests
         Assert.Equal(Gap("<p>a</p><p>b</p>"), Gap("<p>a</p><div style='height:0'></div><p>b</p>"), 2);
     }
 
+    [Theory]
+    [InlineData(1, "<table><tr><td>cell</td></tr></table>")]
+    [InlineData(1, "<p>hello</p><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR42mPQmxdNEmIY1TCqYfhqAACofScQa/x9PAAAAABJRU5ErkJggg=='>")]
+    [InlineData(1, "<p>a</p><div style='break-inside:avoid'>b</div>")]
+    [InlineData(1, "<p style='break-after:page'>only</p>")]
+    [InlineData(2, "LINES<table><tr><td>cell</td></tr></table>")]
+    public void Documents_that_fit_the_page_limit_save(int maxPages, string html)
+    {
+        // F-42: layout looked at the next page's room before needing it, and the limit check failed documents that fit.
+        var doc = Document();
+        doc.Body.MaxPages = maxPages;
+        doc.Body.AddHtml(PdfHtml.FromString(html.Replace("LINES", string.Concat(Enumerable.Range(1, 60).Select(i => $"<div>line {i}</div>")), StringComparison.Ordinal)));
+        Assert.Equal(maxPages, PdfPageReader.Save(doc).Count);
+    }
+
+    [Fact]
+    public void A_document_one_page_over_the_limit_gets_the_save_message_and_a_huge_one_stops_early()
+    {
+        // F-42, F-46: one page over is reported by the save's page check; a huge height stops layout with "1 page".
+        var over = Document();
+        over.Body.MaxPages = 1;
+        over.Body.AddHtml(PdfHtml.FromString(string.Concat(Enumerable.Range(1, 60).Select(i => $"<div>line {i}</div>")) + "<table><tr><td>cell</td></tr></table>"));
+        Assert.Contains("needs 2 pages, but Body.MaxPages is 1", Assert.Throws<InvalidOperationException>(() => over.Save(new MemoryStream())).Message, StringComparison.Ordinal);
+
+        var huge = Document();
+        huge.Body.MaxPages = 1;
+        huge.Body.AddHtml(PdfHtml.FromString("<table><tr><td style='height:1000000000pt'>x</td></tr></table>"));
+        var watch = Stopwatch.StartNew();
+        var ex = Assert.Throws<InvalidOperationException>(() => huge.Save(new MemoryStream()));
+        Assert.Contains("needs more than 1 page, but Body.MaxPages is 1", ex.Message, StringComparison.Ordinal);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"took {watch.Elapsed}");
+    }
+
+    [Fact]
+    public void Failing_descendant_selectors_over_many_separate_deep_chains_load_quickly()
+    {
+        // F-43: 400 chains 250 deep with 20 failing rules took 17 s and 582 MB; each ancestor walk is now one lookup.
+        var html = new StringBuilder("<style>");
+        for (int r = 0; r < 20; r++) html.Append("p.r").Append(r).Append(" div div div span{color:red}");
+        html.Append("</style>");
+        for (int c = 0; c < 200; c++)
+            html.Append(string.Concat(Enumerable.Repeat("<div>", 250))).Append("<span>x</span>").Append(string.Concat(Enumerable.Repeat("</div>", 250)));
+        var watch = Stopwatch.StartNew();
+        _ = PdfHtml.FromString(html.ToString());
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(6), $"took {watch.Elapsed}");
+    }
+
+    [Fact]
+    public void Text_beside_an_inline_block_taller_than_a_page_stays_visible()
+    {
+        // F-44: "BEFORE" and "TAIL words" shared the tall line and were drawn at y -934, inside the clip.
+        string lines = string.Concat(Enumerable.Range(1, 120).Select(i => $"line {i}<br>"));
+        var pages = Render($"<body style='margin:0'><p>BEFORE <span style='display:inline-block'>{lines}</span> TAIL words</p><p>AFTER</p>");
+        foreach (string text in new[] { "BEFORE", "TAIL words", "AFTER" })
+        {
+            var run = pages.SelectMany(Runs).Single(r => r.Text.Trim() == text);
+            Assert.True(run.Y - run.Size * 0.2 >= Bottom - 0.01 && run.Y <= Top + 0.01, $"'{text}' at {run.Y}");
+        }
+    }
+
+    [Fact]
+    public void Only_the_column_that_must_break_breaks()
+    {
+        // F-45: a 10-word non-breaking run broke beside a URL although breaking only the URL column fits.
+        string run = string.Join("&nbsp;", Enumerable.Range(1, 10).Select(i => "word" + i.ToString(CultureInfo.InvariantCulture)));
+        var texts = Texts(PdfHtml.FromString($"<table><tr><td>{run}</td><td>{Url}</td></tr></table>"));
+        Assert.Contains(string.Join(" ", Enumerable.Range(1, 10).Select(i => "word" + i.ToString(CultureInfo.InvariantCulture))), texts);
+        Assert.DoesNotContain(Url, texts);
+    }
+
     #endregion
 
     #region Private Methods

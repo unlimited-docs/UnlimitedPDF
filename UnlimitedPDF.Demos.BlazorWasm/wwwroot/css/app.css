@@ -466,6 +466,11 @@ h1:focus { outline: none; }
 .scenario-badge.is-limitation { background: var(--app-warn-soft); color: #7a5300; }
 .scenario-text { font-size: 0.85rem; display: grid; gap: 0.4rem; }
 .scenario-text p { margin: 0; }
+/* In the one-column layout the list scrolls on its own, so the chosen scenario's text, HTML, and PDF follow it
+   closely instead of after every scenario (14-html-to-pdf review F-47). */
+@media (max-width: 1279.98px) {
+    .scenario-list { max-height: 15rem; overflow-y: auto; padding-right: 0.25rem; }
+}
 
 .check-field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
 .check-field input { width: 1.05rem; height: 1.05rem; accent-color: var(--app-accent); }

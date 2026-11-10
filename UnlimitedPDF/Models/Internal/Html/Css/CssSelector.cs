@@ -64,7 +64,7 @@ internal sealed class CssSelector
     /// </summary>
     /// <param name="element">The element.</param>
     /// <returns>True when it matches.</returns>
-    public bool Matches(HtmlElement element) => Matches(element, new MatchMemo());
+    public bool Matches(HtmlElement element) => Matches(element, MatchMemo.ForAncestors(element));
 
     /// <summary>
     /// Returns whether the selector matches an element, reusing what <paramref name="memo"/> already knows about the
@@ -84,28 +84,26 @@ internal sealed class CssSelector
 
     #region Private Methods
 
-    // Whether the compounds from 0 to index match, the compound at index matching this element. Recursion depth is the
-    // compound count, not the nesting depth: ancestors are walked in a loop. Each (selector, element, compound) result
-    // is computed once per document (A06): without that memory, descendant combinators retry ancestor combinations
-    // for every element, which grows with the number of elements times the square of the nesting depth.
+    // Whether the compounds from 0 to index match, the compound at index matching this element. A child step looks at
+    // one parent; a descendant step asks whether any ancestor matches, which is remembered per element (A06).
     private bool MatchFrom(HtmlElement element, int index, MatchMemo memo)
     {
         if (index == 0) return true;
-        if (memo.Results.TryGetValue((this, element, index), out bool known)) return known;
-
-        bool matched = false;
         if (_combinators[index - 1] == '>')
-        {
-            matched = element.Parent is { } parent && _compounds[index - 1].Matches(parent) && MatchFrom(parent, index - 1, memo);
-        }
-        else
-        {
-            for (var ancestor = element.Parent; ancestor is not null && !matched; ancestor = ancestor.Parent)
-            {
-                if (_compounds[index - 1].Matches(ancestor) && MatchFrom(ancestor, index - 1, memo)) matched = true;
-            }
-        }
-        memo.Results[(this, element, index)] = matched;
+            return element.Parent is { } parent && _compounds[index - 1].Matches(parent) && MatchFrom(parent, index - 1, memo);
+        return AnyAncestor(element, index - 1, memo);
+    }
+
+    // Whether some ancestor of the element matches the compounds from 0 to index, the compound at index matching that
+    // ancestor. It is the parent's own answer or its parent's, so each (element, compound) is decided once per
+    // document in constant time: the work and memory grow with the elements times the compounds (F-43), not with the
+    // nesting depth.
+    private bool AnyAncestor(HtmlElement element, int index, MatchMemo memo)
+    {
+        if (element.Parent is not { } parent) return false;
+        if (memo.TryGet(this, element, index, out bool known)) return known;
+        bool matched = (_compounds[index].Matches(parent) && MatchFrom(parent, index, memo)) || AnyAncestor(parent, index, memo);
+        memo.Set(this, element, index, matched);
         return matched;
     }
 
@@ -176,10 +174,54 @@ internal sealed class CssSelector
     /// </summary>
     public sealed class MatchMemo
     {
+        private readonly IReadOnlyDictionary<HtmlElement, int> _ordinals;
+        // Per selector: two bits per (element, compound), unknown, true, or false, indexed by element ordinal.
+        private readonly Dictionary<CssSelector, byte[]> _states = new();
+
         /// <summary>
-        /// Gets the known results.
+        /// Creates a memo for the elements numbered in <paramref name="ordinals"/>: every element whose ancestors
+        /// are asked about.
         /// </summary>
-        public Dictionary<(CssSelector Selector, HtmlElement Element, int Index), bool> Results { get; } = new();
+        /// <param name="ordinals">Each element's number, from 0.</param>
+        public MatchMemo(IReadOnlyDictionary<HtmlElement, int> ordinals)
+        {
+            _ordinals = ordinals;
+        }
+
+        /// <summary>
+        /// Creates a memo for one element and its ancestors, for a match outside a cascade pass.
+        /// </summary>
+        /// <param name="element">The element.</param>
+        /// <returns>The memo.</returns>
+        public static MatchMemo ForAncestors(HtmlElement element)
+        {
+            var ordinals = new Dictionary<HtmlElement, int>();
+            for (HtmlElement? e = element; e is not null; e = e.Parent) ordinals[e] = ordinals.Count;
+            return new MatchMemo(ordinals);
+        }
+
+        internal bool TryGet(CssSelector selector, HtmlElement element, int index, out bool value)
+        {
+            value = false;
+            if (!_states.TryGetValue(selector, out var states)) return false;
+            int slot = Slot(selector, element, index);
+            int bits = (states[slot >> 2] >> ((slot & 3) * 2)) & 3;
+            value = bits == 1;
+            return bits != 0;
+        }
+
+        internal void Set(CssSelector selector, HtmlElement element, int index, bool value)
+        {
+            if (!_states.TryGetValue(selector, out var states))
+            {
+                states = new byte[(_ordinals.Count * selector._compounds.Count + 3) / 4];
+                _states[selector] = states;
+            }
+            int slot = Slot(selector, element, index);
+            states[slot >> 2] |= (byte)((value ? 1 : 2) << ((slot & 3) * 2));
+        }
+
+        private int Slot(CssSelector selector, HtmlElement element, int index) => _ordinals[element] * selector._compounds.Count + index;
     }
 
     private sealed class Compound

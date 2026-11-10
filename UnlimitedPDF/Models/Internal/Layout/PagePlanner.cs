@@ -593,14 +593,6 @@ internal sealed class PagePlanner
         HtmlPageRoom Room(int offset)
         {
             int slot = start.Slot + offset;
-            // A few bytes of HTML can ask for any number of pages (a huge height or padding); with a page limit set, the
-            // layout stops at the first page past it instead of planning them all (WR-033, A06).
-            if (MaxPages is int max && _nextNumber + slot > max)
-                throw new InvalidOperationException(string.Format(
-                    CultureInfo.InvariantCulture,
-                    "The content needs more than {0} pages, but Body.MaxPages is {0}: {1} does not fit. Shorten the content or raise the limit.",
-                    max,
-                    item.Description));
             if (offset == 0) return new HtmlPageRoom(startY, Geometry(slot).BodyBottom, start.EmptyBody);
             var fresh = Fresh(slot);
             return new HtmlPageRoom(fresh.Y, Geometry(slot).BodyBottom, fresh.EmptyBody);
@@ -608,7 +600,24 @@ internal sealed class PagePlanner
 
         var warnings = new List<PdfHtmlWarning>();
         double width = item.LayoutWidth ?? Geometry(start.Slot).ContentWidth;
-        var fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings).Layout();
+        // A few bytes of HTML can ask for any number of pages (a huge height or padding). With a page limit set, layout
+        // stops once it moves past the page after the last allowed one (WR-033, A06); a single page past the limit is
+        // still laid out, and the save's page check reports it.
+        int? lastOffset = MaxPages is int max ? max - (_nextNumber + start.Slot) + 1 : null;
+        IReadOnlyList<HtmlPageFragment> fragments;
+        try
+        {
+            fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings, lastOffset).Layout();
+        }
+        catch (HtmlLayoutEngine.HtmlPageLimitException)
+        {
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.InvariantCulture,
+                "The content needs more than {0} {1}, but Body.MaxPages is {0}: {2} does not fit. Shorten the content or raise the limit.",
+                MaxPages,
+                MaxPages == 1 ? "page" : "pages",
+                item.Description));
+        }
         var numbered = warnings
             .Select(w => new PdfHtmlWarning(w.Kind, w.Source, w.Message, w.Line, w.PageNumber is int offset ? _nextNumber + start.Slot + offset : null))
             .ToList();
