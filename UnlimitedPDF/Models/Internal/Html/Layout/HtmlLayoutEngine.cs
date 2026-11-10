@@ -499,7 +499,7 @@ internal sealed partial class HtmlLayoutEngine
     // Results shared by every engine of one layout: intrinsic widths per box and layouts per box and width (F-05).
     private sealed class LayoutCache
     {
-        public Dictionary<(HtmlBox Box, bool Preferred), (double Min, double Max)> Intrinsic { get; } = new();
+        public Dictionary<(HtmlBox Box, bool Preferred, bool BreakWords), (double Min, double Max)> Intrinsic { get; } = new();
 
         public Dictionary<(HtmlBox Box, double Width), CachedLayout> Layouts { get; } = new();
     }

@@ -47,7 +47,7 @@ internal sealed partial class HtmlLayoutEngine
     }
 
     // Column widths (border-box widths of the cells in that column) for the room available.
-    private double[] ColumnWidths(TableBox table, List<GridCell> cells, int columns, double available, bool fixedWidth, out double minimumTotal)
+    private double[] ColumnWidths(TableBox table, List<GridCell> cells, int columns, double available, bool fixedWidth, out double minimumTotal, bool breakWords = false)
     {
         var min = new double[columns];
         var max = new double[columns];
@@ -64,7 +64,7 @@ internal sealed partial class HtmlLayoutEngine
         // Single-column cells first, then spanning cells share what they need beyond their columns.
         foreach (var cell in cells.OrderBy(g => g.Cell.ColumnSpan))
         {
-            var (cellMin, cellMax) = IntrinsicWidths(cell.Cell.Content, preferredWidth: true);
+            var (cellMin, cellMax) = IntrinsicWidths(cell.Cell.Content, preferredWidth: true, breakWords: breakWords);
             if (cell.Cell.Style.Width is { Unit: CssUnit.Percent } pw && cell.Cell.ColumnSpan == 1) percent[cell.Column] = Math.Max(percent[cell.Column] ?? 0, pw.Value);
             if (cell.Cell.ColumnSpan == 1)
             {
@@ -181,6 +181,10 @@ internal sealed partial class HtmlLayoutEngine
         double? specified = s.Width is { } sw ? Resolve(sw, width) : null;
         double target = Math.Min(specified ?? outerRoom, outerRoom);
         var widths = ColumnWidths(table, cells, columns, target - extras, specified is not null, out double minimumTotal);
+        // Words wider than their columns would push the table past the room: size the columns again with long words
+        // broken between characters, as line layout breaks them (WR-038), before clipping anything.
+        if (minimumTotal > target - extras + Tolerance)
+            widths = ColumnWidths(table, cells, columns, target - extras, specified is not null, out minimumTotal, breakWords: true);
         double tableWidth = widths.Sum() + extras;
 
         // A table is at least as wide as its captions' narrowest content (CSS 2.1, 17.4).
@@ -453,12 +457,12 @@ internal sealed partial class HtmlLayoutEngine
         _atTop = false;
     }
 
-    private (double Min, double Max) TableIntrinsicWidths(TableBox table)
+    private (double Min, double Max) TableIntrinsicWidths(TableBox table, bool breakWords)
     {
         var (cells, columns) = BuildGrid(table);
         var s = table.Style;
         double spacing = s.BorderCollapse ? 0 : s.BorderSpacingHorizontal * (columns + 1);
-        var widths = ColumnWidths(table, cells, columns, 1e9, fixedWidth: false, out double minimum);
+        var widths = ColumnWidths(table, cells, columns, 1e9, fixedWidth: false, out double minimum, breakWords);
         return (minimum + spacing, widths.Sum() + spacing);
     }
 

@@ -39,6 +39,7 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MergePackSample.cs" Link="Demo\Samples\MergePackSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PickPagesSample.cs" Link="Demo\Samples\PickPagesSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCatalog.cs" Link="Demo\Samples\SampleCatalog.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlScenarios.cs" Link="Demo\Samples\HtmlScenarios.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlTemplates.cs" Link="Demo\Samples\HtmlTemplates.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlToPdfSample.cs" Link="Demo\Samples\HtmlToPdfSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCategory.cs" Link="Demo\Samples\SampleCategory.cs" />

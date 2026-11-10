@@ -1,3 +1,4 @@
+using UnlimitedPDF.Models.Internal.Fonts;
 using UnlimitedPDF.Models.Internal.Html.Css;
 
 namespace UnlimitedPDF.Models.Internal.Html.Layout;
@@ -20,17 +21,28 @@ internal sealed partial class HtmlLayoutEngine
     }
 
     // A table cell's width is a preference (preferredWidth): its narrowest width stays its content's, and its widest
-    // is at least the preferred width.
-    private (double Min, double Max) IntrinsicWidths(HtmlBox box, bool preferredWidth = false)
+    // is at least the preferred width. With breakWords, a wrapping word's narrowest width is its widest character,
+    // since line layout breaks a word wider than the line between characters (WR-038).
+    private (double Min, double Max) IntrinsicWidths(HtmlBox box, bool preferredWidth = false, bool breakWords = false)
     {
         // Computed once per box (F-05): nested tables and inline-blocks would otherwise recompute it at every level.
-        if (_cache.Intrinsic.TryGetValue((box, preferredWidth), out var known)) return known;
-        var result = ComputeIntrinsicWidths(box, preferredWidth);
-        _cache.Intrinsic[(box, preferredWidth)] = result;
+        if (_cache.Intrinsic.TryGetValue((box, preferredWidth, breakWords), out var known)) return known;
+        var result = ComputeIntrinsicWidths(box, preferredWidth, breakWords);
+        _cache.Intrinsic[(box, preferredWidth, breakWords)] = result;
         return result;
     }
 
-    private (double Min, double Max) ComputeIntrinsicWidths(HtmlBox box, bool preferredWidth)
+    // The widest single character of a word, the narrowest a word can be broken to.
+    private static double WidestCharacter(Token token)
+    {
+        var style = token.Item.Style;
+        var font = Font(style);
+        double widest = 0;
+        foreach (char c in token.Text) widest = Math.Max(widest, StandardFontMetrics.Measure(font, c.ToString(), style.FontSize) + style.LetterSpacing);
+        return widest;
+    }
+
+    private (double Min, double Max) ComputeIntrinsicWidths(HtmlBox box, bool preferredWidth, bool breakWords)
     {
         var s = box.Style;
         double outside = FixedHorizontal(s);
@@ -57,7 +69,8 @@ internal sealed partial class HtmlLayoutEngine
                     double narrowest = atomicBox switch
                     {
                         HtmlImageBox => 0,
-                        BlockBox inlineBlock => IntrinsicWidths(inlineBlock).Min,
+                        BlockBox inlineBlock => IntrinsicWidths(inlineBlock, breakWords: breakWords).Min,
+                        _ when breakWords && token.Kind == TokenKind.Word => WidestCharacter(token),
                         _ => token.Width
                     };
                     if (token.Kind != TokenKind.Space) min = Math.Max(min, wraps ? narrowest : 0);
@@ -68,13 +81,13 @@ internal sealed partial class HtmlLayoutEngine
             case BlockBox block:
                 foreach (var child in block.Children)
                 {
-                    var (childMin, childMax) = IntrinsicWidths(child);
+                    var (childMin, childMax) = IntrinsicWidths(child, breakWords: breakWords);
                     min = Math.Max(min, childMin);
                     max = Math.Max(max, childMax);
                 }
                 break;
             case TableBox table:
-                (min, max) = TableIntrinsicWidths(table);
+                (min, max) = TableIntrinsicWidths(table, breakWords);
                 break;
         }
         if (s.MinWidth is { Unit: not CssUnit.Percent } minWidth) { min = Math.Max(min, Resolve(minWidth, 0)); max = Math.Max(max, Resolve(minWidth, 0)); }
