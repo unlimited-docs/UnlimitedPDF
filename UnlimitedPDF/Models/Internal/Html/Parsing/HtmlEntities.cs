@@ -78,7 +78,7 @@ internal static class HtmlEntities
             if (hex) i++;
             int start = i;
             long value = 0;
-            while (i < text.Length && (hex ? Uri.IsHexDigit(text[i]) : char.IsDigit(text[i])))
+            while (i < text.Length && (hex ? Uri.IsHexDigit(text[i]) : text[i] is >= '0' and <= '9'))
             {
                 value = Math.Min(value * (hex ? 16 : 10) + Convert.ToInt32(text[i].ToString(), hex ? 16 : 10), 0x110000);
                 i++;

@@ -64,26 +64,42 @@ internal sealed class CssSelector
     /// </summary>
     /// <param name="element">The element.</param>
     /// <returns>True when it matches.</returns>
-    public bool Matches(HtmlElement element) => !NeverMatches && MatchFrom(element, _compounds.Count - 1);
+    public bool Matches(HtmlElement element)
+    {
+        if (NeverMatches || !_compounds[_compounds.Count - 1].Matches(element)) return false;
+        if (_compounds.Count == 1) return true;
+
+        // Each (element, compound) pair is tried at most once (A06): without memory, descendant combinators would
+        // retry every combination of ancestors, which grows combinatorially with nesting depth.
+        var failed = new HashSet<(HtmlElement, int)>();
+        return MatchFrom(element, _compounds.Count - 1, failed);
+    }
 
     #endregion
 
     #region Private Methods
 
-    private bool MatchFrom(HtmlElement element, int index)
+    // Whether the compounds from 0 to index match, the compound at index matching this element. Recursion depth is the
+    // compound count, not the nesting depth: ancestors are walked in a loop.
+    private bool MatchFrom(HtmlElement element, int index, HashSet<(HtmlElement, int)> failed)
     {
-        if (!_compounds[index].Matches(element)) return false;
         if (index == 0) return true;
+        if (failed.Contains((element, index))) return false;
 
-        char combinator = _combinators[index - 1];
-        if (combinator == '>')
-            return element.Parent is { } parent && MatchFrom(parent, index - 1);
-
-        for (var ancestor = element.Parent; ancestor is not null; ancestor = ancestor.Parent)
+        bool matched = false;
+        if (_combinators[index - 1] == '>')
         {
-            if (MatchFrom(ancestor, index - 1)) return true;
+            matched = element.Parent is { } parent && _compounds[index - 1].Matches(parent) && MatchFrom(parent, index - 1, failed);
         }
-        return false;
+        else
+        {
+            for (var ancestor = element.Parent; ancestor is not null && !matched; ancestor = ancestor.Parent)
+            {
+                if (_compounds[index - 1].Matches(ancestor) && MatchFrom(ancestor, index - 1, failed)) matched = true;
+            }
+        }
+        if (!matched) failed.Add((element, index));
+        return matched;
     }
 
     private static bool TryParse(string text, out CssSelector? selector)
@@ -177,7 +193,7 @@ internal sealed class CssSelector
             if (FirstChild || LastChild)
             {
                 if (element.Parent is not { } parent) return false;
-                var siblings = parent.Children.OfType<HtmlElement>().ToList();
+                var siblings = parent.ElementChildren;
                 if (FirstChild && siblings[0] != element) return false;
                 if (LastChild && siblings[siblings.Count - 1] != element) return false;
             }

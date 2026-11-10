@@ -43,7 +43,7 @@ internal sealed class HtmlModel
         {
             if (!CssParser.AppliesToPrint(source.Media)) continue;
             string? css = source.Text ?? (loader.Load(source.Href!, source.Line) is { } bytes ? DecodeCss(bytes) : null);
-            if (css is not null) CssParser.ParseStyleSheet(css, source.Line, ref order, rules, warnings);
+            if (css is not null) CssParser.ParseStyleSheet(css, source.Line, ref order, rules, warnings, limits.MaxNestingDepth);
         }
         var styles = CssCascade.Apply(tree, rules, warnings);
         var images = new Dictionary<HtmlElement, PdfImage>();
@@ -77,7 +77,7 @@ internal sealed class HtmlModel
         {
             if (!CssParser.AppliesToPrint(source.Media)) continue;
             string? css = source.Text ?? (await loader.LoadAsync(source.Href!, source.Line, cancellationToken).ConfigureAwait(false) is { } bytes ? DecodeCss(bytes) : null);
-            if (css is not null) CssParser.ParseStyleSheet(css, source.Line, ref order, rules, warnings);
+            if (css is not null) CssParser.ParseStyleSheet(css, source.Line, ref order, rules, warnings, limits.MaxNestingDepth);
         }
         var styles = CssCascade.Apply(tree, rules, warnings);
         cancellationToken.ThrowIfCancellationRequested();

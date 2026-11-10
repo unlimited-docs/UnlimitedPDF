@@ -154,19 +154,24 @@ internal sealed class HtmlResourceLoader
 
     private static byte[] PercentDecodeBytes(string text)
     {
+        // Unescaped text is encoded in runs, so a surrogate pair stays one character (F-07).
         var bytes = new List<byte>(text.Length);
+        int run = 0;
+        void Flush(int end)
+        {
+            if (end > run) bytes.AddRange(Encoding.UTF8.GetBytes(text.Substring(run, end - run)));
+        }
         for (int i = 0; i < text.Length; i++)
         {
             if (text[i] == '%' && i + 2 < text.Length && Uri.IsHexDigit(text[i + 1]) && Uri.IsHexDigit(text[i + 2]))
             {
+                Flush(i);
                 bytes.Add(Convert.ToByte(text.Substring(i + 1, 2), 16));
                 i += 2;
-            }
-            else
-            {
-                bytes.AddRange(Encoding.UTF8.GetBytes(text[i].ToString()));
+                run = i + 1;
             }
         }
+        Flush(text.Length);
         return bytes.ToArray();
     }
 
@@ -203,6 +208,8 @@ internal sealed class HtmlResourceLoader
         if (cut >= 0) path = path.Substring(0, cut);
         path = Encoding.UTF8.GetString(PercentDecodeBytes(path)).Replace('/', Path.DirectorySeparatorChar).Replace('\\', Path.DirectorySeparatorChar);
         if (path.IndexOf('\0') >= 0 || Path.IsPathRooted(path)) return Blocked(reference, line, "absolute paths are never read");
+        // A colon would name an alternate data stream of a file (F-07); file names in HTML never need one.
+        if (path.IndexOf(':') >= 0) return Blocked(reference, line, "paths with a colon are never read");
         string full = Path.GetFullPath(Path.Combine(_baseFolder, path));
         string root = _baseFolder.EndsWith(Path.DirectorySeparatorChar.ToString(), StringComparison.Ordinal) ? _baseFolder : _baseFolder + Path.DirectorySeparatorChar;
         var comparison = Path.DirectorySeparatorChar == '\\' ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;

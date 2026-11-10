@@ -85,11 +85,13 @@ internal static class CssParser
     /// <param name="order">The next rule order number; advanced past the rules added.</param>
     /// <param name="rules">Receives the rules.</param>
     /// <param name="warnings">Receives at-rule warnings.</param>
-    public static void ParseStyleSheet(string css, int line, ref int order, List<CssRule> rules, HtmlWarnings warnings)
+    /// <param name="maxDepth">The deepest nesting of <c>@media</c> blocks, the HTML nesting limit (A06).</param>
+    /// <exception cref="PdfHtmlException">Blocks are nested deeper than <paramref name="maxDepth"/>.</exception>
+    public static void ParseStyleSheet(string css, int line, ref int order, List<CssRule> rules, HtmlWarnings warnings, int maxDepth = 256)
     {
         string text = StripComments(css);
         int i = 0;
-        ParseRules(text, ref i, line, ref order, rules, warnings, untilBrace: false);
+        ParseRules(text, ref i, line, ref order, rules, warnings, untilBrace: false, depth: 0, maxDepth);
     }
 
     #endregion
@@ -110,8 +112,12 @@ internal static class CssParser
         return text.Length;
     }
 
-    private static void ParseRules(string text, ref int i, int line, ref int order, List<CssRule> rules, HtmlWarnings warnings, bool untilBrace)
+    private static void ParseRules(string text, ref int i, int line, ref int order, List<CssRule> rules, HtmlWarnings warnings, bool untilBrace, int depth, int maxDepth)
     {
+        // Each nested block is one level of recursion, so the depth is capped like element nesting (A06).
+        if (depth > maxDepth)
+            throw new PdfHtmlException(PdfHtmlErrorReason.NestingTooDeep,
+                string.Format(CultureInfo.InvariantCulture, "Stylesheet blocks are nested deeper than the limit of {0} (line {1}).", maxDepth, line));
         while (i < text.Length)
         {
             while (i < text.Length && char.IsWhiteSpace(text[i])) i++;
@@ -143,7 +149,7 @@ internal static class CssParser
                 if (name == "media")
                 {
                     var inner = new List<CssRule>();
-                    ParseRules(text, ref i, line, ref order, inner, warnings, untilBrace: true);
+                    ParseRules(text, ref i, line, ref order, inner, warnings, untilBrace: true, depth + 1, maxDepth);
                     if (AppliesToPrint(prelude.Substring(6))) rules.AddRange(inner);
                     continue;
                 }

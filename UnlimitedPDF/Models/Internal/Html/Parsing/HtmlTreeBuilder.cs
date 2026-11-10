@@ -232,6 +232,23 @@ internal sealed class HtmlTreeBuilder
         PopTo(index);
     }
 
+    // Adds an active formatting element. As in the HTML Standard, at most three identical entries (same name and
+    // attributes) stay active after the last marker, so unclosed tags such as a repeated "<p><b>" do not nest forever.
+    private void AddFormatting(HtmlElement element)
+    {
+        int same = 0, earliest = -1;
+        for (int i = _formatting.Count - 1; i >= 0 && _formatting[i] is { } entry; i--)
+        {
+            if (entry.Name != element.Name || entry.Attributes.Count != element.Attributes.Count ||
+                entry.Attributes.Any(a => element.Attribute(a.Key) != a.Value))
+                continue;
+            same++;
+            earliest = i;
+        }
+        if (same >= 3) _formatting.RemoveAt(earliest);
+        _formatting.Add(element);
+    }
+
     private void ClearFormattingToMarker()
     {
         while (_formatting.Count > 0)
@@ -345,7 +362,8 @@ internal sealed class HtmlTreeBuilder
 
     private void Push(HtmlElement element)
     {
-        if (_stack.Count >= _maxDepth)
+        // The implied html and body elements do not count toward the limit.
+        if (_stack.Count - (_inBody ? 2 : 1) >= _maxDepth)
             throw new PdfHtmlException(PdfHtmlErrorReason.NestingTooDeep,
                 string.Format(CultureInfo.InvariantCulture, "Elements are nested deeper than the limit of {0} (line {1}).", _maxDepth, element.Line));
         _stack.Add(element);
@@ -474,7 +492,7 @@ internal sealed class HtmlTreeBuilder
 
         if (!BlockClosesParagraph.Contains(name) && !IsTableStructure(name)) ReconstructFormatting();
         var element = Insert(token);
-        if (FormattingElements.Contains(name)) _formatting.Add(element);
+        if (FormattingElements.Contains(name)) AddFormatting(element);
     }
 
     private bool InButtonScope(string name) => InScope(name);

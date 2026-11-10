@@ -34,19 +34,53 @@ internal abstract class HtmlNode
 /// </summary>
 internal sealed class HtmlText : HtmlNode
 {
+    #region Fields and Constants
+
+    private StringBuilder? _builder;
+    private string? _text;
+
+    #endregion
+
     #region Constructors and Finalizers
 
     public HtmlText(string text, int line)
         : base(line)
     {
-        Text = text;
+        _text = text;
     }
+
+    #endregion
+
+    #region Methods
+
+    #region Public Methods
+
+    /// <summary>
+    /// Appends text in amortized constant time, so text split into many pieces is still joined in linear time.
+    /// </summary>
+    /// <param name="text">The text to append.</param>
+    public void Append(string text)
+    {
+        _builder ??= new StringBuilder(_text);
+        _builder.Append(text);
+        _text = null;
+    }
+
+    #endregion
 
     #endregion
 
     #region Properties, Indexers
 
-    public string Text { get; set; }
+    public string Text
+    {
+        get => _text ??= _builder!.ToString();
+        set
+        {
+            _text = value;
+            _builder = null;
+        }
+    }
 
     #endregion
 }
@@ -56,6 +90,12 @@ internal sealed class HtmlText : HtmlNode
 /// </summary>
 internal sealed class HtmlElement : HtmlNode
 {
+    #region Fields and Constants
+
+    private List<HtmlElement>? _elementChildren;
+
+    #endregion
+
     #region Constructors and Finalizers
 
     public HtmlElement(string name, IEnumerable<KeyValuePair<string, string>> attributes, int line)
@@ -82,10 +122,11 @@ internal sealed class HtmlElement : HtmlNode
     {
         if (node is HtmlText text && Children.Count > 0 && Children[Children.Count - 1] is HtmlText last)
         {
-            last.Text += text.Text;
+            last.Append(text.Text);
             return;
         }
         node.Parent = this;
+        _elementChildren = null;
         Children.Add(node);
     }
 
@@ -103,7 +144,8 @@ internal sealed class HtmlElement : HtmlNode
     /// <param name="before">The existing child.</param>
     public void InsertBefore(HtmlNode node, HtmlNode before)
     {
-        int index = Children.IndexOf(before);
+        // Searched from the end: content moved before a table lands just before it, near the end of the list.
+        int index = Children.LastIndexOf(before);
         if (index < 0)
         {
             Append(node);
@@ -111,10 +153,11 @@ internal sealed class HtmlElement : HtmlNode
         }
         if (node is HtmlText text && index > 0 && Children[index - 1] is HtmlText previous)
         {
-            previous.Text += text.Text;
+            previous.Append(text.Text);
             return;
         }
         node.Parent = this;
+        _elementChildren = null;
         Children.Insert(index, node);
     }
 
@@ -144,6 +187,12 @@ internal sealed class HtmlElement : HtmlNode
     #region Properties, Indexers
 
     public Dictionary<string, string> Attributes { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gets the child elements in order, computed once after the tree is built (for <c>:first-child</c> and
+    /// <c>:last-child</c> in constant time).
+    /// </summary>
+    public IReadOnlyList<HtmlElement> ElementChildren => _elementChildren ??= Children.OfType<HtmlElement>().ToList();
 
     public List<HtmlNode> Children { get; } = new();
 
