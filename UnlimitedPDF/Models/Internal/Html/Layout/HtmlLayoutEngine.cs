@@ -36,6 +36,9 @@ internal sealed partial class HtmlLayoutEngine
     private readonly int? _lastPage;
     private readonly HtmlModel _model;
     private readonly List<OpenBox> _open = new();
+    // Per page: where commands of that page begin, after the clips that continue there. A block that was already open
+    // when the page began draws its background and borders from here (F-60).
+    private readonly List<int> _pageStarts = new() { 0 };
     private readonly List<PendingMarker> _pendingMarkers = new();
     private readonly HashSet<CachedLayout> _reported = new();
     private readonly Dictionary<int, HtmlPageRoom> _rooms = new();
@@ -144,6 +147,9 @@ internal sealed partial class HtmlLayoutEngine
             Current.Bottom = Math.Min(Current.Bottom, _y);
             if (AtPageLimit) break;
             NextPage();
+
+            // A fresh page with no room can take nothing: stop, so space is never placed without progress (F-59).
+            if (_y - Room(_page).Bottom <= Tolerance) break;
         }
         _atTop = false;
         Current.Bottom = Math.Min(Current.Bottom, _y);
@@ -216,7 +222,7 @@ internal sealed partial class HtmlLayoutEngine
             {
                 box.StartY = _y;
                 box.StartPage = _page;
-                if (!box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = Current.Commands.Count;
+                if (!box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = InsertIndex(box, _page) ?? Current.Commands.Count;
             }
         }
     }
@@ -268,7 +274,7 @@ internal sealed partial class HtmlLayoutEngine
 
         _pendingMargin = Collapse(_pendingMargin, mt);
         double borderLeft = left + ml;
-        var open = new OpenBox(box, borderLeft, borderLeft + bl + pl + cw + pr + br);
+        var open = new OpenBox(box, borderLeft, borderLeft + bl + pl + cw + pr + br, _page);
         _open.Add(open);
         if (bt + pt > 0) Flush(bt + pt);
 
@@ -362,13 +368,20 @@ internal sealed partial class HtmlLayoutEngine
     // Whether a box's decoration draws on every page it spans: a background, or a left or right border.
     private static bool DrawsOnEveryPage(ComputedStyle s) => s.BackgroundColor is not null || s.Borders[1].UsedWidth > 0 || s.Borders[3].UsedWidth > 0;
 
-    // Draws a block's background and borders on every page it spans, before its content there.
+    // Where a box's background and borders go on a page: the position recorded when the box started there, or the
+    // page's start when the box was already open as the page began. Null on the page the box was opened on, before
+    // it starts.
+    private int? InsertIndex(OpenBox box, int page) =>
+        box.InsertAt.TryGetValue(page, out int at) ? at : page > box.OpenedPage ? _pageStarts[page] : null;
+
+    // Draws a block's background and borders on every page it spans, before its content there. A block with only a
+    // top or bottom border draws on its first and last pages alone, so only those are visited (F-60).
     private void Decorate(OpenBox box)
     {
         var s = box.Box.Style;
         int first = box.StartPage ?? _page;
         double startY = box.StartY ?? _y;
-        for (int page = first; page <= _page; page++)
+        for (int page = first; page <= _page; page = box.EveryPage || page == _page ? page + 1 : _page)
         {
             double top = page == first ? startY : Room(page).Top;
             double bottom = page == _page ? _y : Math.Min(FragmentAt(page).Bottom, Room(page).Bottom);
@@ -377,13 +390,17 @@ internal sealed partial class HtmlLayoutEngine
             if (s.BackgroundColor is { } background) commands.Add(new FillCommand(box.Left, bottom, box.Right - box.Left, top - bottom, background));
             AddBorders(commands, s.Borders, box.Left, box.Right, top, bottom, drawTop: page == first, drawBottom: page == _page);
             var fragment = FragmentAt(page);
-            int index = box.InsertAt.TryGetValue(page, out int at) ? at : 0;
+            int index = InsertIndex(box, page) ?? 0;
             fragment.Commands.InsertRange(Math.Min(index, fragment.Commands.Count), commands);
             foreach (var other in _open)
             {
                 // An outer box that starts at the same spot stays underneath: only later positions move.
                 if (other.InsertAt.TryGetValue(page, out int otherIndex) && otherIndex > index) other.InsertAt[page] = otherIndex + commands.Count;
             }
+
+            // The page's start moves the same way, for the boxes that draw from it. It is later than this position only
+            // when a box that never started closes on a page that began with a continued clip.
+            if (_pageStarts[page] > index) _pageStarts[page] += commands.Count;
         }
     }
 
@@ -455,7 +472,7 @@ internal sealed partial class HtmlLayoutEngine
         // (a background or a side border; top and bottom borders draw only on its first and last pages), means the
         // document cannot fit: the save keeps exactly such pages (F-54, F-56). Stopping here keeps content-driven runs
         // short (F-52); pages with nothing drawn are dropped by the save, so they never fail a document that fits.
-        if (_lastPage is int last && _page >= last && (Current.Commands.Count > 0 || _open.Any(o => o.StartPage is not null && DrawsOnEveryPage(o.Box.Style))))
+        if (_lastPage is int last && _page >= last && (Current.Commands.Count > 0 || DrawnOnByOpenBox()))
             throw new HtmlPageLimitException();
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
@@ -463,13 +480,18 @@ internal sealed partial class HtmlLayoutEngine
         _y = room.Top;
         _atTop = room.EmptyBody;
         ReopenClips();
-        var fragment = Current;
-        foreach (var box in _open)
-        {
-            // Only decorated boxes read their insert positions, so plain wrappers cost nothing per page (F-57).
-            if (HasDecoration(box.Box.Style) && !box.InsertAt.ContainsKey(_page)) box.InsertAt[_page] = fragment.Commands.Count;
-        }
+
+        // One position per page serves every open block, so a page costs the same however deep the nesting (F-57, F-60).
+        _pageStarts.Add(Current.Commands.Count);
         DrawRepeatedHeaders();
+    }
+
+    // Whether a started open box draws on the page being left whatever follows: one with a background or a side border.
+    private bool DrawnOnByOpenBox()
+    {
+        foreach (var box in _open)
+            if (box.EveryPage && box.StartPage is not null) return true;
+        return false;
     }
 
     // Whether layout is on the last page blank space may reach. Blank space is the only thing that can ask for any
@@ -506,16 +528,26 @@ internal sealed partial class HtmlLayoutEngine
     // A block whose background or borders are drawn once its extent is known.
     private sealed class OpenBox
     {
-        public OpenBox(HtmlBox box, double left, double right)
+        public OpenBox(HtmlBox box, double left, double right, int openedPage)
         {
             Box = box;
             Left = left;
             Right = right;
+            OpenedPage = openedPage;
+            EveryPage = DrawsOnEveryPage(box.Style);
         }
 
         public HtmlBox Box { get; }
 
+        // Whether the box draws on every page it spans (a background or a side border).
+        public bool EveryPage { get; }
+
+        // Positions recorded on the pages where the box started or opened a clip; on later pages it draws from the
+        // page's start.
         public Dictionary<int, int> InsertAt { get; } = new();
+
+        // The page the box was opened on.
+        public int OpenedPage { get; }
 
         public double Left { get; }
 

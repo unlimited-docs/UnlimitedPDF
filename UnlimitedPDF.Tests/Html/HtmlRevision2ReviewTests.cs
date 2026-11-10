@@ -359,6 +359,12 @@ public class HtmlRevision2ReviewTests
         "<table style='border-collapse:collapse;border-top:1px solid'><tr><td>x" + Repeat("<br>", 300) + "</td></tr></table>",
         "<table><tr><td><div style='border-top:1px solid'>x" + Repeat("<br>", 300) + "</div></td></tr></table>",
         "<div style='border-left:1px solid'><p>x</p>" + Repeat("<br>", 300) + "</div>",
+        // F-59, F-60: a row that is clipped instead of split, and boxes that end pages after they start.
+        "<p>x</p><table><tr><td style='padding-bottom:800pt;border:1px solid'><div style='padding-top:5pt'>x</div></td></tr></table><p>after</p>",
+        Repeat("<p>t</p>", 20) + "<table><tr><td>a</td></tr><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr><tr><td>b</td></tr></table>",
+        Repeat("<div style='border-bottom:1px solid'>", 3) + "<p>x</p>" + Repeat("<div style='break-before:page;height:1pt'></div>", 4),
+        Repeat("<div style='border-top:1px solid;border-bottom:1px solid'>", 3) + "<p>x</p>" + Repeat("<br>", 300),
+        "<div style='border-bottom:1px solid;padding-bottom:" + (Top - Bottom).ToString(CultureInfo.InvariantCulture) + "pt'><p>x</p>" + Repeat("<br>", 60) + "</div>",
     }.Select(html => new object[] { html });
 
     [Fact]
@@ -482,6 +488,74 @@ public class HtmlRevision2ReviewTests
         Assert.Empty(html.Warnings);
         Assert.Equal(Url, string.Concat(texts.Where(t => Url.Contains(t))));
         Assert.DoesNotContain(Url, texts);
+    }
+
+    [Theory]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr></table>")]
+    [InlineData("<table><tr><td style='border-top:800pt solid'><div style='padding-top:5pt'>x</div></td></tr></table>")]
+    [InlineData("<table><thead><tr><th style='height:380pt'>h</th></tr></thead><tr><td style='padding:200pt 0'><div style='padding-top:5pt'>x</div></td></tr></table>")]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><table><tr><td><div style='padding-top:5pt'>x</div></td></tr></table></td></tr></table>")]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><ul><li>x</li></ul></td></tr></table>")]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><hr></td></tr></table>")]
+    [InlineData("<table><tr><td style='padding-bottom:760pt'><div style='padding-top:500000pt'>x</div></td></tr></table>")]
+    public void A_row_whose_cell_padding_leaves_no_room_on_a_page_is_clipped_instead_of_split(string html)
+    {
+        // F-59: the cell could never continue on a next page, so layout moved pages forever (5 GB after 15 s). The page
+        // limit here only keeps a regression from hanging the run: with it, the old layout failed instead of saving.
+        var source = PdfHtml.FromString(html);
+        var doc = Document();
+        doc.Body.MaxPages = 5;
+        doc.Body.AddHtml(source);
+        var watch = Stopwatch.StartNew();
+        Assert.Single(PdfPageReader.Save(doc));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed}");
+        Assert.Contains(source.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not split", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_padded_cell_inside_a_split_cell_is_clipped_and_the_outer_row_still_splits()
+    {
+        // F-59: the same cell one table deeper, where the outer row continues over two pages.
+        var html = PdfHtml.FromString("<table><tr><td>" + Repeat("line<br>", 90) + "<table><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr></table></td></tr></table>");
+        var doc = Document();
+        doc.Body.MaxPages = 5;
+        doc.Body.AddHtml(html);
+        var pages = PdfPageReader.Save(doc);
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(90, pages.SelectMany(Runs).Count(r => r.Text == "line"));
+        Assert.Contains(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not split", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void An_empty_padded_cell_beside_tall_text_still_splits_with_its_row()
+    {
+        // F-59: only cells with content need room on each page; an empty cell keeps its height across the pages (F-39).
+        var html = PdfHtml.FromString("<table><tr><td style='padding-bottom:1700pt'></td><td>" + Repeat("line<br>", 90) + "</td></tr></table><p>AFTER</p>");
+        var pages = Pages(html);
+        Assert.Equal(3, pages.Count);
+        Assert.Equal(90, pages.SelectMany(Runs).Count(r => r.Text == "line"));
+        Assert.Contains(Runs(pages[2]), r => r.Text == "AFTER");
+        Assert.Empty(html.Warnings);
+    }
+
+    [Theory]
+    [InlineData("border-top:1px solid", null)]
+    [InlineData("border-top:1px solid", 1)]
+    [InlineData("border-bottom:1px solid", 1)]
+    public void Deep_wrappers_with_only_a_top_or_bottom_border_cost_no_more_than_plain_ones(string style, int? maxPages)
+    {
+        // F-60: such a box draws on its first and last pages only, yet every page it spanned was visited and given a
+        // position: 250 wrappers around 90,000 blank breaks took about 70 s and 1.3 GB.
+        string html = "<style>.b{break-before:page;height:1pt}</style>" + Repeat($"<div style='{style}'>", 250) + "<p>x</p>" + Repeat("<p class=b></p>", 90000);
+        var doc = Document();
+        doc.Body.MaxPages = maxPages;
+        doc.Body.AddHtml(PdfHtml.FromString(html));
+        var watch = Stopwatch.StartNew();
+
+        // The top borders are all on the first page; a bottom border is drawn where the box ends, 90,000 pages on.
+        if (style.StartsWith("border-top", StringComparison.Ordinal)) Assert.Single(PdfPageReader.Save(doc));
+        else Assert.Throws<InvalidOperationException>(() => doc.Save(new MemoryStream()));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"took {watch.Elapsed}");
     }
 
     #endregion

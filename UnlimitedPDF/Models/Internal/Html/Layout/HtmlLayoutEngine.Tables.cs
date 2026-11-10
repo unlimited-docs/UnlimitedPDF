@@ -14,6 +14,9 @@ internal sealed partial class HtmlLayoutEngine
     #region Fields and Constants
 
     private readonly List<(double X, double Width)> _clips = new();
+    // The least room a cell must keep on a fresh page to be split across pages: one line of default text.
+    private const double MinimumSplitRoom = ComputedStyle.DefaultFontSize * ComputedStyle.NormalLineHeight;
+
     private readonly List<OpenTable> _tables = new();
 
     #endregion
@@ -307,7 +310,7 @@ internal sealed partial class HtmlLayoutEngine
 
         foreach (var caption in table.Captions) LayoutBlock(caption, tableLeft, tableWidth);
 
-        var open = new OpenBox(table, tableLeft, tableLeft + tableWidth);
+        var open = new OpenBox(table, tableLeft, tableLeft + tableWidth, _page);
         _open.Add(open);
         Flush(bt + pt + spacingV);
         if (clipped && !_measuring)
@@ -392,7 +395,23 @@ internal sealed partial class HtmlLayoutEngine
 
             // A split row starts on the next page when not even one line fits here (F-11).
             if (!_atTop && _y - Room(_page).Bottom < table.Style.LineHeight * 2) NextPage();
-            SplitRow(layout, r, r >= headerRows && repeatHeader ? headerHeight : 0);
+            double header = r >= headerRows && repeatHeader ? headerHeight : 0;
+            if (CanSplit(layout, r, header))
+            {
+                SplitRow(layout, r, header);
+                continue;
+            }
+
+            // A cell whose borders and padding leave no line of room on a page could never continue on the next one
+            // (F-59). The row is drawn whole and clipped at the body bottom, like any content that cannot fit (AC-17).
+            Warn(PdfHtmlWarningKind.ContentClipped, table.Rows[r].Element?.Name ?? "tr",
+                "A cell's borders and padding leave no room for its content on a page; the row is not split and is clipped at the bottom of the page.");
+            BeginClip();
+            DrawRow(layout, r, _y, Current.Commands, report: true);
+            EndClip();
+            _y = Math.Max(_y - heights[r] - spacingV, Room(_page).Bottom);
+            _atTop = false;
+            Current.Bottom = Math.Min(Current.Bottom, _y);
         }
         _tables.Remove(repeat);
 
@@ -455,6 +474,20 @@ internal sealed partial class HtmlLayoutEngine
             foreach (var command in content.Layout.Commands) output.Add(Translate(command, cellLeft + il, rowTop - it - Math.Max(0, offset)));
             if (report) ReportOnce(content.Layout);
         }
+    }
+
+    // Whether a row taller than the body can be split: each cell with content keeps at least a line of room on a fresh
+    // page inside its borders and padding, which are kept on every page the cell continues on. Empty cells need no room.
+    private bool CanSplit(TableLayoutState layout, int row, double headerHeight)
+    {
+        double fresh = FreshBodyHeight() - headerHeight;
+        foreach (var g in layout.ByRow[row])
+        {
+            if (layout.Contents[g].Layout.Height <= Tolerance) continue;
+            var (_, _, top, bottom) = CellInsets(g.Cell, layout.Collapse);
+            if (fresh - top - bottom < MinimumSplitRoom) return false;
+        }
+        return true;
     }
 
     // Lays out a row taller than the body: each cell continues on the next pages on its own, below repeated headers.
