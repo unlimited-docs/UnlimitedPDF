@@ -394,9 +394,11 @@ internal sealed partial class HtmlLayoutEngine
                 continue;
             }
 
-            // A split row starts on the next page when not even one line fits here (F-11).
-            if (!_atTop && _y - Room(_page).Bottom < table.Style.LineHeight * 2) NextPage();
-            SplitRow(layout, r, r >= headerRows && repeatHeader ? headerHeight : 0);
+            // A split row starts on the next page when not even one line fits here (F-11), or when a cell that cannot
+            // continue would lose content here that a fresh page shows whole (F-64).
+            double rowHeader = r >= headerRows && repeatHeader ? headerHeight : 0;
+            if (!_atTop && (_y - Room(_page).Bottom < table.Style.LineHeight * 2 || CutOnlyHere(layout, r, rowHeader))) NextPage();
+            SplitRow(layout, r, rowHeader);
         }
         _tables.Remove(repeat);
 
@@ -459,6 +461,22 @@ internal sealed partial class HtmlLayoutEngine
             foreach (var command in content.Layout.Commands) output.Add(Translate(command, cellLeft + il, rowTop - it - Math.Max(0, offset)));
             if (report) ReportOnce(content.Layout);
         }
+    }
+
+    // Whether a cell of the row that cannot continue on a next page (see SplitRow) would have its content cut at the
+    // bottom of this page, although the content fits below the row's top on a fresh page (F-64).
+    private bool CutOnlyHere(TableLayoutState layout, int row, double headerHeight)
+    {
+        double fresh = FreshBodyHeight() - headerHeight;
+        foreach (var g in layout.ByRow[row])
+        {
+            var (_, _, it, ib) = CellInsets(g.Cell, layout.Collapse);
+            var content = layout.Contents[g].Layout;
+            if (fresh - it - ib >= MinimumSplitRoom || content.Commands.Count == 0) continue;
+            double reach = it + content.Height;
+            if (_y - reach < Room(_page).Bottom - Tolerance && reach <= fresh + Tolerance) return true;
+        }
+        return false;
     }
 
     // Lays out a row taller than the body: each cell continues on the next pages on its own, below repeated headers.

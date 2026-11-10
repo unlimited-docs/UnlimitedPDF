@@ -369,6 +369,9 @@ public class HtmlRevision2ReviewTests
         "<table border=1><tr><td style='padding-bottom:800pt'>x</td><td>" + Repeat("line<br>", 90) + "</td></tr></table><p>after</p>",
         "<table border=1><tr><td style='padding-bottom:760pt'>" + Repeat("left<br>", 90) + "</td><td>" + Repeat("right<br>", 90) + "</td></tr></table>",
         "<p>x</p><table border=1><tr style='height:800pt'><td style='padding-bottom:765pt'><div style='margin-top:-300pt;padding-top:300pt'></div></td></tr></table><p>after</p>",
+        // F-64: rows that move to a fresh page because a cell without room would be cut where they start.
+        "<table border=1>" + Repeat("<tr><td style='padding:740pt 0 20pt'>x</td></tr>", 4) + "</table><p>after</p>",
+        "<style>td{padding:440pt 4pt 16pt;border:1pt solid #888}</style><table><thead><tr><th style='height:300pt'>h</th></tr></thead>" + Repeat("<tr><td>x</td><td>y</td></tr>", 8) + "</table>",
     }.Select(html => new object[] { html });
 
     [Fact]
@@ -580,6 +583,48 @@ public class HtmlRevision2ReviewTests
         Assert.Equal(90, runs.Count(r => r.Text.StartsWith("right ", StringComparison.Ordinal) && r.Y >= Bottom));
         Assert.All(pages.Skip(1), page => Assert.DoesNotContain(Runs(page), r => r.Text.StartsWith("left ", StringComparison.Ordinal)));
         Assert.Contains(Runs(pages[0]), r => r.Text == "left 1");
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void A_row_whose_cell_cannot_continue_moves_to_a_fresh_page_when_its_content_fits_there()
+    {
+        // F-64: each row is a few points taller than the body, so the next row started lower on its page each time; the
+        // third text was cut at the page bottom and the fourth was clipped away, although each fits on a fresh page.
+        string rows = string.Concat(Enumerable.Range(0, 4).Select(i => $"<tr><td style='padding:740pt 0 20pt'>T{i}</td></tr>"));
+        var html = PdfHtml.FromString($"<table>{rows}</table>");
+        var pages = Pages(html);
+        for (int i = 0; i < 4; i++)
+            Assert.Single(pages.SelectMany(page => Runs(page).Where(r => r.Text == $"T{i}" && r.Y >= Bottom + 3 && !Clipped(page, r))));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void Padded_rows_below_a_repeated_header_keep_every_cell_text()
+    {
+        // F-64: with a repeated header the padding leaves the cells no room to continue; 16 of these 20 texts were cut.
+        string rows = string.Concat(Enumerable.Range(0, 10).Select(i => $"<tr><td>A{i}</td><td>B{i}</td></tr>"));
+        var html = PdfHtml.FromString("<style>td{padding:440pt 4pt 16pt;border:1pt solid #888}</style><table><thead><tr><th style='height:300pt'>HEAD</th><th>H2</th></tr></thead>" + rows + "</table><p>AFTER</p>");
+        var pages = Pages(html);
+        foreach (string text in Enumerable.Range(0, 10).SelectMany(i => new[] { $"A{i}", $"B{i}" }).Append("AFTER"))
+            Assert.Single(pages.SelectMany(page => Runs(page).Where(r => r.Text == text && r.Y >= Bottom + 3 && !Clipped(page, r))));
+
+        // Every row is below a header.
+        Assert.All(pages, page => Assert.True(Runs(page).Count(r => r.Text == "HEAD") == 1 || Runs(page).All(r => r.Text == "AFTER")));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_row_whose_cell_content_fits_no_page_still_starts_where_it_is()
+    {
+        // F-64: moving the row would not save the content, so it stays below the text before it and is clipped.
+        string lines = string.Concat(Enumerable.Range(1, 90).Select(i => $"left {i}<br>"));
+        var html = PdfHtml.FromString($"<p>BEFORE</p><table><tr><td style='padding-bottom:760pt'>{lines}</td><td>RIGHT</td></tr></table>");
+        var pages = Pages(html);
+        var first = Runs(pages[0]).Select(r => r.Text).ToList();
+        Assert.Contains("BEFORE", first);
+        Assert.Contains("left 1", first);
+        Assert.Contains("RIGHT", first);
         Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
     }
 
