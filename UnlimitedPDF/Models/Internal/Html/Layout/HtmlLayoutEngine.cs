@@ -450,6 +450,10 @@ internal sealed partial class HtmlLayoutEngine
     {
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
+        // Content-driven page moves (rows, lines, forced breaks) are bounded by the input but can still be costly when
+        // every open box is drawn on every page (F-52). Content this far past the limit fails the save anyway, and a
+        // document that fits moves at most one page past where blank space stops (a trailing margin or break).
+        if (_lastPage is int last && _page > last + 2) throw new HtmlPageLimitException();
         var room = Room(_page);
         _y = room.Top;
         _atTop = room.EmptyBody;
@@ -485,6 +489,13 @@ internal sealed partial class HtmlLayoutEngine
     #endregion
 
     #region Nested Types
+
+    /// <summary>
+    /// Thrown when HTML layout moves well past the page limit it was given.
+    /// </summary>
+    internal sealed class HtmlPageLimitException : Exception
+    {
+    }
 
     // A block whose background or borders are drawn once its extent is known.
     private sealed class OpenBox

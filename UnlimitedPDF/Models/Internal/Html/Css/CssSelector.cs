@@ -174,10 +174,15 @@ internal sealed class CssSelector
     /// </summary>
     public sealed class MatchMemo
     {
+        // A selector whose states fit in this many two-bit slots (2 MB) keeps them in a dense array; longer selectors
+        // keep only the states asked about (F-50, F-53).
+        private const long DenseLimit = 8L * 1024 * 1024;
+
         private readonly IReadOnlyDictionary<HtmlElement, int> _ordinals;
-        // Per selector: the states of the (element, compound) pairs actually asked about, unknown, true, or false, two
-        // bits each, 32 to a word keyed by element ordinal and compound block. Only asked pairs take memory (F-50).
-        private readonly Dictionary<CssSelector, Dictionary<long, ulong>> _states = new();
+        // Per selector: unknown, true, or false for each (element, compound) pair, two bits each. Dense: indexed by
+        // element ordinal × compounds + compound. Sparse: 32 states to a word keyed by element ordinal and block.
+        private readonly Dictionary<CssSelector, byte[]> _dense = new();
+        private readonly Dictionary<CssSelector, Dictionary<long, ulong>> _sparse = new();
 
         /// <summary>
         /// Creates a memo for the elements numbered in <paramref name="ordinals"/>: every element whose ancestors
@@ -203,24 +208,46 @@ internal sealed class CssSelector
 
         internal bool TryGet(CssSelector selector, HtmlElement element, int index, out bool value)
         {
-            value = false;
-            if (!_states.TryGetValue(selector, out var states) || !states.TryGetValue(Key(selector, element, index), out ulong word)) return false;
-            int bits = (int)(word >> (index % 32 * 2)) & 3;
+            int bits = 0;
+            if (_dense.TryGetValue(selector, out var dense))
+            {
+                long slot = DenseSlot(selector, element, index);
+                bits = (dense[slot >> 2] >> (int)((slot & 3) * 2)) & 3;
+            }
+            else if (_sparse.TryGetValue(selector, out var sparse) && sparse.TryGetValue(Key(selector, element, index), out ulong word))
+            {
+                bits = (int)(word >> (index % 32 * 2)) & 3;
+            }
             value = bits == 1;
             return bits != 0;
         }
 
         internal void Set(CssSelector selector, HtmlElement element, int index, bool value)
         {
-            if (!_states.TryGetValue(selector, out var states))
+            int state = value ? 1 : 2;
+            long slots = (long)_ordinals.Count * selector._compounds.Count;
+            if (slots <= DenseLimit)
             {
-                states = new Dictionary<long, ulong>();
-                _states[selector] = states;
+                if (!_dense.TryGetValue(selector, out var dense))
+                {
+                    dense = new byte[(slots + 3) / 4];
+                    _dense[selector] = dense;
+                }
+                long slot = DenseSlot(selector, element, index);
+                dense[slot >> 2] |= (byte)(state << (int)((slot & 3) * 2));
+                return;
+            }
+            if (!_sparse.TryGetValue(selector, out var sparse))
+            {
+                sparse = new Dictionary<long, ulong>();
+                _sparse[selector] = sparse;
             }
             long key = Key(selector, element, index);
-            states.TryGetValue(key, out ulong word);
-            states[key] = word | ((ulong)(value ? 1 : 2) << (index % 32 * 2));
+            sparse.TryGetValue(key, out ulong word);
+            sparse[key] = word | ((ulong)state << (index % 32 * 2));
         }
+
+        private long DenseSlot(CssSelector selector, HtmlElement element, int index) => (long)_ordinals[element] * selector._compounds.Count + index;
 
         private long Key(CssSelector selector, HtmlElement element, int index) =>
             (long)_ordinals[element] * ((selector._compounds.Count + 31) / 32) + index / 32;

@@ -289,6 +289,37 @@ public class HtmlRevision2ReviewTests
     }
 
     [Fact]
+    public void Ordinary_rule_sets_keep_the_compact_selector_memo()
+    {
+        // F-53: a dictionary entry per asked pair took 913 MB of allocations here, against 547 MB with two-bit arrays.
+        var html = new StringBuilder("<style>");
+        for (int r = 0; r < 200; r++) html.Append("div.a").Append(r).Append(" p span{color:red}");
+        html.Append("</style>");
+        for (int i = 0; i < 10000; i++) html.Append("<div class='a").Append(i % 200).Append("'><p><span>x</span></p></div>");
+        _ = PdfHtml.FromString("<p>warm-up</p>");
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        _ = PdfHtml.FromString(html.ToString());
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(allocated < 750L * 1024 * 1024, $"allocated {allocated / 1048576} MB");
+    }
+
+    [Fact]
+    public void Content_far_past_the_page_limit_fails_fast()
+    {
+        // F-52: with page moves never stopping, 4,000 forced breaks inside 250 bordered boxes took 3.4 s and 255 MB to
+        // fail at a limit of 3 pages.
+        var html = new StringBuilder(string.Concat(Enumerable.Repeat("<div style='border:1px solid'>", 250)));
+        for (int i = 0; i < 4000; i++) html.Append("<p style='break-before:page'>x</p>");
+        var doc = Document();
+        doc.Body.MaxPages = 3;
+        doc.Body.AddHtml(PdfHtml.FromString(html.ToString()));
+        var watch = Stopwatch.StartNew();
+        var ex = Assert.Throws<InvalidOperationException>(() => doc.Save(new MemoryStream()));
+        Assert.Contains("needs more than 3 pages, but Body.MaxPages is 3", ex.Message, StringComparison.Ordinal);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed}");
+    }
+
+    [Fact]
     public void Failing_descendant_selectors_over_many_separate_deep_chains_load_quickly()
     {
         // F-43: 400 chains 250 deep with 20 failing rules took 17 s and 582 MB; each ancestor walk is now one lookup.
