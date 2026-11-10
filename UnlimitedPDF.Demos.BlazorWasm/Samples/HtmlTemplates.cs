@@ -25,8 +25,10 @@ public static class HtmlTemplates
           .num { text-align: right }
           .total td { font-weight: bold; border-bottom: 2px solid #002A73 }
           ul.options { margin: 4pt 0 0; padding-left: 14pt; color: #6b7280; font-size: 9pt }
+          @media print { .web-only { display: none } }
         </style></head>
         <body>
+          <p class="web-only">Having trouble reading this invoice? Open it in your account.</p>
           <table width="100%"><tr>
             <td><img src="logo.png" width="120" alt="Northwind Supplies"></td>
             <td class="num"><h1>INVOICE</h1><div class="muted">INV-1042 &middot; 10 Nov 2026</div></td>
@@ -48,7 +50,7 @@ public static class HtmlTemplates
               <tr class="total"><td colspan="3" class="num">Total due</td><td class="num">€2,828.40</td></tr>
             </tbody>
           </table>
-          <p style="margin-top: 18pt"><b>Payment:</b> bank transfer to IBAN GB00 NWBK 0000 0000 0000 00, reference INV-1042.</p>
+          <p style="margin-top: 18pt"><b>Payment:</b> bank transfer to IBAN GB00&nbsp;NWBK&nbsp;0000&nbsp;0000&nbsp;0000&nbsp;00, reference INV-1042. Questions about this invoice: <a href="mailto:accounts@example.com">accounts@example.com</a>.</p>
           <p class="muted" style="font-size: 8pt">Northwind Supplies &middot; 1 Market Way, London &middot; VAT GB 000 0000 00</p>
         </body></html>
         """;
@@ -80,13 +82,13 @@ public static class HtmlTemplates
                 <p>Join us on <b>Thursday 20 November</b> at 7&nbsp;pm. Tickets are free; places are limited.</p>
                 <dl><dt>Where</dt><dd>The Roastery, 4 Mill Lane</dd><dt>Bring</dt><dd>Your favourite mug</dd></dl></td>
             </tr></table></td></tr>
-            <tr><td style="padding: 16px; font-size: 9pt; color: #6b7280">You receive this because you signed up at the shop. <a href="mailto:hello@example.com">Contact us</a>.</td></tr>
+            <tr><td style="padding: 16px; font-size: 9pt; color: #6b7280">You receive this because you signed up at the shop. <a href="mailto:hello@example.com">Contact us</a>. To stop these emails, visit <a href="https://example.com/newsletter/unsubscribe?list=autumn-roastery-news&amp;member=7f3c9a2e5b8d4e1f">https://example.com/newsletter/unsubscribe?list=autumn-roastery-news&amp;member=7f3c9a2e5b8d4e1f</a>.</td></tr>
           </table>
         </body></html>
         """;
 
     /// <summary>
-    /// A letter: sender and recipient blocks, date, justified paragraphs, and a signature.
+    /// A letter: sender and recipient blocks, date, justified paragraphs, a signature, and an enclosure on its own page.
     /// </summary>
     public const string Letter = """
         <html><head><style>
@@ -106,11 +108,17 @@ public static class HtmlTemplates
           <p>I have no doubt that he will be an excellent member of your programme, and I recommend him without reservation. Please do not hesitate to contact me should you need further information.</p>
           <p class="plain" style="margin-top: 16pt">Yours sincerely,</p>
           <p class="plain" style="margin-top: 28pt"><i>Hélène Martin</i><br>Associate Professor of Mathematics</p>
+          <p class="plain">Enclosure: project summary</p>
+          <div style="page-break-before: always">
+            <p class="plain"><b>Enclosure: project summary</b></p>
+            <p>Mr. Ortega's project compared three time-stepping schemes for coupled heat equations on irregular meshes. He showed that a semi-implicit scheme keeps the error within 0.1% at a quarter of the cost of the fully implicit one, and wrote the test cases that our group still uses.</p>
+          </div>
         </body></html>
         """;
 
     /// <summary>
-    /// A report: headings with ids, a contents list of internal links, nested tables with spans, lists, and notes.
+    /// A report: headings with ids, a contents list of internal links, nested tables with spans, lists, notes, and an
+    /// appendix on its own page.
     /// </summary>
     public const string Report = """
         <html><head><title>Q3 Operations Report</title><style>
@@ -120,10 +128,11 @@ public static class HtmlTemplates
           th, td { border: 1px solid #9ca3af; padding: 4pt }
           th { background-color: #e5e7eb }
           .note { background-color: #fef3c7; border-left: 3pt solid #f59e0b; padding: 6pt; break-inside: avoid }
+          @media print { .contents a { text-decoration: none } }
         </style></head>
         <body>
           <h1>Q3 Operations Report</h1>
-          <p>Contents: <a href="#summary">Summary</a> &middot; <a href="#sites">Sites</a> &middot; <a href="#actions">Actions</a></p>
+          <p class="contents">Contents: <a href="#summary">Summary</a> &middot; <a href="#sites">Sites</a> &middot; <a href="#actions">Actions</a> &middot; <a href="#appendix">Appendix</a></p>
           <h2 id="summary">Summary</h2>
           <p>Output rose 6% on Q2 while energy use per unit fell 4%. Two sites missed their safety target; see <a href="#actions">actions</a>.</p>
           <h2 id="sites">Sites</h2>
@@ -141,6 +150,8 @@ public static class HtmlTemplates
           <div class="note"><b>Safety:</b> Hull and York start weekly toolbox talks from 1 December. Owners report progress at each month end.</div>
           <h3>Next quarter</h3>
           <ul><li>Second shift in Leeds</li><li>Kiln maintenance window, 8&ndash;12 January</li><li>Supplier review<ul><li>Packaging</li><li>Logistics</li></ul></li></ul>
+          <h2 id="appendix" style="page-break-before: always">Appendix: method</h2>
+          <p>Output is the weighed tonnage leaving each site. Uptime is planned production time minus stoppages, divided by planned production time. Energy per unit is metered site energy divided by output.</p>
         </body></html>
         """;
 
@@ -166,6 +177,8 @@ public static class HtmlTemplates
               <ul><li>C# and .NET</li><li>Numerical methods</li><li>SQL and data modelling</li><li>Technical writing</li></ul>
               <h2>Languages</h2>
               <ul><li>Spanish (native)</li><li>English (C1)</li><li>French (B2)</li></ul>
+              <h2>Portfolio</h2>
+              <p><a href="https://example.com/tomas-ortega/coupled-heat-equation-solver">example.com/tomas-ortega/coupled-heat-equation-solver</a></p>
             </td>
             <td class="main">
               <h2 style="margin-top: 0">Experience</h2>
@@ -201,7 +214,7 @@ public static class HtmlTemplates
             balance += amount;
             string date = new DateTime(2026, 10, 1).AddDays(i / 3).ToString("dd MMM yyyy", System.Globalization.CultureInfo.InvariantCulture);
             string text = i % 3 == 0 ? "Salary payment" : (i % 2 == 0 ? "Card payment &ndash; Market Hall" : "Direct debit &ndash; Utilities");
-            rows.Append("<tr><td>").Append(date).Append("</td><td>").Append(text).Append("</td><td class=\"num\">")
+            rows.Append(i % 2 == 0 ? "<tr class=\"alt\"><td>" : "<tr><td>").Append(date).Append("</td><td>").Append(text).Append("</td><td class=\"num\">")
                 .Append(amount.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)).Append("</td><td class=\"num\">")
                 .Append(balance.ToString("N2", System.Globalization.CultureInfo.InvariantCulture)).Append("</td></tr>");
         }

@@ -3,7 +3,7 @@
 <<
 /Type /Catalog
 /Pages 2 0 R
-/Outlines 8 0 R
+/Outlines 10 0 R
 >>
 
 endobj
@@ -11,8 +11,8 @@ endobj
 2 0 obj
 <<
 /Type /Pages
-/Kids [4 0 R]
-/Count 1
+/Kids [4 0 R 6 0 R]
+/Count 2
 >>
 
 endobj
@@ -33,27 +33,26 @@ endobj
 /MediaBox [0 0 595.28 841.89]
 /Contents 5 0 R
 /Resources <<
-/Font << /F1 3 0 R /HF1 6 0 R /HF2 7 0 R >>
+/Font << /F1 3 0 R /HF1 8 0 R /HF2 9 0 R >>
 >>
 
-/Annots [<< /Type /Annot /Subtype /Link /Rect [87.58 744.09 130.36 754.09] /Border [0 0 0] /Dest [4 0 R /XYZ 42 730.64 null] >> << /Type /Annot /Subtype /Link /Rect [138.7 744.09 160.93 754.09] /Border [0 0 0] /Dest [4 0 R /XYZ 42 674.99 null] >> << /Type /Annot /Subtype /Link /Rect [169.27 744.09 202.06 754.09] /Border [0 0 0] /Dest [4 0 R /XYZ 42 359.9 null] >> << /Type /Annot /Subtype /Link /Rect [474.97 688.44 506.65 698.44] /Border [0 0 0] /Dest [4 0 R /XYZ 42 359.9 null] >>]
+/Annots [<< /Type /Annot /Subtype /Link /Rect [87.58 744.09 130.36 754.09] /Border [0 0 0] /Dest [4 0 R /XYZ 42 730.64 null] >> << /Type /Annot /Subtype /Link /Rect [138.7 744.09 160.93 754.09] /Border [0 0 0] /Dest [4 0 R /XYZ 42 674.99 null] >> << /Type /Annot /Subtype /Link /Rect [169.27 744.09 202.06 754.09] /Border [0 0 0] /Dest [4 0 R /XYZ 42 359.9 null] >> << /Type /Annot /Subtype /Link /Rect [210.4 744.09 252.09 754.09] /Border [0 0 0] /Dest [6 0 R /XYZ 42 793.44 null] >> << /Type /Annot /Subtype /Link /Rect [474.97 688.44 506.65 698.44] /Border [0 0 0] /Dest [4 0 R /XYZ 42 359.9 null] >>]
 >>
 
 endobj
 
 5 0 obj
-<< /Length 13552 >>
+<< /Length 13519 >>
 stream
 q BT /HF2 20 Tf 0 0.1647 0.451 rg 1 0 0 1 42 774.49 Tm (Q3 Operations Report) Tj ET Q
 q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 42 746.09 Tm (Contents: ) Tj ET Q
 q BT /HF1 10 Tf 0 0 0.9333 rg 1 0 0 1 87.58 746.09 Tm (Summary) Tj ET Q
-q 0 0 0.9333 RG 0.5 w 87.58 744.89 m 130.36 744.89 l S Q
 q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 130.36 746.09 Tm ( \267 ) Tj ET Q
 q BT /HF1 10 Tf 0 0 0.9333 rg 1 0 0 1 138.7 746.09 Tm (Sites) Tj ET Q
-q 0 0 0.9333 RG 0.5 w 138.7 744.89 m 160.93 744.89 l S Q
 q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 160.93 746.09 Tm ( \267 ) Tj ET Q
 q BT /HF1 10 Tf 0 0 0.9333 rg 1 0 0 1 169.27 746.09 Tm (Actions) Tj ET Q
-q 0 0 0.9333 RG 0.5 w 169.27 744.89 m 202.06 744.89 l S Q
+q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 202.06 746.09 Tm ( \267 ) Tj ET Q
+q BT /HF1 10 Tf 0 0 0.9333 rg 1 0 0 1 210.4 746.09 Tm (Appendix) Tj ET Q
 q 0 0.1647 0.451 RG 0.75 w 42 712.265 m 553.28 712.265 l S Q
 q BT /HF2 15 Tf 0 0.1647 0.451 rg 1 0 0 1 42 717.14 Tm (Summary) Tj ET Q
 q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 42 690.44 Tm (Output rose 6% on Q2 while energy use per unit fell 4%. Two sites missed their safety target; see ) Tj ET Q
@@ -216,6 +215,29 @@ endstream
 endobj
 6 0 obj
 <<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595.28 841.89]
+/Contents 7 0 R
+/Resources <<
+/Font << /F1 3 0 R /HF1 8 0 R /HF2 9 0 R >>
+>>
+
+>>
+
+endobj
+
+7 0 obj
+<< /Length 451 >>
+stream
+q 0 0.1647 0.451 RG 0.75 w 42 775.065 m 553.28 775.065 l S Q
+q BT /HF2 15 Tf 0 0.1647 0.451 rg 1 0 0 1 42 779.94 Tm (Appendix: method) Tj ET Q
+q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 42 753.24 Tm (Output is the weighed tonnage leaving each site. Uptime is planned production time minus stoppages, divided by) Tj ET Q
+q BT /HF1 10 Tf 0 0 0 rg 1 0 0 1 42 741.24 Tm (planned production time. Energy per unit is metered site energy divided by output.) Tj ET Q
+endstream
+endobj
+8 0 obj
+<<
 /Type /Font
 /Subtype /Type1
 /BaseFont /Helvetica
@@ -224,7 +246,7 @@ endobj
 
 endobj
 
-7 0 obj
+9 0 obj
 <<
 /Type /Font
 /Subtype /Type1
@@ -234,53 +256,60 @@ endobj
 
 endobj
 
-8 0 obj
-<< /Type /Outlines /First 9 0 R /Last 9 0 R /Count 6 >>
-endobj
-
-9 0 obj
-<< /Title <5133204F7065726174696F6E73205265706F7274> /Parent 8 0 R /First 10 0 R /Last 13 0 R /Count 5 /Dest [4 0 R /XYZ 42 792.49 null] >>
-endobj
-
 10 0 obj
-<< /Title <53756D6D617279> /Parent 9 0 R /Next 11 0 R /Dest [4 0 R /XYZ 42 730.64 null] >>
+<< /Type /Outlines /First 11 0 R /Last 11 0 R /Count 7 >>
 endobj
 
 11 0 obj
-<< /Title <5369746573> /Parent 9 0 R /Prev 10 0 R /Next 13 0 R /First 12 0 R /Last 12 0 R /Count 1 /Dest [4 0 R /XYZ 42 674.99 null] >>
+<< /Title <5133204F7065726174696F6E73205265706F7274> /Parent 10 0 R /First 12 0 R /Last 17 0 R /Count 6 /Dest [4 0 R /XYZ 42 792.49 null] >>
 endobj
 
 12 0 obj
-<< /Title <456E65726779> /Parent 11 0 R /Dest [4 0 R /XYZ 42 446.09 null] >>
+<< /Title <53756D6D617279> /Parent 11 0 R /Next 13 0 R /Dest [4 0 R /XYZ 42 730.64 null] >>
 endobj
 
 13 0 obj
-<< /Title <416374696F6E73> /Parent 9 0 R /Prev 11 0 R /First 14 0 R /Last 14 0 R /Count 1 /Dest [4 0 R /XYZ 42 359.9 null] >>
+<< /Title <5369746573> /Parent 11 0 R /Prev 12 0 R /Next 15 0 R /First 14 0 R /Last 14 0 R /Count 1 /Dest [4 0 R /XYZ 42 674.99 null] >>
 endobj
 
 14 0 obj
-<< /Title <4E6578742071756172746572> /Parent 13 0 R /Dest [4 0 R /XYZ 42 293 null] >>
+<< /Title <456E65726779> /Parent 13 0 R /Dest [4 0 R /XYZ 42 446.09 null] >>
+endobj
+
+15 0 obj
+<< /Title <416374696F6E73> /Parent 11 0 R /Prev 13 0 R /Next 17 0 R /First 16 0 R /Last 16 0 R /Count 1 /Dest [4 0 R /XYZ 42 359.9 null] >>
+endobj
+
+16 0 obj
+<< /Title <4E6578742071756172746572> /Parent 15 0 R /Dest [4 0 R /XYZ 42 293 null] >>
+endobj
+
+17 0 obj
+<< /Title <417070656E6469783A206D6574686F64> /Parent 11 0 R /Prev 15 0 R /Dest [6 0 R /XYZ 42 793.44 null] >>
 endobj
 
 xref
-0 15
+0 18
 0000000000 65535 f 
 0000000010 00000 n 
-0000000086 00000 n 
-0000000154 00000 n 
-0000000235 00000 n 
-0000000893 00000 n 
-0000014504 00000 n 
-0000014613 00000 n 
-0000014727 00000 n 
-0000014803 00000 n 
-0000014963 00000 n 
-0000015075 00000 n 
-0000015232 00000 n 
-0000015330 00000 n 
-0000015477 00000 n 
+0000000087 00000 n 
+0000000161 00000 n 
+0000000242 00000 n 
+0000001019 00000 n 
+0000014597 00000 n 
+0000014768 00000 n 
+0000015276 00000 n 
+0000015385 00000 n 
+0000015499 00000 n 
+0000015578 00000 n 
+0000015740 00000 n 
+0000015853 00000 n 
+0000016011 00000 n 
+0000016109 00000 n 
+0000016270 00000 n 
+0000016377 00000 n 
 trailer
-<< /Root 1 0 R /Size 15 >>
+<< /Root 1 0 R /Size 18 >>
 startxref
-15584
+16508
 %%EOF

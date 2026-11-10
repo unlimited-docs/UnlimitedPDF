@@ -67,6 +67,13 @@ public sealed class ReadmeHtmlExampleTests : IDisposable
         Assert.Contains("never uses the network", readme, StringComparison.Ordinal);
         Assert.Contains("not as a browser shows it", readme, StringComparison.Ordinal);
 
+        // Every scenario whose outcome is a fallback is listed as a known limitation, with the demo that shows it (AC-30).
+        Assert.Contains("- Known limitations:", readme, StringComparison.Ordinal);
+        Assert.Contains("Tricky HTML", readme, StringComparison.Ordinal);
+        foreach (string topic in new[] { "Flexbox and grid", "Floats and positioning", "Background images", "SVG and WebP", "Characters outside Western European", "`pre` lines don't wrap" })
+            Assert.Contains(topic, readme, StringComparison.Ordinal);
+        Assert.Contains("Tricky HTML: common HTML to PDF problems", File.ReadAllText(RepositoryFile("README.md")), StringComparison.Ordinal);
+
         foreach (var file in new[] { "README.md", Path.Combine("nuget", "README.md") })
         {
             string text = File.ReadAllText(RepositoryFile(file));

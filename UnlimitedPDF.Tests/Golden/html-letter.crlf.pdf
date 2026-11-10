@@ -10,8 +10,8 @@ endobj
 2 0 obj
 <<
 /Type /Pages
-/Kids [4 0 R]
-/Count 1
+/Kids [4 0 R 6 0 R]
+/Count 2
 >>
 
 endobj
@@ -32,7 +32,7 @@ endobj
 /MediaBox [0 0 595.28 841.89]
 /Contents 5 0 R
 /Resources <<
-/Font << /F1 3 0 R /HF5 6 0 R /HF6 7 0 R /HF7 8 0 R >>
+/Font << /F1 3 0 R /HF5 8 0 R /HF6 9 0 R /HF7 10 0 R >>
 >>
 
 >>
@@ -40,7 +40,7 @@ endobj
 endobj
 
 5 0 obj
-<< /Length 2398 >>
+<< /Length 2482 >>
 stream
 q BT /HF5 12 Tf 0.2157 0.2549 0.3176 rg 1 0 0 1 434.972 769.89 Tm (Dr. H\351l\350ne Martin) Tj ET Q
 q BT /HF5 12 Tf 0.2157 0.2549 0.3176 rg 1 0 0 1 438.62 753.09 Tm (Rue de la Paix 18) Tj ET Q
@@ -64,9 +64,33 @@ q BT /HF5 12 Tf 0 0 0 rg 1 0 0 1 72 395.49 Tm (further information.) Tj ET Q
 q BT /HF5 12 Tf 0 0 0 rg 1 0 0 1 72 362.69 Tm (Yours sincerely,) Tj ET Q
 q BT /HF7 12 Tf 0 0 0 rg 1 0 0 1 72 317.89 Tm (H\351l\350ne Martin) Tj ET Q
 q BT /HF5 12 Tf 0 0 0 rg 1 0 0 1 72 301.09 Tm (Associate Professor of Mathematics) Tj ET Q
+q BT /HF5 12 Tf 0 0 0 rg 1 0 0 1 72 276.29 Tm (Enclosure: project summary) Tj ET Q
 endstream
 endobj
 6 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 595.28 841.89]
+/Contents 7 0 R
+/Resources <<
+/Font << /F1 3 0 R /HF5 8 0 R /HF6 9 0 R >>
+>>
+
+>>
+
+endobj
+
+7 0 obj
+<< /Length 553 >>
+stream
+q BT /HF6 12 Tf 0 0 0 rg 1 0 0 1 72 785.89 Tm (Enclosure: project summary) Tj ET Q
+q BT /HF5 12 Tf 0 0 0 rg 0.170909 Tw 1 0 0 1 90 761.09 Tm (Mr. Ortega's project compared three time-stepping schemes for coupled heat equations on) Tj ET Q
+q BT /HF5 12 Tf 0 0 0 rg 1.478286 Tw 1 0 0 1 72 744.29 Tm (irregular meshes. He showed that a semi-implicit scheme keeps the error within 0.1% at a) Tj ET Q
+q BT /HF5 12 Tf 0 0 0 rg 1 0 0 1 72 727.49 Tm (quarter of the cost of the fully implicit one, and wrote the test cases that our group still uses.) Tj ET Q
+endstream
+endobj
+8 0 obj
 <<
 /Type /Font
 /Subtype /Type1
@@ -76,7 +100,7 @@ endobj
 
 endobj
 
-7 0 obj
+9 0 obj
 <<
 /Type /Font
 /Subtype /Type1
@@ -86,7 +110,7 @@ endobj
 
 endobj
 
-8 0 obj
+10 0 obj
 <<
 /Type /Font
 /Subtype /Type1
@@ -97,18 +121,20 @@ endobj
 endobj
 
 xref
-0 9
+0 11
 0000000000 65535 f 
 0000000010 00000 n 
 0000000069 00000 n 
-0000000137 00000 n 
-0000000218 00000 n 
-0000000400 00000 n 
-0000002856 00000 n 
-0000002967 00000 n 
-0000003077 00000 n 
+0000000143 00000 n 
+0000000224 00000 n 
+0000000407 00000 n 
+0000002947 00000 n 
+0000003118 00000 n 
+0000003728 00000 n 
+0000003839 00000 n 
+0000003949 00000 n 
 trailer
-<< /Root 1 0 R /Size 9 >>
+<< /Root 1 0 R /Size 11 >>
 startxref
-3189
+4062
 %%EOF

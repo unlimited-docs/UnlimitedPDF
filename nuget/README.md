@@ -393,6 +393,13 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 - Resources: `data:` URIs, and relative paths inside the base folder (the HTML file's folder, or `BaseFolder`). Paths that leave that folder, absolute paths, and symbolic links are never read. Anything else goes to your `ResourceResolver` (or `ResourceResolverAsync` with the `Async` load methods). Images and stylesheets that can't be loaded are skipped, an image showing its `alt` text instead.
 - Links: `http`, `https`, and `mailto` links are clickable, and `#id` links jump inside the document; other link types keep their text only. `headingBookmarks: true` turns `h1` to `h6` into bookmarks.
 - Problems: anything skipped is listed in `PdfHtml.Warnings` (`Kind`, `Source`, `Line` or `PageNumber`). Set `FailOnWarning` to throw `PdfHtmlException` on the first one instead, for example in template tests. Limits keep hostile input in check: 50 MB of HTML, 256 levels of nesting, 50 MB per image or stylesheet, and 200 MB in total, changeable with the `PdfHtml.Default*` properties or per load.
+- Known limitations: these come out differently from a browser. The playground's Tricky HTML demo shows each one, next to common HTML to PDF problems that this renderer handles, such as rows cut at page breaks, header rows that don't repeat, and long URLs.
+  - Flexbox and grid: items are laid out as stacked blocks.
+  - Floats and positioning: ignored; elements stay in the normal flow.
+  - Background images: skipped; background colors are drawn.
+  - Images other than PNG and JPEG, such as SVG and WebP: their `alt` text is shown.
+  - Characters outside Western European, such as Cyrillic, Chinese, and emoji: written as `?`.
+  - `pre` lines don't wrap, as in a browser, so a line wider than the page is clipped; use `white-space: pre-wrap` to wrap it.
 
 ## Upgrading to 1.0.0
 

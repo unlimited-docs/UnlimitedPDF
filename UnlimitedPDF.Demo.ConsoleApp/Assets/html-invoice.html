@@ -10,8 +10,10 @@
   .num { text-align: right }
   .total td { font-weight: bold; border-bottom: 2px solid #002A73 }
   ul.options { margin: 4pt 0 0; padding-left: 14pt; color: #6b7280; font-size: 9pt }
+  @media print { .web-only { display: none } }
 </style></head>
 <body>
+  <p class="web-only">Having trouble reading this invoice? Open it in your account.</p>
   <table width="100%"><tr>
     <td><img src="logo.png" width="120" alt="Northwind Supplies"></td>
     <td class="num"><h1>INVOICE</h1><div class="muted">INV-1042 &middot; 10 Nov 2026</div></td>
@@ -33,6 +35,6 @@
       <tr class="total"><td colspan="3" class="num">Total due</td><td class="num">€2,828.40</td></tr>
     </tbody>
   </table>
-  <p style="margin-top: 18pt"><b>Payment:</b> bank transfer to IBAN GB00 NWBK 0000 0000 0000 00, reference INV-1042.</p>
+  <p style="margin-top: 18pt"><b>Payment:</b> bank transfer to IBAN GB00&nbsp;NWBK&nbsp;0000&nbsp;0000&nbsp;0000&nbsp;00, reference INV-1042. Questions about this invoice: <a href="mailto:accounts@example.com">accounts@example.com</a>.</p>
   <p class="muted" style="font-size: 8pt">Northwind Supplies &middot; 1 Market Way, London &middot; VAT GB 000 0000 00</p>
 </body></html>
