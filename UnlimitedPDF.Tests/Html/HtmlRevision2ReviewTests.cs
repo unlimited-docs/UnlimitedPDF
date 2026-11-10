@@ -365,6 +365,10 @@ public class HtmlRevision2ReviewTests
         Repeat("<div style='border-bottom:1px solid'>", 3) + "<p>x</p>" + Repeat("<div style='break-before:page;height:1pt'></div>", 4),
         Repeat("<div style='border-top:1px solid;border-bottom:1px solid'>", 3) + "<p>x</p>" + Repeat("<br>", 300),
         "<div style='border-bottom:1px solid;padding-bottom:" + (Top - Bottom).ToString(CultureInfo.InvariantCulture) + "pt'><p>x</p>" + Repeat("<br>", 60) + "</div>",
+        // F-61, F-62: cells without room beside cells that split, with and without clipped content.
+        "<table border=1><tr><td style='padding-bottom:800pt'>x</td><td>" + Repeat("line<br>", 90) + "</td></tr></table><p>after</p>",
+        "<table border=1><tr><td style='padding-bottom:760pt'>" + Repeat("left<br>", 90) + "</td><td>" + Repeat("right<br>", 90) + "</td></tr></table>",
+        "<p>x</p><table border=1><tr style='height:800pt'><td style='padding-bottom:765pt'><div style='margin-top:-300pt;padding-top:300pt'></div></td></tr></table><p>after</p>",
     }.Select(html => new object[] { html });
 
     [Fact]
@@ -491,14 +495,14 @@ public class HtmlRevision2ReviewTests
     }
 
     [Theory]
-    [InlineData("<table><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr></table>")]
-    [InlineData("<table><tr><td style='border-top:800pt solid'><div style='padding-top:5pt'>x</div></td></tr></table>")]
-    [InlineData("<table><thead><tr><th style='height:380pt'>h</th></tr></thead><tr><td style='padding:200pt 0'><div style='padding-top:5pt'>x</div></td></tr></table>")]
-    [InlineData("<table><tr><td style='padding-bottom:800pt'><table><tr><td><div style='padding-top:5pt'>x</div></td></tr></table></td></tr></table>")]
-    [InlineData("<table><tr><td style='padding-bottom:800pt'><ul><li>x</li></ul></td></tr></table>")]
-    [InlineData("<table><tr><td style='padding-bottom:800pt'><hr></td></tr></table>")]
-    [InlineData("<table><tr><td style='padding-bottom:760pt'><div style='padding-top:500000pt'>x</div></td></tr></table>")]
-    public void A_row_whose_cell_padding_leaves_no_room_on_a_page_is_clipped_instead_of_split(string html)
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr></table>", false)]
+    [InlineData("<table><tr><td style='border-top:800pt solid'><div style='padding-top:5pt'>x</div></td></tr></table>", true)]
+    [InlineData("<table><thead><tr><th style='height:380pt'>h</th></tr></thead><tr><td style='padding:200pt 0'><div style='padding-top:5pt'>x</div></td></tr></table>", false)]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><table><tr><td><div style='padding-top:5pt'>x</div></td></tr></table></td></tr></table>", false)]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><ul><li>x</li></ul></td></tr></table>", false)]
+    [InlineData("<table><tr><td style='padding-bottom:800pt'><hr>x</td></tr></table>", false)]
+    [InlineData("<table><tr><td style='padding-bottom:760pt'><div style='padding-top:500000pt'>x</div></td></tr></table>", true)]
+    public void A_cell_whose_padding_leaves_no_room_on_a_page_is_drawn_once_on_the_rows_first_page(string html, bool cut)
     {
         // F-59: the cell could never continue on a next page, so layout moved pages forever (5 GB after 15 s). The page
         // limit here only keeps a regression from hanging the run: with it, the old layout failed instead of saving.
@@ -507,23 +511,87 @@ public class HtmlRevision2ReviewTests
         doc.Body.MaxPages = 5;
         doc.Body.AddHtml(source);
         var watch = Stopwatch.StartNew();
-        Assert.Single(PdfPageReader.Save(doc));
+        var pages = PdfPageReader.Save(doc);
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed}");
-        Assert.Contains(source.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not split", StringComparison.Ordinal));
+
+        // Content that reaches past the body bottom is clipped there with a warning; content that fits is whole.
+        var x = Assert.Single(Runs(pages[0]), r => r.Text == "x");
+        Assert.Equal(cut, x.Y < Bottom);
+        Assert.Equal(cut, source.Warnings.Any(w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal)));
+        if (cut) Assert.Contains(pages[0].ClipRectangles(), c => c.Y >= Bottom - 1.01);
     }
 
     [Fact]
-    public void A_padded_cell_inside_a_split_cell_is_clipped_and_the_outer_row_still_splits()
+    public void A_padded_cell_inside_a_split_cell_keeps_its_content_and_height()
     {
-        // F-59: the same cell one table deeper, where the outer row continues over two pages.
-        var html = PdfHtml.FromString("<table><tr><td>" + Repeat("line<br>", 90) + "<table><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr></table></td></tr></table>");
+        // F-59, F-62: the same cell one table deeper. The outer row splits, and the inner row keeps its 800 pt.
+        var html = PdfHtml.FromString("<table><tr><td>" + Repeat("line<br>", 90) + "<table><tr><td style='padding-bottom:800pt'><div style='padding-top:5pt'>x</div></td></tr></table>TAIL</td></tr></table>");
         var doc = Document();
         doc.Body.MaxPages = 5;
         doc.Body.AddHtml(html);
         var pages = PdfPageReader.Save(doc);
-        Assert.Equal(2, pages.Count);
+        Assert.Equal(3, pages.Count);
         Assert.Equal(90, pages.SelectMany(Runs).Count(r => r.Text == "line"));
-        Assert.Contains(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not split", StringComparison.Ordinal));
+        Assert.Contains(Runs(pages[1]), r => r.Text == "x");
+        Assert.Contains(Runs(pages[2]), r => r.Text == "TAIL");
+        Assert.Empty(html.Warnings);
+    }
+
+    [Theory]
+    [InlineData("<div style='margin-top:-300pt;padding-top:300pt'></div>")]
+    [InlineData("<div style='margin-bottom:-400pt'><table><tr><td style='height:300pt'></td></tr></table></div>")]
+    public void A_cell_with_a_sliver_of_room_per_page_is_not_laid_out_a_sliver_at_a_time(string content)
+    {
+        // F-61: the padding leaves 0.01 pt per page. Content whose height a negative margin cancels counted as empty,
+        // so the cell was split and 300 pt of blank space took 30,000 pages (about 5 s; 90,000 pt never finished).
+        string padding = (Top - Bottom - 0.75 - 0.01).ToString(CultureInfo.InvariantCulture);
+        var doc = Document();
+        doc.Body.AddHtml(PdfHtml.FromString($"<table><tr style='height:800pt'><td style='padding-bottom:{padding}pt'>{content}</td></tr></table><p>AFTER</p>"));
+        var watch = Stopwatch.StartNew();
+        var pages = PdfPageReader.Save(doc);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed}");
+        Assert.Equal(2, pages.Count);
+        Assert.Contains(Runs(pages[1]), r => r.Text == "AFTER");
+    }
+
+    [Fact]
+    public void A_cell_without_room_does_not_stop_the_other_cells_of_its_row_from_splitting()
+    {
+        // F-62: one such cell made the whole row a single clipped page, hiding lines the other cell had shown before.
+        string lines = string.Concat(Enumerable.Range(1, 90).Select(i => $"line {i}<br>"));
+        var html = PdfHtml.FromString($"<table><tr><td style='padding-bottom:800pt'>x</td><td>{lines}</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(2, pages.Count);
+        var runs = pages.SelectMany(Runs).ToList();
+        Assert.Equal(90, runs.Count(r => r.Text.StartsWith("line ", StringComparison.Ordinal) && r.Y >= Bottom));
+        Assert.Contains(Runs(pages[0]), r => r.Text == "x" && r.Y >= Bottom);
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void Tall_content_in_a_cell_without_room_is_clipped_alone()
+    {
+        // F-62: the padded cell cannot continue, so its lines past the first page are clipped with one warning; the
+        // other cell still shows every line.
+        string a = string.Concat(Enumerable.Range(1, 90).Select(i => $"left {i}<br>")), b = string.Concat(Enumerable.Range(1, 90).Select(i => $"right {i}<br>"));
+        var html = PdfHtml.FromString($"<table><tr><td style='padding-bottom:760pt'>{a}</td><td>{b}</td></tr></table>");
+        var pages = Pages(html);
+        var runs = pages.SelectMany(Runs).ToList();
+        Assert.Equal(90, runs.Count(r => r.Text.StartsWith("right ", StringComparison.Ordinal) && r.Y >= Bottom));
+        Assert.All(pages.Skip(1), page => Assert.DoesNotContain(Runs(page), r => r.Text.StartsWith("left ", StringComparison.Ordinal)));
+        Assert.Contains(Runs(pages[0]), r => r.Text == "left 1");
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Blank_height_inside_a_split_cell_costs_time_in_step_with_its_pages()
+    {
+        // F-63: drawing each page scanned every page fragment of the cell, so 4e7 pt took 10.7 s (0.23 s outside a table).
+        var doc = Document();
+        doc.Body.AddHtml(PdfHtml.FromString("<table><tr><td><div style='height:40000000pt'></div></td></tr></table>"));
+        var watch = Stopwatch.StartNew();
+        PdfPageReader.Save(doc);
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(3), $"took {watch.Elapsed}");
     }
 
     [Fact]

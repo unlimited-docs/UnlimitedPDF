@@ -29,6 +29,9 @@ internal sealed partial class HtmlLayoutEngine
     // Room for floating-point rounding when comparing positions, matching the body flow.
     private const double Tolerance = 0.0001;
 
+    // The least room, in points, a fresh page must offer for blank space to continue on it.
+    private const double MinimumPageRoom = 1;
+
     private readonly LayoutCache _cache;
     private readonly Func<int, HtmlPageRoom> _edges;
     private readonly Dictionary<int, HtmlPageFragment> _fragments = new();
@@ -148,8 +151,9 @@ internal sealed partial class HtmlLayoutEngine
             if (AtPageLimit) break;
             NextPage();
 
-            // A fresh page with no room can take nothing: stop, so space is never placed without progress (F-59).
-            if (_y - Room(_page).Bottom <= Tolerance) break;
+            // A fresh page with next to no room cannot take the space in any sensible number of pages: stop there, so
+            // space is never placed a sliver per page (F-59, F-61).
+            if (_y - Room(_page).Bottom < MinimumPageRoom) break;
         }
         _atTop = false;
         Current.Bottom = Math.Min(Current.Bottom, _y);

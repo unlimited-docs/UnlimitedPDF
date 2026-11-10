@@ -14,7 +14,8 @@ internal sealed partial class HtmlLayoutEngine
     #region Fields and Constants
 
     private readonly List<(double X, double Width)> _clips = new();
-    // The least room a cell must keep on a fresh page to be split across pages: one line of default text.
+    // The least room a cell must keep on a fresh page, inside its borders and padding, to continue across pages: one
+    // line of default text.
     private const double MinimumSplitRoom = ComputedStyle.DefaultFontSize * ComputedStyle.NormalLineHeight;
 
     private readonly List<OpenTable> _tables = new();
@@ -395,23 +396,7 @@ internal sealed partial class HtmlLayoutEngine
 
             // A split row starts on the next page when not even one line fits here (F-11).
             if (!_atTop && _y - Room(_page).Bottom < table.Style.LineHeight * 2) NextPage();
-            double header = r >= headerRows && repeatHeader ? headerHeight : 0;
-            if (CanSplit(layout, r, header))
-            {
-                SplitRow(layout, r, header);
-                continue;
-            }
-
-            // A cell whose borders and padding leave no line of room on a page could never continue on the next one
-            // (F-59). The row is drawn whole and clipped at the body bottom, like any content that cannot fit (AC-17).
-            Warn(PdfHtmlWarningKind.ContentClipped, table.Rows[r].Element?.Name ?? "tr",
-                "A cell's borders and padding leave no room for its content on a page; the row is not split and is clipped at the bottom of the page.");
-            BeginClip();
-            DrawRow(layout, r, _y, Current.Commands, report: true);
-            EndClip();
-            _y = Math.Max(_y - heights[r] - spacingV, Room(_page).Bottom);
-            _atTop = false;
-            Current.Bottom = Math.Min(Current.Bottom, _y);
+            SplitRow(layout, r, r >= headerRows && repeatHeader ? headerHeight : 0);
         }
         _tables.Remove(repeat);
 
@@ -476,42 +461,63 @@ internal sealed partial class HtmlLayoutEngine
         }
     }
 
-    // Whether a row taller than the body can be split: each cell with content keeps at least a line of room on a fresh
-    // page inside its borders and padding, which are kept on every page the cell continues on. Empty cells need no room.
-    private bool CanSplit(TableLayoutState layout, int row, double headerHeight)
-    {
-        double fresh = FreshBodyHeight() - headerHeight;
-        foreach (var g in layout.ByRow[row])
-        {
-            if (layout.Contents[g].Layout.Height <= Tolerance) continue;
-            var (_, _, top, bottom) = CellInsets(g.Cell, layout.Collapse);
-            if (fresh - top - bottom < MinimumSplitRoom) return false;
-        }
-        return true;
-    }
-
     // Lays out a row taller than the body: each cell continues on the next pages on its own, below repeated headers.
+    // A cell's borders and padding are kept on every page it continues on. A cell they leave less than a line of room
+    // on a fresh page can never continue, whatever it holds: its content is drawn once, on the row's first page, and
+    // clipped at the body bottom when it reaches past it (F-59, F-61). The other cells split as usual, and the row
+    // keeps its height (F-62).
     private void SplitRow(TableLayoutState layout, int row, double headerHeight)
     {
         int startPage = _page;
         double rowTop = _y;
-        var parts = new List<(GridCell Cell, IReadOnlyList<HtmlPageFragment> Fragments, double Left, double Bottom)>();
+        double fresh = FreshBodyHeight() - headerHeight;
+        double pageTop = Room(startPage).Top, pageBottom = Room(startPage).Bottom;
+
+        // Per cell: its fragments by page offset, counted from the row's page (F-63), and the last of them.
+        var parts = new List<(GridCell Cell, Dictionary<int, HtmlPageFragment> Fragments, int Last, double Left, double Bottom)>();
         int lastOffset = 0;
         foreach (var g in layout.ByRow[row])
         {
             var (il, _, it, ib) = CellInsets(g.Cell, layout.Collapse);
             var content = layout.Contents[g];
+            double left = layout.ColumnLeft[g.Column] + il;
+            if (fresh - it - ib < MinimumSplitRoom)
+            {
+                var once = new Dictionary<int, HtmlPageFragment>();
+                double contentTop = rowTop - it;
+                if (content.Layout.Commands.Count > 0)
+                {
+                    var fragment = new HtmlPageFragment(0, contentTop);
+                    bool cut = contentTop - content.Layout.Height < pageBottom - Tolerance;
+                    if (cut)
+                    {
+                        Warn(PdfHtmlWarningKind.ContentClipped, g.Cell.Element?.Name ?? "td",
+                            "A cell's borders and padding leave no room for its content on a page; the content is not continued and is clipped at the bottom of the page.");
+
+                        // The body of this page, in the cell's own coordinates.
+                        fragment.Commands.Add(new ClipBeginCommand(-left, pageBottom - 1, _width, pageTop - pageBottom + 2));
+                    }
+                    foreach (var command in content.Layout.Commands) fragment.Commands.Add(Translate(command, 0, contentTop));
+                    if (cut) fragment.Commands.Add(new ClipEndCommand());
+                    once[0] = fragment;
+                    ReportOnce(content.Layout);
+                }
+                parts.Add((g, once, once.Count - 1, left, Math.Max(rowTop - content.Needed, pageBottom)));
+                continue;
+            }
+
             HtmlPageRoom Edges(int offset) => offset == 0
-                ? new HtmlPageRoom(rowTop - it, Room(startPage).Bottom + ib, false)
+                ? new HtmlPageRoom(rowTop - it, pageBottom + ib, false)
                 : new HtmlPageRoom(Room(startPage + offset).Top - headerHeight - it, Room(startPage + offset).Bottom + ib, true);
             var cellWarnings = new List<PdfHtmlWarning>();
             // The cell's pages count from the row's page, so it gets what is left of the page limit (F-48).
             var engine = new HtmlLayoutEngine(_model, content.Width, Edges, cellWarnings, measuring: false, _cache, _lastPage - startPage);
             engine.LayoutBox(content.Box, 0, content.Width);
             engine.Flush(0);
-            var fragments = engine._fragments.OrderBy(p => p.Key).Select(p => p.Value).ToList();
-            lastOffset = Math.Max(lastOffset, fragments.Count == 0 ? 0 : fragments[fragments.Count - 1].PageOffset);
-            parts.Add((g, fragments, layout.ColumnLeft[g.Column] + il, engine._y - ib));
+            var fragments = engine._fragments;
+            int last = fragments.Count == 0 ? -1 : fragments.Keys.Max();
+            lastOffset = Math.Max(lastOffset, last);
+            parts.Add((g, fragments, last, left, engine._y - ib));
 
             // The cell's own page offsets count from the row's first page (F-15).
             foreach (var w in cellWarnings)
@@ -519,7 +525,7 @@ internal sealed partial class HtmlLayoutEngine
         }
 
         // Where the row ends on its last page: below the lowest cell that reaches it.
-        double endBottom = parts.Where(p => p.Fragments.Count > 0 && p.Fragments[p.Fragments.Count - 1].PageOffset == lastOffset).Select(p => p.Bottom).DefaultIfEmpty(Room(startPage + lastOffset).Top - headerHeight).Min();
+        double endBottom = parts.Where(p => p.Last == lastOffset).Select(p => p.Bottom).DefaultIfEmpty(Room(startPage + lastOffset).Top - headerHeight).Min();
 
         // Each part's bottom. A set row or cell height taller than the content continues below it, onto further pages
         // when needed, so the row keeps its height (F-39).
@@ -534,7 +540,7 @@ internal sealed partial class HtmlLayoutEngine
             bottoms[o] -= extend;
             remaining -= extend;
             if (remaining <= Tolerance || (_lastPage is int last && startPage + o + 1 > last)) break;
-            if (PartTop(o + 1) - Room(startPage + o + 1).Bottom <= Tolerance) break;
+            if (PartTop(o + 1) - Room(startPage + o + 1).Bottom < MinimumPageRoom) break;
             bottoms.Add(PartTop(o + 1));
         }
         lastOffset = bottoms.Count - 1;
@@ -548,8 +554,10 @@ internal sealed partial class HtmlLayoutEngine
             foreach (var part in parts)
                 CellDecoration(commands, layout.Table.Rows[row], part.Cell.Cell, layout.ColumnLeft[part.Cell.Column], layout.CellRight(part.Cell), top, bottom, offset == 0, offset == lastOffset, layout.Collapse);
             foreach (var part in parts)
-                foreach (var fragment in part.Fragments.Where(f => f.PageOffset == offset))
-                    foreach (var command in fragment.Commands) commands.Add(Translate(command, part.Left, 0));
+            {
+                if (!part.Fragments.TryGetValue(offset, out var fragment)) continue;
+                foreach (var command in fragment.Commands) commands.Add(Translate(command, part.Left, 0));
+            }
             Current.Commands.AddRange(commands);
             _y = bottom;
             Current.Bottom = Math.Min(Current.Bottom, _y);
