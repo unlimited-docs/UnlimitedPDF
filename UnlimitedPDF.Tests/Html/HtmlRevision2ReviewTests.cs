@@ -320,6 +320,98 @@ public class HtmlRevision2ReviewTests
     }
 
     [Fact]
+    public void Pages_only_open_boxes_would_decorate_also_stop_the_layout_early()
+    {
+        // F-54: the stop counts a page that an open bordered box will draw on, even before the box closes.
+        var html = new StringBuilder(string.Concat(Enumerable.Repeat("<div style='border:1px solid'>", 250)));
+        for (int i = 0; i < 4000; i++) html.Append("<div style='break-before:page;height:1pt'></div>");
+        var doc = Document();
+        doc.Body.MaxPages = 3;
+        doc.Body.AddHtml(PdfHtml.FromString(html.ToString()));
+        var watch = Stopwatch.StartNew();
+        Assert.Throws<InvalidOperationException>(() => doc.Save(new MemoryStream()));
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"took {watch.Elapsed}");
+    }
+
+    public static IEnumerable<object[]> ExactnessShapes() => new[]
+    {
+        "<p>x</p>" + Repeat("<br>", 300),
+        "<p>x" + Repeat("<br>", 300) + "</p>",
+        "<table><tr><td>x" + Repeat("<br>", 300) + "</td></tr></table>",
+        "<p>x</p><table>" + Repeat("<tr><td style='height:30pt'></td></tr>", 120) + "</table>",
+        "<p>x</p>" + Repeat("<p style='height:20pt'></p>", 200),
+        "<p>x</p><pre>" + Repeat("\n", 300) + "</pre>",
+        "<p>x</p>" + Repeat("<div style='break-before:page;height:1pt'></div>", 5),
+        "<p>x</p>" + Repeat("<div style='padding-bottom:1000pt'></div>", 10),
+        Repeat("<div style='padding-top:1000pt;padding-bottom:1000pt'>", 3) + "x",
+        Repeat("<div style='border:1px solid;padding-bottom:400pt'>", 3) + "x",
+        "<table><thead><tr><th>H</th></tr></thead>" + Repeat("<tr><td>r</td></tr>", 120) + "</table>",
+        "<table border=1><tr><td>" + Repeat("line<br>", 90) + "</td></tr></table>",
+        "<table><tr><td style='height:2000pt;border:1px solid'>x</td></tr></table><p>after</p>",
+        "<p>x</p><div style='height:2000pt;break-after:page'></div>",
+        "<div style='background:#eee'>" + Repeat("<p>t</p>", 80) + "</div>",
+        Repeat("<p style='break-before:page'>x</p>", 5) + Repeat("<br>", 300),
+    }.Select(html => new object[] { html });
+
+    [Theory]
+    [MemberData(nameof(ExactnessShapes))]
+    public void A_page_limit_equal_to_the_page_count_saves_the_same_bytes_and_one_less_fails(string html)
+    {
+        // F-42, F-49, F-54: fitting documents must save exactly as without a limit, whatever blank pages layout used.
+        byte[]? Save(int? maxPages)
+        {
+            var doc = Document();
+            doc.Body.MaxPages = maxPages;
+            doc.Body.AddHtml(PdfHtml.FromString(html));
+            try
+            {
+                using var stream = new MemoryStream();
+                doc.Save(stream);
+                return stream.ToArray();
+            }
+            catch (InvalidOperationException)
+            {
+                return null;
+            }
+        }
+        var free = Save(null)!;
+        int pages = PdfPageReader.Read(free).Count;
+        Assert.Equal(free, Save(pages));
+        if (pages > 1) Assert.Null(Save(pages - 1));
+    }
+
+    [Fact]
+    public void The_dense_selector_memo_stays_within_its_budget()
+    {
+        // F-55: every selector up to 2 MB took a dense array, so 1,000 long rules held 2 GB for one pass.
+        var root = new UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement("html", Array.Empty<KeyValuePair<string, string>>(), 1);
+        var parent = root;
+        for (int i = 0; i < 20; i++)
+        {
+            var div = new UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement("div", Array.Empty<KeyValuePair<string, string>>(), 1);
+            parent.Append(div);
+            parent = div;
+        }
+        var leaves = new List<UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement>();
+        for (int i = 0; i < 100000; i++)
+        {
+            var br = new UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement("br", new[] { new KeyValuePair<string, string>("class", "c" + (i % 300).ToString(CultureInfo.InvariantCulture)) }, 1);
+            parent.Append(br);
+            leaves.Add(br);
+        }
+        var ordinals = new Dictionary<UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement, int> { [root] = 0 };
+        for (var e = root; e.Children.FirstOrDefault() is UnlimitedPDF.Models.Internal.Html.Parsing.HtmlElement child && child.Name == "div"; e = child) ordinals[child] = ordinals.Count;
+        foreach (var leaf in leaves) ordinals[leaf] = ordinals.Count;
+        var memo = new UnlimitedPDF.Models.Internal.Html.Css.CssSelector.MatchMemo(ordinals);
+        for (int r = 0; r < 300; r++)
+        {
+            Assert.True(UnlimitedPDF.Models.Internal.Html.Css.CssSelector.TryParseList(Repeat("div ", 79) + "br.c" + r.ToString(CultureInfo.InvariantCulture), out var selectors));
+            Assert.False(selectors[0].Matches(leaves[r], memo));
+        }
+        Assert.InRange(memo.DenseBytes, 1, 64L * 1024 * 1024);
+    }
+
+    [Fact]
     public void Failing_descendant_selectors_over_many_separate_deep_chains_load_quickly()
     {
         // F-43: 400 chains 250 deep with 20 failing rules took 17 s and 582 MB; each ancestor walk is now one lookup.
@@ -376,6 +468,8 @@ public class HtmlRevision2ReviewTests
     // Whether a run is inside a clip rectangle that ends above the body bottom: drawn, but cut at the page bottom.
     private static bool Clipped(PdfPageReader.Page page, Run run) =>
         page.ClipRectangles().Any(c => c.Y >= Bottom - 1.01 && run.Y < c.Y + c.Height && run.Y < Bottom);
+
+    private static string Repeat(string text, int count) => string.Concat(Enumerable.Repeat(text, count));
 
     private static IReadOnlyList<PdfPageReader.Page> Pages(PdfHtml html)
     {

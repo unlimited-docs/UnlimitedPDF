@@ -174,9 +174,12 @@ internal sealed class CssSelector
     /// </summary>
     public sealed class MatchMemo
     {
-        // A selector whose states fit in this many two-bit slots (2 MB) keeps them in a dense array; longer selectors
-        // keep only the states asked about (F-50, F-53).
+        // A selector whose states fit in this many two-bit slots (2 MB) keeps them in a dense array, while the dense
+        // arrays of one pass stay under the budget; other selectors keep only the states asked about (F-50, F-53, F-55).
         private const long DenseLimit = 8L * 1024 * 1024;
+        private const long DenseBudget = 64L * 1024 * 1024;
+
+        private long _denseBytes;
 
         private readonly IReadOnlyDictionary<HtmlElement, int> _ordinals;
         // Per selector: unknown, true, or false for each (element, compound) pair, two bits each. Dense: indexed by
@@ -206,6 +209,11 @@ internal sealed class CssSelector
             return new MatchMemo(ordinals);
         }
 
+        /// <summary>
+        /// Gets the bytes the dense arrays of this pass hold, at most 64 MB.
+        /// </summary>
+        internal long DenseBytes => _denseBytes;
+
         internal bool TryGet(CssSelector selector, HtmlElement element, int index, out bool value)
         {
             int bits = 0;
@@ -226,13 +234,14 @@ internal sealed class CssSelector
         {
             int state = value ? 1 : 2;
             long slots = (long)_ordinals.Count * selector._compounds.Count;
-            if (slots <= DenseLimit)
+            if (!_dense.TryGetValue(selector, out var dense) && !_sparse.ContainsKey(selector) && slots <= DenseLimit && _denseBytes + (slots + 3) / 4 <= DenseBudget)
             {
-                if (!_dense.TryGetValue(selector, out var dense))
-                {
-                    dense = new byte[(slots + 3) / 4];
-                    _dense[selector] = dense;
-                }
+                dense = new byte[(slots + 3) / 4];
+                _dense[selector] = dense;
+                _denseBytes += dense.Length;
+            }
+            if (dense is not null)
+            {
                 long slot = DenseSlot(selector, element, index);
                 dense[slot >> 2] |= (byte)(state << (int)((slot & 3) * 2));
                 return;

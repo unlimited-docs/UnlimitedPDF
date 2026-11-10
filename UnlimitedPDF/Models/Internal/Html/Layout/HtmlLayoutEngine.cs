@@ -448,12 +448,13 @@ internal sealed partial class HtmlLayoutEngine
     // and before repeated table headers (F-16). A page below carried rows is not empty (F-08).
     private void NextPage()
     {
+        // Leaving a page past the page limit that has something drawn on it, or that an open box will decorate, means
+        // the document cannot fit: the save keeps exactly such pages (F-54). Stopping here keeps content-driven runs
+        // short (F-52); pages with nothing drawn are dropped by the save, so they never fail a document that fits.
+        if (_lastPage is int last && _page >= last && (Current.Commands.Count > 0 || _open.Any(o => o.StartPage is not null && HasDecoration(o.Box.Style))))
+            throw new HtmlPageLimitException();
         foreach (var _ in _clips) Current.Commands.Add(new ClipEndCommand());
         _page++;
-        // Content-driven page moves (rows, lines, forced breaks) are bounded by the input but can still be costly when
-        // every open box is drawn on every page (F-52). Content this far past the limit fails the save anyway, and a
-        // document that fits moves at most one page past where blank space stops (a trailing margin or break).
-        if (_lastPage is int last && _page > last + 2) throw new HtmlPageLimitException();
         var room = Room(_page);
         _y = room.Top;
         _atTop = room.EmptyBody;
