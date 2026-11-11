@@ -88,6 +88,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     public async Task DownloadAsync(string url, string fileName) => await (await _module.Value).InvokeVoidAsync("download", url, fileName);
 
     /// <summary>
+    /// Moves keyboard focus to the skip link's destination: the element the page marks with <c>data-skip-target</c>,
+    /// otherwise the main content.
+    /// </summary>
+    public async Task FocusSkipTargetAsync() => await (await _module.Value).InvokeVoidAsync("focusSkipTarget");
+
+    /// <summary>
     /// Reports which section is in view, for a page's topic index: on screens 1,024 px and wider, the listener hears the
     /// ID of the last visible section whose top has passed a reading line about a third of the way down the view, each
     /// time it changes. A later call
@@ -110,6 +116,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// Checks the section in view again after sections were shown or hidden.
     /// </summary>
     public async Task RefreshSectionsAsync() => await (await _module.Value).InvokeVoidAsync("refreshSections");
+
+    /// <summary>
+    /// Scrolls a sidebar so its current demo's link is in view, without scrolling the page.
+    /// </summary>
+    /// <param name="container">The scrolling sidebar.</param>
+    public async Task RevealActiveLinkAsync(ElementReference container) => await (await _module.Value).InvokeVoidAsync("revealActiveLink", container);
 
     /// <summary>
     /// Releases a blob URL created by <see cref="CreateObjectUrlAsync"/>.

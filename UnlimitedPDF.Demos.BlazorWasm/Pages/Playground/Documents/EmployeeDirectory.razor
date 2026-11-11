@@ -24,12 +24,10 @@
                     <input id="bottom-margin" type="number" min="0" class="form-control" @bind="_input.MarginBottom" />
                 </div>
             </div>
-            <div class="field">
-                <label for="repeat-header">
-                    <input id="repeat-header" type="checkbox" @bind="_input.RepeatHeader" />
-                    Repeat the header row on every page
-                </label>
-            </div>
+            <label class="check-field" for="repeat-header">
+                <input id="repeat-header" type="checkbox" @bind="_input.RepeatHeader" />
+                Repeat the header row on every page
+            </label>
         </CollapsibleSection>
     </Inputs>
 </SamplePage>

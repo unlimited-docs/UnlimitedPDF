@@ -20,12 +20,10 @@
         </CollapsibleSection>
 
         <CollapsibleSection Title="Pages">
-            <div class="field">
-                <label for="first-page">
-                    <input id="first-page" type="checkbox" @bind="_input.DifferentFirstPage" />
-                    Give the first page its own header
-                </label>
-            </div>
+            <label class="check-field" for="first-page">
+                <input id="first-page" type="checkbox" @bind="_input.DifferentFirstPage" />
+                Give the first page its own header
+            </label>
             <div class="field">
                 <label for="max-pages">Page limit (0 for none)</label>
                 <input id="max-pages" type="number" min="0" class="form-control" @bind="_input.MaxPages" />

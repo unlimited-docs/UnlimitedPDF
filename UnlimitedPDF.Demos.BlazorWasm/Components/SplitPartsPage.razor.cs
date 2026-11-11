@@ -20,6 +20,7 @@ public partial class SplitPartsPage : IAsyncDisposable
     private string? _announcement;
     private bool _busy;
     private string? _error;
+    private ElementReference _optionsSection;
     private ElementReference _outputSection;
     private IReadOnlyList<SplitPartFile> _parts = Array.Empty<SplitPartFile>();
     private PdfPreview? _preview;
@@ -86,6 +87,13 @@ public partial class SplitPartsPage : IAsyncDisposable
         part.FirstPage == part.LastPage
             ? $"page {part.FirstPage}"
             : $"pages {part.FirstPage}-{part.LastPage}";
+
+    // Focus moves to the options first (without a jump), so the next Tab press continues there; then the page scrolls.
+    private async Task BackToOptionsAsync()
+    {
+        await _optionsSection.FocusAsync(preventScroll: true);
+        await Interop.ScrollToElementAsync($"{_id}-options", smooth: true);
+    }
 
     private async Task DownloadPartAsync(int index)
     {
