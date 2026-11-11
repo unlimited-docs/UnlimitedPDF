@@ -49,6 +49,36 @@ h1:focus { outline: none; }
 
 :where(a:not(.btn)) { color: var(--app-accent); }
 
+/* ---------- Focus and field borders (26111103 AC-03, AC-10) ---------- */
+
+/* One keyboard focus ring for every link, button, tab, and field: solid accent, about 5:1 on the light surfaces. It
+   replaces the framework's translucent ring, which measured under 2:1. FAQ controls keep their inset ring below. */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+[role="tab"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+.form-control:focus-visible,
+.form-select:focus-visible,
+[tabindex]:not([tabindex="-1"]):focus-visible {
+    outline: 2px solid var(--app-accent);
+    outline-offset: 2px;
+}
+
+/* On the dark code and install blocks the accent is too dark, so the ring is the light code color instead. */
+.code-copy:focus-visible,
+.install button:focus-visible { outline-color: #dbe5ff; }
+
+/* Field borders at least 3:1 against white and the page canvas, so every field can be found. */
+:root { --app-field-border: #7d89a1; }
+
+.form-control,
+.form-select,
+.field input[type="color"] { border-color: var(--app-field-border); }
+
 /* ---------- Top bar ---------- */
 
 .topbar {
@@ -84,6 +114,8 @@ h1:focus { outline: none; }
 .topnav { display: flex; align-items: center; gap: 0.25rem; }
 
 .topnav-link {
+    display: inline-flex;
+    align-items: center;
     color: var(--app-muted);
     text-decoration: none;
     font-weight: 550;
@@ -103,6 +135,30 @@ h1:focus { outline: none; }
 }
 
 .app-main { min-height: calc(100vh - var(--app-topbar-h)); }
+
+/* Focused by the skip link only; the next Tab press continues inside it, so it needs no ring of its own. */
+.app-main:focus, .playground-content:focus { outline: none; }
+
+/* "Skip to content": off screen until it has focus, then shown over the top bar's left end, wherever the page is scrolled. */
+.skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.75rem;
+    z-index: 30;
+    transform: translateY(-200%);
+    padding: 0.6rem 1rem;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 8px;
+    background: var(--app-accent);
+    color: #fff;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.skip-link:focus { transform: none; }
+.skip-link:focus-visible { outline-color: var(--app-ink); }
 
 /* ---------- Playground shell ---------- */
 
@@ -155,7 +211,9 @@ h1:focus { outline: none; }
 
 .sidebar-link .icon { color: var(--app-muted); flex: none; }
 .sidebar-link:hover { background: #eef2fa; }
-.sidebar-link.active { background: var(--app-accent-soft); color: var(--app-accent); font-weight: 650; }
+/* The current demo: tinted, bold, and an accent bar on its left edge (the bar is the 3:1 indicator; the tint alone
+   is 1.08:1 against the sidebar). */
+.sidebar-link.active { background: var(--app-accent-soft); color: var(--app-accent); font-weight: 650; box-shadow: inset 3px 0 0 var(--app-accent); }
 .sidebar-link.active .icon { color: var(--app-accent); }
 
 .playground-content { padding: 1.5rem 1.75rem 3rem; min-width: 0; }
@@ -180,7 +238,9 @@ h1:focus { outline: none; }
         padding: 0.75rem 1.25rem 1rem;
     }
 
-    .playground-sidebar.is-open { display: block; }
+    /* The open menu is its own scroll box, one screen at most, so the current demo can be brought into view in it
+       (26111103 AC-07). */
+    .playground-sidebar.is-open { display: block; max-height: calc(100dvh - var(--app-topbar-h) - 5rem); overflow-y: auto; }
     .playground-content { padding: 1rem 1.25rem 2.5rem; }
 }
 
@@ -227,6 +287,25 @@ h1:focus { outline: none; }
 
 .demo-actions .btn-generate { min-width: 9.5rem; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .demo-shortcut { margin-left: auto; font-size: 0.78rem; color: var(--app-muted); }
+
+/* Phones and tablets usually have no keyboard, so the Ctrl + Enter hint is left out there (26111103 F-13). */
+@media (max-width: 1023.98px) {
+    .demo-shortcut { display: none; }
+}
+
+/* "Back to options": only where the options sit above the output (below 1,280 px). The options panel keeps its top
+   below the sticky top bar when scrolled to, and shows no ring when focused this way. */
+.output-actions .btn.back-to-options { display: none; }
+.demo-inputs { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+
+/* After Generate the output is scrolled into view below 1,280 px; this keeps its header (tabs, Back to options,
+   Open, Download) below the sticky top bar instead of under it (26111103 F-15). */
+.demo-output { scroll-margin-top: calc(var(--app-topbar-h) + 0.5rem); }
+.demo-inputs:focus { outline: none; }
+
+@media (max-width: 1279.98px) {
+    .output-actions .btn.back-to-options { display: inline-flex; align-items: center; gap: 0.35rem; }
+}
 .demo-shortcut kbd {
     font-family: var(--app-mono);
     font-size: 0.72rem;
@@ -335,6 +414,7 @@ h1:focus { outline: none; }
 }
 
 .preview-frame { width: 100%; height: 100%; border: 0; display: block; background: #eef1f7; }
+
 .preview-frame.is-hidden { visibility: hidden; }
 
 .preview-empty, .preview-overlay {
@@ -397,7 +477,8 @@ h1:focus { outline: none; }
     margin: 0;
     height: 100%;
     overflow: auto;
-    padding: 1rem 1.1rem 2rem;
+    /* The top room keeps the first lines clear of the Copy button (26111103 R-02); Home and FAQ samples set their own. */
+    padding: 2.9rem 1.1rem 2rem;
     color: #dbe5ff;
     font-family: var(--app-mono);
     font-size: 0.82rem;
@@ -412,7 +493,7 @@ h1:focus { outline: none; }
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    border: 1px solid rgba(219, 229, 255, 0.25);
+    border: 1px solid rgba(219, 229, 255, 0.5); /* about 4.4:1 on the code background (26111103 F-14) */
     background: rgba(15, 26, 46, 0.85);
     color: #dbe5ff;
     border-radius: 8px;
@@ -421,6 +502,15 @@ h1:focus { outline: none; }
 }
 
 .code-copy:hover { background: #1b2a47; }
+
+/* Side by side (1,280 px and wider): the preview and code view take the screen height left after the top bar, the demo
+   heading, the output tabs, and the status line, so Generate, the whole preview, and the status line all fit the first
+   screen (26111103 AC-06). On the split demos the parts list above the preview is capped and its room is taken off. */
+@media (min-width: 1280px) {
+    .preview, .code-view { height: clamp(320px, calc(100dvh - 20rem), 900px); min-height: 0; }
+    .split-parts { max-height: 8rem; }
+    .split-parts + .preview { height: clamp(260px, calc(100dvh - 29rem), 900px); }
+}
 
 /* ---------- Option sections and fields ---------- */
 
@@ -474,7 +564,8 @@ h1:focus { outline: none; }
     .scenario-list { max-height: 15rem; overflow-y: auto; padding-right: 0.25rem; }
 }
 
-.check-field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
+/* A checkbox and its text are one target: the whole label row toggles it, at least 24 px tall (26111103 AC-05). */
+.check-field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; min-height: 24px; cursor: pointer; }
 .check-field input { width: 1.05rem; height: 1.05rem; accent-color: var(--app-accent); }
 
 .segmented { display: inline-flex; border: 1px solid var(--app-line); border-radius: 9px; padding: 2px; background: var(--app-canvas); }
@@ -485,7 +576,7 @@ h1:focus { outline: none; }
 .rows { display: grid; gap: 0.5rem; }
 .row-item { display: grid; gap: 0.4rem; align-items: end; padding: 0.6rem; border: 1px solid var(--app-line); border-radius: 10px; background: #fbfcfe; }
 .row-item-head { display: flex; justify-content: space-between; align-items: center; font-size: 0.78rem; font-weight: 650; color: var(--app-muted); }
-.row-remove { border: 0; background: none; color: var(--app-muted); padding: 0.15rem; border-radius: 6px; line-height: 0; }
+.row-remove { display: inline-grid; place-items: center; min-width: 24px; min-height: 24px; border: 0; background: none; color: var(--app-muted); padding: 0.15rem; border-radius: 6px; line-height: 0; }
 .row-remove:hover { color: var(--app-danger); background: var(--app-danger-soft); }
 .row-add { justify-self: start; display: inline-flex; align-items: center; gap: 0.35rem; }
 
@@ -593,7 +684,7 @@ h1:focus { outline: none; }
 
 .install code { color: inherit; white-space: nowrap; overflow: auto; }
 .install code::before { content: "$ "; color: #7f8db0; }
-.install button { border: 1px solid rgba(219, 229, 255, 0.25); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
+.install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
 .install button:hover { background: #1b2a47; }
 
 /* On a phone the whole command fits beside its Copy button, and "pure .NET" stays on one line. */
@@ -825,13 +916,13 @@ h1:focus { outline: none; }
     .ql-layout { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; }
     .ql-side { display: contents; }
     .ql-top { order: -1; position: sticky; top: 0; z-index: 1; padding: 0.5rem 1rem; background: var(--app-surface); border-bottom: 1px solid var(--app-line); }
-    .ql-icon-button { padding: 0.5rem; }
+    .ql-icon-button { padding: 0.5rem; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
     .ql-picture { padding: 0.75rem; }
     .ql-picture img { max-height: 48vh; }
     .ql-title, .ql-description, .ql-facts, .ql-actions, .ql-error { margin-inline: 1rem; }
     .ql-actions .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
     .ql-nav { position: sticky; bottom: 0; margin-top: auto; padding: 0.5rem 1rem; background: var(--app-surface); border-top: 1px solid var(--app-line); }
-    .ql-nav .btn { min-height: 40px; }
+    .ql-nav .btn { min-height: 44px; }
 }
 
 /* "How do I...?": two columns of questions, one on a phone. */
@@ -1018,3 +1109,33 @@ h1:focus { outline: none; }
 }
 
 #blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
+
+/* ---------- Phone tap targets (26111103 AC-05) ---------- */
+
+/* Phone tap targets: every shared and playground control is at least 44 px on a phone (26111103 AC-05). Desktop
+   sizes are unchanged. Home's own controls follow in the Home section. */
+@media (max-width: 575.98px) {
+    .brand { min-width: 44px; min-height: 44px; justify-content: center; }
+    .topnav-link { min-height: 44px; }
+    .btn { align-items: center; justify-content: center; min-height: 44px; }
+    .output-tab, .sidebar-link { min-height: 44px; }
+    .form-control, .form-select { min-height: 44px; }
+    .field input[type="color"] { height: 44px; }
+    input[type="file"] { min-height: 44px; }
+    input[type="file"]::file-selector-button { min-height: 44px; }
+    .segmented button { min-height: 44px; }
+    .scenario-list a { display: flex; align-items: center; min-height: 44px; }
+    .check-field { min-height: 44px; }
+    .row-remove { min-width: 44px; min-height: 44px; }
+    /* The Copy button keeps its drawn size so it covers no code; a transparent layer around it is the 44 px target. */
+    .code-copy::before { content: ""; position: absolute; inset: -7px -4px; }
+}
+
+/* Home's own phone tap targets: the install Copy button, the jump links, the document tiles' Quick look and Open, and
+   the link to the FAQ (26111103 AC-05). The Quick look dialog's own buttons are sized in its phone block above. */
+@media (max-width: 575.98px) {
+    .install button { min-height: 44px; }
+    .jump-link { min-height: 44px; }
+    .questions-more { min-height: 44px; }
+    .tile-actions .btn { min-height: 44px; }
+}

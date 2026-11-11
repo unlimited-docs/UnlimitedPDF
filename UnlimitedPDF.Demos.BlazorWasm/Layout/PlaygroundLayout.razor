@@ -1,5 +1,6 @@
 @inherits LayoutComponentBase
 @layout MainLayout
+@implements IDisposable
 
 <div class="playground">
     <button type="button" class="playground-menu btn btn-sm btn-outline" @onclick="ToggleMenu"
@@ -7,7 +8,7 @@
         <Icon Name="menu" Size="18" /> All demos
     </button>
 
-    <aside id="playground-sidebar" class="playground-sidebar @(_menuOpen ? "is-open" : null)" aria-label="Demos">
+    <aside id="playground-sidebar" class="playground-sidebar @(_menuOpen ? "is-open" : null)" aria-label="Demos" @ref="_sidebar">
         @foreach (var category in SampleCatalog.Categories)
         {
             <div class="sidebar-group">
@@ -28,7 +29,8 @@
         }
     </aside>
 
-    <div class="playground-content">
+    @* The skip link's destination here: the demo itself, past the sidebar. *@
+    <div class="playground-content" data-skip-target tabindex="-1">
         @Body
     </div>
 </div>

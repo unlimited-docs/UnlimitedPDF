@@ -9,7 +9,7 @@
     </header>
 
     <div class="demo-grid">
-        <section class="panel demo-inputs" aria-label="Options">
+        <section class="panel demo-inputs" id="@($"{_id}-options")" tabindex="-1" @ref="_optionsSection" aria-label="Options">
             <div class="demo-inputs-body" @oninput="OnInputsChanged" @onchange="OnInputsChanged" @onkeydown="OnInputsKeyDownAsync">
                 @Inputs
             </div>
@@ -39,6 +39,10 @@
                             aria-selected="@(_tab == OutputTab.Code ? "true" : "false")" @onclick="() => _tab = OutputTab.Code">C# code</button>
                 </div>
                 <div class="output-actions">
+                    @* Below 1,280 px the options sit above the output; this brings them back in one tap. *@
+                    <button type="button" class="btn btn-sm btn-text back-to-options" @onclick="BackToOptionsAsync" title="Scroll up to this demo's options">
+                        <Icon Name="pen" Size="16" /> Back to options
+                    </button>
                     <button type="button" class="btn btn-sm btn-outline" disabled="@(_parts.Count == 0 || _busy)" @onclick="DownloadZipAsync" title="Download every part in one zip file">
                         <Icon Name="download" Size="16" /> Download all (.zip)
                     </button>

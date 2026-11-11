@@ -1,5 +1,9 @@
 @inherits LayoutComponentBase
 
+@* The first Tab stop on every page: skips the top bar (and the playground sidebar) to the page's own content. The
+   click moves focus in code, because a bare "#main-content" link resolves against the base href and would open Home. *@
+<a class="skip-link" href="#main-content" @onclick="SkipToContentAsync" @onclick:preventDefault>Skip to content</a>
+
 <header class="topbar">
     <div class="topbar-inner">
         <a class="brand" href="">
@@ -21,6 +25,6 @@
     </div>
 </header>
 
-<main class="app-main">
+<main id="main-content" class="app-main" tabindex="-1">
     @Body
 </main>

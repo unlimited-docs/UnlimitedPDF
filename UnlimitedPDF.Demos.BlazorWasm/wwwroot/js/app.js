@@ -48,7 +48,36 @@ export async function copyText(text) {
 
 export function scrollIntoViewOnNarrow(element) {
     if (element && window.matchMedia("(max-width: 1279.98px)").matches) {
-        element.scrollIntoView({ behavior: "smooth", block: "start" });
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        element.scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" });
+    }
+}
+
+export function focusSkipTarget() {
+    // The skip link's destination: the element a page marks with data-skip-target (the playground's demo, past its
+    // sidebar), otherwise the main content. Only focus moves; the next Tab stop brings itself into view.
+    const target = document.querySelector("[data-skip-target]") ?? document.getElementById("main-content");
+    if (target) {
+        target.focus({ preventScroll: true });
+    }
+}
+
+export function revealActiveLink(container) {
+    // Brings the current demo's link into the middle of the sidebar (or the open phone menu) when it is out of view.
+    // Only the container scrolls, never the page, and it jumps rather than animates.
+    if (!container || container.offsetParent === null) {
+        return;
+    }
+    // Matched by address, because the links mark themselves active in their own render, possibly after this call.
+    const links = [...container.querySelectorAll(".sidebar-link")];
+    const link = links.find(a => a.pathname === window.location.pathname) ?? links.find(a => a.classList.contains("active"));
+    if (!link) {
+        return;
+    }
+    const box = container.getBoundingClientRect();
+    const item = link.getBoundingClientRect();
+    if (item.top < box.top || item.bottom > box.bottom) {
+        container.scrollTop += item.top - box.top - (container.clientHeight - item.height) / 2;
     }
 }
 

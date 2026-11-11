@@ -20,6 +20,7 @@ public partial class SamplePage
     private string? _announcement;
     private bool _busy;
     private string? _error;
+    private ElementReference _optionsSection;
     private ElementReference _outputSection;
     private PdfPreview? _preview;
     private GenerationResult? _result;
@@ -75,6 +76,13 @@ public partial class SamplePage
         bytes < 1024
             ? $"{bytes} B"
             : string.Format(CultureInfo.InvariantCulture, "{0:0.0} KB", bytes / 1024.0);
+
+    // Focus moves to the options first (without a jump), so the next Tab press continues there; then the page scrolls.
+    private async Task BackToOptionsAsync()
+    {
+        await _optionsSection.FocusAsync(preventScroll: true);
+        await Interop.ScrollToElementAsync($"{_id}-options", smooth: true);
+    }
 
     private async Task DownloadAsync()
     {
