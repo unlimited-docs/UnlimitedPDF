@@ -1,0 +1,64 @@
+@* One capability on the home page: its tinted icon and name, what it does, its code sample, and a link to each demo. *@
+<section id="@Category.Id" class="panel cap-row tone-@Category.Tone" aria-labelledby="@HeadingId">
+    <div class="cap-text">
+        <div class="cap-head">
+            @if (Category.Icon is not null)
+            {
+                <span class="cap-icon"><Icon Name="@Category.Icon" Size="22" /></span>
+            }
+            <h2 id="@HeadingId">@Category.Title</h2>
+        </div>
+        <p class="cap-lead">@Category.Description</p>
+
+        @if (Category.Groups is { Count: > 0 } groups)
+        {
+            @foreach (var group in groups)
+            {
+                <h3 class="cap-group-title">@group.Title</h3>
+                @DemoLinks(group.Demos)
+            }
+        }
+        else
+        {
+            @DemoLinks(Category.Demos)
+        }
+    </div>
+
+    @if (_snippet is not null)
+    {
+        <div class="cap-code">
+            <CodeView Source="@_snippet" AriaLabel="@($"{Category.Title} code sample")" />
+        </div>
+    }
+</section>
+
+@code {
+    private string? _snippet;
+
+    /// <summary>
+    /// Gets or sets the capability shown in the row.
+    /// </summary>
+    [Parameter, EditorRequired] public SampleCategory Category { get; set; } = default!;
+
+    private string HeadingId => $"{Category.Id}-title";
+
+    /// <inheritdoc />
+    protected override void OnParametersSet() =>
+        _snippet = Category.Snippet is null ? null : SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), Category.Snippet);
+
+    private static RenderFragment DemoLinks(IReadOnlyList<SampleDemo> demos) =>
+        @<ul class="cap-links">
+            @foreach (var demo in demos)
+            {
+                <li>
+                    <a class="cap-link" href="@demo.Route">
+                        <span class="cap-link-icon"><Icon Name="@demo.Icon" Size="18" /></span>
+                        <span class="cap-link-text">
+                            <span class="cap-link-title">@demo.Title</span>
+                            <span class="cap-link-desc">@demo.Description</span>
+                        </span>
+                    </a>
+                </li>
+            }
+        </ul>;
+}

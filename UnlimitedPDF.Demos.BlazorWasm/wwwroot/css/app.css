@@ -137,6 +137,8 @@ h1:focus { outline: none; }
     padding: 0 0.6rem 0.5rem;
 }
 
+.sidebar-subgroup-title { font-size: 0.78rem; font-weight: 600; color: var(--app-muted); padding: 0.45rem 0.6rem 0.2rem; }
+
 .sidebar-list { list-style: none; margin: 0; padding: 0; }
 
 .sidebar-link {
@@ -611,21 +613,128 @@ h1:focus { outline: none; }
 .section-head h2 { font-size: 1.75rem; font-weight: 750; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
 .section-head p { color: var(--app-muted); margin: 0; }
 
-.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-
-.feature-card {
-    display: block;
-    padding: 1.35rem;
-    text-decoration: none;
-    color: var(--app-ink);
-    transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+/* Capability colors: an icon color and its soft background. Text keeps the ink color; each icon color has at least
+   3:1 contrast against its soft background (26111101 AC-20). */
+:root {
+    --cap-create: #2357e8;
+    --cap-create-soft: #e8efff;
+    --cap-merge: #0b7a72;
+    --cap-merge-soft: #dff4f2;
+    --cap-split: #9a5800;
+    --cap-split-soft: #fff0d4;
+    --cap-html: #7339cc;
+    --cap-html-soft: #f0e8fd;
 }
 
-.feature-card:hover { transform: translateY(-2px); border-color: #c9d6f5; box-shadow: 0 12px 28px rgba(35, 87, 232, 0.1); }
-.feature-icon { width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; background: var(--app-accent-soft); color: var(--app-accent); margin-bottom: 0.9rem; }
-.feature-card h3 { font-size: 1.05rem; font-weight: 700; margin: 0 0 0.35rem; }
-.feature-card p { color: var(--app-muted); font-size: 0.92rem; margin: 0 0 0.9rem; }
-.feature-link { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.88rem; font-weight: 650; color: var(--app-accent); }
+.tone-blue { --tone: var(--cap-create); --tone-soft: var(--cap-create-soft); }
+.tone-teal { --tone: var(--cap-merge); --tone-soft: var(--cap-merge-soft); }
+.tone-amber { --tone: var(--cap-split); --tone-soft: var(--cap-split-soft); }
+.tone-purple { --tone: var(--cap-html); --tone-soft: var(--cap-html-soft); }
+
+/* A jump keeps the section's heading below the sticky top bar. */
+.cap-row, .home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+
+/* Jump links between the hero and the illustration. */
+.jump-links {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    max-width: 1200px;
+    margin: -1rem auto 1.75rem;
+    padding: 0 1.25rem;
+}
+
+.jump-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--app-line);
+    border-radius: 999px;
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.jump-link .icon { color: var(--tone, var(--app-muted)); }
+.jump-link:hover { border-color: #c9d6f5; background: #f3f6fd; }
+
+/* Capability rows: text and demo links beside the code sample, stacked below 1,024 px. */
+.cap-rows { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem 1rem; display: grid; gap: 1.25rem; }
+
+.cap-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+    padding: 1.5rem;
+}
+
+.cap-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
+.cap-icon { width: 42px; height: 42px; flex: none; border-radius: 11px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
+.cap-head h2 { font-size: 1.45rem; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
+.cap-lead { color: var(--app-muted); margin: 0 0 1rem; }
+
+.cap-group-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--app-muted); margin: 0.9rem 0 0.4rem; }
+
+.cap-links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.4rem; }
+
+.cap-link {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    height: 100%;
+    padding: 0.55rem 0.65rem;
+    border: 1px solid var(--app-line);
+    border-radius: 10px;
+    color: var(--app-ink);
+    text-decoration: none;
+}
+
+.cap-link:hover { border-color: #c9d6f5; background: #f8faff; }
+.cap-link-icon { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
+.cap-link-text { display: grid; gap: 0.1rem; min-width: 0; }
+.cap-link-title { font-weight: 650; font-size: 0.92rem; }
+.cap-link-desc { color: var(--app-muted); font-size: 0.8rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* The row's code sample: the code view at its content's height, scrolling sideways inside itself. */
+.cap-code .code-view { height: auto; min-height: 0; border-radius: 12px; overflow: hidden; }
+.cap-code .code-view pre { height: auto; padding: 2.6rem 1.1rem 1.1rem; overflow-x: auto; }
+
+@media (max-width: 1023.98px) {
+    .cap-row { grid-template-columns: minmax(0, 1fr); padding: 1.25rem; }
+}
+
+/* Real-life documents until the gallery: one link per document. */
+.document-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.5rem; }
+.document-list a { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.8rem; border: 1px solid var(--app-line); border-radius: 10px; background: var(--app-surface); color: var(--app-ink); text-decoration: none; font-weight: 600; }
+.document-list .icon { color: var(--app-muted); }
+
+/* "How do I...?": two columns of questions, one on a phone. */
+.questions { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+
+.question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 100%;
+    padding: 0.9rem 1.1rem;
+    color: var(--app-ink);
+    text-decoration: none;
+}
+
+.question:hover { border-color: #c9d6f5; }
+.question-text { font-weight: 650; }
+.question-demo { display: inline-flex; align-items: center; gap: 0.35rem; flex: none; color: var(--app-accent); font-size: 0.85rem; font-weight: 600; }
+
+@media (max-width: 575.98px) {
+    .questions { grid-template-columns: minmax(0, 1fr); }
+    .question { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+}
 
 .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
 .fact { padding: 1.1rem 1.25rem; }
