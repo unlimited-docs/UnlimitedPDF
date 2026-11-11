@@ -18,12 +18,15 @@ public partial class DocumentQuickLook : IDisposable
     private static readonly TimeSpan DownloadUrlLifetime = TimeSpan.FromSeconds(30);
 
     private ElementReference _dialog;
-    private bool _failed;
+    // The opening whose last download failed, if any.
+    private int? _failedOpening;
     private int _index;
     private bool _open;
-    // Counts the openings, so the close of an earlier opening, reported late, cannot empty a dialog opened again.
+    // Counts the openings, so the close of an earlier opening, reported late, cannot empty a dialog opened again, and a
+    // download's state shows only in the opening that started it.
     private int _opening;
-    private bool _preparing;
+    // The opening whose download is being built, if any.
+    private int? _preparingOpening;
     private DotNetObjectReference<DocumentQuickLook>? _self;
     private bool _showPending;
 
@@ -71,7 +74,6 @@ public partial class DocumentQuickLook : IDisposable
     public void Open(int index)
     {
         _index = Math.Clamp(index, 0, DocumentGallery.Documents.Count - 1);
-        _failed = false;
         _open = true;
         _opening++;
         _showPending = true;
@@ -84,12 +86,15 @@ public partial class DocumentQuickLook : IDisposable
 
     private async Task CloseAsync() => await Interop.CloseDialogAsync(_dialog);
 
+    // The download belongs to the opening that started it: its preparing state and any failure show only there, and a
+    // file asked for is still saved if quick look was closed meanwhile (F-12).
     private async Task DownloadAsync()
     {
-        if (_preparing || Current is not { } document) return;
+        if (Preparing || Current is not { } document) return;
 
-        _preparing = true;
-        _failed = false;
+        int opening = _opening;
+        _preparingOpening = opening;
+        _failedOpening = null;
         StateHasChanged();
         try
         {
@@ -106,11 +111,11 @@ public partial class DocumentQuickLook : IDisposable
         catch (Exception exception) when (exception is not JSDisconnectedException)
         {
             // Any failure (an image that does not load, a build error) leaves quick look usable (AC-15).
-            _failed = true;
+            _failedOpening = opening;
         }
         finally
         {
-            _preparing = false;
+            if (_preparingOpening == opening) _preparingOpening = null;
         }
     }
 
@@ -137,10 +142,10 @@ public partial class DocumentQuickLook : IDisposable
     // builds, the document stays, so its preparing state and any failure message belong to the document shown.
     private void Step(int delta)
     {
-        if (_preparing) return;
+        if (Preparing) return;
         int count = DocumentGallery.Documents.Count;
         _index = ((_index + delta) % count + count) % count;
-        _failed = false;
+        _failedOpening = null;
     }
 
     #endregion
@@ -150,6 +155,12 @@ public partial class DocumentQuickLook : IDisposable
     #region Properties, Indexers
 
     private GalleryDocument? Current => DocumentGallery.Documents.Count > 0 ? DocumentGallery.Documents[_index] : null;
+
+    // Whether the last download of the opening shown failed.
+    private bool Failed => _failedOpening == _opening;
+
+    // Whether the opening shown has a download being built.
+    private bool Preparing => _preparingOpening == _opening;
 
     [Inject] private SampleImageStore ImageStore { get; set; } = default!;
 

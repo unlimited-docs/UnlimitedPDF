@@ -6,8 +6,8 @@
     {
         <div class="ql-layout">
             <figure class="ql-picture">
-                @* A new element per document, with the tile's picture behind it, so a step never shows the previous
-                   page while the large picture loads. *@
+                @* A new element per document, with the tile's small picture behind it (already loaded when its tile
+                   has been on screen), so a step never shows the previous page while the large picture loads. *@
                 <img @key="document.Picture" src="@($"images/gallery/{document.Picture}-960.jpg")" width="960" height="1358" decoding="async"
                      style="@($"background-image: url('images/gallery/{document.Picture}-320.jpg')")"
                      alt="@($"First page of the {document.Demo.Title} PDF")" />
@@ -33,8 +33,8 @@
 
                 <div class="ql-actions">
                     <a class="btn btn-solid theme-primary" href="@document.Demo.Route">Open and edit <Icon Name="arrow" Size="16" /></a>
-                    <button type="button" class="btn btn-outline" aria-disabled="@(_preparing ? "true" : "false")" @onclick="DownloadAsync">
-                        @if (_preparing)
+                    <button type="button" class="btn btn-outline" aria-disabled="@(Preparing ? "true" : "false")" @onclick="DownloadAsync">
+                        @if (Preparing)
                         {
                             <span class="spinner-border spinner-sm-inline" aria-hidden="true"></span>
                             <span>Preparing</span>
@@ -47,16 +47,16 @@
                     </button>
                 </div>
 
-                @if (_failed)
+                @if (Failed)
                 {
                     <p class="ql-error" role="alert">The PDF could not be built here. Use "Open and edit" to build it in its demo.</p>
                 }
 
                 <div class="ql-nav">
-                    <button type="button" class="btn btn-sm btn-outline" aria-label="Previous document" aria-disabled="@(_preparing ? "true" : "false")" @onclick="() => Step(-1)">
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="Previous document" aria-disabled="@(Preparing ? "true" : "false")" @onclick="() => Step(-1)">
                         <Icon Name="arrow" Size="16" Class="icon-flip" /> Previous
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline" aria-label="Next document" aria-disabled="@(_preparing ? "true" : "false")" @onclick="() => Step(1)">
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="Next document" aria-disabled="@(Preparing ? "true" : "false")" @onclick="() => Step(1)">
                         Next <Icon Name="arrow" Size="16" />
                     </button>
                 </div>

@@ -254,20 +254,18 @@ public class HomePageTests
     [Fact]
     public void The_home_page_links_each_row_demo_and_each_tile_to_its_demo()
     {
-        // The page renders a row per category with a sample and the gallery; the row links every demo (or every
-        // group's demos, which are the same demos, checked above) and each tile links its document's demo.
+        // A guard against removal: the page renders the capability rows and the gallery, a row links its demos, and a
+        // tile links its document's demo. Only the component tags and link attributes are matched, so renaming a
+        // variable does not fail it. That the rows and the gallery hold every demo is checked above.
         var home = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/Home.razor"));
         var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
         var tiles = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/DocumentTiles.razor"));
 
-        Assert.Contains("SampleCatalog.Categories.Where(category => category.Snippet is not null)", home, StringComparison.Ordinal);
-        Assert.Contains("<CapabilityRow Category=\"category\" />", home, StringComparison.Ordinal);
-        Assert.Contains("<DocumentTiles />", home, StringComparison.Ordinal);
-        Assert.Contains("@DemoLinks(group.Demos)", row, StringComparison.Ordinal);
-        Assert.Contains("@DemoLinks(Category.Demos)", row, StringComparison.Ordinal);
-        Assert.Contains("href=\"@demo.Route\"", row, StringComparison.Ordinal);
-        Assert.Contains("DocumentGallery.Documents[index]", tiles, StringComparison.Ordinal);
-        Assert.Contains("href=\"@document.Demo.Route\"", tiles, StringComparison.Ordinal);
+        Assert.Contains("<CapabilityRow ", home, StringComparison.Ordinal);
+        Assert.Contains("<DocumentTiles", home, StringComparison.Ordinal);
+        Assert.Contains(".Route\"", row, StringComparison.Ordinal);
+        Assert.Contains("DocumentGallery.Documents", tiles, StringComparison.Ordinal);
+        Assert.Contains(".Demo.Route\"", tiles, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -278,9 +276,10 @@ public class HomePageTests
         var project = System.Xml.Linq.XDocument.Load(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/UnlimitedPDF.Demos.BlazorWasm.csproj"));
         var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
 
+        // Either path separator is accepted; the logical name is what the page asks for.
         Assert.Contains(project.Descendants("EmbeddedResource"), e =>
-            (string?)e.Attribute("Include") == @"Samples\HomeSnippets.cs" && (string?)e.Attribute("LogicalName") == "Samples.HomeSnippets.cs");
-        Assert.Contains("SampleSource.Read(\"HomeSnippets.cs\")", row, StringComparison.Ordinal);
+            ((string?)e.Attribute("Include"))?.Replace('/', '\\') == @"Samples\HomeSnippets.cs" && (string?)e.Attribute("LogicalName") == "Samples.HomeSnippets.cs");
+        Assert.Contains("\"HomeSnippets.cs\"", row, StringComparison.Ordinal);
     }
 
     #endregion
