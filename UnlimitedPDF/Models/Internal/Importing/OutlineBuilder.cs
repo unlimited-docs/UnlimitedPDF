@@ -21,20 +21,46 @@ internal static class OutlineBuilder
     /// bookmarks (merge, WR-036); false to keep, at their own levels with no wrapper, only the bookmarks that point to
     /// an imported page (split, WR-037).</param>
     /// <returns>The objects' syntax, starting with the root; empty when there is no bookmark to write.</returns>
-    public static List<string> Build(IReadOnlyList<OutlineImport> imports, Func<int, int> numberAt, bool wrap = true)
+    public static List<string> Build(IReadOnlyList<OutlineImport> imports, Func<int, int> numberAt, bool wrap = true) =>
+        Build(imports.Select(OutlineSource.ForImport).ToList(), numberAt, wrap);
+
+    /// <summary>
+    /// Returns the bookmark objects' syntax for imports and HTML headings (WR-038) in the given order: the root first,
+    /// then each bookmark depth first. Consecutive headings nest by level (an h2 after an h1 is its child); an import
+    /// ends the nesting.
+    /// </summary>
+    /// <param name="sources">The imports and headings in document order.</param>
+    /// <param name="numberAt">Returns the object number of the object at an index in the result (0 is the root).</param>
+    /// <param name="wrap">As for the imports-only overload.</param>
+    /// <returns>The objects' syntax, starting with the root; empty when there is no bookmark to write.</returns>
+    public static List<string> Build(IReadOnlyList<OutlineSource> sources, Func<int, int> numberAt, bool wrap = true)
     {
         var top = new List<OutlineNode>();
-        for (int i = 0; i < imports.Count; i++)
+        var open = new Stack<(int Level, OutlineNode Node)>();
+        int importPosition = 0;
+        foreach (var source in sources)
         {
-            var import = imports[i];
+            if (source.Heading is { } heading)
+            {
+                var node = new OutlineNode(TextBytes(heading.Title), $"[{heading.PageObject} 0 R /XYZ {PdfNumber.Format(heading.X)} {PdfNumber.Format(heading.Y)} null]", null, open: true);
+                while (open.Count > 0 && open.Peek().Level >= heading.Level) open.Pop();
+                if (open.Count > 0) open.Peek().Node.Children.Add(node);
+                else top.Add(node);
+                open.Push((heading.Level, node));
+                continue;
+            }
+
+            open.Clear();
+            var import = source.Import!;
+            importPosition++;
             if (!wrap)
             {
                 top.AddRange(Convert(import, keepLinks: false));
                 continue;
             }
-            var node = new OutlineNode(TitleBytes(import, i + 1), $"[{import.PageMap[import.FirstSourcePage]} 0 R /Fit]", null, open: true);
-            node.Children.AddRange(Convert(import, keepLinks: true));
-            top.Add(node);
+            var wrapper = new OutlineNode(TitleBytes(import, importPosition), $"[{import.PageMap[import.FirstSourcePage]} 0 R /Fit]", null, open: true);
+            wrapper.Children.AddRange(Convert(import, keepLinks: true));
+            top.Add(wrapper);
         }
         if (top.Count == 0) return new List<string>();
 
@@ -238,3 +264,35 @@ internal sealed record OutlineImport(
     string? BookmarkTitle,
     string? Title,
     string? FileName);
+
+/// <summary>
+/// An HTML heading bookmark (WR-038).
+/// </summary>
+/// <param name="Title">The heading text.</param>
+/// <param name="Level">The heading level, 1 to 6.</param>
+/// <param name="PageObject">The object number of the page the heading starts on.</param>
+/// <param name="X">The x-coordinate of the heading's start.</param>
+/// <param name="Y">The y-coordinate of the heading's top.</param>
+internal sealed record OutlineHeading(string Title, int Level, int PageObject, double X, double Y);
+
+/// <summary>
+/// One entry of the bookmark builder's input: an import or an HTML heading.
+/// </summary>
+/// <param name="Import">The import, or null.</param>
+/// <param name="Heading">The heading, or null.</param>
+internal sealed record OutlineSource(OutlineImport? Import, OutlineHeading? Heading)
+{
+    /// <summary>
+    /// Creates a heading entry.
+    /// </summary>
+    /// <param name="heading">The heading.</param>
+    /// <returns>The entry.</returns>
+    public static OutlineSource ForHeading(OutlineHeading heading) => new(null, heading);
+
+    /// <summary>
+    /// Creates an import entry.
+    /// </summary>
+    /// <param name="import">The import.</param>
+    /// <returns>The entry.</returns>
+    public static OutlineSource ForImport(OutlineImport import) => new(import, null);
+}

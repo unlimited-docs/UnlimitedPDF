@@ -58,6 +58,15 @@ internal sealed class PagePlanner
 
     #endregion
 
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the page limit HTML layout stops at, or null for none.
+    /// </summary>
+    public int? MaxPages { get; init; }
+
+    #endregion
+
     #region Methods
 
     #region Public Methods
@@ -198,6 +207,7 @@ internal sealed class PagePlanner
         FlowRectangle rectangle => rectangle.Height,
         FlowTable table => PdfTableRenderer.Layout(table.Table, 0, 0).RowHeights.Sum(),
         FlowBlock block => block.Children.Select((child, i) => (i == 0 ? 0 : child.Spacing) + MeasureSimple(child)).Sum(),
+        FlowHtml html => html.MeasuredHeight(),
         _ => 0
     };
 
@@ -245,6 +255,7 @@ internal sealed class PagePlanner
         int from = RunStartSlot();
         return new PagePlanner(_geometry, _checkBody)
         {
+            MaxPages = MaxPages,
             _cursor = _cursor,
             _leads = _leads,
             _nextItem = _nextItem,
@@ -503,6 +514,10 @@ internal sealed class PagePlanner
 
     private void Place(FlowItem item)
     {
+        // HTML is laid out at the body width of the page where it starts (WR-038), found again at every planning pass so
+        // changed margins or page settings take effect (F-21).
+        if (item is FlowHtml html) html.LayoutWidth = Geometry(_cursor.Slot).ContentWidth;
+
         if (item is FlowBreak)
         {
             FinishPending();
@@ -519,7 +534,8 @@ internal sealed class PagePlanner
         }
 
         // Kept items wait for the item that ends their run; a kept table waits with them (WR-033).
-        if (item.KeepWithNext && item is not FlowTable)
+        // HTML taller than the body cannot be kept with what follows; it is placed and split as usual.
+        if (item.KeepWithNext && item is not FlowTable && !(item is FlowHtml tall && MeasureSimple(tall) > Geometry(_cursor.Slot).BodyHeight))
         {
             _pending.Add(item);
             return;
@@ -557,10 +573,68 @@ internal sealed class PagePlanner
 
     private void PlaceBox(FlowItem item)
     {
+        if (item is FlowHtml html)
+        {
+            PlaceHtml(html);
+            return;
+        }
         double height = MeasureSimple(item);
         _cursor = FitBox(_cursor, item.Spacing, height, item.Description, out double top);
         var page = Slot(_cursor.Slot);
         page.Flow.Add(new FlowPlacement(item, page.Geometry.Left, page.Geometry.Right, top, null));
+    }
+
+    // Lays HTML out into the free room of the following pages, starting below the previous item (WR-038). Layout
+    // warnings are recorded on the HTML; in strict mode the first one fails before anything is written.
+    private void PlaceHtml(FlowHtml item)
+    {
+        var start = _cursor;
+        double startY = start.Y - (start.AtTop ? 0 : item.Spacing);
+        HtmlPageRoom Room(int offset)
+        {
+            int slot = start.Slot + offset;
+            if (offset == 0) return new HtmlPageRoom(startY, Geometry(slot).BodyBottom, start.EmptyBody);
+            var fresh = Fresh(slot);
+            return new HtmlPageRoom(fresh.Y, Geometry(slot).BodyBottom, fresh.EmptyBody);
+        }
+
+        var warnings = new List<PdfHtmlWarning>();
+        double width = item.LayoutWidth ?? Geometry(start.Slot).ContentWidth;
+        // A few bytes of HTML can ask for any number of pages (a huge height or padding). With a page limit set, blank
+        // space stops one page past the last allowed one (WR-033, A06); content past the limit is reported by the
+        // save's page check, and trailing blank pages are dropped as without a limit.
+        int? lastOffset = MaxPages is int max ? max - (_nextNumber + start.Slot) + 1 : null;
+        IReadOnlyList<HtmlPageFragment> fragments;
+        try
+        {
+            fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings, lastOffset).Layout();
+        }
+        catch (HtmlLayoutEngine.HtmlPageLimitException)
+        {
+            throw new InvalidOperationException(string.Format(
+                CultureInfo.InvariantCulture,
+                "The content needs more than {0} {1}, but Body.MaxPages is {0}: {2} does not fit. Shorten the content or raise the limit.",
+                MaxPages,
+                MaxPages == 1 ? "page" : "pages",
+                item.Description));
+        }
+        var numbered = warnings
+            .Select(w => new PdfHtmlWarning(w.Kind, w.Source, w.Message, w.Line, w.PageNumber is int offset ? _nextNumber + start.Slot + offset : null))
+            .ToList();
+        if (item.Html.FailOnWarning && numbered.Count > 0) throw new PdfHtmlException(numbered[0]);
+        item.Html.SetLayoutWarnings(numbered);
+
+        bool placed = false;
+        foreach (var fragment in fragments)
+        {
+            if (fragment.Commands.Count == 0) continue;
+            int slot = start.Slot + fragment.PageOffset;
+            var page = Slot(slot);
+            page.Flow.Add(new FlowPlacement(item, page.Geometry.Left, page.Geometry.Right, fragment.Top, null, fragment));
+            _cursor = new Cursor(slot, fragment.Bottom, false, false);
+            placed = true;
+        }
+        if (!placed) Slot(start.Slot);
     }
 
     private void PlaceTable(FlowTable item)

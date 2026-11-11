@@ -447,6 +447,30 @@ h1:focus { outline: none; }
 .field .form-control { font-size: 0.9rem; }
 .field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-line); border-radius: 8px; background: #fff; }
 .field-hint { font-size: 0.75rem; color: var(--app-muted); margin-top: 0.25rem; }
+.field-error { font-size: 0.75rem; color: var(--app-danger); margin: 0.25rem 0 0; }
+
+/* HTML to PDF: the HTML editor and the warning list. */
+.code-input { font-family: ui-monospace, "Cascadia Code", Consolas, monospace; font-size: 0.8rem; line-height: 1.45; resize: vertical; white-space: pre; }
+.warning-list { margin: 0; padding-left: 1.1rem; font-size: 0.8rem; }
+.warning-list li { margin-bottom: 0.3rem; }
+
+/* Common problems: the scenario list, the handled or limitation badge, and the scenario text. */
+.scenario-list { display: grid; gap: 0.15rem; font-size: 0.85rem; }
+.scenario-list ul { list-style: none; margin: 0 0 0.45rem; padding: 0; }
+.scenario-list a { display: block; padding: 0.2rem 0.5rem; border-radius: 6px; color: var(--app-ink); text-decoration: none; }
+.scenario-list a:hover { background: var(--app-canvas); }
+.scenario-list a[aria-current="page"] { background: var(--app-accent-soft); color: var(--app-accent); font-weight: 600; }
+.scenario-group { margin: 0.35rem 0 0.1rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--app-muted); }
+.scenario-badge { display: inline-block; margin: 0; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; justify-self: start; }
+.scenario-badge.is-handled { background: #e3f6f4; color: #0b6e66; }
+.scenario-badge.is-limitation { background: var(--app-warn-soft); color: #7a5300; }
+.scenario-text { font-size: 0.85rem; display: grid; gap: 0.4rem; }
+.scenario-text p { margin: 0; }
+/* In the one-column layout the list scrolls on its own, so the chosen scenario's text, HTML, and PDF follow it
+   closely instead of after every scenario (14-html-to-pdf review F-47). */
+@media (max-width: 1279.98px) {
+    .scenario-list { max-height: 15rem; overflow-y: auto; padding-right: 0.25rem; }
+}
 
 .check-field { display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; }
 .check-field input { width: 1.05rem; height: 1.05rem; accent-color: var(--app-accent); }

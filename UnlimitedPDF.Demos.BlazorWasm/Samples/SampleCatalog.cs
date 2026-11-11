@@ -34,6 +34,10 @@ public static class SampleCatalog
             "Split a PDF into parts: every few pages, or the page ranges you choose. Try your own file.",
             [SplitEveryN, SplitRanges]),
         new SampleCategory(
+            "HTML to PDF",
+            "Convert HTML with CSS, tables, lists, and images into PDF in your browser. Edit a template, try your own file, or see how known HTML to PDF problems come out.",
+            [HtmlToPdf, CommonProblems]),
+        new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
             [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory])
@@ -71,6 +75,18 @@ public static class SampleCatalog
         "CertificateSample.cs",
         "certificate.pdf",
         "award");
+
+    /// <summary>
+    /// Gets the Common problems demo: known HTML to PDF problems, each as a small editable document.
+    /// </summary>
+    public static SampleDemo CommonProblems { get; } = new(
+        "Common problems",
+        "Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.",
+        "playground/html/common-problems",
+        "HtmlToPdfSample.cs",
+        "common-html-to-pdf-problems.pdf",
+        "text",
+        "Common HTML to PDF problems");
 
     /// <summary>
     /// Gets the Cover and page ranges merge demo.
@@ -126,6 +142,17 @@ public static class SampleCatalog
         "HeadersFootersSample.cs",
         "headers-and-footers.pdf",
         "spark");
+
+    /// <summary>
+    /// Gets the HTML to PDF demo.
+    /// </summary>
+    public static SampleDemo HtmlToPdf { get; } = new(
+        "HTML to PDF",
+        "Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.",
+        "playground/html/html-to-pdf",
+        "HtmlToPdfSample.cs",
+        "html-to-pdf.pdf",
+        "text");
 
     /// <summary>
     /// Gets the Images demo.
@@ -292,6 +319,7 @@ public static class SampleCatalog
         "TextBasicsSample.cs",
         "text-and-pages.pdf",
         "text");
+
 
     #endregion
 }

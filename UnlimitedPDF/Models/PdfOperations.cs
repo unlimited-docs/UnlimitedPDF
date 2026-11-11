@@ -20,6 +20,80 @@ public static class PdfOperations
     #region Public Methods
 
     /// <summary>
+    /// Converts loaded HTML into a PDF file at <paramref name="outputPath"/> (WR-038). The result has the same bytes as a
+    /// new <see cref="PdfDocument"/> with the options' page size and margins, the HTML added to its body with
+    /// <see cref="PdfBodyFlow.AddHtml"/>, and <see cref="PdfDocument.Save(string)"/>. Layout warnings are added to
+    /// <see cref="PdfHtml.Warnings"/>.
+    /// </summary>
+    /// <param name="html">The loaded HTML.</param>
+    /// <param name="outputPath">The path of the file to create or overwrite.</param>
+    /// <param name="options">The page size, margins, and bookmark switch, or null for A4 with 36 pt margins.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="html"/> or <paramref name="outputPath"/> is null.</exception>
+    /// <exception cref="PdfHtmlException">A layout warning occurred in strict mode; nothing is written.</exception>
+    [AddedVersion("1.0.0")]
+    [Description("Converts loaded HTML into a PDF file at a path.")]
+    public static void ConvertHtml(PdfHtml html, string outputPath, PdfHtmlConvertOptions? options = null)
+    {
+        if (outputPath is null) throw new ArgumentNullException(nameof(outputPath));
+        HtmlDocument(html, options).Save(outputPath);
+    }
+
+    /// <summary>
+    /// Converts loaded HTML into a PDF written to <paramref name="output"/> from its current position (WR-038); the
+    /// stream is left open. See <see cref="ConvertHtml(PdfHtml, string, PdfHtmlConvertOptions?)"/>.
+    /// </summary>
+    /// <param name="html">The loaded HTML.</param>
+    /// <param name="output">The stream to write to.</param>
+    /// <param name="options">The page size, margins, and bookmark switch, or null for A4 with 36 pt margins.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="html"/> or <paramref name="output"/> is null.</exception>
+    /// <exception cref="PdfHtmlException">A layout warning occurred in strict mode; nothing is written.</exception>
+    [AddedVersion("1.0.0")]
+    [Description("Converts loaded HTML into a PDF written to a stream.")]
+    public static void ConvertHtml(PdfHtml html, Stream output, PdfHtmlConvertOptions? options = null)
+    {
+        if (output is null) throw new ArgumentNullException(nameof(output));
+        HtmlDocument(html, options).Save(output);
+    }
+
+    /// <summary>
+    /// Asynchronously converts loaded HTML into a PDF file at <paramref name="outputPath"/> (WR-038). See
+    /// <see cref="ConvertHtml(PdfHtml, string, PdfHtmlConvertOptions?)"/>.
+    /// </summary>
+    /// <param name="html">The loaded HTML.</param>
+    /// <param name="outputPath">The path of the file to create or overwrite.</param>
+    /// <param name="options">The page size, margins, and bookmark switch, or null for A4 with 36 pt margins.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that completes when the file is written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="html"/> or <paramref name="outputPath"/> is null.</exception>
+    /// <exception cref="PdfHtmlException">A layout warning occurred in strict mode; nothing is written.</exception>
+    [AddedVersion("1.0.0")]
+    [Description("Asynchronously converts loaded HTML into a PDF file at a path.")]
+    public static Task ConvertHtmlAsync(PdfHtml html, string outputPath, PdfHtmlConvertOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (outputPath is null) throw new ArgumentNullException(nameof(outputPath));
+        return HtmlDocument(html, options).SaveAsync(outputPath, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously converts loaded HTML into a PDF written to <paramref name="output"/> from its current position
+    /// (WR-038); the stream is left open. See <see cref="ConvertHtml(PdfHtml, string, PdfHtmlConvertOptions?)"/>.
+    /// </summary>
+    /// <param name="html">The loaded HTML.</param>
+    /// <param name="output">The stream to write to.</param>
+    /// <param name="options">The page size, margins, and bookmark switch, or null for A4 with 36 pt margins.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that completes when the PDF is written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="html"/> or <paramref name="output"/> is null.</exception>
+    /// <exception cref="PdfHtmlException">A layout warning occurred in strict mode; nothing is written.</exception>
+    [AddedVersion("1.0.0")]
+    [Description("Asynchronously converts loaded HTML into a PDF written to a stream.")]
+    public static Task ConvertHtmlAsync(PdfHtml html, Stream output, PdfHtmlConvertOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (output is null) throw new ArgumentNullException(nameof(output));
+        return HtmlDocument(html, options).SaveAsync(output, cancellationToken);
+    }
+
+    /// <summary>
     /// Joins whole PDF files, in the order given, into one file at <paramref name="outputPath"/>. Each input adds one
     /// top-level bookmark. Everything is checked before the file is opened, so a failure leaves an existing file
     /// unchanged.
@@ -327,6 +401,22 @@ public static class PdfOperations
     #endregion
 
     #region Private Methods
+
+    // The document a one-call HTML conversion saves (WR-038): exactly what a caller would build by hand.
+    private static PdfDocument HtmlDocument(PdfHtml html, PdfHtmlConvertOptions? options)
+    {
+        if (html is null) throw new ArgumentNullException(nameof(html));
+        options ??= new PdfHtmlConvertOptions();
+        var document = new PdfDocument(options.PageSize)
+        {
+            MarginTop = options.MarginTop,
+            MarginBottom = options.MarginBottom,
+            MarginLeft = options.MarginLeft,
+            MarginRight = options.MarginRight
+        };
+        document.Body.AddHtml(html, headingBookmarks: options.HeadingBookmarks);
+        return document;
+    }
 
     // The base of every part file name: the source file name without its extension, else "part". Characters that are
     // not allowed in a file name, including directory separators, become "_", so a part is always written straight

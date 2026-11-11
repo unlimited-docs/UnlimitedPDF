@@ -1,8 +1,8 @@
-<PageTitle>@Demo.Title · UnlimitedPDF Demos</PageTitle>
+<PageTitle>@(Demo.Heading ?? Demo.Title) · UnlimitedPDF Demos</PageTitle>
 
 <article class="demo">
     <header class="demo-header">
-        <h1>@Demo.Title</h1>
+        <h1>@(Demo.Heading ?? Demo.Title)</h1>
         <p class="demo-lead">@Demo.Description</p>
     </header>
 

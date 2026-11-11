@@ -27,7 +27,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 ## Demos
 
-`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); splits PDFs, including your own uploads, in a Split category (every N pages and page ranges, with each part or a zip of all parts to download); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); splits PDFs, including your own uploads, in a Split category (every N pages and page ranges, with each part or a zip of all parts to download); converts HTML to PDF in an HTML to PDF category (templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
 
 Run it locally:
 
@@ -372,6 +372,47 @@ using (var zip = new ZipArchive(File.Create("report-parts.zip"), ZipArchiveMode.
 - Parts are written one at a time. If a part can't be written, the parts before it are kept, its half-written file is removed, and `PdfSplitException` says which part failed (`PartNumber`) and how many were written (`PartsWritten`). An existing file with the failed part's name is removed too. A cancelled `SplitAsync` keeps the finished parts in the same way.
 - Each page's fonts and images are copied as the file lists them. A file that lists all of its fonts and images for every page gives large parts.
 
+## HTML to PDF
+
+Convert HTML into PDF with the library's own renderer: no browser, no extra package, and it runs wherever .NET runs, including Blazor WebAssembly. Load the HTML once with `PdfHtml`, then convert it in one call or add it to a document next to other content.
+
+```cs
+using UnlimitedPDF;
+
+// One call: an HTML file with its images next to it, to A4 with half-inch margins.
+var invoice = PdfHtml.FromFile("invoice.html");
+PdfOperations.ConvertHtml(invoice, "invoice.pdf");
+foreach (var warning in invoice.Warnings) Console.WriteLine(warning); // what was skipped, if anything
+
+// Or mix HTML with other content: page numbers in the footer, headings as bookmarks.
+var document = new PdfDocument { MarginTop = 36, MarginBottom = 36, MarginLeft = 36, MarginRight = 36 };
+document.Footer.Height = 20;
+document.Footer.AddText("Page {page} of {pages}", 0, 0);
+document.Body.AddHtml(PdfHtml.FromString("<h1>Q3 Report</h1><p>Output rose <b>6%</b>.</p>"), headingBookmarks: true);
+document.Save("report.pdf");
+
+// Images from anywhere else come only through your resolver: the library never uses the network.
+var options = new PdfHtmlLoadOptions
+{
+    ResourceResolver = reference => reference == "https://cdn.example.com/logo.png" ? File.OpenRead("logo.png") : null
+};
+var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", options);
+```
+
+- Supported: block and inline layout with wrapping and justified text; headings, paragraphs, `div`, `span`, `blockquote`, `pre`, and the HTML5 section elements; nested `ul`, `ol`, and `dl` lists with every common marker style and `start`, `reversed`, and `value`; tables nested to any depth with `colspan`, `rowspan`, captions, and both border models; PNG and JPEG images; `<style>`, `<link rel="stylesheet">`, and `style` attributes with type, class, id, attribute, descendant, and child selectors; colors, fonts, sizes, margins, padding, borders, backgrounds, widths, and page breaks. HTML is laid out as a document, not as a browser shows it: scripts, flexbox, grid, floats, positioning, transforms, rounded corners, background images, and web fonts are not supported, and each one skipped is listed in `Warnings`.
+- Text uses the standard PDF fonts: `serif` is Times, `monospace` is Courier, and other families are Helvetica, each with bold and italic. Western European characters such as `é`, `ñ`, and `€` are supported; other characters are written as `?`.
+- Pages: the HTML uses the document's page size and margins (A4 with 36 pt margins for `ConvertHtml`). Lines and images never split across pages, table rows move to the next page whole, `thead` rows repeat on every page, and a row taller than a page continues cell by cell. `break-before`, `break-after`, `break-inside: avoid`, and the `page-break-*` properties are honored. Content wider than the page narrows to fit; anything that still doesn't fit is clipped and reported.
+- Resources: `data:` URIs, and relative paths inside the base folder (the HTML file's folder, or `BaseFolder`). Paths that leave that folder, absolute paths, and symbolic links are never read. Anything else goes to your `ResourceResolver` (or `ResourceResolverAsync` with the `Async` load methods). Images and stylesheets that can't be loaded are skipped, an image showing its `alt` text instead.
+- Links: `http`, `https`, and `mailto` links are clickable, and `#id` links jump inside the document; other link types keep their text only. `headingBookmarks: true` turns `h1` to `h6` into bookmarks.
+- Problems: anything skipped is listed in `PdfHtml.Warnings` (`Kind`, `Source`, `Line` or `PageNumber`). Set `FailOnWarning` to throw `PdfHtmlException` on the first one instead, for example in template tests. Limits keep hostile input in check: 50 MB of HTML, 256 levels of nesting, 50 MB per image or stylesheet, and 200 MB in total, changeable with the `PdfHtml.Default*` properties or per load.
+- Known limitations: these come out differently from a browser. The playground's Common problems demo shows examples of the flexbox and grid, background image, SVG and WebP, character, and `pre` limitations, next to common HTML to PDF problems that this renderer handles, such as rows cut at page breaks, header rows that don't repeat, and long URLs.
+  - Flexbox and grid: items are laid out as stacked blocks.
+  - Floats and positioning: ignored; elements stay in the normal flow.
+  - Background images: skipped; background colors are drawn.
+  - Images other than PNG and JPEG, such as SVG and WebP: their `alt` text is shown.
+  - Characters outside Western European, such as Cyrillic, Chinese, and emoji: written as `?`.
+  - `pre` lines don't wrap, as in a browser, so a line wider than the page is clipped; use `white-space: pre-wrap` to wrap it.
+
 ## Upgrading to 1.0.0
 
 1.0.0 renames part of the API so that names follow one convention and are easier to guess. Old names are removed, so code written for 0.0.x reports compile errors until it uses the new names. Generated PDFs are unchanged. Every public type is now in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` you need.
@@ -404,6 +445,7 @@ using (var zip = new ZipArchive(File.Create("report-parts.zip"), ZipArchiveMode.
 
 - New: merge PDFs (`PdfFile`, `PdfFileLoadOptions`, `PdfFileException`, `PdfDocument.AddPages`, `PdfOperations.Merge`): load existing PDFs, join whole files in one call, or add page ranges next to pages you build.
 - New: split PDFs (`PdfOperations.Split`, `PdfOperations.SplitAsync`, `PdfPageRange`, `PdfSplitPart`, `PdfSplitException`): split a PDF every N pages or into one file per page range, written to a folder or to a stream per part.
+- New: HTML to PDF (`PdfHtml`, `PdfHtmlLoadOptions`, `PdfHtmlWarning`, `PdfHtmlException`, `PdfBodyFlow.AddHtml`, `PdfOperations.ConvertHtml`, `PdfOperations.ConvertHtmlAsync`, `PdfHtmlConvertOptions`): convert HTML with CSS, nested tables and lists, images, and links into PDF with a built-in renderer, in one call or next to other content.
 - New: tables continue on new pages when they pass the bottom of the page (`PdfDocument.MarginTop`, `PdfDocument.MarginBottom`, `PdfTable.HeaderRowCount`, `PdfTable.RepeatHeaderRows`). Tables that fit their page are drawn exactly as before.
 - New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.BodyMarginTop`, `PdfDocument.BodyMarginBottom`, `PdfDocument.AddPageSettings`, `PdfDocument.MarginLeft`, `PdfDocument.MarginRight`), and filled rectangles (`PdfPage.AddRectangle`).
 - New: images (`PdfImage`, `PdfPage.AddImage`), images and stacked content in table cells, row height modes (`PdfRowHeightMode`), and unit conversion (`PdfUnits`).

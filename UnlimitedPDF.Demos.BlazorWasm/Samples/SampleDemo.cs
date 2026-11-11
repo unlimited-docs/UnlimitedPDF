@@ -9,4 +9,5 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 /// <param name="SourceFile">The sample builder file shown in the code tab, for example "InvoiceSample.cs".</param>
 /// <param name="FileName">The file name a downloaded PDF gets, for example "invoice.pdf".</param>
 /// <param name="Icon">The icon name drawn by the Icon component.</param>
-public sealed record SampleDemo(string Title, string Description, string Route, string SourceFile, string FileName, string Icon);
+/// <param name="Heading">The demo page's heading when it says more than the short sidebar title, or null to use the title.</param>
+public sealed record SampleDemo(string Title, string Description, string Route, string SourceFile, string FileName, string Icon, string? Heading = null);

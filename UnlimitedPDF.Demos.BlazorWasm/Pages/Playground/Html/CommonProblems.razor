@@ -1,0 +1,113 @@
+@page "/playground/html/common-problems"
+@page "/playground/html/common-problems/{ScenarioId}"
+@inject HtmlSampleImages Images
+
+@* A new SamplePage per scenario, so each one generates its PDF as soon as it opens. *@
+<SamplePage @key="_scenario.Id" @ref="_page" Demo="SampleCatalog.CommonProblems" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Scenario">
+            @if (_notFound)
+            {
+                <p class="field-hint" role="status">That scenario was not found; showing the first one.</p>
+            }
+            <nav class="scenario-list" aria-label="Scenarios">
+                @foreach (var group in HtmlScenarios.Groups)
+                {
+                    <p class="scenario-group">@group</p>
+                    <ul>
+                        @foreach (var scenario in HtmlScenarios.All.Where(s => s.Group == group))
+                        {
+                            <li>
+                                <a href="@Link(scenario)" aria-current="@(scenario == _scenario ? "page" : null)">@scenario.Title</a>
+                            </li>
+                        }
+                    </ul>
+                }
+            </nav>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="What it shows">
+            <p class="scenario-badge @(_scenario.IsLimitation ? "is-limitation" : "is-handled")">@(_scenario.IsLimitation ? "Known limitation" : "Handled")</p>
+            <div class="scenario-text">
+                <p><strong>The problem.</strong> @_scenario.Problem</p>
+                <p><strong>What this library does.</strong> @_scenario.Outcome</p>
+            </div>
+            <p class="field-hint"><a href="@Link(_scenario)">Link to this scenario</a></p>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="HTML">
+            <div class="field">
+                <label for="scenario-html">HTML</label>
+                <textarea id="scenario-html" class="form-control code-input" rows="16" spellcheck="false"
+                          value="@_html" @onchange="e => Change(e.Value?.ToString() ?? string.Empty)"></textarea>
+                <p class="field-hint">Edit the HTML and generate again. Reset brings back this scenario's HTML. Images named logo.png and banner.png come from this site.</p>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Warnings">
+            @if (_warnings.Count == 0)
+            {
+                <p class="field-hint">Nothing was skipped.</p>
+            }
+            else
+            {
+                <ul class="warning-list" aria-label="Warnings">
+                    @foreach (var warning in _warnings)
+                    {
+                        <li><strong>@warning.Kind</strong> @warning.Message</li>
+                    }
+                </ul>
+            }
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private string _html = HtmlScenarios.All[0].Html;
+    private bool _notFound;
+    private SamplePage? _page;
+    private HtmlScenario _scenario = HtmlScenarios.All[0];
+    private IReadOnlyList<PdfHtmlWarning> _warnings = Array.Empty<PdfHtmlWarning>();
+
+    /// <summary>
+    /// Gets or sets the id of the scenario to open, from the page link.
+    /// </summary>
+    [Parameter] public string? ScenarioId { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        // The id only selects from the fixed list; it is never shown back.
+        var found = HtmlScenarios.Find(ScenarioId);
+        _notFound = ScenarioId is not null && found is null;
+        var scenario = found ?? HtmlScenarios.All[0];
+        if (!ReferenceEquals(scenario, _scenario))
+        {
+            _scenario = scenario;
+            _html = scenario.Html;
+            _warnings = Array.Empty<PdfHtmlWarning>();
+        }
+    }
+
+    private static string Link(HtmlScenario scenario) => SampleCatalog.CommonProblems.Route + "/" + scenario.Id;
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        var (document, html) = await HtmlToPdfSample.BuildAsync(_html, Images.ResolveAsync);
+        _warnings = html.Warnings;
+        StateHasChanged();
+        return document;
+    }
+
+    private void Change(string html)
+    {
+        _html = html;
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset()
+    {
+        _html = _scenario.Html;
+        _warnings = Array.Empty<PdfHtmlWarning>();
+    }
+}

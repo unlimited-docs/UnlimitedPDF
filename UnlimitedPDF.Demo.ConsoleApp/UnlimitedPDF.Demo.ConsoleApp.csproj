@@ -11,9 +11,9 @@
     <ProjectReference Include="..\UnlimitedPDF\UnlimitedPDF.csproj" />
   </ItemGroup>
 
-  <!-- Demo images are copied next to the app; the generator script and its readme are not. -->
+  <!-- Demo images and the sample HTML are copied next to the app; the generator script and its readme are not. -->
   <ItemGroup>
-    <None Update="Assets\*.png;Assets\*.jpg" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Assets\*.png;Assets\*.jpg;Assets\*.html" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

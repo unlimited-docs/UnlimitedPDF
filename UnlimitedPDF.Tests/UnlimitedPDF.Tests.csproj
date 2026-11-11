@@ -26,6 +26,7 @@
   <ItemGroup>
     <Compile Include="..\UnlimitedPDF.Demo.ConsoleApp\DemoDocument.cs" Link="Demo\DemoDocument.cs" />
     <Compile Include="..\UnlimitedPDF.Demo.ConsoleApp\MergeDemo.cs" Link="Demo\MergeDemo.cs" />
+    <Compile Include="..\UnlimitedPDF.Demo.ConsoleApp\HtmlDemo.cs" Link="Demo\HtmlDemo.cs" />
   </ItemGroup>
 
   <!-- The demos app's document builders and their inputs are compiled here too, so tests can check the demo PDFs. -->
@@ -38,6 +39,9 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MergePackSample.cs" Link="Demo\Samples\MergePackSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PickPagesSample.cs" Link="Demo\Samples\PickPagesSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCatalog.cs" Link="Demo\Samples\SampleCatalog.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlScenarios.cs" Link="Demo\Samples\HtmlScenarios.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlTemplates.cs" Link="Demo\Samples\HtmlTemplates.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlToPdfSample.cs" Link="Demo\Samples\HtmlToPdfSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCategory.cs" Link="Demo\Samples\SampleCategory.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleDemo.cs" Link="Demo\Samples\SampleDemo.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitEveryNSample.cs" Link="Demo\Samples\SplitEveryNSample.cs" />

@@ -23,5 +23,10 @@ var splitFolder = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension
 var parts = PdfOperations.Split(PdfFile.FromFile(pdfFilePath), 1, splitFolder);
 Console.WriteLine($"Split into {parts.Count} files in {splitFolder}");
 
+// The HTML demo converts the sample invoice HTML next to the sample, for example unlimited-pdf-sample-html.pdf.
+var htmlFilePath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtension(pdfFilePath) + "-html.pdf");
+var html = HtmlDemo.Write(assetsDirectory, htmlFilePath);
+Console.WriteLine($"Converted {HtmlDemo.FileName} to {htmlFilePath} with {html.Warnings.Count} warnings");
+
 Console.WriteLine("End: Unlimited PDF");
 Console.ReadLine();
