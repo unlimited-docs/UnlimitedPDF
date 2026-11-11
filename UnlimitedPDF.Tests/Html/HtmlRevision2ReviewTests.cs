@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using static UnlimitedPDF.Tests.Html.HtmlLayoutTests;
 
@@ -16,6 +17,7 @@ public class HtmlRevision2ReviewTests
 {
     #region Fields and Constants
 
+    private const string Png = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAIAAACQkWg2AAAAFklEQVR42mPQmxdNEmIY1TCqYfhqAACofScQa/x9PAAAAABJRU5ErkJggg==";
     private const string Url = "https://example.com/downloads/reports/2026/annual/customer-portfolio-summary-with-appendices-and-tables-final.pdf";
 
     #endregion
@@ -376,6 +378,10 @@ public class HtmlRevision2ReviewTests
         "<table border=1>" + Repeat("<tr><td style='padding:735pt 0 22pt'><p>x</p></td></tr>", 4) + "</table><p>after</p>",
         "<p>before</p><table border=1><caption>c</caption><thead><tr><th>h</th></tr></thead><tr><td style='padding:700pt 0 60pt'>x</td></tr><tr><td>y</td></tr></table>",
         "<p>before</p><ol><li><table><tr><td style='padding:720pt 0 40pt'>x</td></tr></table></li></ol><p>after</p>",
+        // F-70, F-71, F-73: a row that moves without its table, a table below blank height, and a row nearly a page tall.
+        "<p>before</p><table border=1><caption>c</caption><tr><td style='padding:730pt 0 30pt'>x</td><td style='padding:745pt 0 20pt'>y</td></tr></table><p>after</p>",
+        "<div style='padding:20pt;border:1pt solid'><table><tr><td style='padding:735pt 0 22pt'><p>x</p></td></tr></table></div><p>after</p>",
+        "<p>before</p><table border=1><tr style='height:764pt'><td>x</td></tr></table><p>after</p>",
     }.Select(html => new object[] { html });
 
     [Fact]
@@ -667,7 +673,7 @@ public class HtmlRevision2ReviewTests
         // F-66: page 3 has a small body. From page 1 the first cell continues on page 2; moved to page 2, it would have
         // to continue on page 3, where its padding leaves no room, so it was drawn once and lost 25 of its lines.
         string lines = string.Concat(Enumerable.Range(1, 60).Select(i => $"line {i}<br>"));
-        var html = PdfHtml.FromString($"<div style='height:100pt'></div><table style='border-spacing:0'><tr><td style='padding:260pt 0 0'>{lines}</td><td style='padding:740pt 0 20pt'>SIDE</td></tr></table>");
+        var html = PdfHtml.FromString($"<div style='height:100pt'>BEFORE</div><table style='border-spacing:0'><tr><td style='padding:260pt 0 0'>{lines}</td><td style='padding:740pt 0 20pt'>SIDE</td></tr></table>");
         var doc = Document();
         doc.AddPageSettings(3).BodyMarginTop = 500;
         doc.Body.AddHtml(html);
@@ -675,6 +681,37 @@ public class HtmlRevision2ReviewTests
         Assert.Equal(2, pages.Count);
         Assert.Equal(60, pages.SelectMany(Runs).Count(r => r.Text.StartsWith("line ", StringComparison.Ordinal) && r.Y >= Bottom));
         Assert.Contains(Runs(pages[0]), r => r.Text == "line 1");
+    }
+
+    [Fact]
+    public void A_row_does_not_move_when_a_cell_would_lose_its_room_below_the_repeated_header_two_pages_on()
+    {
+        // F-72: as above, but the first cell has room on page 3 without the repeated header and none below it.
+        string lines = string.Concat(Enumerable.Range(1, 60).Select(i => $"line {i}<br>"));
+        var html = PdfHtml.FromString("<div style='height:100pt'>BEFORE</div><table style='border-spacing:0'><thead><tr><th style='padding:0;line-height:14pt'>HEAD</th></tr></thead>"
+            + $"<tr><td style='padding:250pt 0 0'>{lines}</td><td style='padding:726pt 0 20pt'>SIDE</td></tr></table>");
+        var doc = Document();
+        doc.AddPageSettings(3).BodyMarginTop = 500;
+        doc.Body.AddHtml(html);
+        var pages = PdfPageReader.Save(doc);
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(60, pages.SelectMany(Runs).Count(r => r.Text.StartsWith("line ", StringComparison.Ordinal) && r.Y >= Bottom));
+        Assert.Contains(Runs(pages[0]), r => r.Text == "line 1");
+    }
+
+    [Fact]
+    public void An_empty_cell_that_can_continue_never_keeps_its_row_from_moving()
+    {
+        // F-72: the first cell would have no room on page 3, but it draws nothing, so nothing of it can be lost. The
+        // row moves for the second cell, and the table starts on page 2 with it.
+        var html = PdfHtml.FromString("<div style='height:100pt'>BEFORE</div><table style='border-spacing:0'><tr><td style='padding:260pt 0 0'></td><td style='padding:740pt 0 20pt'>SIDE</td></tr></table>");
+        var doc = Document();
+        doc.AddPageSettings(3).BodyMarginTop = 500;
+        doc.Body.AddHtml(html);
+        var pages = PdfPageReader.Save(doc);
+        Assert.Equal("BEFORE", Assert.Single(Runs(pages[0])).Text);
+        Assert.Contains(Runs(pages[1]), r => r.Text == "SIDE" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Empty(html.Warnings);
     }
 
     [Fact]
@@ -692,6 +729,7 @@ public class HtmlRevision2ReviewTests
     [InlineData("<p>BEFORE</p><table border=1><caption>CAPTION</caption><thead><tr><th>HEAD</th></tr></thead><tr><td style='padding:700pt 0 60pt'>TEXT</td></tr><tr><td>LAST</td></tr></table>", "CAPTION", "HEAD")]
     [InlineData("<p>BEFORE</p><ol><li><table><tr><td style='padding:720pt 0 40pt'>TEXT</td></tr></table></li></ol>", "1.", "1.")]
     [InlineData("<p>BEFORE</p><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table>", "TEXT", "TEXT")]
+    [InlineData("<p>BEFORE</p><table style='border-spacing:0'><thead><tr><th style='padding:0;line-height:14pt'>HEAD</th></tr></thead><tr><td style='padding:735pt 0 12pt;font-size:8pt;line-height:9pt'>TEXT</td></tr></table>", "HEAD", "HEAD")]
     public void A_first_row_that_moves_takes_the_start_of_its_table_with_it(string source, string first, string second)
     {
         // F-67: the row moved alone and left the caption, the header, an empty frame, or the list number on the page
@@ -752,12 +790,26 @@ public class HtmlRevision2ReviewTests
         // F-67: the header moves to the next page on its own, so the first row starts below it there and nothing of
         // it is cut. Moving the whole table for the left cell would put the caption above the header and cut the
         // right cell's text, which fits below the header alone.
-        var html = PdfHtml.FromString("<div style='height:560pt'></div><table style='border-spacing:0'><caption>CAPTION</caption><thead><tr><th style='padding:0;height:368pt'>HEAD</th></tr></thead>"
+        var html = PdfHtml.FromString("<div style='height:560pt'>BEFORE</div><table style='border-spacing:0'><caption>CAPTION</caption><thead><tr><th style='padding:0;height:368pt'>HEAD</th></tr></thead>"
             + "<tr><td style='padding:87pt 0 314pt'>LEFT</td><td style='padding:386pt 0 9.9pt'>RIGHT</td></tr></table>");
         var pages = Pages(html);
         Assert.Contains(Runs(pages[0]), r => r.Text == "CAPTION");
         Assert.Contains(Runs(pages[1]), r => r.Text == "LEFT" && r.Y >= Bottom);
         Assert.Contains(Runs(pages[1]), r => r.Text == "RIGHT" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_table_whose_header_does_not_fit_here_still_starts_here()
+    {
+        // F-67, F-70: the caption fits below the text and the header does not, so the first row starts on the next page
+        // in any case and nothing of it is cut there. The table is not moved for it.
+        var html = PdfHtml.FromString("<div style='height:560pt'>BEFORE</div><table style='border-spacing:0'><caption>CAPTION</caption><thead><tr><th style='padding:0;height:368pt'>HEAD</th></tr></thead>"
+            + "<tr><td style='padding:87pt 0 314pt'>LEFT</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(new[] { "BEFORE", "CAPTION" }, Runs(pages[0]).Select(r => r.Text));
+        Assert.Contains(Runs(pages[1]), r => r.Text == "HEAD");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "LEFT" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
         Assert.Empty(html.Warnings);
     }
 
@@ -791,6 +843,20 @@ public class HtmlRevision2ReviewTests
     }
 
     [Fact]
+    public void A_row_moves_for_the_cell_it_saves_although_another_cell_fits_no_page()
+    {
+        // F-70: the left cell is cut wherever the row starts; the right cell's text is cut here and whole on the next
+        // page, so the row still moves.
+        string lines = string.Concat(Enumerable.Range(1, 90).Select(i => $"left {i}<br>"));
+        var html = PdfHtml.FromString(Repeat("BEFORE<br>", 5) + $"<table><tr><td>first</td></tr><tr><td style='padding-bottom:760pt'>{lines}</td><td style='padding:740pt 0 20pt'>RIGHT</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Contains(Runs(pages[0]), r => r.Text == "first");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "left 1");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "RIGHT" && r.Y >= Bottom + 3);
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void A_cell_that_cannot_continue_and_draws_nothing_does_not_move_its_row()
     {
         // F-68: the padded cell is empty, so nothing of it can be cut; the row starts below the text before it.
@@ -800,6 +866,158 @@ public class HtmlRevision2ReviewTests
         Assert.Contains(Runs(pages[0]), r => r.Text == "cell 1" && r.Y >= Bottom);
         Assert.Equal(60, pages.SelectMany(Runs).Count(r => r.Text.StartsWith("cell ", StringComparison.Ordinal) && r.Y >= Bottom));
         Assert.Empty(html.Warnings);
+    }
+
+    [Theory]
+    [InlineData("<div style='background:red;padding-bottom:19pt'>T</div>", false)]
+    [InlineData("<div style='background:red;padding-bottom:20pt'>T</div>", true)]
+    [InlineData("<img src='" + Png + "' style='width:10pt;height:33pt'>", false)]
+    [InlineData("<img src='" + Png + "' style='width:10pt;height:34.5pt'>", true)]
+    [InlineData("<div style='height:13pt;border-bottom:20pt solid red'></div>", false)]
+    [InlineData("<div style='height:14.5pt;border-bottom:20pt solid red'></div>", true)]
+    [InlineData("<div style='height:33pt;border-left:40pt solid red'></div>", false)]
+    [InlineData("<div style='height:34.5pt;border-left:40pt solid red'></div>", true)]
+    [InlineData("<div style='height:22pt'></div><ul style='margin:0'><li><table style='border-spacing:0'><tr><td style='padding:0'></td></tr></table></li></ul>", false)]
+    [InlineData("<div style='height:24pt'></div><ul style='margin:0'><li><table style='border-spacing:0'><tr><td style='padding:0'></td></tr></table></li></ul>", true)]
+    public void A_cell_that_cannot_continue_is_cut_only_when_its_lowest_mark_is(string content, bool cut)
+    {
+        // F-69, F-72: the cell's content starts 33.89 pt above the body bottom. Its lowest mark is in turn a background,
+        // an image, a bottom border (which reaches half its width below its line), a side border (which ends at its
+        // lower end, however wide), and a list mark; each pair ends just above and just below the body bottom.
+        var html = PdfHtml.FromString($"<table style='border-spacing:0'><tr><td style='padding:730pt 0 30pt'>{content}</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(cut ? 1 : 0, html.Warnings.Count(w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal)));
+        Assert.Equal(cut, pages[0].ClipRectangles().Any(c => c.Y >= Bottom - 1.01));
+    }
+
+    [Theory]
+    [InlineData("<p>BEFORE</p><table style='border-spacing:0'><tr><td>first</td></tr><tr><td style='padding:752pt 0 5pt'><div style='border-left:12pt solid red'>TEXT</div></td></tr></table>", 1)]
+    [InlineData("<p>Intro</p><table style='border-spacing:0'><tr><td>first</td></tr><tr><td style='padding:700pt 0 60pt'><div style='border-left:40pt solid red'>TEXT</div></td></tr></table>", 0)]
+    [InlineData("<table style='border-spacing:0'><tr><td style='padding:740pt 0 30pt'><div style='border-left:40pt solid red'>TEXT</div></td></tr></table>", 0)]
+    public void A_side_border_beside_text_neither_cuts_nor_moves_it(string source, int textPage)
+    {
+        // F-69: a side border was measured half its width below its lower end. In the first shape the row did not move
+        // and the text was clipped away; in the second the row moved for nothing; in the third the cell was clipped
+        // with a warning although the text is whole.
+        var html = PdfHtml.FromString(source);
+        var pages = Pages(html);
+        Assert.Equal(textPage + 1, pages.Count);
+        Assert.Contains(Runs(pages[textPage]), r => r.Text == "TEXT" && r.Y >= Bottom + 3);
+        Assert.All(pages, page => Assert.Empty(page.ClipRectangles()));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_table_does_not_move_for_one_cell_when_that_cuts_another()
+    {
+        // F-70: the table moved to page 2 for the first cell; below the caption there, the second cell's text no longer
+        // fits. The row alone shows both, so the table stays and only the row moves.
+        var html = PdfHtml.FromString("<p>BEFORE</p><table><caption>CAPTION</caption><tr><td style='padding:730pt 0 30pt'>T1</td><td style='padding:745pt 0 20pt'>T2</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(new[] { "BEFORE", "CAPTION" }, Runs(pages[0]).Select(r => r.Text));
+        Assert.Contains(Runs(pages[1]), r => r.Text == "T1" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Contains(Runs(pages[1]), r => r.Text == "T2" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_table_does_not_move_for_a_first_row_that_is_not_split()
+    {
+        // F-70: the row fits a fresh page below the repeated header, so it moves there whole. The table moved as well,
+        // which left a page with only the caption and the header between.
+        var html = PdfHtml.FromString("<p>BEFORE</p><table style='border-spacing:0'><caption>CAPTION</caption><thead><tr><th style='padding:0;line-height:14pt'>HEAD</th></tr></thead>"
+            + "<tr><td style='padding:700pt 0 44pt;font-size:8pt;line-height:9pt'>TEXT</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(new[] { "BEFORE", "CAPTION", "HEAD" }, Runs(pages[0]).Select(r => r.Text));
+        Assert.Equal(new[] { "HEAD", "TEXT" }, Runs(pages[1]).Select(r => r.Text));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_header_that_is_not_repeated_does_not_make_the_first_row_a_split_row()
+    {
+        // F-70: the header takes more than half a page, so the first body row has a whole page to itself and is not
+        // split; the table stays where it is and the row moves whole.
+        var html = PdfHtml.FromString("<div style='height:150pt'>BEFORE</div><table style='border-spacing:0'><thead><tr><th style='padding:0;height:400pt'>HEAD</th></tr></thead><tr><td style='padding:250pt 0 200pt'>TEXT</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(2, pages.Count);
+        Assert.Equal(new[] { "BEFORE", "HEAD" }, Runs(pages[0]).Select(r => r.Text));
+        Assert.Equal("TEXT", Assert.Single(Runs(pages[1])).Text);
+    }
+
+    [Theory]
+    [InlineData("<div style='padding:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></div>", 1)]
+    [InlineData("<body style='padding:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></body>", 1)]
+    [InlineData("<div style='border:1pt solid red;padding-top:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></div>", 2)]
+    [InlineData("<div style='height:20pt'></div><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table>", 1)]
+    public void A_table_below_blank_height_at_the_top_of_a_page_is_at_the_top_of_that_page(string source, int pageCount)
+    {
+        // F-71: below an enclosing block's top padding the table did not count as at the top of its page, so it moved
+        // and left a page with nothing on it, or with only that block's border. It stays, as at the very top (F-67).
+        var html = PdfHtml.FromString(source);
+        var pages = Pages(html);
+        Assert.Equal(pageCount, pages.Count);
+        Assert.Contains(Runs(pages[0]), r => r.Text == "TEXT");
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("<div style='height:10pt;background:red'></div>", false)]
+    [InlineData("", true)]
+    public void A_table_below_blank_height_moves_when_the_page_holds_something_above_it(string above, bool otherContent)
+    {
+        // F-71: only a page with nothing on it counts. A background above the table, or content the document placed
+        // before the HTML, is something the page keeps when the table moves, so the text is shown on the next page.
+        var html = PdfHtml.FromString(above + "<div style='padding-top:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></div>");
+        var doc = Document();
+        if (otherContent) doc.Body.AddText("filler");
+        doc.Body.AddHtml(html);
+        var pages = PdfPageReader.Save(doc);
+        Assert.DoesNotContain(Runs(pages[0]), r => r.Text == "TEXT");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "TEXT" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_row_that_fits_a_fresh_page_only_without_the_repeated_header_stays()
+    {
+        // F-72: below the repeated header the text would be cut on the next page as well, so the row stays where it is.
+        var html = PdfHtml.FromString("<p>BEFORE</p><table style='border-spacing:0'><thead><tr><th style='padding:0;line-height:14pt'>HEAD</th></tr></thead><tr><td>first</td></tr>"
+            + "<tr><td style='padding:750pt 0 5pt;font-size:8pt;line-height:9pt'>TEXT</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(new[] { "BEFORE", "HEAD", "first", "TEXT" }, Runs(pages[0]).Select(r => r.Text));
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(752)]
+    [InlineData(758)]
+    [InlineData(765)]
+    public void A_first_row_nearly_as_tall_as_a_page_leaves_no_page_without_content(int height)
+    {
+        // F-73: the table moved to the next page and kept the margin before it; below that margin a row of more than
+        // 754 pt no longer fit, so it moved once more and left the page between empty.
+        var html = PdfHtml.FromString($"<p>BEFORE</p><table><tr style='height:{height}pt'><td>TEXT</td></tr></table><p>AFTER</p>");
+        var pages = Pages(html);
+        Assert.Equal(new[] { "BEFORE", "TEXT", "AFTER" }, pages.Select(page => Assert.Single(Runs(page)).Text));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Theory]
+    [InlineData("<div style='height:700pt'>BEFORE</div><table style='margin-top:{0}pt'><tr style='height:100pt'><td>TEXT</td></tr></table>", 0)]
+    [InlineData("<div style='height:700pt'>BEFORE</div><p style='break-after:page;margin-bottom:{0}pt'>P</p><table><tr style='height:100pt'><td>TEXT</td></tr></table>", 30)]
+    public void A_table_that_moves_to_the_next_page_drops_the_margin_before_it_unless_the_break_is_forced(string source, double kept)
+    {
+        // F-73: a break the layout chooses drops the margin before it, as for any block; a forced break keeps it, and
+        // the table start does not add a break of its own to one that is pending (F-72).
+        double TextY(int margin)
+        {
+            var pages = Pages(PdfHtml.FromString(source.Replace("{0}", margin.ToString(CultureInfo.InvariantCulture), StringComparison.Ordinal)));
+            Assert.Equal(2, pages.Count);
+            return Assert.Single(Runs(pages[1]), r => r.Text == "TEXT").Y;
+        }
+        Assert.Equal(kept, TextY(0) - TextY(30), 2);
     }
 
     [Fact]

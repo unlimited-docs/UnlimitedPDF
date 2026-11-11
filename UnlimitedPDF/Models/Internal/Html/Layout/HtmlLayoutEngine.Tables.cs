@@ -294,22 +294,31 @@ internal sealed partial class HtmlLayoutEngine
         double freshBody = FreshBodyHeight();
         bool repeatHeader = headerRows > 0 && headerRows < table.Rows.Count && headerHeight <= freshBody / 2;
 
-        // The table starts where its header and first body row fit together, judged against a fresh page (F-11).
+        // Where the table starts. A forced break that is still pending decides by itself.
         _pendingMargin = Collapse(_pendingMargin, mt);
         double captionHeight = table.Captions.Sum(c => Measure(c, tableWidth));
         double firstRow = table.Rows.Count > headerRows ? heights[headerRows] + spacingV : 0;
         double startNeed = captionHeight + bt + pt + spacingV + headerHeight + firstRow;
-        var room = Room(_page);
-        if (!_measuring && !_atTop && startNeed <= freshBody && _y - _pendingMargin - startNeed < room.Bottom - Tolerance) _forceBreak = true;
-
-        // A first row taller than the body is split where the table starts. When one of its cells cannot continue and
-        // would be cut here, the table starts on the next page with it, if that shows the cell whole (F-64, F-67);
-        // when it does not, the row loop below may still move the row alone. This holds while the caption and header
-        // rows fit here, so that the row would start on this page. The margin before the table is dropped on the
-        // next page, as before any break the layout chooses.
+        double repeated = repeatHeader ? headerHeight : 0;
         double lead = startNeed - firstRow, firstRowTop = _y - _pendingMargin - lead;
-        if (!_measuring && !_atTop && !_forceBreak && table.Rows.Count > headerRows && startNeed > freshBody && firstRowTop >= room.Bottom - Tolerance
-            && BetterOnNextPage(layout, headerRows, firstRowTop, repeatHeader ? headerHeight : 0, lead))
+        var room = Room(_page);
+        bool mayMove = !_measuring && !_forceBreak && !_atTop;
+        bool move = false;
+
+        // The table starts on the next page when its header and first body row fit together there but not here (F-11).
+        if (mayMove && startNeed <= freshBody) move = firstRowTop - firstRow < room.Bottom - Tolerance;
+
+        // A first row taller than a page is split where the table starts. When one of its cells cannot continue and
+        // would be cut here, the table starts on the next page with it, if that shows the cell whole and cuts no cell
+        // that the row alone would show there (F-64, F-67, F-70); otherwise the row loop below may still move the row
+        // alone. This holds while the caption and header rows fit here, so that the row would start on this page, and
+        // while the page holds something above the table: a page with nothing drawn on it is not left for this (F-71).
+        else if (mayMove && table.Rows.Count > headerRows && firstRow > freshBody - repeated + Tolerance && firstRowTop >= room.Bottom - Tolerance && !NothingDrawnHere())
+            move = BetterOnNextPage(layout, headerRows, firstRowTop, repeated, lead);
+
+        // The margin before the table is dropped on the next page, as before any break the layout chooses: kept, it
+        // could leave the first row without room there (F-73).
+        if (move)
         {
             NextPage();
             _pendingMargin = 0;
@@ -322,8 +331,9 @@ internal sealed partial class HtmlLayoutEngine
             if (whole <= freshBody && _y - _pendingMargin - whole < room.Bottom - Tolerance) _forceBreak = true;
         }
 
-        // Whether the table starts at the top of a page: nothing but its own caption and frame stand above its rows.
-        bool topBefore = _atTop;
+        // Whether the table starts at the top of a page: nothing but its own caption and frame stand above its rows,
+        // and nothing is drawn on the page above the table (F-71).
+        bool topBefore = NothingDrawnHere();
         int pageBefore = _page;
         foreach (var caption in table.Captions) LayoutBlock(caption, tableLeft, tableWidth);
 
@@ -493,7 +503,9 @@ internal sealed partial class HtmlLayoutEngine
     // Whether a row about to be split with its top at rowTop is better started on the next page: one of its cells that
     // cannot continue (see SplitRow) would have marks cut at the bottom of this page, and the next page shows them
     // whole below what stands above the row there (F-64). A cell that can continue from this page must still be able
-    // to from the next one, which differs when pages have bodies of their own (F-66).
+    // to from the next one, which differs when pages have bodies of their own (F-66). When more than the repeated
+    // header stands above the row there, because the table's start moves with it, no cell may be cut that the row
+    // alone would show there (F-70).
     private bool BetterOnNextPage(TableLayoutState layout, int row, double rowTop, double repeatedHeader, double above)
     {
         double next = FreshBodyHeight(), after = FreshBodyHeight(2);
@@ -507,7 +519,13 @@ internal sealed partial class HtmlLayoutEngine
                 if (WithoutRoom(after - repeatedHeader, it, ib)) return false;
                 continue;
             }
-            if (DrawsBelow(lowest, rowTop - it, Room(_page).Bottom) && above + it - lowest <= next + Tolerance) better = true;
+            double depth = it - lowest;
+            if (above + depth > next + Tolerance)
+            {
+                if (repeatedHeader + depth <= next + Tolerance) return false;
+                continue;
+            }
+            if (DrawsBelow(lowest, rowTop - it, Room(_page).Bottom)) better = true;
         }
         return better;
     }

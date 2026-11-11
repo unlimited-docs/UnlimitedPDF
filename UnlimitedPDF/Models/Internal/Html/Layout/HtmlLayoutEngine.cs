@@ -176,33 +176,37 @@ internal sealed partial class HtmlLayoutEngine
     }
 
     // The y of the lowest mark the commands draw, or null when they draw nothing. Blank height, such as a last margin
-    // or a line's leading, draws nothing; a mark inside a clip of its own counts only down to that clip (F-65).
+    // or a line's leading, draws nothing (F-65). A line has flat ends, so one drawn downwards stops at its lower end;
+    // only a line drawn across reaches half its width below its position (F-69).
     private static double? LowestMark(List<HtmlCommand> commands)
     {
         double? lowest = null;
-        var clips = new List<double>();
         foreach (var command in commands)
         {
-            double bottom;
-            switch (command)
+            double? bottom = command switch
             {
-                case ClipBeginCommand c:
-                    clips.Add(clips.Count > 0 ? Math.Max(c.Bottom, clips[^1]) : c.Bottom);
-                    continue;
-                case ClipEndCommand:
-                    if (clips.Count > 0) clips.RemoveAt(clips.Count - 1);
-                    continue;
-                case FillCommand f: bottom = f.Bottom; break;
-                case ImageCommand i: bottom = i.Bottom; break;
-                case TextCommand t: bottom = t.Baseline - Descent * t.FontSize; break;
-                case LineCommand l: bottom = Math.Min(l.Y1, l.Y2) - l.Width / 2; break;
-                case CircleCommand c: bottom = c.CenterY - c.Radius; break;
-                default: continue;
-            }
-            if (clips.Count > 0) bottom = Math.Max(bottom, clips[^1]);
-            if (lowest is not double low || bottom < low) lowest = bottom;
+                FillCommand f => f.Bottom,
+                ImageCommand i => i.Bottom,
+                TextCommand t => t.Baseline - Descent * t.FontSize,
+                LineCommand l => Math.Min(l.Y1, l.Y2) - (l.Y1 == l.Y2 ? l.Width / 2 : 0),
+                CircleCommand c => c.CenterY - c.Radius,
+                _ => null,
+            };
+            if (bottom is double mark && (lowest is not double low || mark < low)) lowest = mark;
         }
         return lowest;
+    }
+
+    // Whether nothing is drawn on this page so far. Blank height, such as the top padding of an enclosing block, leaves
+    // the page as empty as its top does; that block's own background and borders are drawn when it closes (F-71).
+    private bool NothingDrawnHere()
+    {
+        if (_atTop) return true;
+        if (!Room(_page).EmptyBody) return false;
+        if (!_fragments.TryGetValue(_page, out var fragment)) return true;
+        for (int i = _pageStarts[_page]; i < fragment.Commands.Count; i++)
+            if (fragment.Commands[i] is FillCommand or ImageCommand or TextCommand or LineCommand or CircleCommand) return false;
+        return true;
     }
 
     // Lays a box out once per width on a page of unlimited height (F-05), with its warnings kept for when it is placed.
