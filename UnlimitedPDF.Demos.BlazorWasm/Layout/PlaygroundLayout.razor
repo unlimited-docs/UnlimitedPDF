@@ -17,12 +17,12 @@
                     @foreach (var group in groups)
                     {
                         <div class="sidebar-subgroup-title">@group.Title</div>
-                        @DemoList(group.Demos)
+                        <SidebarDemoList Demos="group.Demos" OnNavigate="CloseMenu" />
                     }
                 }
                 else
                 {
-                    @DemoList(category.Demos)
+                    <SidebarDemoList Demos="category.Demos" OnNavigate="CloseMenu" />
                 }
             </div>
         }
@@ -32,17 +32,3 @@
         @Body
     </div>
 </div>
-
-@code {
-    private RenderFragment DemoList(IReadOnlyList<SampleDemo> demos) =>
-        @<ul class="sidebar-list">
-            @foreach (var demo in demos)
-            {
-                <li>
-                    <NavLink class="sidebar-link" href="@demo.Route" Match="NavLinkMatch.Prefix" @onclick="CloseMenu">
-                        <Icon Name="@demo.Icon" Size="18" /> @demo.Title
-                    </NavLink>
-                </li>
-            }
-        </ul>;
-}

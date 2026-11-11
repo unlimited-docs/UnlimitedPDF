@@ -158,8 +158,10 @@ public class HomePageTests
     }
 
     [Fact]
-    public void Each_gallery_download_has_the_bytes_of_its_demo_with_the_default_input()
+    public void Each_gallery_builder_calls_its_sample_with_a_new_input()
     {
+        // Guards the gallery's ten builders against drifting from the samples' own default inputs. That a download has
+        // the bytes the demo page produces is checked in the browser (V-14), where the page builds it.
         foreach (var entry in DocumentGallery.Documents)
         {
             var images = Images(entry.Images);
@@ -186,21 +188,40 @@ public class HomePageTests
     }
 
     [Fact]
-    public void Each_gallery_picture_was_captured_from_the_current_sources_of_its_demo()
+    public void Each_gallery_picture_was_captured_from_the_current_sources_and_images_of_its_demo()
     {
-        using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(RepositoryFile("UnlimitedPDF.Tests/Fixtures/document-gallery.json")));
-        var recorded = manifest.RootElement.GetProperty("documents").EnumerateArray().ToList();
-
-        Assert.Equal(DocumentGallery.Documents.Select(d => d.Picture), recorded.Select(r => r.GetProperty("picture").GetString()));
-        foreach (var record in recorded)
+        foreach (var (entry, record) in GalleryRecords())
         {
             var sources = record.GetProperty("sources").EnumerateArray().Select(s => s.GetString()!).ToList();
-            var picture = record.GetProperty("picture").GetString();
 
             Assert.True(
-                record.GetProperty("sha256").GetString() == SourceHash(sources),
-                $"{picture}: the demo's sources changed since its pictures were captured. Capture assets/originals/gallery/{picture}.png again from the demo, "
-                + "run assets/New-DerivedImages.ps1, and update the hash in UnlimitedPDF.Tests/Fixtures/document-gallery.json.");
+                record.GetProperty("sha256").GetString() == CaptureHash(sources, entry.Images),
+                $"{entry.Picture}: the demo's sources or images changed since its pictures were captured. Capture "
+                + $"assets/originals/gallery/{entry.Picture}.png again from the demo, run assets/New-DerivedImages.ps1, and update the hash in "
+                + "UnlimitedPDF.Tests/Fixtures/document-gallery.json.");
+        }
+    }
+
+    [Fact]
+    public void Each_gallery_record_lists_the_sample_and_every_input_type_it_uses()
+    {
+        // The sample file, then every input file whose type it names, and every one those name in turn (F-05).
+        var inputs = Directory.GetFiles(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Samples/Inputs"), "*.cs").Select(Path.GetFileNameWithoutExtension).ToList();
+        foreach (var (entry, record) in GalleryRecords())
+        {
+            var used = new List<string> { $"Samples/{entry.Demo.SourceFile}" };
+            for (int i = 0; i < used.Count; i++)
+            {
+                var text = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/" + used[i]));
+                foreach (var input in inputs.Where(name => Regex.IsMatch(text, $@"\b{name}\b")))
+                    if (!used.Contains($"Samples/Inputs/{input}.cs")) used.Add($"Samples/Inputs/{input}.cs");
+            }
+
+            var recorded = record.GetProperty("sources").EnumerateArray().Select(s => s.GetString()!).ToList();
+            Assert.Equal(entry.Images, record.GetProperty("images").EnumerateArray().Select(i => i.GetString()!));
+            Assert.True(
+                used.Order(StringComparer.Ordinal).SequenceEqual(recorded.Order(StringComparer.Ordinal)),
+                $"{entry.Picture}: the record lists {string.Join(", ", recorded)}; the sample uses {string.Join(", ", used)}.");
         }
     }
 
@@ -221,13 +242,45 @@ public class HomePageTests
     }
 
     [Fact]
-    public void Every_demo_is_one_click_from_the_home_page()
+    public void The_capability_rows_and_the_gallery_together_hold_every_demo_once()
     {
         var onPage = CapabilityDemos().Concat(DocumentGallery.Documents.Select(d => d.Demo)).ToList();
         var all = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
 
         Assert.Equal(all.Count, onPage.Count);
         Assert.Equal(all.ToHashSet(), onPage.ToHashSet());
+    }
+
+    [Fact]
+    public void The_home_page_links_each_row_demo_and_each_tile_to_its_demo()
+    {
+        // The page renders a row per category with a sample and the gallery; the row links every demo (or every
+        // group's demos, which are the same demos, checked above) and each tile links its document's demo.
+        var home = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/Home.razor"));
+        var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
+        var tiles = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/DocumentTiles.razor"));
+
+        Assert.Contains("SampleCatalog.Categories.Where(category => category.Snippet is not null)", home, StringComparison.Ordinal);
+        Assert.Contains("<CapabilityRow Category=\"category\" />", home, StringComparison.Ordinal);
+        Assert.Contains("<DocumentTiles />", home, StringComparison.Ordinal);
+        Assert.Contains("@DemoLinks(group.Demos)", row, StringComparison.Ordinal);
+        Assert.Contains("@DemoLinks(Category.Demos)", row, StringComparison.Ordinal);
+        Assert.Contains("href=\"@demo.Route\"", row, StringComparison.Ordinal);
+        Assert.Contains("DocumentGallery.Documents[index]", tiles, StringComparison.Ordinal);
+        Assert.Contains("href=\"@document.Demo.Route\"", tiles, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_code_samples_the_page_shows_are_embedded_in_the_app()
+    {
+        // The page reads the samples from the app's embedded copy of HomeSnippets.cs (F-07); without the embed entry it
+        // fails at run time while every other test passes.
+        var project = System.Xml.Linq.XDocument.Load(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/UnlimitedPDF.Demos.BlazorWasm.csproj"));
+        var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
+
+        Assert.Contains(project.Descendants("EmbeddedResource"), e =>
+            (string?)e.Attribute("Include") == @"Samples\HomeSnippets.cs" && (string?)e.Attribute("LogicalName") == "Samples.HomeSnippets.cs");
+        Assert.Contains("SampleSource.Read(\"HomeSnippets.cs\")", row, StringComparison.Ordinal);
     }
 
     #endregion
@@ -253,15 +306,14 @@ public class HomePageTests
         _ => throw new ArgumentOutOfRangeException(nameof(demo), demo.Title, "Not a gallery document.")
     };
 
-    // Only the images a document names, as small generated JPEGs (PR-011), so a missing name fails the build.
-    private static SampleImages Images(IEnumerable<string> names)
-    {
-        var image = PdfImage.FromBytes(new JpegBuilder { Width = 120, Height = 60 }.Build());
-        return new SampleImages(names.ToDictionary(name => name, _ => image));
-    }
+    // Only the images a document names, loaded from the app's served copies, so the document is the one the demo builds
+    // (a row's height follows its photo) and a missing name fails the build.
+    private static SampleImages Images(IEnumerable<string> names) =>
+        new(names.ToDictionary(name => name, name => PdfImage.FromBytes(File.ReadAllBytes(ServedImage(name)))));
 
-    // SHA-256 over each source's path and text, line endings as LF, so a CRLF checkout gives the same hash.
-    private static string SourceHash(IEnumerable<string> sources)
+    // SHA-256 over each source's path and text (line endings as LF, so a CRLF checkout gives the same hash), then each
+    // served image's path and bytes, in the order DocumentGallery names them. The scheme is described in assets/ARTWORK.md.
+    private static string CaptureHash(IEnumerable<string> sources, IEnumerable<string> images)
     {
         using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
         foreach (var source in sources)
@@ -270,8 +322,25 @@ public class HomePageTests
             sha.AppendData(Encoding.UTF8.GetBytes(source + "\n" + text + "\n"));
         }
 
+        foreach (var image in images)
+        {
+            sha.AppendData(Encoding.UTF8.GetBytes("wwwroot/images/" + image + "\n"));
+            sha.AppendData(File.ReadAllBytes(ServedImage(image)));
+        }
+
         return Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant();
     }
+
+    // Each gallery document with its record in Fixtures/document-gallery.json, after checking the two lists match.
+    private static List<(GalleryDocument Entry, System.Text.Json.JsonElement Record)> GalleryRecords()
+    {
+        var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(RepositoryFile("UnlimitedPDF.Tests/Fixtures/document-gallery.json")));
+        var recorded = manifest.RootElement.GetProperty("documents").EnumerateArray().ToList();
+        Assert.Equal(DocumentGallery.Documents.Select(d => d.Picture), recorded.Select(r => r.GetProperty("picture").GetString()));
+        return DocumentGallery.Documents.Zip(recorded).Select(pair => (pair.First, pair.Second)).ToList();
+    }
+
+    private static string ServedImage(string name) => RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/" + name);
 
     private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", relative));

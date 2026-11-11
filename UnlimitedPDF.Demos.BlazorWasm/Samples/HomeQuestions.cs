@@ -21,10 +21,10 @@ public static class HomeQuestions
     [
         new("Repeat a table header on every page", SampleCatalog.EmployeeDirectory),
         new("Keep totals together at the end of a table", SampleCatalog.PurchaseOrder),
-        new("Number every page of a merged document", SampleCatalog.BookmarksAndNumbers),
+        new("Give each merged file its own bookmark", SampleCatalog.BookmarksAndNumbers),
         new("Hold a document to one page", SampleCatalog.Payslip),
         new("Stop a table row being cut at a page break", SampleCatalog.CommonProblems, "playground/html/common-problems/row-cut-in-half"),
-        new("Put a logo and photos in a table", SampleCatalog.Invoice),
+        new("Put product photos in table rows", SampleCatalog.Invoice),
         new("Use a different header on the first page", SampleCatalog.Quotation),
         new("Take chosen pages from an existing PDF", SampleCatalog.PickPages)
     ];

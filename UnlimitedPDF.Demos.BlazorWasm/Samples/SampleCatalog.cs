@@ -81,7 +81,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo BookmarksAndNumbers { get; } = new(
         "Bookmarks & numbers",
-        "Name each file's bookmark and number every page of the merged document from the cover's footer.",
+        "Name each file's bookmark; the contents and closing pages show page numbers that count every merged page.",
         "playground/merge/bookmarks-and-numbers",
         "BookmarksAndNumbersSample.cs",
         "bookmarks-and-numbers.pdf",

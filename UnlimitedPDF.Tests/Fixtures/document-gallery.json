@@ -1,5 +1,5 @@
 {
-  "note": "The sources each gallery picture was captured from (26111101 AC-07). When a hash no longer matches, capture that document's first page again from its demo, run assets/New-DerivedImages.ps1, and update the hash.",
+  "note": "The sources and served images each gallery picture was captured from (26111101 AC-07). The hash covers each source's path and text with LF line endings, then each image's path and bytes. When it no longer matches, capture that document's first page again from its demo, run assets/New-DerivedImages.ps1, and update the hash.",
   "documents": [
     {
       "picture": "invoice",
@@ -9,7 +9,12 @@
         "Samples/Inputs/InvoiceInput.cs",
         "Samples/Inputs/InvoiceLine.cs"
       ],
-      "sha256": "bdc96b0b74daf8dd0b343d7e1c3f4c508f0579ed33e608ec2fca5c8fa6077f7c"
+      "sha256": "763d545e058e5b7685b67cc6f1dd5167c1680e023bf79552e2e5d0f06284085b",
+      "images": [
+        "invoice-logo.png",
+        "keyboard.jpg",
+        "dock.jpg"
+      ]
     },
     {
       "picture": "quotation",
@@ -19,7 +24,10 @@
         "Samples/Inputs/QuotationInput.cs",
         "Samples/Inputs/OrderLine.cs"
       ],
-      "sha256": "30f5c5363a8b4dea4ae6326a784f3d2dc4b98008b46c8468f49b68bbb8bdf10a"
+      "sha256": "a637effc6628b584be51010254bf39311df601434c104da5d84ddaa6c9ac7e5d",
+      "images": [
+        "quotation-logo.png"
+      ]
     },
     {
       "picture": "purchase-order",
@@ -29,7 +37,10 @@
         "Samples/Inputs/PurchaseOrderInput.cs",
         "Samples/Inputs/OrderLine.cs"
       ],
-      "sha256": "0d4fc0835d7bc0825885ff69e5e2e196f1c8b62b0684aa49d92e49516f552100"
+      "sha256": "2391266c99b05d9209c9cb3878d0250a0c4ff0ff09c4bd753e232f23b863c267",
+      "images": [
+        "purchase-order-logo.png"
+      ]
     },
     {
       "picture": "delivery-note",
@@ -39,7 +50,10 @@
         "Samples/Inputs/DeliveryNoteInput.cs",
         "Samples/Inputs/DeliveryLine.cs"
       ],
-      "sha256": "781baaea3866da89bc59ee0c7948a029b1bbc6d98c3a994c079f1902fabb6869"
+      "sha256": "c2ad734a2f956f586dcbecb2c86d017b8b8bee3fe5e3512e5504a60d480e34ce",
+      "images": [
+        "delivery-note-logo.png"
+      ]
     },
     {
       "picture": "account-statement",
@@ -49,7 +63,10 @@
         "Samples/Inputs/AccountStatementInput.cs",
         "Samples/Inputs/StatementLine.cs"
       ],
-      "sha256": "fac081eaf749378fc5d3e32af28c14f41e4d0138e2e733a3b5c3b984d6723138"
+      "sha256": "9e83a2eb751a919a8340ac216e54280cbda265689a79d0af1e4a4e24b4e8de1e",
+      "images": [
+        "account-statement-logo.png"
+      ]
     },
     {
       "picture": "payslip",
@@ -59,7 +76,10 @@
         "Samples/Inputs/PayslipInput.cs",
         "Samples/Inputs/PayslipLine.cs"
       ],
-      "sha256": "e438f1cbb47acd90061848916d07825ac8144dd00474776559fcffa6a8529157"
+      "sha256": "1c691803577c7b6053cf7e66362ddb9e952222708ff4e781a56bfe9afd4e6963",
+      "images": [
+        "payslip-logo.png"
+      ]
     },
     {
       "picture": "medical-report",
@@ -69,7 +89,10 @@
         "Samples/Inputs/MedicalReportInput.cs",
         "Samples/Inputs/LabResult.cs"
       ],
-      "sha256": "583c88d26ef820a8de25083714b9fd6fee06301d99e2aa48b2fe09d999a5fed4"
+      "sha256": "0ee9718cc86a265dab60f88bab67f2f2790d110e0f22f0955f7ebd2d8cb5664c",
+      "images": [
+        "medical-report-logo.png"
+      ]
     },
     {
       "picture": "receipt",
@@ -79,7 +102,10 @@
         "Samples/Inputs/ReceiptInput.cs",
         "Samples/Inputs/ReceiptLine.cs"
       ],
-      "sha256": "14adbb2dae0ed31eaf9af1f1dc8eec8eff3179104b66ad8772f2d1de9de8fdaa"
+      "sha256": "e975967990bf32ab9998b3d4e437ca9717847a7e158b060af1853d65202c0615",
+      "images": [
+        "receipt-logo.png"
+      ]
     },
     {
       "picture": "certificate",
@@ -88,7 +114,11 @@
         "Samples/CertificateSample.cs",
         "Samples/Inputs/CertificateInput.cs"
       ],
-      "sha256": "2e16fdb1a0db0f5add4287b9fc08eaffba58cb6b0348ee2f69b1b5d71760aeac"
+      "sha256": "ba5bf86812330f61cf2c29c9dfa9a1c6db6bfb1369a1f49aa596c5aac651109a",
+      "images": [
+        "certificate-seal.png",
+        "certificate-signature.png"
+      ]
     },
     {
       "picture": "employee-directory",
@@ -97,7 +127,8 @@
         "Samples/EmployeeDirectorySample.cs",
         "Samples/Inputs/EmployeeDirectoryInput.cs"
       ],
-      "sha256": "71a0b3cc045c95d45604b0ec4dc825a1b9ef8d5592b1063748c5b3727e4bc0d0"
+      "sha256": "71a0b3cc045c95d45604b0ec4dc825a1b9ef8d5592b1063748c5b3727e4bc0d0",
+      "images": []
     }
   ]
 }
