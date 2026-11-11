@@ -88,10 +88,28 @@ public sealed class BrowserInterop : IAsyncDisposable
     public async Task DownloadAsync(string url, string fileName) => await (await _module.Value).InvokeVoidAsync("download", url, fileName);
 
     /// <summary>
+    /// Reports which section is in view, for a page's topic index: on screens 1,024 px and wider, the listener hears the
+    /// ID of the last visible section whose top has passed a reading line about a third of the way down the view, each
+    /// time it changes. A later call
+    /// replaces this one.
+    /// </summary>
+    /// <typeparam name="T">The type of the component that listens.</typeparam>
+    /// <param name="sections">The sections, in page order.</param>
+    /// <param name="listener">The component told when the section in view changes.</param>
+    /// <param name="method">The name of the listener's <see cref="JSInvokableAttribute"/> method; it receives the section's ID.</param>
+    public async Task ObserveSectionsAsync<T>(ElementReference[] sections, DotNetObjectReference<T> listener, string method) where T : class =>
+        await (await _module.Value).InvokeVoidAsync("observeSections", sections, listener, method);
+
+    /// <summary>
     /// Opens a blob URL in a new browser tab.
     /// </summary>
     /// <param name="url">The blob URL.</param>
     public async Task OpenInNewTabAsync(string url) => await (await _module.Value).InvokeVoidAsync("openInNewTab", url);
+
+    /// <summary>
+    /// Checks the section in view again after sections were shown or hidden.
+    /// </summary>
+    public async Task RefreshSectionsAsync() => await (await _module.Value).InvokeVoidAsync("refreshSections");
 
     /// <summary>
     /// Releases a blob URL created by <see cref="CreateObjectUrlAsync"/>.
@@ -112,6 +130,15 @@ public sealed class BrowserInterop : IAsyncDisposable
     public async Task ScrollIntoViewOnNarrowAsync(ElementReference element) => await (await _module.Value).InvokeVoidAsync("scrollIntoViewOnNarrow", element);
 
     /// <summary>
+    /// Scrolls an element to the top of the view; its <c>scroll-margin-top</c> keeps it below the top bar. Scrolling is
+    /// instant when the visitor's system asks for reduced motion.
+    /// </summary>
+    /// <param name="id">The element's ID.</param>
+    /// <param name="smooth">Whether to scroll smoothly rather than jump.</param>
+    /// <returns><see langword="true"/> when the element exists.</returns>
+    public async Task<bool> ScrollToElementAsync(string id, bool smooth) => await (await _module.Value).InvokeAsync<bool>("scrollToElement", id, smooth);
+
+    /// <summary>
     /// Opens a <c>dialog</c> element as a modal dialog and calls back when it closes.
     /// </summary>
     /// <typeparam name="T">The type of the component that listens.</typeparam>
@@ -128,6 +155,11 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// <param name="frame">The iframe.</param>
     /// <param name="url">The blob URL.</param>
     public async Task ShowInFrameAsync(ElementReference frame, string url) => await (await _module.Value).InvokeVoidAsync("showInFrame", frame, url);
+
+    /// <summary>
+    /// Stops the reports started by <see cref="ObserveSectionsAsync{T}"/>.
+    /// </summary>
+    public async Task StopObservingSectionsAsync() => await (await _module.Value).InvokeVoidAsync("stopObservingSections");
 
     #endregion
 

@@ -1,0 +1,35 @@
+@* One FAQ question: a button that opens its answer, a button that copies a link to it, and the answer itself. *@
+<li id="@Question.Id" class="faq-item @(Open ? "is-open" : null)">
+    <div class="faq-question">
+        <button type="button" class="faq-toggle" @onclick="OnToggle"
+                aria-expanded="@(Open ? "true" : "false")" aria-controls="@AnswerId">
+            <span class="faq-question-text">@Question.Text</span>
+            @if (Question.NotYet)
+            {
+                <span class="faq-not-yet">Not yet</span>
+            }
+            <Icon Name="chevron" Size="18" />
+        </button>
+        <button type="button" class="faq-link" @onclick="CopyLinkAsync" aria-label="@($"Copy a link to this question: {Question.Text}")">
+            <span aria-hidden="true">#</span>
+        </button>
+        <span class="faq-link-status" role="status">@LinkStatus</span>
+    </div>
+    @* Hidden rather than removed, so a search keeps an open answer open. *@
+    <div id="@AnswerId" class="faq-answer" hidden="@(!Open)">
+        @foreach (var paragraph in Question.Answer)
+        {
+            <p>@paragraph</p>
+        }
+        @if (_snippet is not null)
+        {
+            <div class="faq-code">
+                <CodeView Source="@_snippet" AriaLabel="@($"Code sample: {Question.Text}")" />
+            </div>
+        }
+        @if (Question.Demo is { } demo)
+        {
+            <a class="faq-demo" href="@demo.Route"><Icon Name="@demo.Icon" Size="16" /> Open the @demo.Title demo <Icon Name="arrow" Size="16" /></a>
+        }
+    </div>
+</li>

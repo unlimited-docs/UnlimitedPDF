@@ -81,6 +81,11 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeSnippets.cs" Link="Demo\Samples\HomeSnippets.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleGroup.cs" Link="Demo\Samples\SampleGroup.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SnippetText.cs" Link="Demo\Samples\SnippetText.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FaqGroup.cs" Link="Demo\Samples\FaqGroup.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FaqQuestion.cs" Link="Demo\Samples\FaqQuestion.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FaqQuestions.cs" Link="Demo\Samples\FaqQuestions.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FaqSearch.cs" Link="Demo\Samples\FaqSearch.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FaqSnippets.cs" Link="Demo\Samples\FaqSnippets.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\EmployeeDirectoryInput.cs" Link="Demo\Samples\Inputs\EmployeeDirectoryInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\HeadersFootersInput.cs" Link="Demo\Samples\Inputs\HeadersFootersInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\InvoiceInput.cs" Link="Demo\Samples\Inputs\InvoiceInput.cs" />
