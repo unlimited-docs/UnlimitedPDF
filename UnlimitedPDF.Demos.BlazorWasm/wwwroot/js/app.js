@@ -59,11 +59,11 @@ export function blurActiveElement() {
     }
 }
 
-export function showDialog(dialog, listener, closedMethod) {
+export function showDialog(dialog, listener, closedMethod, opening) {
     // A modal dialog keeps focus inside, closes on Escape, and returns focus to the opener when it closes. The
-    // listener is told when it closes, however that happens.
+    // listener is told when it closes, however that happens, with the opening it belonged to.
     if (dialog && !dialog.open) {
-        dialog.addEventListener("close", () => listener.invokeMethodAsync(closedMethod), { once: true });
+        dialog.addEventListener("close", () => listener.invokeMethodAsync(closedMethod, opening), { once: true });
         dialog.showModal();
     }
 }

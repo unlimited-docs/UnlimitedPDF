@@ -100,9 +100,10 @@ public class HomePageTests
         PdfStructureChecker.AssertValid(created.ToArray());
         PdfStructureChecker.AssertValid(converted.ToArray());
         Assert.True(Assert.Single(PdfPageReader.Read(created.ToArray())).Shows("Hello, PDF!"));
-        var page = Assert.Single(PdfPageReader.Read(converted.ToArray()));
-        Assert.True(page.Shows("Hello"));
-        Assert.True(page.Shows("CSS"));
+        Assert.Single(PdfPageReader.Read(converted.ToArray()));
+        var text = string.Join(" ", ImportedPagesTests.PageTexts(PdfFile.FromBytes(converted.ToArray())));
+        Assert.Contains("Hello", text, StringComparison.Ordinal);
+        Assert.Contains("PDF", text, StringComparison.Ordinal);
     }
 
     [Fact]

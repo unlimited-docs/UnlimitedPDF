@@ -33,7 +33,7 @@ public static class HomeSnippets
     public static void Html(Stream output)
     {
         // snippet:html
-        var html = PdfHtml.FromString("<h1>Hello</h1><p>Tables, lists, and <b>CSS</b> too.</p>");
+        var html = PdfHtml.FromString("<h1>Hello, <i>PDF</i>!</h1>");
         PdfOperations.ConvertHtml(html, output);
         // end
     }

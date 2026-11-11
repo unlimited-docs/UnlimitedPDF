@@ -26,11 +26,12 @@
 </nav>
 
 <section class="showcase" aria-label="Real-life documents you can build">
-    @* A stylized illustration of the four document demos; the phone-sized copy is chosen by srcset. *@
+    @* A stylized illustration of the four document demos; the phone-sized copy is chosen by srcset. It is in the
+       first screen at every width and is the page's largest picture, so it loads at once, ahead of other images. *@
     <img src="images/unlimitedpdf-demos-hero-1200.jpg"
          srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
          sizes="(max-width: 1240px) calc(100vw - 2.5rem), 1200px"
-         width="1200" height="675" loading="lazy" decoding="async"
+         width="1200" height="675" fetchpriority="high" decoding="async"
          alt="Illustration of UnlimitedPDF Demos: an invoice, a medical report, a receipt, and a certificate, each with its own logo" />
 </section>
 

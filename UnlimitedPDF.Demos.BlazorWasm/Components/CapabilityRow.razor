@@ -1,6 +1,6 @@
 @* One capability on the home page: its tinted icon and name, what it does, its code sample, and a link to each demo. *@
 <section id="@Category.Id" class="panel cap-row tone-@Category.Tone" aria-labelledby="@HeadingId">
-    <div class="cap-text">
+    <div class="cap-intro">
         <div class="cap-head">
             @if (Category.Icon is not null)
             {
@@ -9,7 +9,17 @@
             <h2 id="@HeadingId">@Category.Title</h2>
         </div>
         <p class="cap-lead">@Category.Description</p>
+    </div>
 
+    @if (_snippet is not null)
+    {
+        <div class="cap-code">
+            <CodeView Source="@_snippet" AriaLabel="@($"{Category.Title} code sample")" />
+        </div>
+    }
+
+    @* The demos run the full width of the row, under the description and the sample. *@
+    <div class="cap-demos">
         @if (Category.Groups is { Count: > 0 } groups)
         {
             @foreach (var group in groups)
@@ -23,13 +33,6 @@
             @DemoLinks(Category.Demos)
         }
     </div>
-
-    @if (_snippet is not null)
-    {
-        <div class="cap-code">
-            <CodeView Source="@_snippet" AriaLabel="@($"{Category.Title} code sample")" />
-        </div>
-    }
 </section>
 
 @code {

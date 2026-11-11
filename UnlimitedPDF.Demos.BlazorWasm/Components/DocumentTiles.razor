@@ -8,14 +8,14 @@
             @* The picture opens quick look for a pointer; keyboard users have the labelled button below (A-09). *@
             <img class="tile-picture" src="@($"images/gallery/{document.Picture}-320.jpg")" width="320" height="453"
                  loading="lazy" decoding="async" alt="@($"First page of the {document.Demo.Title} PDF")"
-                 @onclick="() => OpenAsync(index)" />
+                 @onclick="() => Open(index)" />
             <div class="tile-body">
                 <h3 class="tile-title">@document.Demo.Title</h3>
                 <p class="tile-summary">@document.Summary</p>
                 <p class="tile-facts">@Pages(document.PageCount) · @document.PageSize</p>
                 <div class="tile-actions">
                     <button type="button" class="btn btn-sm btn-outline" aria-label="@($"Quick look at the {document.Demo.Title}")"
-                            @onclick="() => OpenAsync(index)">
+                            @onclick="() => Open(index)">
                         Quick look
                     </button>
                     <a class="btn btn-sm btn-solid theme-primary" href="@document.Demo.Route" aria-label="@($"Open the {document.Demo.Title} demo")">Open</a>
@@ -37,8 +37,5 @@
     /// <returns>The count with its unit.</returns>
     internal static string Pages(int count) => count == 1 ? "1 page" : $"{count} pages";
 
-    private async Task OpenAsync(int index)
-    {
-        if (_quickLook is not null) await _quickLook.OpenAsync(index);
-    }
+    private void Open(int index) => _quickLook?.Open(index);
 }

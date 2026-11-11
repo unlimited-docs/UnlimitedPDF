@@ -596,6 +596,13 @@ h1:focus { outline: none; }
 .install button { border: 1px solid rgba(219, 229, 255, 0.25); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
 .install button:hover { background: #1b2a47; }
 
+/* On a phone the whole command fits beside its Copy button, and "pure .NET" stays on one line. */
+@media (max-width: 575.98px) {
+    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.75rem; }
+    .install button { padding: 0.3rem 0.5rem; min-height: 36px; }
+    .hero h1 span { white-space: nowrap; }
+}
+
 /* Showcase illustration under the hero; width and height attributes reserve its 16:9 box before it loads. */
 .showcase { max-width: 1240px; margin: 0 auto; padding: 0 1.25rem 1rem; }
 .showcase img {
@@ -662,25 +669,39 @@ h1:focus { outline: none; }
 .jump-link .icon { color: var(--tone, var(--app-muted)); }
 .jump-link:hover { border-color: #c9d6f5; background: #f3f6fd; }
 
-/* Capability rows: text and demo links beside the code sample, stacked below 1,024 px. */
+/* On a phone the six links are two even rows of three, each a 40 px tap target; the icons give way to the words. */
+@media (max-width: 575.98px) {
+    .jump-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; padding: 0 1rem; margin-bottom: 1.25rem; }
+    .jump-link { justify-content: center; min-height: 40px; padding: 0.35rem 0.4rem; font-size: 0.8rem; text-align: center; white-space: nowrap; }
+    .jump-link .icon { display: none; }
+}
+
+/* Capability rows: the name and description beside the code sample, the demos across the full width below; one
+   column below 1,024 px, in the order name, description, sample, demos (AC-09). */
 .cap-rows { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem 1rem; display: grid; gap: 1.25rem; }
 
 .cap-row {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 1.5rem;
+    grid-template-areas: "intro code" "demos demos";
+    gap: 1rem 1.5rem;
     align-items: start;
     padding: 1.5rem;
 }
 
+.cap-intro { grid-area: intro; }
+.cap-code { grid-area: code; }
+.cap-demos { grid-area: demos; }
+
 .cap-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
 .cap-icon { width: 42px; height: 42px; flex: none; border-radius: 11px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
 .cap-head h2 { font-size: 1.45rem; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
-.cap-lead { color: var(--app-muted); margin: 0 0 1rem; }
+.cap-lead { color: var(--app-muted); margin: 0; }
 
 .cap-group-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--app-muted); margin: 0.9rem 0 0.4rem; }
+.cap-group-title:first-child { margin-top: 0; }
 
-.cap-links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.4rem; }
+.cap-links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
 
 .cap-link {
     display: flex;
@@ -705,11 +726,27 @@ h1:focus { outline: none; }
 .cap-code .code-view pre { height: auto; padding: 2.6rem 1.1rem 1.1rem; overflow-x: auto; }
 
 @media (max-width: 1023.98px) {
-    .cap-row { grid-template-columns: minmax(0, 1fr); padding: 1.25rem; }
+    .cap-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "code" "demos"; padding: 1.25rem; }
+    .cap-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Real-life documents: five tiles per row from 1,024 px, three from 576 px, two below. */
-.tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; }
+/* On a phone a demo link is its icon and name in two columns; its description is on its page. The rows stay short
+   enough to scan, and each link is a 48 px tap target. */
+@media (max-width: 575.98px) {
+    .cap-row { padding: 1rem; gap: 0.85rem; }
+    .cap-head h2 { font-size: 1.3rem; }
+    .cap-icon { width: 38px; height: 38px; }
+    .cap-link { align-items: center; min-height: 48px; padding: 0.45rem 0.55rem; gap: 0.5rem; }
+    .cap-link-icon { width: 28px; height: 28px; }
+    .cap-link-title { font-size: 0.86rem; line-height: 1.25; }
+    .cap-link-desc { display: none; }
+    .cap-code .code-view pre { font-size: 0.76rem; padding: 2.5rem 0.9rem 0.9rem; }
+}
+
+/* Real-life documents: five tiles per row from 1,024 px, three from 576 px, two below. A short last row is
+   centered, so ten tiles in rows of three end on one centered tile instead of one at the left. */
+.tiles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; --tiles-per-row: 5; }
+.tiles > li { flex: 0 0 calc((100% - (var(--tiles-per-row) - 1) * 1rem) / var(--tiles-per-row)); min-width: 0; }
 .tile { display: flex; flex-direction: column; overflow: hidden; }
 .tile-picture { display: block; width: 100%; height: auto; aspect-ratio: 320 / 453; object-fit: cover; object-position: top; background: #fff; border-bottom: 1px solid var(--app-line); cursor: zoom-in; }
 .tile-body { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.75rem 0.85rem 0.85rem; flex: 1; }
@@ -719,11 +756,18 @@ h1:focus { outline: none; }
 .tile-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.4rem; }
 
 @media (max-width: 1023.98px) {
-    .tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .tiles { --tiles-per-row: 3; }
 }
 
+/* On a phone the two actions sit one above the other at the tile's full width, and the summary keeps to two lines. */
 @media (max-width: 575.98px) {
-    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
+    .tiles { --tiles-per-row: 2; gap: 0.75rem; }
+    .tiles > li { flex-basis: calc((100% - 0.75rem) / 2); }
+    .tile-body { padding: 0.6rem 0.65rem 0.7rem; gap: 0.25rem; }
+    .tile-title { font-size: 0.9rem; }
+    .tile-summary { font-size: 0.76rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .tile-actions { flex-direction: column; gap: 0.35rem; }
+    .tile-actions .btn { width: 100%; min-height: 40px; justify-content: center; display: inline-flex; align-items: center; }
 }
 
 /* Quick look: the browser's modal dialog, the picture beside its facts; full width on a phone, picture first. */
@@ -742,7 +786,8 @@ h1:focus { outline: none; }
 
 .ql-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
 .ql-picture { margin: 0; padding: 1rem; background: #eef1f7; display: grid; justify-items: center; align-content: start; gap: 0.5rem; }
-.ql-picture img { display: block; width: auto; max-width: 100%; height: auto; max-height: calc(100vh - 6.5rem); background: #fff; box-shadow: 0 2px 10px rgba(18, 33, 61, 0.18); }
+/* The tile's small picture, already loaded, shows behind the large one until it arrives. */
+.ql-picture img { display: block; width: auto; max-width: 100%; height: auto; max-height: calc(100vh - 6.5rem); background: #fff center / 100% 100% no-repeat; box-shadow: 0 2px 10px rgba(18, 33, 61, 0.18); aspect-ratio: 960 / 1358; }
 .ql-page { font-size: 0.8rem; color: var(--app-muted); font-weight: 600; }
 .ql-side { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem 1.4rem; min-width: 0; }
 .ql-top { display: flex; align-items: center; justify-content: space-between; }
@@ -766,9 +811,20 @@ h1:focus { outline: none; }
     .ql-picture img { max-height: 60vh; }
 }
 
+/* On a phone the position and Close stay at the top and Previous and Next at the bottom while the picture and the
+   details scroll between them, so Close and the steps are always one tap away. */
 @media (max-width: 575.98px) {
     .quick-look { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; margin: 0; border-radius: 0; border: 0; }
-    .ql-picture img { max-height: 55vh; }
+    .ql-layout { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; }
+    .ql-side { display: contents; }
+    .ql-top { order: -1; position: sticky; top: 0; z-index: 1; padding: 0.5rem 1rem; background: var(--app-surface); border-bottom: 1px solid var(--app-line); }
+    .ql-icon-button { padding: 0.5rem; }
+    .ql-picture { padding: 0.75rem; }
+    .ql-picture img { max-height: 48vh; }
+    .ql-title, .ql-description, .ql-facts, .ql-actions, .ql-error { margin-inline: 1rem; }
+    .ql-actions .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
+    .ql-nav { position: sticky; bottom: 0; margin-top: auto; padding: 0.5rem 1rem; background: var(--app-surface); border-top: 1px solid var(--app-line); }
+    .ql-nav .btn { min-height: 40px; }
 }
 
 /* "How do I...?": two columns of questions, one on a phone. */
@@ -789,12 +845,26 @@ h1:focus { outline: none; }
 .question-text { font-weight: 650; }
 .question-demo { display: inline-flex; align-items: center; gap: 0.35rem; flex: none; color: var(--app-accent); font-size: 0.85rem; font-weight: 600; }
 
-@media (max-width: 575.98px) {
-    .questions { grid-template-columns: minmax(0, 1fr); }
-    .question { flex-direction: column; align-items: flex-start; gap: 0.35rem; }
+/* Below 1,024 px the demo's name goes under its question, so a question never wraps beside it. */
+@media (max-width: 1023.98px) {
+    .question { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.35rem; }
 }
 
-.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+@media (max-width: 575.98px) {
+    .questions { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+    .question { padding: 0.8rem 1rem; }
+}
+
+/* The four facts: one row from 1,024 px, two by two from 576 px, one column below. */
+.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
+
+@media (max-width: 1023.98px) {
+    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 575.98px) {
+    .facts { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
+}
 .fact { padding: 1.1rem 1.25rem; }
 .fact strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
 .fact span { color: var(--app-muted); font-size: 0.9rem; }

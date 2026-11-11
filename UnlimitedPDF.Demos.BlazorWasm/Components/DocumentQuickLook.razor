@@ -1,6 +1,3 @@
-@inject BrowserInterop Interop
-@inject SampleImageStore ImageStore
-
 @* Quick look: a large picture of a gallery document's first page, its facts, and its actions, in the browser's modal
    dialog, which keeps focus inside, closes on Escape, and returns focus to the button that opened it (AC-17). *@
 <dialog @ref="_dialog" class="quick-look" aria-labelledby="quick-look-title" @onkeydown="OnKeyDown">
@@ -9,7 +6,10 @@
     {
         <div class="ql-layout">
             <figure class="ql-picture">
-                <img src="@($"images/gallery/{document.Picture}-960.jpg")" width="960" height="1358" decoding="async"
+                @* A new element per document, with the tile's picture behind it, so a step never shows the previous
+                   page while the large picture loads. *@
+                <img @key="document.Picture" src="@($"images/gallery/{document.Picture}-960.jpg")" width="960" height="1358" decoding="async"
+                     style="@($"background-image: url('images/gallery/{document.Picture}-320.jpg')")"
                      alt="@($"First page of the {document.Demo.Title} PDF")" />
                 <figcaption class="ql-page">Page 1 of @document.PageCount</figcaption>
             </figure>
@@ -23,6 +23,8 @@
                 </div>
 
                 <h2 id="quick-look-title" class="ql-title">@document.Demo.Title</h2>
+                @* Says which document is shown after a step, since focus stays on the step button. *@
+                <p class="visually-hidden" aria-live="polite" aria-atomic="true">@document.Demo.Title, @(_index + 1) of @DocumentGallery.Documents.Count</p>
                 <p class="ql-description">@document.Demo.Description</p>
                 <dl class="ql-facts">
                     <div><dt>Pages</dt><dd>@document.PageCount</dd></div>
@@ -51,10 +53,10 @@
                 }
 
                 <div class="ql-nav">
-                    <button type="button" class="btn btn-sm btn-outline" aria-label="Previous document" @onclick="() => Step(-1)">
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="Previous document" aria-disabled="@(_preparing ? "true" : "false")" @onclick="() => Step(-1)">
                         <Icon Name="arrow" Size="16" Class="icon-flip" /> Previous
                     </button>
-                    <button type="button" class="btn btn-sm btn-outline" aria-label="Next document" @onclick="() => Step(1)">
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="Next document" aria-disabled="@(_preparing ? "true" : "false")" @onclick="() => Step(1)">
                         Next <Icon Name="arrow" Size="16" />
                     </button>
                 </div>

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
+using UnlimitedPDF.Demos.BlazorWasm.Services;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Components;
 
@@ -20,12 +21,31 @@ public partial class DocumentQuickLook : IDisposable
     private bool _failed;
     private int _index;
     private bool _open;
+    // Counts the openings, so the close of an earlier opening, reported late, cannot empty a dialog opened again.
+    private int _opening;
     private bool _preparing;
     private DotNetObjectReference<DocumentQuickLook>? _self;
+    private bool _showPending;
 
     #endregion
 
     #region Methods
+
+    #region Protected Override Methods
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        // The dialog opens once its content is on the page, so focus starts on its first control (Close).
+        if (_showPending)
+        {
+            _showPending = false;
+            _self ??= DotNetObjectReference.Create(this);
+            await Interop.ShowDialogAsync(_dialog, _self, nameof(OnDialogClosed), _opening);
+        }
+    }
+
+    #endregion
 
     #region Public Methods
 
@@ -35,9 +55,11 @@ public partial class DocumentQuickLook : IDisposable
     /// <summary>
     /// Called by the browser when the dialog closes: by Escape, the Close button, or the page.
     /// </summary>
+    /// <param name="opening">The opening the closed dialog belonged to.</param>
     [JSInvokable]
-    public void OnDialogClosed()
+    public void OnDialogClosed(int opening)
     {
+        if (opening != _opening) return;
         _open = false;
         StateHasChanged();
     }
@@ -46,15 +68,14 @@ public partial class DocumentQuickLook : IDisposable
     /// Opens quick look on one document.
     /// </summary>
     /// <param name="index">The document's position in <see cref="DocumentGallery.Documents" />.</param>
-    /// <returns>A task that completes when the dialog is shown.</returns>
-    public async Task OpenAsync(int index)
+    public void Open(int index)
     {
         _index = Math.Clamp(index, 0, DocumentGallery.Documents.Count - 1);
         _failed = false;
         _open = true;
-        _self ??= DotNetObjectReference.Create(this);
+        _opening++;
+        _showPending = true;
         StateHasChanged();
-        await Interop.ShowDialogAsync(_dialog, _self, nameof(OnDialogClosed));
     }
 
     #endregion
@@ -106,15 +127,17 @@ public partial class DocumentQuickLook : IDisposable
             await Task.Delay(DownloadUrlLifetime);
             await Interop.RevokeObjectUrlAsync(url);
         }
-        catch (JSDisconnectedException)
+        catch (Exception)
         {
-            // The page has closed and released its blob URLs.
+            // The page has closed, or the browser could not release the URL; it is released with the page.
         }
     }
 
-    // Previous on the first document shows the last, and next on the last shows the first (AC-18).
+    // Previous on the first document shows the last, and next on the last shows the first (AC-18). While a download
+    // builds, the document stays, so its preparing state and any failure message belong to the document shown.
     private void Step(int delta)
     {
+        if (_preparing) return;
         int count = DocumentGallery.Documents.Count;
         _index = ((_index + delta) % count + count) % count;
         _failed = false;
@@ -127,6 +150,10 @@ public partial class DocumentQuickLook : IDisposable
     #region Properties, Indexers
 
     private GalleryDocument? Current => DocumentGallery.Documents.Count > 0 ? DocumentGallery.Documents[_index] : null;
+
+    [Inject] private SampleImageStore ImageStore { get; set; } = default!;
+
+    [Inject] private BrowserInterop Interop { get; set; } = default!;
 
     #endregion
 }
