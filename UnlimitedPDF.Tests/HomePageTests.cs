@@ -169,6 +169,41 @@ public class HomePageTests
     }
 
     [Fact]
+    public void Each_gallery_document_has_a_tile_picture_and_a_quick_look_picture()
+    {
+        foreach (var entry in DocumentGallery.Documents)
+        {
+            foreach (var (suffix, width) in new[] { ("320", 320), ("960", 960) })
+            {
+                var path = RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{entry.Picture}-{suffix}.jpg");
+                Assert.True(File.Exists(path), $"{entry.Demo.Title}: {Path.GetFileName(path)} is missing");
+                Assert.Equal(width, PdfImage.FromBytes(File.ReadAllBytes(path)).PixelWidth);
+            }
+
+            Assert.True(File.Exists(RepositoryFile($"assets/originals/gallery/{entry.Picture}.png")), $"{entry.Demo.Title}: its original is missing");
+        }
+    }
+
+    [Fact]
+    public void Each_gallery_picture_was_captured_from_the_current_sources_of_its_demo()
+    {
+        using var manifest = System.Text.Json.JsonDocument.Parse(File.ReadAllText(RepositoryFile("UnlimitedPDF.Tests/Fixtures/document-gallery.json")));
+        var recorded = manifest.RootElement.GetProperty("documents").EnumerateArray().ToList();
+
+        Assert.Equal(DocumentGallery.Documents.Select(d => d.Picture), recorded.Select(r => r.GetProperty("picture").GetString()));
+        foreach (var record in recorded)
+        {
+            var sources = record.GetProperty("sources").EnumerateArray().Select(s => s.GetString()!).ToList();
+            var picture = record.GetProperty("picture").GetString();
+
+            Assert.True(
+                record.GetProperty("sha256").GetString() == SourceHash(sources),
+                $"{picture}: the demo's sources changed since its pictures were captured. Capture assets/originals/gallery/{picture}.png again from the demo, "
+                + "run assets/New-DerivedImages.ps1, and update the hash in UnlimitedPDF.Tests/Fixtures/document-gallery.json.");
+        }
+    }
+
+    [Fact]
     public void There_are_six_to_eight_questions_and_each_opens_a_demo_that_exists()
     {
         var demos = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
@@ -222,6 +257,19 @@ public class HomePageTests
     {
         var image = PdfImage.FromBytes(new JpegBuilder { Width = 120, Height = 60 }.Build());
         return new SampleImages(names.ToDictionary(name => name, _ => image));
+    }
+
+    // SHA-256 over each source's path and text, line endings as LF, so a CRLF checkout gives the same hash.
+    private static string SourceHash(IEnumerable<string> sources)
+    {
+        using var sha = System.Security.Cryptography.IncrementalHash.CreateHash(System.Security.Cryptography.HashAlgorithmName.SHA256);
+        foreach (var source in sources)
+        {
+            var text = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/" + source)).Replace("\r\n", "\n", StringComparison.Ordinal);
+            sha.AppendData(Encoding.UTF8.GetBytes(source + "\n" + text + "\n"));
+        }
+
+        return Convert.ToHexString(sha.GetHashAndReset()).ToLowerInvariant();
     }
 
     private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>

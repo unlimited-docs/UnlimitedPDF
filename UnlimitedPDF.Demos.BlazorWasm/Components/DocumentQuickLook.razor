@@ -1,0 +1,64 @@
+@inject BrowserInterop Interop
+@inject SampleImageStore ImageStore
+
+@* Quick look: a large picture of a gallery document's first page, its facts, and its actions, in the browser's modal
+   dialog, which keeps focus inside, closes on Escape, and returns focus to the button that opened it (AC-17). *@
+<dialog @ref="_dialog" class="quick-look" aria-labelledby="quick-look-title" @onkeydown="OnKeyDown">
+    @* Rendered only while open, so the large pictures load only when quick look shows them. *@
+    @if (_open && Current is { } document)
+    {
+        <div class="ql-layout">
+            <figure class="ql-picture">
+                <img src="@($"images/gallery/{document.Picture}-960.jpg")" width="960" height="1358" decoding="async"
+                     alt="@($"First page of the {document.Demo.Title} PDF")" />
+                <figcaption class="ql-page">Page 1 of @document.PageCount</figcaption>
+            </figure>
+
+            <div class="ql-side">
+                <div class="ql-top">
+                    <span class="ql-position">@(_index + 1) of @DocumentGallery.Documents.Count</span>
+                    <button type="button" class="ql-icon-button" aria-label="Close quick look" @onclick="CloseAsync">
+                        <Icon Name="close" Size="18" />
+                    </button>
+                </div>
+
+                <h2 id="quick-look-title" class="ql-title">@document.Demo.Title</h2>
+                <p class="ql-description">@document.Demo.Description</p>
+                <dl class="ql-facts">
+                    <div><dt>Pages</dt><dd>@document.PageCount</dd></div>
+                    <div><dt>Page size</dt><dd>@document.PageSize</dd></div>
+                </dl>
+
+                <div class="ql-actions">
+                    <a class="btn btn-solid theme-primary" href="@document.Demo.Route">Open and edit <Icon Name="arrow" Size="16" /></a>
+                    <button type="button" class="btn btn-outline" aria-disabled="@(_preparing ? "true" : "false")" @onclick="DownloadAsync">
+                        @if (_preparing)
+                        {
+                            <span class="spinner-border spinner-sm-inline" aria-hidden="true"></span>
+                            <span>Preparing</span>
+                        }
+                        else
+                        {
+                            <Icon Name="download" Size="16" />
+                            <span>Download PDF</span>
+                        }
+                    </button>
+                </div>
+
+                @if (_failed)
+                {
+                    <p class="ql-error" role="alert">The PDF could not be built here. Use "Open and edit" to build it in its demo.</p>
+                }
+
+                <div class="ql-nav">
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="Previous document" @onclick="() => Step(-1)">
+                        <Icon Name="arrow" Size="16" Class="icon-flip" /> Previous
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="Next document" @onclick="() => Step(1)">
+                        Next <Icon Name="arrow" Size="16" />
+                    </button>
+                </div>
+            </div>
+        </div>
+    }
+</dialog>

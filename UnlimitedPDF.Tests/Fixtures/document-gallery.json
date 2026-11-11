@@ -1,0 +1,103 @@
+{
+  "note": "The sources each gallery picture was captured from (26111101 AC-07). When a hash no longer matches, capture that document's first page again from its demo, run assets/New-DerivedImages.ps1, and update the hash.",
+  "documents": [
+    {
+      "picture": "invoice",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/InvoiceSample.cs",
+        "Samples/Inputs/InvoiceInput.cs",
+        "Samples/Inputs/InvoiceLine.cs"
+      ],
+      "sha256": "bdc96b0b74daf8dd0b343d7e1c3f4c508f0579ed33e608ec2fca5c8fa6077f7c"
+    },
+    {
+      "picture": "quotation",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/QuotationSample.cs",
+        "Samples/Inputs/QuotationInput.cs",
+        "Samples/Inputs/OrderLine.cs"
+      ],
+      "sha256": "30f5c5363a8b4dea4ae6326a784f3d2dc4b98008b46c8468f49b68bbb8bdf10a"
+    },
+    {
+      "picture": "purchase-order",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/PurchaseOrderSample.cs",
+        "Samples/Inputs/PurchaseOrderInput.cs",
+        "Samples/Inputs/OrderLine.cs"
+      ],
+      "sha256": "0d4fc0835d7bc0825885ff69e5e2e196f1c8b62b0684aa49d92e49516f552100"
+    },
+    {
+      "picture": "delivery-note",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/DeliveryNoteSample.cs",
+        "Samples/Inputs/DeliveryNoteInput.cs",
+        "Samples/Inputs/DeliveryLine.cs"
+      ],
+      "sha256": "781baaea3866da89bc59ee0c7948a029b1bbc6d98c3a994c079f1902fabb6869"
+    },
+    {
+      "picture": "account-statement",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/AccountStatementSample.cs",
+        "Samples/Inputs/AccountStatementInput.cs",
+        "Samples/Inputs/StatementLine.cs"
+      ],
+      "sha256": "fac081eaf749378fc5d3e32af28c14f41e4d0138e2e733a3b5c3b984d6723138"
+    },
+    {
+      "picture": "payslip",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/PayslipSample.cs",
+        "Samples/Inputs/PayslipInput.cs",
+        "Samples/Inputs/PayslipLine.cs"
+      ],
+      "sha256": "e438f1cbb47acd90061848916d07825ac8144dd00474776559fcffa6a8529157"
+    },
+    {
+      "picture": "medical-report",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/MedicalReportSample.cs",
+        "Samples/Inputs/MedicalReportInput.cs",
+        "Samples/Inputs/LabResult.cs"
+      ],
+      "sha256": "583c88d26ef820a8de25083714b9fd6fee06301d99e2aa48b2fe09d999a5fed4"
+    },
+    {
+      "picture": "receipt",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/ReceiptSample.cs",
+        "Samples/Inputs/ReceiptInput.cs",
+        "Samples/Inputs/ReceiptLine.cs"
+      ],
+      "sha256": "14adbb2dae0ed31eaf9af1f1dc8eec8eff3179104b66ad8772f2d1de9de8fdaa"
+    },
+    {
+      "picture": "certificate",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/CertificateSample.cs",
+        "Samples/Inputs/CertificateInput.cs"
+      ],
+      "sha256": "2e16fdb1a0db0f5add4287b9fc08eaffba58cb6b0348ee2f69b1b5d71760aeac"
+    },
+    {
+      "picture": "employee-directory",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/EmployeeDirectorySample.cs",
+        "Samples/Inputs/EmployeeDirectoryInput.cs"
+      ],
+      "sha256": "71a0b3cc045c95d45604b0ec4dc825a1b9ef8d5592b1063748c5b3727e4bc0d0"
+    }
+  ]
+}

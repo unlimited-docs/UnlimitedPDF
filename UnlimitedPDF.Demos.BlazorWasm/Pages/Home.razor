@@ -46,12 +46,7 @@
         <h2 id="documents-title">@Documents.Title</h2>
         <p>@Documents.Description</p>
     </div>
-    <ul class="document-list">
-        @foreach (var demo in Documents.Demos)
-        {
-            <li><a href="@demo.Route"><Icon Name="@demo.Icon" Size="18" /> @demo.Title</a></li>
-        }
-    </ul>
+    <DocumentTiles />
 </section>
 
 <section id="how-do-i" class="section home-section" aria-labelledby="how-do-i-title">
