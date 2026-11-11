@@ -26,6 +26,8 @@
     <EmbeddedResource Include="Samples\*Sample.cs" LogicalName="Samples.%(Filename)%(Extension)" />
     <!-- The home page's code samples, shown from the same compiled file (PR-012). -->
     <EmbeddedResource Include="Samples\HomeSnippets.cs" LogicalName="Samples.HomeSnippets.cs" />
+    <!-- The FAQ page's code samples, shown the same way. -->
+    <EmbeddedResource Include="Samples\FaqSnippets.cs" LogicalName="Samples.FaqSnippets.cs" />
   </ItemGroup>
 
 </Project>

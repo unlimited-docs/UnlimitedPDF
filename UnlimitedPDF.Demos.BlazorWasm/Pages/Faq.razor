@@ -1,0 +1,64 @@
+@page "/faq"
+@implements IAsyncDisposable
+
+<PageTitle>FAQ · UnlimitedPDF Demos</PageTitle>
+
+<div class="faq">
+    <header class="faq-head">
+        <h1>Frequently asked questions</h1>
+        <p>Short answers about UnlimitedPDF, each with the demo that shows it.</p>
+    </header>
+
+    <div class="faq-layout">
+        <nav class="faq-index" aria-label="Topics">
+            @if (MatchCount > 0)
+            {
+                <div class="faq-index-title" aria-hidden="true">Topics</div>
+            }
+            <ul>
+                @foreach (var group in FaqQuestions.Groups.Where(HasMatch))
+                {
+                    <li>
+                        <a href="faq#@group.Id" aria-current="@(group.Id == _currentGroup ? "true" : null)">@group.Title</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+
+        <div class="faq-main">
+            <div class="faq-search">
+                <label class="faq-sr-only" for="faq-search-input">Search questions</label>
+                <Icon Name="search" Size="18" />
+                <input id="faq-search-input" type="search" class="faq-search-input" placeholder="Search questions"
+                       autocomplete="off" value="@_query" @oninput="OnSearch" @ref="_searchBox" />
+            </div>
+            <p class="faq-count" aria-live="polite">@CountText</p>
+
+            @if (MatchCount == 0)
+            {
+                <div class="panel faq-empty">
+                    <p>No questions match “@_query.Trim()”.</p>
+                    <button type="button" class="btn btn-sm btn-outline" @onclick="ClearSearchAsync">Clear search</button>
+                </div>
+            }
+
+            @for (int index = 0; index < FaqQuestions.Groups.Count; index++)
+            {
+                var group = FaqQuestions.Groups[index];
+                var slot = index;
+                @* Hidden rather than removed while a search leaves it empty, so its place for the topic index stays. *@
+                <section id="@group.Id" class="faq-group" aria-labelledby="@($"{group.Id}-title")" hidden="@(!HasMatch(group))"
+                         @ref="_sections[slot]">
+                    <h2 id="@($"{group.Id}-title")">@group.Title</h2>
+                    <ul class="faq-list">
+                        @foreach (var question in group.Questions.Where(Matches))
+                        {
+                            <FaqQuestionItem @key="question.Id" Question="question" Open="_open.Contains(question.Id)"
+                                             OnToggle="() => Toggle(question.Id)" />
+                        }
+                    </ul>
+                </section>
+            }
+        </div>
+    </div>
+</div>

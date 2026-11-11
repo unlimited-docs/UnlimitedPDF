@@ -78,3 +78,77 @@ export function closeDialog(dialog) {
         dialog.close();
     }
 }
+
+// The section in view, for a page's topic index: on wide screens only, the last visible section whose top has passed a
+// reading line about a third of the way down below the sticky top bar. The page leaves room after its last section so
+// every section's top can reach that line. The listener hears each change.
+let sectionWatch = null;
+
+export function observeSections(sections, listener, method) {
+    stopObservingSections();
+    const wide = window.matchMedia("(min-width: 1024px)");
+    let current = null;
+    let pending = false;
+
+    const update = () => {
+        pending = false;
+        if (!wide.matches) {
+            return;
+        }
+        const topBar = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--app-topbar-h")) || 60;
+        const line = topBar + Math.min(window.innerHeight * 0.3, 240);
+        const visible = sections.filter(section => section && section.offsetParent !== null);
+        if (visible.length === 0) {
+            return;
+        }
+        let found = visible[0].id;
+        for (const section of visible) {
+            if (section.getBoundingClientRect().top > line) {
+                break;
+            }
+            found = section.id;
+        }
+        if (found !== current) {
+            current = found;
+            listener.invokeMethodAsync(method, found).catch(() => { });
+        }
+    };
+    // At most one check per 50 ms while scrolling; a timer rather than an animation frame, so it also runs in a tab
+    // that is not painting.
+    const schedule = () => {
+        if (!pending) {
+            pending = true;
+            setTimeout(update, 50);
+        }
+    };
+
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    wide.addEventListener("change", schedule);
+    sectionWatch = { schedule, wide };
+    schedule();
+}
+
+export function refreshSections() {
+    sectionWatch?.schedule();
+}
+
+export function stopObservingSections() {
+    if (sectionWatch) {
+        window.removeEventListener("scroll", sectionWatch.schedule);
+        window.removeEventListener("resize", sectionWatch.schedule);
+        sectionWatch.wide.removeEventListener("change", sectionWatch.schedule);
+        sectionWatch = null;
+    }
+}
+
+export function scrollToElement(id, smooth) {
+    // Brings an element to the top of the view; its scroll-margin keeps it below the top bar.
+    const element = document.getElementById(id);
+    if (!element) {
+        return false;
+    }
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    element.scrollIntoView({ behavior: smooth && !reduced ? "smooth" : "auto", block: "start" });
+    return true;
+}

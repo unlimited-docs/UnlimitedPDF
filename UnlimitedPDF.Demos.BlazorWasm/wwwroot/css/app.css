@@ -880,6 +880,125 @@ h1:focus { outline: none; }
 
 .not-found { max-width: 32rem; margin: 5rem auto; text-align: center; padding: 0 1.25rem; }
 
+/* "More questions in the FAQ" at the end of "How do I...?". */
+.questions-more { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; font-weight: 600; text-decoration: none; }
+.questions-more:hover { text-decoration: underline; }
+
+/* ---------- FAQ page ---------- */
+
+.faq { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+.faq-head { margin-bottom: 1.5rem; }
+.faq-head h1 { font-size: 2rem; font-weight: 750; letter-spacing: -0.02em; margin: 0 0 0.35rem; }
+.faq-head p { color: var(--app-muted); margin: 0; }
+
+/* From 1,024 px the topic index is a column beside the questions; below it, a line of chips above the search box. */
+.faq-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 2rem; align-items: start; }
+
+/* Room after the last topic, so choosing any topic in the index can bring its heading to the top of the view. */
+.faq-main { padding-bottom: calc(100vh - var(--app-topbar-h) - 7rem); }
+
+.faq-index { position: sticky; top: calc(var(--app-topbar-h) + 1.25rem); }
+.faq-index-title { font-size: 0.75rem; font-weight: 650; text-transform: uppercase; letter-spacing: 0.06em; color: var(--app-muted); margin-bottom: 0.5rem; }
+.faq-index ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.15rem; }
+.faq-index a { display: block; padding: 0.35rem 0.75rem; border-left: 2px solid var(--app-line); color: var(--app-muted); text-decoration: none; font-size: 0.92rem; }
+.faq-index a:hover { color: var(--app-ink); border-left-color: #c9d6f5; }
+.faq-index a[aria-current="true"] { color: var(--app-accent); border-left-color: var(--app-accent); font-weight: 600; }
+
+.faq-search { position: relative; }
+.faq-search .icon { position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%); color: var(--app-muted); pointer-events: none; }
+.faq-search-input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.55rem 0.9rem 0.55rem 2.6rem;
+    border: 1px solid #cfd8ea;
+    border-radius: 10px;
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-size: 1rem;
+}
+.faq-search-input:focus { outline: none; border-color: var(--app-accent); box-shadow: 0 0 0 3px rgba(35, 87, 232, 0.2); }
+.faq-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+.faq-count { color: var(--app-muted); font-size: 0.85rem; margin: 0.5rem 0 0; }
+
+.faq-empty { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 1rem 1.25rem; margin-top: 1rem; }
+.faq-empty p { margin: 0; }
+
+.faq-group { margin-top: 1.75rem; scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+.faq-group h2 { font-size: 1.15rem; font-weight: 700; margin: 0 0 0.6rem; }
+.faq-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.faq-item { background: var(--app-surface); border: 1px solid var(--app-line); border-radius: 12px; scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+.faq-item.is-open { border-color: #c9d6f5; }
+
+.faq-question { position: relative; display: flex; align-items: stretch; }
+
+.faq-toggle {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 0.5rem 0.85rem 1.1rem;
+    border: 0;
+    background: none;
+    color: var(--app-ink);
+    text-align: left;
+    font-weight: 600;
+    border-radius: 12px;
+}
+.faq-toggle .icon { flex: none; margin-left: auto; color: var(--app-muted); transition: transform 0.15s ease; }
+.faq-item.is-open .faq-toggle .icon { transform: rotate(180deg); }
+.faq-toggle:focus-visible, .faq-link:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -2px; }
+.faq-question-text { min-width: 0; }
+
+.faq-not-yet { flex: none; font-size: 0.75rem; font-weight: 650; background: var(--app-warn-soft); color: #7a5200; border-radius: 6px; padding: 0.1rem 0.45rem; }
+
+.faq-link { flex: none; width: 44px; border: 0; background: none; color: #9aa6c2; font-weight: 600; font-size: 1rem; border-radius: 12px; }
+.faq-link:hover { color: var(--app-accent); }
+.faq-link-status:empty { display: none; }
+.faq-link-status {
+    position: absolute;
+    right: 0.5rem;
+    top: -0.9rem;
+    background: var(--app-ink);
+    color: #fff;
+    font-size: 0.75rem;
+    border-radius: 6px;
+    padding: 0.15rem 0.5rem;
+    pointer-events: none;
+}
+
+.faq-answer { padding: 0 1.1rem 1rem; color: var(--app-muted); line-height: 1.6; }
+.faq-answer p { margin: 0 0 0.6rem; }
+.faq-code { margin: 0.25rem 0 0.75rem; }
+.faq-code .code-view { height: auto; min-height: 0; border-radius: 10px; overflow: hidden; }
+.faq-code .code-view pre { height: auto; padding: 2.6rem 1rem 1rem; overflow-x: auto; }
+.faq-demo { display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; text-decoration: none; }
+.faq-demo:hover { text-decoration: underline; }
+
+@media (max-width: 1023.98px) {
+    .faq-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+    .faq-main { padding-bottom: 0; }
+    .faq-index { position: static; }
+    .faq-index-title { display: none; }
+    .faq-index ul { flex-direction: row; flex-wrap: wrap; gap: 0.4rem; }
+    .faq-index a { border: 1px solid var(--app-line); border-radius: 999px; background: var(--app-surface); padding: 0.3rem 0.8rem; font-size: 0.85rem; color: var(--app-ink); }
+    .faq-index a[aria-current="true"] { border-color: var(--app-line); color: var(--app-ink); font-weight: 400; }
+}
+
+@media (max-width: 575.98px) {
+    .faq { padding: 1.5rem 0.9rem 2rem; }
+    .faq-head h1 { font-size: 1.55rem; }
+    .faq-toggle { padding: 0.8rem 0.25rem 0.8rem 0.9rem; }
+    .faq-answer { padding: 0 0.9rem 0.9rem; }
+    .faq-code .code-view pre { font-size: 0.76rem; padding: 2.5rem 0.8rem 0.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .faq-toggle .icon { transition: none; }
+}
+
 /* ---------- Shared ---------- */
 
 .spinner-sm-inline { width: 1rem; height: 1rem; border-width: 2px; }
