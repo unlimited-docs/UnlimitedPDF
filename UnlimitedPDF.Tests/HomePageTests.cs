@@ -263,7 +263,10 @@ public class HomePageTests
 
         Assert.Contains("<CapabilityRow ", home, StringComparison.Ordinal);
         Assert.Contains("<DocumentTiles", home, StringComparison.Ordinal);
+        // The row calls its link fragment for a category's demos and for each group's (F-23): the link attribute alone
+        // also sits in the fragment's definition, so it would pass a row that never shows its links.
         Assert.Contains(".Route\"", row, StringComparison.Ordinal);
+        Assert.Equal(2, Regex.Matches(row, @"@DemoLinks\(\w+\.Demos\)").Count);
         Assert.Contains("DocumentGallery.Documents", tiles, StringComparison.Ordinal);
         Assert.Contains(".Demo.Route\"", tiles, StringComparison.Ordinal);
     }
