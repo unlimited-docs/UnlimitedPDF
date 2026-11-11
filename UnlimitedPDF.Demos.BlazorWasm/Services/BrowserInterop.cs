@@ -39,6 +39,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     public async Task BlurActiveElementAsync() => await (await _module.Value).InvokeVoidAsync("blurActiveElement");
 
     /// <summary>
+    /// Closes a dialog opened with <see cref="ShowDialogAsync{T}"/>; the browser returns focus to its opener.
+    /// </summary>
+    /// <param name="dialog">The <c>dialog</c> element.</param>
+    public async Task CloseDialogAsync(ElementReference dialog) => await (await _module.Value).InvokeVoidAsync("closeDialog", dialog);
+
+    /// <summary>
     /// Copies text to the clipboard.
     /// </summary>
     /// <param name="text">The text to copy.</param>
@@ -104,6 +110,17 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// </summary>
     /// <param name="element">The element.</param>
     public async Task ScrollIntoViewOnNarrowAsync(ElementReference element) => await (await _module.Value).InvokeVoidAsync("scrollIntoViewOnNarrow", element);
+
+    /// <summary>
+    /// Opens a <c>dialog</c> element as a modal dialog and calls back when it closes.
+    /// </summary>
+    /// <typeparam name="T">The type of the component that listens.</typeparam>
+    /// <param name="dialog">The <c>dialog</c> element.</param>
+    /// <param name="listener">The component told when the dialog closes, by Escape or otherwise.</param>
+    /// <param name="closedMethod">The name of the listener's <see cref="JSInvokableAttribute"/> method to call; it receives <paramref name="opening"/>.</param>
+    /// <param name="opening">A number identifying this opening, passed back when it closes.</param>
+    public async Task ShowDialogAsync<T>(ElementReference dialog, DotNetObjectReference<T> listener, string closedMethod, int opening) where T : class =>
+        await (await _module.Value).InvokeVoidAsync("showDialog", dialog, listener, closedMethod, opening);
 
     /// <summary>
     /// Shows a blob URL in an iframe.

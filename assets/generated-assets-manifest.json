@@ -216,6 +216,106 @@
       "sha256": "0123e7dd99643c9909248035b6437f2b745461302c935c45f0a6e46357ba6bfe",
       "origin": "Created by the project owner with Codex image generation on 2026-11-06 from the prompt recorded here (26110501-page-header-body-footer D-028).",
       "prompt": "Create a clean horizontal logo for the fictional company 'Meridian Freight'. On the left, a simple flat icon of a globe outline crossed by one bold curved meridian line ending in a small arrowhead. To its right, 'Meridian' on the first line in bold deep red #B3261E and 'Freight' on the second line in medium-weight dark gray #444B53, left-aligned, in a clean geometric sans-serif. Wide 3:1 landscape canvas, 2172 x 724 pixels, transparent background, crisp edges, flat solid colors, balanced padding. Spell the text exactly as given. No tagline, gradients, shadows, glow, textures, 3D effects, mockup, or additional symbols, and no resemblance to any real company's logo."
+    },
+    {
+      "path": "originals/gallery/invoice.png",
+      "purpose": "Invoice home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 356958,
+      "sha256": "bf86d45417aa11293fe12a08c0a49e7ede40b33d5bb2f8a4480915a9fb2d7f03",
+      "capturedFrom": "playground/documents/invoice",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/quotation.png",
+      "purpose": "Quotation home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 363060,
+      "sha256": "98432ee1bdb3045af294d0e3f4b2a85e051e9d4a25aa6f3dc41c5f8d1fec294a",
+      "capturedFrom": "playground/documents/quotation",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/purchase-order.png",
+      "purpose": "Purchase order home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 348333,
+      "sha256": "4d28aa500e7ca517dc935b1fe98e86c3cb80f6bbe3e32c800bed3857b7cad09b",
+      "capturedFrom": "playground/documents/purchase-order",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/delivery-note.png",
+      "purpose": "Delivery note home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 303106,
+      "sha256": "b847dc16cac594d096d2ed46f8cabeb7f4db933b967934537f0d8bd8d9bbadaf",
+      "capturedFrom": "playground/documents/delivery-note",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/account-statement.png",
+      "purpose": "Account statement home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1457,
+      "height": 2061,
+      "bytes": 866317,
+      "sha256": "da462273b1551366e2722f6e335154cc6fc9ca8265b7ba7e62bb0eb018af1ceb",
+      "capturedFrom": "playground/documents/account-statement",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/payslip.png",
+      "purpose": "Payslip home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 341501,
+      "sha256": "4c18ac63b9d2191d1b86cf35fe1f45db8bfc4d1a63cad529707b1666f70523ee",
+      "capturedFrom": "playground/documents/payslip",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/medical-report.png",
+      "purpose": "Medical report home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 324766,
+      "sha256": "a09d9f32cd8b0d9eb369e5fa51bb950c4bf03f0e794a7c72e47cee068a594806",
+      "capturedFrom": "playground/documents/medical-report",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/receipt.png",
+      "purpose": "Receipt home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1460,
+      "height": 2058,
+      "bytes": 378318,
+      "sha256": "5f0ebc185a74a3a6a3d88a4c1a175ac1c225f57c19ef92277be9725b2a9c0895",
+      "capturedFrom": "playground/documents/receipt",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/certificate.png",
+      "purpose": "Certificate home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 282276,
+      "sha256": "80765a4f5dfcd7b2bfb147d71aa878c01b091274818872a1c29c2eda3bac94de",
+      "capturedFrom": "playground/documents/certificate",
+      "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/gallery/employee-directory.png",
+      "purpose": "Employee directory home gallery picture: first page of the PDF the demo generates with its default input",
+      "width": 1457,
+      "height": 2061,
+      "bytes": 795045,
+      "sha256": "a6413ed70ebd13f83a9c1b7b4e4682bc7d595fa78a1b577406364d212ff92496",
+      "capturedFrom": "playground/documents/employee-directory",
+      "capturedOn": "2026-11-11"
     }
   ]
 }

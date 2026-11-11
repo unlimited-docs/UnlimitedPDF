@@ -1,0 +1,23 @@
+@* One list of demos in the playground sidebar, for a category or one of its groups. *@
+<ul class="sidebar-list">
+    @foreach (var demo in Demos)
+    {
+        <li>
+            <NavLink class="sidebar-link" href="@demo.Route" Match="NavLinkMatch.Prefix" @onclick="OnNavigate">
+                <Icon Name="@demo.Icon" Size="18" /> @demo.Title
+            </NavLink>
+        </li>
+    }
+</ul>
+
+@code {
+    /// <summary>
+    /// Gets or sets the demos to list, in sidebar order.
+    /// </summary>
+    [Parameter, EditorRequired] public IReadOnlyList<SampleDemo> Demos { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets what happens when a demo is chosen, for example closing the menu on a phone.
+    /// </summary>
+    [Parameter] public EventCallback OnNavigate { get; set; }
+}

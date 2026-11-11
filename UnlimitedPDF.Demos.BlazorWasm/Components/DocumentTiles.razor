@@ -1,0 +1,41 @@
+@* The home page gallery: one tile per real-life document, with its first page, facts, quick look, and a link to its demo. *@
+<ul class="tiles">
+    @for (int i = 0; i < DocumentGallery.Documents.Count; i++)
+    {
+        int index = i;
+        var document = DocumentGallery.Documents[index];
+        <li class="panel tile">
+            @* The picture opens quick look for a pointer; keyboard users have the labelled button below (A-09). *@
+            <img class="tile-picture" src="@($"images/gallery/{document.Picture}-320.jpg")" width="320" height="453"
+                 loading="lazy" decoding="async" alt="@($"First page of the {document.Demo.Title} PDF")"
+                 @onclick="() => Open(index)" />
+            <div class="tile-body">
+                <h3 class="tile-title">@document.Demo.Title</h3>
+                <p class="tile-summary">@document.Summary</p>
+                <p class="tile-facts">@Pages(document.PageCount) · @document.PageSize</p>
+                <div class="tile-actions">
+                    <button type="button" class="btn btn-sm btn-outline" aria-label="@($"Quick look at the {document.Demo.Title}")"
+                            @onclick="() => Open(index)">
+                        Quick look
+                    </button>
+                    <a class="btn btn-sm btn-solid theme-primary" href="@document.Demo.Route" aria-label="@($"Open the {document.Demo.Title} demo")">Open</a>
+                </div>
+            </div>
+        </li>
+    }
+</ul>
+
+<DocumentQuickLook @ref="_quickLook" />
+
+@code {
+    private DocumentQuickLook? _quickLook;
+
+    /// <summary>
+    /// Gets the page count as words, for example "1 page" or "3 pages".
+    /// </summary>
+    /// <param name="count">The number of pages.</param>
+    /// <returns>The count with its unit.</returns>
+    internal static string Pages(int count) => count == 1 ? "1 page" : $"{count} pages";
+
+    private void Open(int index) => _quickLook?.Open(index);
+}

@@ -205,26 +205,45 @@ public static class ArtworkCopies
     /// <summary>Writes an opaque copy as JPEG at the highest quality from 90 down that fits maxBytes.</summary>
     public static string CoverJpeg(string input, string output, int width, int height, long maxBytes)
     {
-        var codec = Array.Find(ImageCodecInfo.GetImageEncoders(), c => c.FormatID == ImageFormat.Jpeg.Guid);
         using (var full = Load(input))
         using (var copy = Cover(full, width, height))
         {
-            for (long quality = 90; quality >= 40; quality -= 5)
+            return SaveJpeg(copy, output, maxBytes);
+        }
+    }
+
+    /// <summary>Scales an opaque image to the given width, keeping its proportions, as JPEG within maxBytes.</summary>
+    public static string WidthJpeg(string input, string output, int width, long maxBytes)
+    {
+        using (var full = Load(input))
+        {
+            int height = (int)Math.Round((double)full.Height * width / full.Width);
+            var whole = new Rectangle(0, 0, full.Width, full.Height);
+            using (var copy = Resample(full, whole, width, height, new Rectangle(0, 0, width, height), false))
             {
-                using (var parameters = new EncoderParameters(1))
-                using (var stream = new MemoryStream())
+                return SaveJpeg(copy, output, maxBytes);
+            }
+        }
+    }
+
+    private static string SaveJpeg(Bitmap copy, string output, long maxBytes)
+    {
+        var codec = Array.Find(ImageCodecInfo.GetImageEncoders(), c => c.FormatID == ImageFormat.Jpeg.Guid);
+        for (long quality = 90; quality >= 40; quality -= 5)
+        {
+            using (var parameters = new EncoderParameters(1))
+            using (var stream = new MemoryStream())
+            {
+                parameters.Param[0] = new EncoderParameter(Encoder.Quality, quality);
+                copy.Save(stream, codec, parameters);
+                if (stream.Length <= maxBytes || quality == 40)
                 {
-                    parameters.Param[0] = new EncoderParameter(Encoder.Quality, quality);
-                    copy.Save(stream, codec, parameters);
-                    if (stream.Length <= maxBytes || quality == 40)
-                    {
-                        File.WriteAllBytes(output, stream.ToArray());
-                        return width + " x " + height + ", JPEG quality " + quality;
-                    }
+                    File.WriteAllBytes(output, stream.ToArray());
+                    return copy.Width + " x " + copy.Height + ", JPEG quality " + quality;
                 }
             }
-            throw new InvalidOperationException("unreachable");
         }
+        throw new InvalidOperationException("unreachable");
     }
 }
 '@
@@ -258,6 +277,15 @@ $copies = @(
     @{ Out = 'assets\derived\unlimitedpdf-social-preview.jpg'; From = 'banners\unlimitedpdf-social-card.png'; Use = 'GitHub repository social preview (uploaded in Settings)'; Make = { param($i, $o) [ArtworkCopies]::CoverJpeg($i, $o, 1280, 640, 400000) } },
     @{ Out = 'nuget\icon.png'; From = 'nuget\unlimitedpdf-package-icon.png'; Use = 'NuGet package icon'; Make = { param($i, $o) [ArtworkCopies]::Square($i, $o, 128) } }
 )
+
+# The home page gallery: each document's first page as its demo generates it, small for its tile and large for quick
+# look (26111101 AC-07). The originals are captures; see ARTWORK.md.
+New-Item -ItemType Directory -Force -Path (Join-Path $images 'gallery') | Out-Null
+$gallery = 'invoice', 'quotation', 'purchase-order', 'delivery-note', 'account-statement', 'payslip', 'medical-report', 'receipt', 'certificate', 'employee-directory'
+$copies += foreach ($name in $gallery) {
+    @{ Out = "UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\gallery\$name-320.jpg"; From = "originals\gallery\$name.png"; Use = 'App home gallery tile'; Make = { param($i, $o) [ArtworkCopies]::WidthJpeg($i, $o, 320, 40000) } }
+    @{ Out = "UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\gallery\$name-960.jpg"; From = "originals\gallery\$name.png"; Use = 'App home quick look'; Make = { param($i, $o) [ArtworkCopies]::WidthJpeg($i, $o, 960, 150000) } }
+}
 
 $rows = foreach ($copy in $copies) {
     $input = Join-Path $assets $copy.From

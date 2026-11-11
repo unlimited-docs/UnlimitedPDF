@@ -44,6 +44,27 @@ The five business-document demo logos (Purchase order, Quotation, Account statem
 | `originals/payslip-logo.png` | Greenfield Logistics |
 | `originals/delivery-note-logo.png` | Meridian Freight |
 
+## Document gallery pictures added 2026-11-11
+
+The ten pictures of the home page gallery (26111101-home-page-redesign AC-07) are not generated artwork. Each is the first page of the PDF that its playground demo generates with its default input, as the browser's built-in PDF viewer draws it, captured on 2026-11-11. The PDFs were built by each demo's own sample builder through `DocumentGallery` with the app's served images, so they are the documents the demo pages produce that day. Each page was shown at fit to width at 1.5 device pixels per CSS pixel and cropped to the page: 1479 pixels wide for a one-page document, 1457 for the two that have more pages (the viewer's scroll bar takes the difference), and 1460 for the A6 receipt. The pictures show that day's dates; a later date alone does not make them out of date.
+
+Released under Apache-2.0 with the rest of the repository (PR-011). Their dimensions, sizes, and SHA-256 checksums are in `generated-assets-manifest.json`. `UnlimitedPDF.Tests/Fixtures/document-gallery.json` records what each was captured from: its sample file and every input file the sample uses, and the served images it draws (from `DocumentGallery`). Its SHA-256 covers each source's path and text with LF line endings, then each image's path and bytes. The home page tests fail and name the document when one of them changes, or when the list misses a file in `Samples/Inputs` named after a type the sample, or one of those files, uses; its picture is then captured again the same way. A helper elsewhere in `Samples/` or a type in a file of another name is not followed, so a sample that starts to use one needs that file added to its list by hand.
+
+| Original | Size | Demo |
+|---|---|---|
+| `originals/gallery/invoice.png` | 1479 x 2092 | Invoice (`playground/documents/invoice`) |
+| `originals/gallery/quotation.png` | 1479 x 2092 | Quotation (`playground/documents/quotation`) |
+| `originals/gallery/purchase-order.png` | 1479 x 2092 | Purchase order (`playground/documents/purchase-order`) |
+| `originals/gallery/delivery-note.png` | 1479 x 2092 | Delivery note (`playground/documents/delivery-note`) |
+| `originals/gallery/account-statement.png` | 1457 x 2061 | Account statement (`playground/documents/account-statement`) |
+| `originals/gallery/payslip.png` | 1479 x 2092 | Payslip (`playground/documents/payslip`) |
+| `originals/gallery/medical-report.png` | 1479 x 2092 | Medical report (`playground/documents/medical-report`) |
+| `originals/gallery/receipt.png` | 1460 x 2058 | Receipt (`playground/documents/receipt`) |
+| `originals/gallery/certificate.png` | 1479 x 2092 | Certificate (`playground/documents/certificate`) |
+| `originals/gallery/employee-directory.png` | 1457 x 2061 | Employee directory (`playground/documents/employee-directory`) |
+
+On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the twenty gallery copies below were added. Two runs there produce byte-identical gallery copies.
+
 ## Derived copies
 
 `New-DerivedImages.ps1` makes every copy below from the originals and overwrites the previous copies. Run it from Windows PowerShell 5.1 (it uses `System.Drawing`):
@@ -76,3 +97,23 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `assets/derived/unlimitedpdf-github-banner.jpg` | `banners/unlimitedpdf-github-banner.png` | 1280 x 640, JPEG quality 90 | 120,382 | README.md and nuget/README.md banner |
 | `assets/derived/unlimitedpdf-social-preview.jpg` | `banners/unlimitedpdf-social-card.png` | 1280 x 640, JPEG quality 90 | 115,660 | GitHub repository social preview (uploaded in Settings) |
 | `nuget/icon.png` | `nuget/unlimitedpdf-package-icon.png` | 128 x 128 | 21,808 | NuGet package icon |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-320.jpg` | `originals/gallery/invoice.png` | 320 x 453, JPEG quality 90 | 21,566 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-960.jpg` | `originals/gallery/invoice.png` | 960 x 1358, JPEG quality 90 | 114,845 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-320.jpg` | `originals/gallery/quotation.png` | 320 x 453, JPEG quality 90 | 20,312 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-960.jpg` | `originals/gallery/quotation.png` | 960 x 1358, JPEG quality 90 | 117,977 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-320.jpg` | `originals/gallery/purchase-order.png` | 320 x 453, JPEG quality 90 | 21,115 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-960.jpg` | `originals/gallery/purchase-order.png` | 960 x 1358, JPEG quality 90 | 117,939 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-320.jpg` | `originals/gallery/delivery-note.png` | 320 x 453, JPEG quality 90 | 18,985 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-960.jpg` | `originals/gallery/delivery-note.png` | 960 x 1358, JPEG quality 90 | 101,788 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-320.jpg` | `originals/gallery/account-statement.png` | 320 x 453, JPEG quality 80 | 37,471 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-960.jpg` | `originals/gallery/account-statement.png` | 960 x 1358, JPEG quality 45 | 146,543 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-320.jpg` | `originals/gallery/payslip.png` | 320 x 453, JPEG quality 90 | 21,329 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-960.jpg` | `originals/gallery/payslip.png` | 960 x 1358, JPEG quality 90 | 119,957 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-320.jpg` | `originals/gallery/medical-report.png` | 320 x 453, JPEG quality 90 | 22,380 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-960.jpg` | `originals/gallery/medical-report.png` | 960 x 1358, JPEG quality 90 | 123,626 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-960.jpg` | `originals/gallery/receipt.png` | 960 x 1353, JPEG quality 90 | 134,964 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-320.jpg` | `originals/gallery/certificate.png` | 320 x 453, JPEG quality 90 | 21,389 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-960.jpg` | `originals/gallery/certificate.png` | 960 x 1358, JPEG quality 90 | 111,324 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-320.jpg` | `originals/gallery/employee-directory.png` | 320 x 453, JPEG quality 80 | 36,425 | App home gallery tile |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-960.jpg` | `originals/gallery/employee-directory.png` | 960 x 1358, JPEG quality 45 | 148,902 | App home quick look |

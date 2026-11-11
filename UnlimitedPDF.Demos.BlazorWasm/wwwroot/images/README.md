@@ -33,3 +33,7 @@ The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`
 | `account-statement-logo.png` | Account statement demo (fictional company) |
 | `payslip-logo.png` | Payslip demo (fictional company) |
 | `delivery-note-logo.png` | Delivery note demo (fictional company) |
+
+## Document gallery
+
+`gallery/<name>-320.jpg` (the home page tile) and `gallery/<name>-960.jpg` (quick look) for `invoice`, `quotation`, `purchase-order`, `delivery-note`, `account-statement`, `payslip`, `medical-report`, `receipt`, `certificate`, and `employee-directory`. Each shows the first page of the PDF its demo generates with the default input. They are copies made by the same script from captures in [`assets/originals/gallery/`](../../../assets/ARTWORK.md#document-gallery-pictures-added-2026-11-11).

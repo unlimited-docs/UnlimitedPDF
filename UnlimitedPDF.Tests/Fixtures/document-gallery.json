@@ -1,0 +1,134 @@
+{
+  "note": "The sources and served images each gallery picture was captured from (26111101 AC-07). The hash covers each source's path and text with LF line endings, then each image's path and bytes. When it no longer matches, capture that document's first page again from its demo, run assets/New-DerivedImages.ps1, and update the hash.",
+  "documents": [
+    {
+      "picture": "invoice",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/InvoiceSample.cs",
+        "Samples/Inputs/InvoiceInput.cs",
+        "Samples/Inputs/InvoiceLine.cs"
+      ],
+      "sha256": "763d545e058e5b7685b67cc6f1dd5167c1680e023bf79552e2e5d0f06284085b",
+      "images": [
+        "invoice-logo.png",
+        "keyboard.jpg",
+        "dock.jpg"
+      ]
+    },
+    {
+      "picture": "quotation",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/QuotationSample.cs",
+        "Samples/Inputs/QuotationInput.cs",
+        "Samples/Inputs/OrderLine.cs"
+      ],
+      "sha256": "a637effc6628b584be51010254bf39311df601434c104da5d84ddaa6c9ac7e5d",
+      "images": [
+        "quotation-logo.png"
+      ]
+    },
+    {
+      "picture": "purchase-order",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/PurchaseOrderSample.cs",
+        "Samples/Inputs/PurchaseOrderInput.cs",
+        "Samples/Inputs/OrderLine.cs"
+      ],
+      "sha256": "2391266c99b05d9209c9cb3878d0250a0c4ff0ff09c4bd753e232f23b863c267",
+      "images": [
+        "purchase-order-logo.png"
+      ]
+    },
+    {
+      "picture": "delivery-note",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/DeliveryNoteSample.cs",
+        "Samples/Inputs/DeliveryNoteInput.cs",
+        "Samples/Inputs/DeliveryLine.cs"
+      ],
+      "sha256": "c2ad734a2f956f586dcbecb2c86d017b8b8bee3fe5e3512e5504a60d480e34ce",
+      "images": [
+        "delivery-note-logo.png"
+      ]
+    },
+    {
+      "picture": "account-statement",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/AccountStatementSample.cs",
+        "Samples/Inputs/AccountStatementInput.cs",
+        "Samples/Inputs/StatementLine.cs"
+      ],
+      "sha256": "9e83a2eb751a919a8340ac216e54280cbda265689a79d0af1e4a4e24b4e8de1e",
+      "images": [
+        "account-statement-logo.png"
+      ]
+    },
+    {
+      "picture": "payslip",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/PayslipSample.cs",
+        "Samples/Inputs/PayslipInput.cs",
+        "Samples/Inputs/PayslipLine.cs"
+      ],
+      "sha256": "1c691803577c7b6053cf7e66362ddb9e952222708ff4e781a56bfe9afd4e6963",
+      "images": [
+        "payslip-logo.png"
+      ]
+    },
+    {
+      "picture": "medical-report",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/MedicalReportSample.cs",
+        "Samples/Inputs/MedicalReportInput.cs",
+        "Samples/Inputs/LabResult.cs"
+      ],
+      "sha256": "0ee9718cc86a265dab60f88bab67f2f2790d110e0f22f0955f7ebd2d8cb5664c",
+      "images": [
+        "medical-report-logo.png"
+      ]
+    },
+    {
+      "picture": "receipt",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/ReceiptSample.cs",
+        "Samples/Inputs/ReceiptInput.cs",
+        "Samples/Inputs/ReceiptLine.cs"
+      ],
+      "sha256": "e975967990bf32ab9998b3d4e437ca9717847a7e158b060af1853d65202c0615",
+      "images": [
+        "receipt-logo.png"
+      ]
+    },
+    {
+      "picture": "certificate",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/CertificateSample.cs",
+        "Samples/Inputs/CertificateInput.cs"
+      ],
+      "sha256": "ba5bf86812330f61cf2c29c9dfa9a1c6db6bfb1369a1f49aa596c5aac651109a",
+      "images": [
+        "certificate-seal.png",
+        "certificate-signature.png"
+      ]
+    },
+    {
+      "picture": "employee-directory",
+      "capturedOn": "2026-11-11",
+      "sources": [
+        "Samples/EmployeeDirectorySample.cs",
+        "Samples/Inputs/EmployeeDirectoryInput.cs"
+      ],
+      "sha256": "71a0b3cc045c95d45604b0ec4dc825a1b9ef8d5592b1063748c5b3727e4bc0d0",
+      "images": []
+    }
+  ]
+}

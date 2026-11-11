@@ -16,35 +16,57 @@
     <InstallCommand />
 </section>
 
+<nav class="jump-links" aria-label="Sections on this page">
+    @foreach (var category in Capabilities)
+    {
+        <a class="jump-link tone-@category.Tone" href="#@category.Id"><Icon Name="@(category.Icon!)" Size="16" /> @category.Title</a>
+    }
+    <a class="jump-link" href="#documents"><Icon Name="invoice" Size="16" /> Documents</a>
+    <a class="jump-link" href="#how-do-i"><Icon Name="arrow" Size="16" /> How do I...?</a>
+</nav>
+
 <section class="showcase" aria-label="Real-life documents you can build">
-    @* A stylized illustration of the four document demos; the phone-sized copy is chosen by srcset. *@
+    @* A stylized illustration of the four document demos; the phone-sized copy is chosen by srcset. It is in the
+       first screen at every width and is the page's largest picture, so it loads at once, ahead of other images. *@
     <img src="images/unlimitedpdf-demos-hero-1200.jpg"
          srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
          sizes="(max-width: 1240px) calc(100vw - 2.5rem), 1200px"
-         width="1200" height="675" loading="lazy" decoding="async"
+         width="1200" height="675" fetchpriority="high" decoding="async"
          alt="Illustration of UnlimitedPDF Demos: an invoice, a medical report, a receipt, and a certificate, each with its own logo" />
 </section>
 
-@foreach (var category in SampleCatalog.Categories)
-{
-    <section class="section">
-        <div class="section-head">
-            <h2>@category.Title</h2>
-            <p>@category.Description</p>
-        </div>
-        <div class="card-grid">
-            @foreach (var demo in category.Demos)
-            {
-                <a class="panel feature-card" href="@demo.Route">
-                    <div class="feature-icon"><Icon Name="@demo.Icon" Size="22" /></div>
-                    <h3>@demo.Title</h3>
-                    <p>@demo.Description</p>
-                    <span class="feature-link">Open demo <Icon Name="arrow" Size="15" /></span>
+<div class="cap-rows">
+    @foreach (var category in Capabilities)
+    {
+        <CapabilityRow Category="category" />
+    }
+</div>
+
+<section id="documents" class="section home-section" aria-labelledby="documents-title">
+    <div class="section-head">
+        <h2 id="documents-title">@Documents.Title</h2>
+        <p>@Documents.Description</p>
+    </div>
+    <DocumentTiles />
+</section>
+
+<section id="how-do-i" class="section home-section" aria-labelledby="how-do-i-title">
+    <div class="section-head">
+        <h2 id="how-do-i-title">How do I...?</h2>
+        <p>Common tasks, each answered by a demo you can run and edit.</p>
+    </div>
+    <ul class="questions">
+        @foreach (var question in HomeQuestions.Questions)
+        {
+            <li>
+                <a class="panel question" href="@question.Href">
+                    <span class="question-text">@question.Text</span>
+                    <span class="question-demo"><Icon Name="@question.Demo.Icon" Size="16" /> @question.Demo.Title</span>
                 </a>
-            }
-        </div>
-    </section>
-}
+            </li>
+        }
+    </ul>
+</section>
 
 <section class="section">
     <div class="facts">
@@ -58,3 +80,10 @@
 <footer class="footer">
     UnlimitedPDF is open source under the Apache-2.0 license. Demo data is fictional.
 </footer>
+
+@code {
+    // The four capability rows, in catalogue order: the categories with a code sample.
+    private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories.Where(category => category.Snippet is not null);
+
+    private static SampleCategory Documents => SampleCatalog.Categories.Single(category => category.Id == "documents");
+}

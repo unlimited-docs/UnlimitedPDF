@@ -24,23 +24,45 @@ public static class SampleCatalog
         new SampleCategory(
             "Create",
             "Build documents from code: pages, text, tables, images, and headers and footers.",
-            [TextAndPages, Tables, Images, HeadersFooters]),
+            [TextAndPages, Tables, Images, HeadersFooters],
+            Id: "create",
+            Icon: "pen",
+            Tone: "blue",
+            Snippet: "create"),
         new SampleCategory(
             "Merge",
             "Join existing PDFs, pick their pages, and build complete document packs. Try your own files.",
-            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, MonthEndPack, EmployeePack, PatientPack]),
+            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, MonthEndPack, EmployeePack, PatientPack],
+            Id: "merge",
+            Icon: "merge",
+            Tone: "teal",
+            Snippet: "merge",
+            Groups:
+            [
+                new SampleGroup("Operations", [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers]),
+                new SampleGroup("Packs", [MonthEndPack, EmployeePack, PatientPack])
+            ]),
         new SampleCategory(
             "Split",
             "Split a PDF into parts: every few pages, or the page ranges you choose. Try your own file.",
-            [SplitEveryN, SplitRanges]),
+            [SplitEveryN, SplitRanges],
+            Id: "split",
+            Icon: "split",
+            Tone: "amber",
+            Snippet: "split"),
         new SampleCategory(
             "HTML to PDF",
             "Convert HTML with CSS, tables, lists, and images into PDF in your browser. Edit a template, try your own file, or see how known HTML to PDF problems come out.",
-            [HtmlToPdf, CommonProblems]),
+            [HtmlToPdf, CommonProblems],
+            Id: "html-to-pdf",
+            Icon: "code",
+            Tone: "purple",
+            Snippet: "html"),
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
-            [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory])
+            [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory],
+            Id: "documents")
     ];
 
     /// <summary>
@@ -59,11 +81,11 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo BookmarksAndNumbers { get; } = new(
         "Bookmarks & numbers",
-        "Name each file's bookmark and number every page of the merged document from the cover's footer.",
+        "Name each file's bookmark; the contents and closing pages show page numbers that count every merged page.",
         "playground/merge/bookmarks-and-numbers",
         "BookmarksAndNumbersSample.cs",
         "bookmarks-and-numbers.pdf",
-        "menu");
+        "bookmark");
 
     /// <summary>
     /// Gets the Certificate demo.
@@ -85,7 +107,7 @@ public static class SampleCatalog
         "playground/html/common-problems",
         "HtmlToPdfSample.cs",
         "common-html-to-pdf-problems.pdf",
-        "text",
+        "warning",
         "Common HTML to PDF problems");
 
     /// <summary>
@@ -97,7 +119,7 @@ public static class SampleCatalog
         "playground/merge/cover-and-ranges",
         "CoverAndRangesSample.cs",
         "cover-and-ranges.pdf",
-        "copy");
+        "cover");
 
     /// <summary>
     /// Gets the Delivery note demo.
@@ -130,7 +152,7 @@ public static class SampleCatalog
         "playground/merge/employee-pack",
         "MergePackSample.cs",
         "employee-pack.pdf",
-        "users");
+        "badge");
 
     /// <summary>
     /// Gets the Headers and footers demo.
@@ -141,7 +163,7 @@ public static class SampleCatalog
         "playground/create/headers-and-footers",
         "HeadersFootersSample.cs",
         "headers-and-footers.pdf",
-        "spark");
+        "layout");
 
     /// <summary>
     /// Gets the HTML to PDF demo.
@@ -152,7 +174,7 @@ public static class SampleCatalog
         "playground/html/html-to-pdf",
         "HtmlToPdfSample.cs",
         "html-to-pdf.pdf",
-        "text");
+        "html");
 
     /// <summary>
     /// Gets the Images demo.
@@ -186,7 +208,7 @@ public static class SampleCatalog
         "playground/merge/join-files",
         "JoinFilesSample.cs",
         "joined.pdf",
-        "copy");
+        "join");
 
     /// <summary>
     /// Gets the Medical report demo.
@@ -208,7 +230,7 @@ public static class SampleCatalog
         "playground/merge/month-end-pack",
         "MergePackSample.cs",
         "month-end-pack.pdf",
-        "invoice");
+        "calendar");
 
     /// <summary>
     /// Gets the Patient pack merge demo.
@@ -219,7 +241,7 @@ public static class SampleCatalog
         "playground/merge/patient-pack",
         "MergePackSample.cs",
         "patient-pack.pdf",
-        "pulse");
+        "heart");
 
     /// <summary>
     /// Gets the Payslip demo.
@@ -241,7 +263,7 @@ public static class SampleCatalog
         "playground/merge/pick-pages",
         "PickPagesSample.cs",
         "picked-pages.pdf",
-        "text");
+        "pick");
 
     /// <summary>
     /// Gets the Purchase order demo.
@@ -285,7 +307,7 @@ public static class SampleCatalog
         "playground/split/every-n-pages",
         "SplitEveryNSample.cs",
         "every-n-pages.zip",
-        "copy");
+        "pages");
 
     /// <summary>
     /// Gets the Page ranges split demo.
@@ -296,7 +318,7 @@ public static class SampleCatalog
         "playground/split/page-ranges",
         "SplitRangesSample.cs",
         "page-ranges.zip",
-        "copy");
+        "ranges");
 
     /// <summary>
     /// Gets the Tables demo.
