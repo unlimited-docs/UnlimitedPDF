@@ -907,12 +907,14 @@ public class HtmlRevision2ReviewTests
         Assert.Empty(html.Warnings);
     }
 
-    [Fact]
-    public void A_table_does_not_move_for_one_cell_when_that_cuts_another()
+    [Theory]
+    [InlineData("<td style='padding:730pt 0 30pt'>T1</td><td style='padding:745pt 0 20pt'>T2</td>")]
+    [InlineData("<td style='padding:745pt 0 20pt'>T2</td><td style='padding:730pt 0 30pt'>T1</td>")]
+    public void A_table_does_not_move_for_one_cell_when_that_cuts_another(string cells)
     {
         // F-70: the table moved to page 2 for the first cell; below the caption there, the second cell's text no longer
-        // fits. The row alone shows both, so the table stays and only the row moves.
-        var html = PdfHtml.FromString("<p>BEFORE</p><table><caption>CAPTION</caption><tr><td style='padding:730pt 0 30pt'>T1</td><td style='padding:745pt 0 20pt'>T2</td></tr></table>");
+        // fits. The row alone shows both, so the table stays and only the row moves, in either order of the cells (F-75).
+        var html = PdfHtml.FromString($"<p>BEFORE</p><table><caption>CAPTION</caption><tr>{cells}</tr></table>");
         var pages = Pages(html);
         Assert.Equal(new[] { "BEFORE", "CAPTION" }, Runs(pages[0]).Select(r => r.Text));
         Assert.Contains(Runs(pages[1]), r => r.Text == "T1" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
@@ -920,13 +922,16 @@ public class HtmlRevision2ReviewTests
         Assert.Empty(html.Warnings);
     }
 
-    [Fact]
-    public void A_table_does_not_move_for_a_first_row_that_is_not_split()
+    [Theory]
+    [InlineData("9pt")]
+    [InlineData("11.5pt")]
+    public void A_table_does_not_move_for_a_first_row_that_is_not_split(string lineHeight)
     {
         // F-70: the row fits a fresh page below the repeated header, so it moves there whole. The table moved as well,
-        // which left a page with only the caption and the header between.
+        // which left a page with only the caption and the header between. The second row is 0.39 pt short of being
+        // split (F-75).
         var html = PdfHtml.FromString("<p>BEFORE</p><table style='border-spacing:0'><caption>CAPTION</caption><thead><tr><th style='padding:0;line-height:14pt'>HEAD</th></tr></thead>"
-            + "<tr><td style='padding:700pt 0 44pt;font-size:8pt;line-height:9pt'>TEXT</td></tr></table>");
+            + $"<tr><td style='padding:700pt 0 44pt;font-size:8pt;line-height:{lineHeight}'>TEXT</td></tr></table>");
         var pages = Pages(html);
         Assert.Equal(2, pages.Count);
         Assert.Equal(new[] { "BEFORE", "CAPTION", "HEAD" }, Runs(pages[0]).Select(r => r.Text));
@@ -951,6 +956,8 @@ public class HtmlRevision2ReviewTests
     [InlineData("<body style='padding:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></body>", 1)]
     [InlineData("<div style='border:1pt solid red;padding-top:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></div>", 2)]
     [InlineData("<div style='height:20pt'></div><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table>", 1)]
+    // F-75: an element id is a command on the page, but it draws nothing.
+    [InlineData("<p id='a'></p><div style='height:100pt'></div><table><tr><td style='padding:735pt 0 22pt'>TEXT</td></tr></table>", 1)]
     public void A_table_below_blank_height_at_the_top_of_a_page_is_at_the_top_of_that_page(string source, int pageCount)
     {
         // F-71: below an enclosing block's top padding the table did not count as at the top of its page, so it moved
@@ -965,6 +972,12 @@ public class HtmlRevision2ReviewTests
     [Theory]
     [InlineData("<div style='height:10pt;background:red'></div>", false)]
     [InlineData("", true)]
+    // F-75: every kind of mark counts, wherever it stands among commands that draw nothing.
+    [InlineData("<img src='" + Png + "' style='width:10pt;height:10pt'>", false)]
+    [InlineData("<hr>", false)]
+    [InlineData("<ul><li></li></ul>", false)]
+    [InlineData("<p id='a'></p><p>x</p>", false)]
+    [InlineData("<p>x</p><p id='a'></p>", false)]
     public void A_table_below_blank_height_moves_when_the_page_holds_something_above_it(string above, bool otherContent)
     {
         // F-71: only a page with nothing on it counts. A background above the table, or content the document placed
@@ -1018,6 +1031,157 @@ public class HtmlRevision2ReviewTests
             return Assert.Single(Runs(pages[1]), r => r.Text == "TEXT").Y;
         }
         Assert.Equal(kept, TextY(0) - TextY(30), 2);
+    }
+
+    [Theory]
+    [InlineData(29.5, true)]
+    [InlineData(30.3, false)]
+    public void A_row_moves_only_when_its_cell_fits_the_next_page(double height, bool fits)
+    {
+        // F-75: the cell's background ends 0.39 pt above, or 0.41 pt below, the bottom of a fresh page. The first row
+        // moves and shows it; the second stays, since moving would not save it, and is clipped.
+        var html = PdfHtml.FromString("<p>BEFORE</p><table style='border-spacing:0'><tr><td>first</td></tr>"
+            + $"<tr><td style='padding:740pt 0 20pt'><div style='height:{height.ToString(CultureInfo.InvariantCulture)}pt;background:red'></div></td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(fits ? 2 : 1, pages.Count);
+        Assert.Equal(fits ? 0 : 1, html.Warnings.Count(w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal)));
+        Assert.All(pages, page => Assert.Equal(!fits, page.ClipRectangles().Any(c => c.Y >= Bottom - 1.01)));
+    }
+
+    [Theory]
+    [InlineData(29.5, true)]
+    [InlineData(30.3, false)]
+    public void A_table_is_kept_from_moving_only_for_a_cell_the_row_alone_would_show(double height, bool rowAloneShowsIt)
+    {
+        // F-75: the second cell's background fits a fresh page by 0.39 pt, or misses it by 0.41 pt. In the first case
+        // the table must not move, because below the caption the cell would be cut: the row moves alone and nothing is
+        // lost. In the second the cell is cut either way, so the table moves for the first cell.
+        var html = PdfHtml.FromString("<div style='height:60pt'>BEFORE</div><table style='border-spacing:0'><caption>CAPTION</caption><tr><td style='padding:700pt 0 60pt'>TEXT</td>"
+            + $"<td style='padding:740pt 0 20pt'><div style='height:{height.ToString(CultureInfo.InvariantCulture)}pt;background:red'></div></td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal(rowAloneShowsIt ? new[] { "BEFORE", "CAPTION" } : new[] { "BEFORE" }, Runs(pages[0]).Select(r => r.Text));
+        Assert.Contains(Runs(pages[1]), r => r.Text == "TEXT" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Equal(rowAloneShowsIt ? 0 : 1, html.Warnings.Count(w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public void A_table_is_kept_from_moving_for_a_cell_the_row_shows_below_the_repeated_header()
+    {
+        // F-75: below the caption and the header the second cell's text is cut wherever the table starts, and below
+        // the repeated header alone it is cut as well, so nothing keeps the table from moving for the first cell.
+        var html = PdfHtml.FromString("<p>BEFORE</p><table style='border-spacing:0'><caption>CAPTION</caption><thead><tr><th style='padding:0;height:30pt'>HEAD</th></tr></thead>"
+            + "<tr><td style='padding:700pt 0 30pt'>T1</td><td style='padding:745pt 0 20pt'>T2</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal("BEFORE", Assert.Single(Runs(pages[0])).Text);
+        Assert.Contains(Runs(pages[1]), r => r.Text == "CAPTION");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "T1" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(649, 0)]
+    [InlineData(650, 1)]
+    public void A_table_starts_on_the_next_page_only_when_its_start_does_not_fit_here(int heightAbove, int tablePage)
+    {
+        // F-75: the caption and the first row need 114.4 pt; 114.89 pt, or 113.89 pt, are left below the block.
+        var pages = Pages(PdfHtml.FromString($"<div style='height:{heightAbove}pt'>BEFORE</div><table style='border-spacing:0'><caption>CAPTION</caption><tr style='height:100pt'><td>TEXT</td></tr></table>"));
+        Assert.Equal(tablePage + 1, pages.Count);
+        Assert.Contains(Runs(pages[0]), r => r.Text == "BEFORE");
+        Assert.Contains(Runs(pages[tablePage]), r => r.Text == "CAPTION");
+        Assert.Contains(Runs(pages[tablePage]), r => r.Text == "TEXT");
+    }
+
+    [Fact]
+    public void A_table_whose_start_just_fits_a_page_moves_there_whole()
+    {
+        // F-75: the caption and the row need 769.4 pt of the 769.89 pt body, so they fit a fresh page together.
+        var pages = Pages(PdfHtml.FromString("<p>BEFORE</p><table style='border-spacing:0'><caption>CAPTION</caption><tr style='height:755pt'><td>TEXT</td></tr></table>"));
+        Assert.Equal("BEFORE", Assert.Single(Runs(pages[0])).Text);
+        Assert.Equal(new[] { "CAPTION", "TEXT" }, Runs(pages[1]).Select(r => r.Text));
+    }
+
+    [Fact]
+    public void A_table_at_the_very_top_of_a_page_starts_there()
+    {
+        // F-75: below its own margin the caption and the row do not fit, but a table that stands at the top of a page
+        // is never moved as a whole: it starts here, and the row goes to the next page.
+        var pages = Pages(PdfHtml.FromString("<table style='border-spacing:0;margin-top:30pt'><caption>CAPTION</caption><tr style='height:740pt'><td>TEXT</td></tr></table>"));
+        Assert.Equal("CAPTION", Assert.Single(Runs(pages[0])).Text);
+        Assert.Equal("TEXT", Assert.Single(Runs(pages[1])).Text);
+    }
+
+    [Fact]
+    public void A_table_below_blank_height_that_fits_a_fresh_page_moves_there_whole()
+    {
+        // F-75: the rule for a page with nothing drawn on it holds back only the move for a split first row (F-71). A
+        // table whose caption and first row fit a fresh page still goes there together, as any block that does not fit.
+        var pages = Pages(PdfHtml.FromString("<div style='padding-top:20pt'><table style='border-spacing:0'><caption>CAPTION</caption><tr style='height:740pt'><td>TEXT</td></tr></table></div>"));
+        Assert.Equal(2, pages.Count);
+        Assert.Empty(Runs(pages[0]));
+        Assert.Equal(new[] { "CAPTION", "TEXT" }, Runs(pages[1]).Select(r => r.Text));
+    }
+
+    [Fact]
+    public void A_table_moves_with_a_first_row_that_would_start_in_the_last_point_of_the_page()
+    {
+        // F-75: the caption fits below the block with 0.29 pt to spare, so the first row would start on this page and
+        // its text would be cut. The table goes to the next page with it.
+        var html = PdfHtml.FromString("<div style='height:749.2pt'>BEFORE</div><table style='border-spacing:0'><caption>CAPTION</caption><tr><td style='padding:700pt 0 60pt'>TEXT</td></tr></table>");
+        var pages = Pages(html);
+        Assert.Equal("BEFORE", Assert.Single(Runs(pages[0])).Text);
+        Assert.Contains(Runs(pages[1]), r => r.Text == "CAPTION");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "TEXT" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void A_background_drawn_when_its_block_closes_counts_for_the_tables_after_it()
+    {
+        // F-74: the first table, below its block's top padding, asks whether the page is empty while that block has
+        // drawn nothing yet; the block's background is placed before that point when it closes. The second table
+        // must see it.
+        var html = PdfHtml.FromString("<div style='background:red;padding-top:5pt;height:20pt'><p id='a'></p><table><tr><td style='padding:0'></td></tr></table></div>"
+            + "<div style='padding-top:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></div>");
+        var pages = Pages(html);
+        Assert.DoesNotContain(Runs(pages[0]), r => r.Text == "TEXT");
+        Assert.Contains(Runs(pages[1]), r => r.Text == "TEXT" && r.Y >= Bottom + 3 && !Clipped(pages[1], r));
+        Assert.Empty(html.Warnings);
+    }
+
+    [Fact]
+    public void What_is_drawn_on_one_page_does_not_count_for_the_next()
+    {
+        // F-74: page 1 holds text and a table; the second table is the first thing on page 2, below a block's padding.
+        var html = PdfHtml.FromString("<p>BEFORE</p><table><tr><td>first</td></tr></table>"
+            + "<div style='break-before:page;padding-top:20pt'><table><tr><td style='padding:735pt 0 22pt'><p>TEXT</p></td></tr></table></div>");
+        var pages = Pages(html);
+        Assert.Equal(2, pages.Count);
+        Assert.Contains(Runs(pages[1]), r => r.Text == "TEXT");
+        Assert.Single(html.Warnings, w => w.Kind == PdfHtmlWarningKind.ContentClipped && w.Message.Contains("not continued", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Many_tables_below_many_commands_that_draw_nothing_cost_no_more_than_below_text(bool inCell)
+    {
+        // F-74: each table walked every command of its page up to the first one that draws, so 15,000 element ids
+        // followed by 60,000 tables on one page (they have no height) took time by the product of the two: 4.7 s
+        // against 1.9 s. With one word in front, the walk stops at once on any build, so the two documents must take
+        // about the same time.
+        TimeSpan Time(string first, int marks, int tables)
+        {
+            string body = first + Repeat("<p id='a'></p>", marks) + Repeat("<table></table>", tables);
+            var doc = Document();
+            doc.Body.AddHtml(PdfHtml.FromString("<style>table{border-spacing:0}</style>" + (inCell ? $"<table><tr><td>{body}</td></tr></table>" : body)));
+            var watch = Stopwatch.StartNew();
+            PdfPageReader.Save(doc);
+            return watch.Elapsed;
+        }
+        Time("<p>x</p>", 100, 100);
+        var withText = Time("<p>x</p>", 15000, 60000);
+        var withoutText = Time("", 15000, 60000);
+        Assert.True(withoutText < withText * 1.8 + TimeSpan.FromSeconds(0.3), $"{withoutText} without text, {withText} with text");
     }
 
     [Fact]

@@ -49,6 +49,11 @@ internal sealed partial class HtmlLayoutEngine
     private readonly double _width;
     private bool _atTop;
     private bool _forceBreak;
+    // What NothingDrawnHere has seen so far of one page: the page, how many of its commands, and whether one of them
+    // draws. Each command is looked at once, however often the question is asked (F-74).
+    private bool _lookedDrawn;
+    private int _lookedPage = -1;
+    private int _lookedTo;
     private int _page;
     private double _pendingMargin;
     private bool _report;
@@ -203,11 +208,19 @@ internal sealed partial class HtmlLayoutEngine
     {
         if (_atTop) return true;
         if (!Room(_page).EmptyBody) return false;
-        if (!_fragments.TryGetValue(_page, out var fragment)) return true;
-        for (int i = _pageStarts[_page]; i < fragment.Commands.Count; i++)
-            if (fragment.Commands[i] is FillCommand or ImageCommand or TextCommand or LineCommand or CircleCommand) return false;
-        return true;
+        if (_lookedPage != _page)
+        {
+            _lookedPage = _page;
+            _lookedTo = _pageStarts[_page];
+            _lookedDrawn = false;
+        }
+        var commands = Current.Commands;
+        for (; !_lookedDrawn && _lookedTo < commands.Count; _lookedTo++) _lookedDrawn = Draws(commands[_lookedTo]);
+        return !_lookedDrawn;
     }
+
+    // Whether a command puts a mark on the page. Element ids, links, and clips do not.
+    private static bool Draws(HtmlCommand command) => command is FillCommand or ImageCommand or TextCommand or LineCommand or CircleCommand;
 
     // Lays a box out once per width on a page of unlimited height (F-05), with its warnings kept for when it is placed.
     private CachedLayout LayoutUnbounded(HtmlBox box, double width)
@@ -430,6 +443,14 @@ internal sealed partial class HtmlLayoutEngine
             var fragment = FragmentAt(page);
             int index = InsertIndex(box, page) ?? 0;
             fragment.Commands.InsertRange(Math.Min(index, fragment.Commands.Count), commands);
+
+            // Commands placed among those NothingDrawnHere has already looked at are counted here, and the position it
+            // has reached moves with them (F-74).
+            if (page == _lookedPage && index < _lookedTo)
+            {
+                _lookedDrawn |= commands.Exists(Draws);
+                _lookedTo += commands.Count;
+            }
             foreach (var other in _open)
             {
                 // An outer box that starts at the same spot stays underneath: only later positions move.

@@ -313,7 +313,7 @@ internal sealed partial class HtmlLayoutEngine
         // that the row alone would show there (F-64, F-67, F-70); otherwise the row loop below may still move the row
         // alone. This holds while the caption and header rows fit here, so that the row would start on this page, and
         // while the page holds something above the table: a page with nothing drawn on it is not left for this (F-71).
-        else if (mayMove && table.Rows.Count > headerRows && firstRow > freshBody - repeated + Tolerance && firstRowTop >= room.Bottom - Tolerance && !NothingDrawnHere())
+        else if (mayMove && firstRow > freshBody - repeated + Tolerance && firstRowTop >= room.Bottom - Tolerance && !NothingDrawnHere())
             move = BetterOnNextPage(layout, headerRows, firstRowTop, repeated, lead);
 
         // The margin before the table is dropped on the next page, as before any break the layout chooses: kept, it
