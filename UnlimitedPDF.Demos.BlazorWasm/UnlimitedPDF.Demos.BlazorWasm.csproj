@@ -24,6 +24,8 @@
   <!-- Each sample builder's source is embedded so the page shows exactly the code that runs. -->
   <ItemGroup>
     <EmbeddedResource Include="Samples\*Sample.cs" LogicalName="Samples.%(Filename)%(Extension)" />
+    <!-- The home page's code samples, shown from the same compiled file (PR-012). -->
+    <EmbeddedResource Include="Samples\HomeSnippets.cs" LogicalName="Samples.HomeSnippets.cs" />
   </ItemGroup>
 
 </Project>

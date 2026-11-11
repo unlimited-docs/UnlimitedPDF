@@ -72,6 +72,15 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MedicalReportSample.cs" Link="Demo\Samples\MedicalReportSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ReceiptSample.cs" Link="Demo\Samples\ReceiptSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleImages.cs" Link="Demo\Samples\SampleImages.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\CertificateSample.cs" Link="Demo\Samples\CertificateSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\CertificateInput.cs" Link="Demo\Samples\Inputs\CertificateInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DocumentGallery.cs" Link="Demo\Samples\DocumentGallery.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\GalleryDocument.cs" Link="Demo\Samples\GalleryDocument.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeQuestion.cs" Link="Demo\Samples\HomeQuestion.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeQuestions.cs" Link="Demo\Samples\HomeQuestions.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeSnippets.cs" Link="Demo\Samples\HomeSnippets.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleGroup.cs" Link="Demo\Samples\SampleGroup.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SnippetText.cs" Link="Demo\Samples\SnippetText.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\EmployeeDirectoryInput.cs" Link="Demo\Samples\Inputs\EmployeeDirectoryInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\HeadersFootersInput.cs" Link="Demo\Samples\Inputs\HeadersFootersInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\InvoiceInput.cs" Link="Demo\Samples\Inputs\InvoiceInput.cs" />
