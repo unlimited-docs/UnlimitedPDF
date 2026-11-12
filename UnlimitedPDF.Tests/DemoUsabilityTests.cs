@@ -93,6 +93,44 @@ public class DemoUsabilityTests
     }
 
     [Fact]
+    public void Every_page_shows_the_library_version_beside_the_logo()
+    {
+        // QF-26111209: a "v1.0.0" pill follows the logo in the top bar, and Home announces the release above its
+        // headline; both link to the release notes. The version is read from the built library, so it always matches
+        // the package version.
+        var layout = Read("Layout/MainLayout.razor");
+
+        int brand = layout.IndexOf("<a class=\"brand\"", StringComparison.Ordinal);
+        int badge = layout.IndexOf("<a class=\"version-link\" href=\"@LibraryRelease.NotesUrl\" target=\"_blank\" rel=\"noopener\">", StringComparison.Ordinal);
+        int nav = layout.IndexOf("<nav class=\"topnav\"", StringComparison.Ordinal);
+        Assert.True(brand >= 0 && badge > brand && nav > badge, "The version pill sits between the logo and the main menu.");
+        Assert.Contains("<span class=\"version-badge\">v@(LibraryRelease.Version)</span><span class=\"visually-hidden\"> release notes</span>", layout, StringComparison.Ordinal);
+
+        var home = Read("Pages/Home.razor");
+        int release = home.IndexOf("<a class=\"hero-release\" href=\"@LibraryRelease.NotesUrl\" target=\"_blank\" rel=\"noopener\">", StringComparison.Ordinal);
+        Assert.True(release >= 0 && release < home.IndexOf("<h1>", StringComparison.Ordinal), "Home announces the release above its headline.");
+        Assert.Contains("<span class=\"hero-release-version\">v@(LibraryRelease.Version)</span>", home, StringComparison.Ordinal);
+
+        var source = Read("Services/LibraryRelease.cs");
+        Assert.Contains("NotesUrl = \"https://github.com/unlimited-docs/UnlimitedPDF/releases\"", source, StringComparison.Ordinal);
+        Assert.Contains("Version = ReadVersion(typeof(PdfDocument).Assembly)", source, StringComparison.Ordinal);
+
+        // The library's informational version, without the "+commit" suffix, is the package version.
+        var project = File.ReadAllText(RepositoryFile("UnlimitedPDF/UnlimitedPDF.csproj"));
+        string version = Regex.Match(project, "<Version>([^<]+)</Version>").Groups[1].Value;
+        string? informational = typeof(PdfDocument).Assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .Cast<System.Reflection.AssemblyInformationalVersionAttribute>().SingleOrDefault()?.InformationalVersion;
+        Assert.NotEmpty(version);
+        Assert.Equal(version, informational?.Split('+')[0]);
+
+        // 44 px tap areas on phones, like every other control.
+        var phone = string.Join("\n", PhoneBlocks(Read("wwwroot/css/app.css")));
+        Assert.Contains(".version-link { min-height: 44px; }", phone, StringComparison.Ordinal);
+        Assert.Contains(".hero-release { min-height: 44px; }", phone, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Faq_topic_chips_and_clear_search_are_44_pixels_on_phones()
     {
         var phone = string.Join("\n", PhoneBlocks(Read("wwwroot/css/app.css")));

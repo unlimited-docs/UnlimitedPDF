@@ -6,13 +6,23 @@
 
 <header class="topbar">
     <div class="topbar-inner">
-        <a class="brand" href="">
-            @* Phones get the square icon instead of the wordmark; the browser downloads only the one it shows. *@
-            <picture>
-                <source media="(max-width: 575.98px)" srcset="images/unlimitedpdf-icon.png" width="31" height="30" />
-                <img src="images/unlimitedpdf-logo.png" alt="UnlimitedPDF home" width="154" height="30" />
-            </picture>
-        </a>
+        <div class="brand-group">
+            <a class="brand" href="">
+                @* Phones get the square icon instead of the wordmark; the browser downloads only the one it shows. *@
+                <picture>
+                    <source media="(max-width: 575.98px)" srcset="images/unlimitedpdf-icon.png" width="31" height="30" />
+                    <img src="images/unlimitedpdf-logo.png" alt="UnlimitedPDF home" width="154" height="30" />
+                </picture>
+            </a>
+            @* The library version this site is built with, beside the logo on every page (QF-26111209). Screen readers
+               read "v1.0.0 release notes". *@
+            @if (LibraryRelease.Version.Length > 0)
+            {
+                <a class="version-link" href="@LibraryRelease.NotesUrl" target="_blank" rel="noopener">
+                    <span class="version-badge">v@(LibraryRelease.Version)</span><span class="visually-hidden"> release notes</span>
+                </a>
+            }
+        </div>
         <nav class="topnav" aria-label="Main">
             <NavLink class="topnav-link topnav-home" href="" Match="NavLinkMatch.All">Home</NavLink>
             <NavLink class="topnav-link" href="playground" Match="NavLinkMatch.Prefix">Playground</NavLink>
