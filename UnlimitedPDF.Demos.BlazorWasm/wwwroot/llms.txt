@@ -28,49 +28,49 @@ pdfDocument.Save("sample.pdf");
 
 - [README on GitHub](https://github.com/unlimited-docs/UnlimitedPDF#readme): install, sample code, tables across pages, headers and footers, images, merge, split, HTML to PDF, upgrading to 1.0.0, and the change list.
 - [NuGet package](https://www.nuget.org/packages/UnlimitedPDF): package versions and target frameworks.
-- [FAQ](faq): platforms, text and fonts, tables and layout, images, merge and split, HTML to PDF, and license.
+- [FAQ](https://unlimitedpdf.dev/faq): platforms, text and fonts, tables and layout, images, merge and split, HTML to PDF, and license.
 
 ## Create PDFs
 
-- [Add text and pages to a PDF in C#](playground/create/text-and-pages): Choose a page size, place text at any position and size, and add pages.
-- [Create PDF tables in C#](playground/create/tables): Column widths, colors, borders, padding, alignment, and row height rules.
-- [Add JPEG and PNG images to a PDF in C#](playground/create/images): Place JPEG and PNG images with fit modes, sizes, and inside table cells. Try your own image.
-- [PDF headers, footers, and page numbers in C#](playground/create/headers-and-footers): A report with a header and footer on every page, page numbers, first and last page settings, and content that flows onto new pages.
+- [Add text and pages to a PDF in C#](https://unlimitedpdf.dev/playground/create/text-and-pages): Choose a page size, place text at any position and size, and add pages.
+- [Create PDF tables in C#](https://unlimitedpdf.dev/playground/create/tables): Column widths, colors, borders, padding, alignment, and row height rules.
+- [Add JPEG and PNG images to a PDF in C#](https://unlimitedpdf.dev/playground/create/images): Place JPEG and PNG images with fit modes, sizes, and inside table cells. Try your own image.
+- [PDF headers, footers, and page numbers in C#](https://unlimitedpdf.dev/playground/create/headers-and-footers): A report with a header and footer on every page, page numbers, first and last page settings, and content that flows onto new pages.
 
 ## Merge PDFs
 
-- [Merge PDF files in C#](playground/merge/join-files): Join whole PDFs in one call, in the order you choose.
-- [Merge a cover page and PDF page ranges in C#](playground/merge/cover-and-ranges): Put a built cover page in front of chosen page ranges from each file.
-- [Extract and reorder PDF pages in C#](playground/merge/pick-pages): Take the pages you want from a PDF, in the order you want, such as 3, 1-2.
-- [Merged PDF bookmarks and page numbers in C#](playground/merge/bookmarks-and-numbers): Name each file's bookmark; the contents and closing pages show page numbers that count every merged page.
-- [Month-end PDF pack: generate and merge in C#](playground/merge/month-end-pack): An invoice, a receipt, and an account statement, generated and merged behind a cover page.
-- [Employee PDF pack: generate and merge in C#](playground/merge/employee-pack): A payslip and a certificate, generated and merged behind a cover page.
-- [Patient PDF pack: generate and merge in C#](playground/merge/patient-pack): A medical report and a receipt, generated and merged behind a cover page.
+- [Merge PDF files in C#](https://unlimitedpdf.dev/playground/merge/join-files): Join whole PDFs in one call, in the order you choose.
+- [Merge a cover page and PDF page ranges in C#](https://unlimitedpdf.dev/playground/merge/cover-and-ranges): Put a built cover page in front of chosen page ranges from each file.
+- [Extract and reorder PDF pages in C#](https://unlimitedpdf.dev/playground/merge/pick-pages): Take the pages you want from a PDF, in the order you want, such as 3, 1-2.
+- [Merged PDF bookmarks and page numbers in C#](https://unlimitedpdf.dev/playground/merge/bookmarks-and-numbers): Name each file's bookmark; the contents and closing pages show page numbers that count every merged page.
+- [Month-end PDF pack: generate and merge in C#](https://unlimitedpdf.dev/playground/merge/month-end-pack): An invoice, a receipt, and an account statement, generated and merged behind a cover page.
+- [Employee PDF pack: generate and merge in C#](https://unlimitedpdf.dev/playground/merge/employee-pack): A payslip and a certificate, generated and merged behind a cover page.
+- [Patient PDF pack: generate and merge in C#](https://unlimitedpdf.dev/playground/merge/patient-pack): A medical report and a receipt, generated and merged behind a cover page.
 
 ## Split PDFs
 
-- [Split a PDF every N pages in C#](playground/split/every-n-pages): Split a PDF into parts of the same number of pages, such as one file per page or every 10 pages.
-- [Split a PDF by page ranges in C#](playground/split/page-ranges): Make one PDF per page range you choose, such as 1-2, 3, 2-4. Ranges may overlap and leave pages out.
+- [Split a PDF every N pages in C#](https://unlimitedpdf.dev/playground/split/every-n-pages): Split a PDF into parts of the same number of pages, such as one file per page or every 10 pages.
+- [Split a PDF by page ranges in C#](https://unlimitedpdf.dev/playground/split/page-ranges): Make one PDF per page range you choose, such as 1-2, 3, 2-4. Ranges may overlap and leave pages out.
 
 ## HTML to PDF
 
-- [Convert HTML to PDF in C#](playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.
-- [Common HTML to PDF problems in C#](playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.
+- [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.
+- [Common HTML to PDF problems in C#](https://unlimitedpdf.dev/playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.
 
 ## Complete business documents
 
-- [Create a PDF invoice in C#](playground/documents/invoice): A tax invoice with a logo, product photos in the line items, and computed totals.
-- [Create a PDF quotation in C#](playground/documents/quotation): A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.
-- [Create a PDF purchase order in C#](playground/documents/purchase-order): A purchase order whose item table runs across pages, with the totals kept together at the end.
-- [Create a PDF delivery note in C#](playground/documents/delivery-note): A delivery note that lists ordered and shipped quantities and keeps the signature block together.
-- [Create a PDF bank statement in C#](playground/documents/account-statement): A bank statement with a first-page summary, a running balance, and the header row on every page.
-- [Create a PDF payslip in C#](playground/documents/payslip): A one-page payslip with earnings, deductions, and net pay, held to one page by a page limit.
-- [Create a PDF medical report in C#](playground/documents/medical-report): A laboratory report with patient details, results, reference ranges, and flags.
-- [Create a PDF receipt in C#](playground/documents/receipt): A compact A6 store receipt with items, tax, and payment details.
-- [Create a PDF certificate in C#](playground/documents/certificate): A certificate of achievement with a seal and a signature image.
-- [Create a PDF employee directory in C#](playground/documents/employee-directory): A long table that continues across pages, repeats its header row, and numbers every page.
+- [Create a PDF invoice in C#](https://unlimitedpdf.dev/playground/documents/invoice): A tax invoice with a logo, product photos in the line items, and computed totals.
+- [Create a PDF quotation in C#](https://unlimitedpdf.dev/playground/documents/quotation): A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.
+- [Create a PDF purchase order in C#](https://unlimitedpdf.dev/playground/documents/purchase-order): A purchase order whose item table runs across pages, with the totals kept together at the end.
+- [Create a PDF delivery note in C#](https://unlimitedpdf.dev/playground/documents/delivery-note): A delivery note that lists ordered and shipped quantities and keeps the signature block together.
+- [Create a PDF bank statement in C#](https://unlimitedpdf.dev/playground/documents/account-statement): A bank statement with a first-page summary, a running balance, and the header row on every page.
+- [Create a PDF payslip in C#](https://unlimitedpdf.dev/playground/documents/payslip): A one-page payslip with earnings, deductions, and net pay, held to one page by a page limit.
+- [Create a PDF medical report in C#](https://unlimitedpdf.dev/playground/documents/medical-report): A laboratory report with patient details, results, reference ranges, and flags.
+- [Create a PDF receipt in C#](https://unlimitedpdf.dev/playground/documents/receipt): A compact A6 store receipt with items, tax, and payment details.
+- [Create a PDF certificate in C#](https://unlimitedpdf.dev/playground/documents/certificate): A certificate of achievement with a seal and a signature image.
+- [Create a PDF employee directory in C#](https://unlimitedpdf.dev/playground/documents/employee-directory): A long table that continues across pages, repeats its header row, and numbers every page.
 
 ## Optional
 
 - [Source code](https://github.com/unlimited-docs/UnlimitedPDF): the library, this playground, and their tests.
-- [Home](./): an overview of what the library does, with short code samples.
+- [Home](https://unlimitedpdf.dev/): an overview of what the library does, with short code samples.

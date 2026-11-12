@@ -78,6 +78,35 @@ public class PageTitleTests
     }
 
     [Fact]
+    public void Pages_name_their_canonical_address_on_the_site()
+    {
+        // Each page adds its own canonical link as it opens. index.html has none: every address loads it first, so a
+        // tag there would name the home page as the address of every page (QF-26111204).
+        var canonical = new Dictionary<string, string>
+        {
+            ["Components/SamplePage.razor"] = "<CanonicalLink Path=\"@Demo.Route\" />",
+            ["Components/SplitPartsPage.razor"] = "<CanonicalLink Path=\"@Demo.Route\" />",
+            ["Pages/Home.razor"] = "<CanonicalLink Path=\"\" />",
+            ["Pages/Faq.razor"] = "<CanonicalLink Path=\"faq\" />"
+        };
+
+        foreach (var (file, tag) in canonical)
+        {
+            var source = DemosFile(file);
+            Assert.Contains(tag, source, StringComparison.Ordinal);
+
+            // Only one HeadContent shows at a time, so a page with a canonical link adds no other.
+            Assert.DoesNotContain("<HeadContent>", source, StringComparison.Ordinal);
+        }
+
+        Assert.DoesNotContain("CanonicalLink", DemosFile("Pages/NotFound.razor"), StringComparison.Ordinal);
+        Assert.DoesNotContain("rel=\"canonical\"", DemosFile("wwwroot/index.html"), StringComparison.Ordinal);
+        Assert.Contains("<link rel=\"canonical\" href=\"@SiteLinks.For(Path)\" />", DemosFile("Components/CanonicalLink.razor"), StringComparison.Ordinal);
+        Assert.Equal("https://unlimitedpdf.dev/", SiteLinks.For(""));
+        Assert.Equal("https://unlimitedpdf.dev/playground/documents/invoice", SiteLinks.For("/" + SampleCatalog.Invoice.Route));
+    }
+
+    [Fact]
     public void Llms_txt_lists_every_demo_with_its_title_and_description()
     {
         var text = DemosFile("wwwroot/llms.txt").Replace("\r\n", "\n", StringComparison.Ordinal);
@@ -85,11 +114,12 @@ public class PageTitleTests
 
         Assert.Equal("# UnlimitedPDF", lines[0]);
         Assert.StartsWith("> ", lines.First(l => l.Length > 0 && l != lines[0]), StringComparison.Ordinal);
-        Assert.All(AllDemos(), d => Assert.Contains($"- [{d.PageTitle}]({d.Route}): {d.Description}\n", text, StringComparison.Ordinal));
-        Assert.Contains("](faq)", text, StringComparison.Ordinal);
+        Assert.All(AllDemos(), d => Assert.Contains($"- [{d.PageTitle}]({SiteLinks.For(d.Route)}): {d.Description}\n", text, StringComparison.Ordinal));
+        Assert.Contains($"]({SiteLinks.For("faq")})", text, StringComparison.Ordinal);
 
-        // Every site link is a page the app has; the rest point at the project's own GitHub and NuGet pages.
-        var routes = AllDemos().Select(d => d.Route).Concat(["faq", "./"]).ToHashSet(StringComparer.Ordinal);
+        // Every link is absolute, because agents often keep the text without the file's own address (QF-26111204).
+        // Site links are pages the app has; the rest point at the project's own GitHub and NuGet pages.
+        var routes = AllDemos().Select(d => d.Route).Concat(["faq", ""]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
         foreach (Match link in Regex.Matches(text, @"\]\(([^)]+)\)"))
         {
             var target = link.Groups[1].Value;

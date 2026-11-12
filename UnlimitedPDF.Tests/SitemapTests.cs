@@ -12,9 +12,6 @@ public class SitemapTests
 {
     #region Fields and Constants
 
-    // The demos site's public address. Every sitemap URL and the robots.txt Sitemap line use it.
-    private const string SiteAddress = "https://unlimitedpdf.dev/";
-
     private static readonly XNamespace Sitemaps = "http://www.sitemaps.org/schemas/sitemap/0.9";
 
     #endregion
@@ -31,7 +28,7 @@ public class SitemapTests
         var expected = new[] { "", "faq" }
             .Concat(SampleCatalog.Categories.SelectMany(c => c.Demos).Select(d => d.Route))
             .Distinct()
-            .Select(path => SiteAddress + path);
+            .Select(SiteLinks.For);
 
         Assert.Equal(Sitemaps + "urlset", sitemap.Root.Name);
         Assert.Equal(expected, urls);
@@ -47,7 +44,7 @@ public class SitemapTests
         Assert.Contains("User-agent: *", lines);
         Assert.Contains("Allow: /", lines);
         Assert.DoesNotContain(lines, l => l.StartsWith("Disallow:", StringComparison.OrdinalIgnoreCase));
-        Assert.Equal(new[] { "Sitemap: " + SiteAddress + "sitemap.xml" }, lines.Where(l => l.StartsWith("Sitemap:", StringComparison.Ordinal)));
+        Assert.Equal(new[] { "Sitemap: " + SiteLinks.For("sitemap.xml") }, lines.Where(l => l.StartsWith("Sitemap:", StringComparison.Ordinal)));
     }
 
     #endregion
