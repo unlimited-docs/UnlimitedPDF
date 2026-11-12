@@ -75,6 +75,24 @@ public class DemoUsabilityTests
     }
 
     [Fact]
+    public void Every_page_ends_with_the_site_footer()
+    {
+        // QF-26111207: the footer is in the layout, after the page content, so every page shows it, and Home has no
+        // second one.
+        var layout = Read("Layout/MainLayout.razor");
+
+        int main = layout.IndexOf("</main>", StringComparison.Ordinal);
+        int footer = layout.IndexOf("<footer class=\"footer\">", StringComparison.Ordinal);
+        Assert.True(main >= 0 && footer > main, "The footer follows the page content.");
+        Assert.Contains("Designed and built with <Icon Name=\"heart\"", layout, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"visually-hidden\">love</span>", layout, StringComparison.Ordinal);
+        Assert.Contains(">UnlimitedDocs team</a>", layout, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://github.com/unlimited-docs/UnlimitedPDF/graphs/contributors\"", layout, StringComparison.Ordinal);
+        Assert.Contains("Powered by .NET 11 · Open source under the <span class=\"text-nowrap\">Apache-2.0</span> license · Demo data is fictional.", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("<footer", Read("Pages/Home.razor"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Faq_topic_chips_and_clear_search_are_44_pixels_on_phones()
     {
         var phone = string.Join("\n", PhoneBlocks(Read("wwwroot/css/app.css")));
