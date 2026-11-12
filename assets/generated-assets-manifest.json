@@ -316,6 +316,86 @@
       "sha256": "a6413ed70ebd13f83a9c1b7b4e4682bc7d595fa78a1b577406364d212ff92496",
       "capturedFrom": "playground/documents/employee-directory",
       "capturedOn": "2026-11-11"
+    },
+    {
+      "path": "originals/readme/sample.png",
+      "purpose": "Readme screenshot for \"Sample code\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 1172,
+      "height": 540,
+      "bytes": 35702,
+      "sha256": "a50f1f2fc96d9ce82aa3f51a32c55266c524fae4411284cb5815702a4b4809ea",
+      "capturedFrom": "README.md \"Sample code\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/invoice.png",
+      "purpose": "Readme screenshot for \"Create a sample invoice\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 1172,
+      "height": 945,
+      "bytes": 141458,
+      "sha256": "46ecd5ee1d86e74f484350c28edbefebff7917d3a5af8793d3b2b94ff83ac641",
+      "capturedFrom": "README.md \"Create a sample invoice\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/images.png",
+      "purpose": "Readme screenshot for \"Add images\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 832,
+      "height": 1148,
+      "bytes": 128358,
+      "sha256": "d5144bf5e70f35c60e6a11228f51609c53c1567850d47fb88d6109c946e0c51b",
+      "capturedFrom": "README.md \"Add images\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/tables-across-pages.png",
+      "purpose": "Readme screenshot for \"Tables across pages (pages 1 and 2)\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 1224,
+      "height": 909,
+      "bytes": 249091,
+      "sha256": "371b5b289dc4e8b95c64052752b4d4ed036204dc24ca16bd766e220c8b7b64ee",
+      "capturedFrom": "README.md \"Tables across pages\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/headers-footers.png",
+      "purpose": "Readme screenshot for \"Headers, footers & flow (pages 1, 2, and 4)\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 1336,
+      "height": 683,
+      "bytes": 171439,
+      "sha256": "96d72eebc669532cf85c077eba442c6d971b288ebb9e7535201f071955421b92",
+      "capturedFrom": "README.md \"Headers, footers & flow\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/merge.png",
+      "purpose": "Readme screenshot for \"Merge PDFs (pack.pdf)\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 1448,
+      "height": 569,
+      "bytes": 149329,
+      "sha256": "80f168edd5fa855122bc3fec0125158f995de8c301c959c6eea5634e5a953736",
+      "capturedFrom": "README.md \"Merge PDFs\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/split.png",
+      "purpose": "Readme screenshot for \"Split PDFs (chapters parts)\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 1672,
+      "height": 456,
+      "bytes": 151247,
+      "sha256": "6e64282fb0116835995bcce46514a02a840e2420487f1d48d99199a42daa19d2",
+      "capturedFrom": "README.md \"Split PDFs\" example",
+      "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/readme/html-to-pdf.png",
+      "purpose": "Readme screenshot for \"HTML to PDF (invoice.pdf)\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
+      "width": 832,
+      "height": 1148,
+      "bytes": 95083,
+      "sha256": "7d0fcb50c3b1b6a38cb6fd81e209f2af89f0c886db881b149ddc553c42a46b7c",
+      "capturedFrom": "README.md \"HTML to PDF\" example",
+      "capturedOn": "2026-11-12"
     }
   ]
 }
