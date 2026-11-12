@@ -5,17 +5,34 @@
 <h3 align="center">UnlimitedPDF Library</h3>
 
 <p align="center">
-UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, and JPEG and PNG images, saved to a file or a stream.
+UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, images, headers, and footers, merging and splitting existing PDFs, and converting HTML to PDF, saved to a file or a stream.
+</p>
+
+<p align="center">
+<b>Try it live:</b> <a href="https://unlimitedpdf.dev/">unlimitedpdf.dev</a>, where every demo builds its PDF in your browser and shows the C# code.
 </p>
 
 ## Status
 
-[![NuGet](https://img.shields.io/nuget/vpre/UnlimitedPDF)](https://www.nuget.org/packages/unlimitedpdf/absoluteLatest)
-[![NuGet](https://img.shields.io/nuget/dt/UnlimitedPDF.svg)](https://www.nuget.org/packages/unlimitedpdf/absoluteLatest)
+[![NuGet](https://img.shields.io/nuget/v/UnlimitedPDF)](https://www.nuget.org/packages/UnlimitedPDF)
+[![NuGet](https://img.shields.io/nuget/dt/UnlimitedPDF.svg)](https://www.nuget.org/packages/UnlimitedPDF)
 
 ## Table of contents
 
-### [Install](#install)
+- [Install](#install)
+- [Demos](#demos)
+- [Sample code](#sample-code)
+- [Create a sample invoice](#create-a-sample-invoice)
+- [Add images](#add-images)
+- [Tables across pages](#tables-across-pages)
+- [Headers, footers & flow](#headers-footers--flow)
+- [Merge PDFs](#merge-pdfs)
+- [Split PDFs](#split-pdfs)
+- [HTML to PDF](#html-to-pdf)
+- [Upgrading to 1.0.0](#upgrading-to-100)
+- [Changes in 1.0.0](#changes-in-100)
+
+## Install
 
 - **.NET CLI**
   
@@ -33,7 +50,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 `UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); splits PDFs, including your own uploads, in a Split category (every N pages and page ranges, with each part or a zip of all parts to download); converts HTML to PDF in an HTML to PDF category (templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
 
-Run it locally:
+Try it live at [unlimitedpdf.dev](https://unlimitedpdf.dev/), or run it locally:
 
 ```bash
 dotnet run --project UnlimitedPDF.Demos.BlazorWasm
@@ -44,7 +61,7 @@ dotnet run --project UnlimitedPDF.Demos.BlazorWasm
 ```cs
 using UnlimitedPDF;
 
-var pdfFilePath = @"D:\\unlimited-pdf-sample.pdf";
+var pdfFilePath = "unlimited-pdf-sample.pdf";
 
 var pdfDocument = new PdfDocument();
 
@@ -57,9 +74,7 @@ page1.AddText("This is the second line on the first page.", 50, 710, 12);
 pdfDocument.Save(pdfFilePath);
 ```
 
-### Screenshot
-
-<img width="931" height="829" alt="image" src="https://github.com/user-attachments/assets/c8e0f04d-b0e3-4046-bb25-e9bcc8f316aa" />
+![The sample PDF: a title and two lines of text at the top of an A4 page](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/sample.jpg)
 
 ## Create a sample invoice
 
@@ -68,9 +83,8 @@ using UnlimitedPDF;
 
 Console.WriteLine("Start: Unlimited PDF");
 
-var pdfFilePath = @"D:\\unlimited-pdf-sample.pdf";
+var pdfFilePath = "unlimited-pdf-sample.pdf";
 
-// Use a 'using' statement for proper resource management with IDisposable
 var pdfDocument = new PdfDocument();
 
 // --- Page 1: Invoice ---
@@ -173,12 +187,9 @@ page1.AddText("2. Goods once sold will not be taken back.", 50, 426, 9);
 pdfDocument.Save(pdfFilePath);
 
 Console.WriteLine("End: Unlimited PDF");
-Console.ReadLine();
 ```
 
-### Screenshot
-
-<img width="1272" height="903" alt="image" src="https://github.com/user-attachments/assets/1e4dc378-1cc6-4d06-9178-48f2377890d2" />
+![The invoice PDF: seller and buyer details, an items table, totals, and terms](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/invoice.jpg)
 
 ## Add images
 
@@ -215,6 +226,8 @@ table.GetOrCreateCell(0, 1).Text = "Image above two lines of text";
 pdfDocument.Save("images.pdf");
 ```
 
+![The images PDF: a logo at the top right, a picture fitted inside a box, the same picture in a table cell above two lines of text, and a 2-inch-wide picture near the bottom](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/images.jpg)
+
 - Supported formats: JPEG (baseline and progressive; grayscale, RGB, CMYK) and PNG (every color type and bit depth, interlaced or not, with transparency).
 - Photos honor their EXIF orientation. Turn this off with `PdfImageLoadOptions.ApplyExifOrientation = false`.
 - Bad input fails at load. Unsupported formats, damaged data, and images over the pixel limit throw `PdfImageException`. The limit is 100,000,000 pixels by default; change it with `PdfImageLoadOptions.MaxPixels` or `PdfImage.DefaultMaxPixels`.
@@ -249,6 +262,8 @@ for (int i = 1; i <= 200; i++)
 
 pdfDocument.Save("directory.pdf");
 ```
+
+![Pages 1 and 2 of directory.pdf: the table continues on page 2 with its header row repeated](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/tables-across-pages.jpg)
 
 - A row taller than the space between the margins, or header rows that cannot fit with one data row, make `Save` throw before anything is written.
 - Tables that start on the same page share their continuation pages, so side-by-side tables stay side by side.
@@ -303,6 +318,8 @@ signOff.AddText("Approved by: ____________________", spacing: 10);
 pdfDocument.Save("report.pdf");
 ```
 
+![Pages 1, 2, and 4 of report.pdf: a larger header on page 1, the regular header and page numbers on the others, and the sign-off right after the table on the last page](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/headers-footers.jpg)
+
 - `{page}` and `{pages}` show each page's number and the page count; `Header.SetPageContent(...)` and `Footer.SetPageContent(...)` set the content per page instead.
 - Page settings for `First`, `Last`, `Odd`, `Even`, or a page number change a band's height, visibility, or content, the body margins, or the side margins. `Last` page settings may change content only.
 - `keepWithNext` keeps an item, such as a heading, on the page of the item after it. Anything taller than an empty body makes `Save` throw before anything is written.
@@ -333,6 +350,8 @@ pdfDocument.AddPages(report, firstPage: 2, lastPage: 3, bookmarkTitle: "Quarterl
 pdfDocument.AddPages(invoice);
 pdfDocument.Save("pack.pdf");
 ```
+
+![The four pages of pack.pdf: the cover page, pages 2 and 3 of report.pdf, and invoice.pdf](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/merge.jpg)
 
 - Imported pages keep their size, rotation, content, links, comments, layers, and bookmarks. Filled form fields keep their look but are no longer editable. Document metadata, attachments, and scripts are not copied.
 - Imported pages take no new content and get no header, footer, or page settings, but they count in `{page}` and `{pages}` and act as a page break in the body flow.
@@ -370,6 +389,8 @@ using (var zip = new ZipArchive(File.Create("report-parts.zip"), ZipArchiveMode.
 }
 ```
 
+![The two parts in the chapters folder: report-1.pdf with pages 1 to 3 and report-2.pdf with pages 8 to 10 of a 10-page report](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/split.jpg)
+
 - Every N pages makes parts of N pages from the first page; the last part is shorter when the pages don't divide evenly. `PdfPageRange` pages are 1-based and inclusive. Every overload has a `SplitAsync` twin that takes a `CancellationToken`.
 - Folder parts are named after the file and numbered, padded to the part count (`report-1.pdf` to `report-9.pdf`, or `report-01.pdf` to `report-12.pdf`); files loaded from a stream or bytes are named `part-1.pdf` and so on. The folder is created when missing, and existing files with those names are overwritten. Each call returns the parts (`PdfSplitPart`: `Number`, `FirstPage`, `LastPage`, `FileName`).
 - Each part's pages keep their size, rotation, content, links, comments, and layers, and the part keeps the file's bookmarks that point into it, at their own levels. Links and bookmarks to pages in other parts are removed. Document metadata, attachments, and scripts are not copied.
@@ -402,6 +423,8 @@ var options = new PdfHtmlLoadOptions
 };
 var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", options);
 ```
+
+![invoice.pdf converted from an invoice.html (the demo site's invoice template): logo, addresses, an items table with totals, and payment details](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/html-to-pdf.jpg)
 
 - Supported: block and inline layout with wrapping and justified text; headings, paragraphs, `div`, `span`, `blockquote`, `pre`, and the HTML5 section elements; nested `ul`, `ol`, and `dl` lists with every common marker style and `start`, `reversed`, and `value`; tables nested to any depth with `colspan`, `rowspan`, captions, and both border models; PNG and JPEG images; `<style>`, `<link rel="stylesheet">`, and `style` attributes with type, class, id, attribute, descendant, and child selectors; colors, fonts, sizes, margins, padding, borders, backgrounds, widths, and page breaks. HTML is laid out as a document, not as a browser shows it: scripts, flexbox, grid, floats, positioning, transforms, rounded corners, background images, and web fonts are not supported, and each one skipped is listed in `Warnings`.
 - Text uses the standard PDF fonts: `serif` is Times, `monospace` is Courier, and other families are Helvetica, each with bold and italic. Western European characters such as `é`, `ñ`, and `€` are supported; other characters are written as `?`.

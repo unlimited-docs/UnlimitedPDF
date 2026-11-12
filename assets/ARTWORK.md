@@ -65,6 +65,28 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 
 On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the twenty gallery copies below were added. Two runs there produce byte-identical gallery copies.
 
+## Readme screenshots added 2026-11-12
+
+The eight screenshots in `README.md` and `nuget/README.md` (QF-26111208) are not generated artwork. Each shows the PDF that a readme example writes when it runs as written, as the browser's built-in PDF viewer draws it at fit to width at 1.5 device pixels per CSS pixel, captured on 2026-11-12. Each page was cropped from the viewer and laid on a light gray background with a thin border; pictures with more than one page have a short caption under each. Only the inputs the examples read from disk were supplied:
+
+- Add images: `logo.png` is the demo app's `images/invoice-logo.png`, and the uploaded picture is `images/unlimitedpdf-demos-hero-800.jpg`.
+- Merge PDFs: `report.pdf` is the "Headers, footers & flow" example's output, and `invoice.pdf` is the "Create a sample invoice" example's output.
+- Split PDFs: `report.pdf` is the "Headers, footers & flow" example with 330 rows instead of 120, so it has the 10 pages the page-range call needs. The picture shows the `chapters` parts.
+- HTML to PDF: `invoice.html` is the demo app's invoice template (`Samples/HtmlTemplates.cs`), with `images/invoice-logo.png` as its `logo.png`.
+
+Sample and invoice show the top of their page only (30% and 56%), where all their content is. The pictures show that day's dates; a later date alone does not make them out of date. Released under Apache-2.0 with the rest of the repository (PR-011). Their dimensions, sizes, and SHA-256 checksums are in `generated-assets-manifest.json`. As on 2026-11-11, only the eight readme copies below were added; the earlier copies were left as committed.
+
+| Original | Size | Readme section |
+|---|---|---|
+| `originals/readme/sample.png` | 1172 x 540 | Sample code |
+| `originals/readme/invoice.png` | 1172 x 945 | Create a sample invoice |
+| `originals/readme/images.png` | 832 x 1148 | Add images |
+| `originals/readme/tables-across-pages.png` | 1224 x 909 | Tables across pages (pages 1 and 2) |
+| `originals/readme/headers-footers.png` | 1336 x 683 | Headers, footers & flow (pages 1, 2, and 4) |
+| `originals/readme/merge.png` | 1448 x 569 | Merge PDFs (`pack.pdf`) |
+| `originals/readme/split.png` | 1672 x 456 | Split PDFs (`chapters/report-1.pdf` and `report-2.pdf`) |
+| `originals/readme/html-to-pdf.png` | 832 x 1148 | HTML to PDF (`invoice.pdf`) |
+
 ## Derived copies
 
 `New-DerivedImages.ps1` makes every copy below from the originals and overwrites the previous copies. Run it from Windows PowerShell 5.1 (it uses `System.Drawing`):
@@ -117,3 +139,11 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-960.jpg` | `originals/gallery/certificate.png` | 960 x 1358, JPEG quality 90 | 111,324 | App home quick look |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-320.jpg` | `originals/gallery/employee-directory.png` | 320 x 453, JPEG quality 80 | 36,425 | App home gallery tile |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-960.jpg` | `originals/gallery/employee-directory.png` | 960 x 1358, JPEG quality 45 | 148,902 | App home quick look |
+| `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/invoice.jpg` | `originals/readme/invoice.png` | 1172 x 945, JPEG quality 90 | 114,508 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/images.jpg` | `originals/readme/images.png` | 832 x 1148, JPEG quality 90 | 50,537 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/tables-across-pages.jpg` | `originals/readme/tables-across-pages.png` | 1224 x 909, JPEG quality 90 | 215,240 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/headers-footers.jpg` | `originals/readme/headers-footers.png` | 1336 x 683, JPEG quality 90 | 168,527 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/merge.jpg` | `originals/readme/merge.png` | 1448 x 569, JPEG quality 90 | 111,547 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/split.jpg` | `originals/readme/split.png` | 1672 x 456, JPEG quality 90 | 157,268 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/html-to-pdf.jpg` | `originals/readme/html-to-pdf.png` | 832 x 1148, JPEG quality 90 | 77,154 | README.md and nuget/README.md screenshot |
