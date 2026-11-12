@@ -44,6 +44,7 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HtmlToPdfSample.cs" Link="Demo\Samples\HtmlToPdfSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCategory.cs" Link="Demo\Samples\SampleCategory.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleDemo.cs" Link="Demo\Samples\SampleDemo.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SiteLinks.cs" Link="Demo\Samples\SiteLinks.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitEveryNSample.cs" Link="Demo\Samples\SplitEveryNSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitPartFile.cs" Link="Demo\Samples\SplitPartFile.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SplitRangesSample.cs" Link="Demo\Samples\SplitRangesSample.cs" />

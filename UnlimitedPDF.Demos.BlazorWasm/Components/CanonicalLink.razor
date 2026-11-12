@@ -1,0 +1,12 @@
+@* The page's canonical link: the one official address search engines use for it, whatever address it was opened at.
+   It is added here, per page, and never in index.html: every address loads that same file first, so a tag there would
+   name the home page as the address of every page. Only one HeadContent shows at a time, so a page that uses this
+   adds no other HeadContent. *@
+<HeadContent><link rel="canonical" href="@SiteLinks.For(Path)" /></HeadContent>
+
+@code {
+    /// <summary>
+    /// Gets or sets the page's path without a leading slash, for example "faq"; an empty path is the home page.
+    /// </summary>
+    [Parameter, EditorRequired] public string Path { get; set; } = "";
+}
