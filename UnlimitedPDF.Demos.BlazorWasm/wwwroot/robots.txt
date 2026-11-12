@@ -1,0 +1,7 @@
+# Every page may be crawled, including the app files under _framework/, which are needed to render the pages.
+User-agent: *
+Allow: /
+
+# A summary of the site and the library for agents: https://unlimitedpdf.dev/llms.txt
+
+Sitemap: https://unlimitedpdf.dev/sitemap.xml

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Every page of the demos site: the home page, the FAQ, then each demo in sidebar order (SampleCatalog). -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://unlimitedpdf.dev/</loc></url>
+  <url><loc>https://unlimitedpdf.dev/faq</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/create/text-and-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/create/tables</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/create/images</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/create/headers-and-footers</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/join-files</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/cover-and-ranges</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/pick-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/bookmarks-and-numbers</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/month-end-pack</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/employee-pack</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/merge/patient-pack</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/split/every-n-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/split/page-ranges</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/html-to-pdf</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/invoice</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/quotation</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/purchase-order</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/delivery-note</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/account-statement</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/payslip</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/medical-report</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/receipt</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/certificate</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/employee-directory</loc></url>
+</urlset>
