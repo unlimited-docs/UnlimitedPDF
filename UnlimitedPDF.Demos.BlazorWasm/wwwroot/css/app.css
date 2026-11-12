@@ -111,6 +111,25 @@ summary:focus-visible,
 /* The wordmark (or the square icon on phones) keeps its own aspect ratio at the top bar's logo height. */
 .brand img { display: block; height: 30px; width: auto; }
 
+/* The logo and the library version pill beside it (QF-26111209). The link is the tap area; the pill is its look. */
+.brand-group { display: flex; align-items: center; gap: 0.15rem; flex-shrink: 0; }
+.version-link { display: inline-flex; align-items: center; padding: 0.25rem; border-radius: 999px; text-decoration: none; }
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.1rem 0.55rem;
+    border: 1px solid #c9d8ff;
+    border-radius: 999px;
+    background: var(--app-accent-soft);
+    color: var(--app-accent);
+    font-size: 0.75rem;
+    font-weight: 650;
+    line-height: 1.4;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+.version-link:hover .version-badge { border-color: var(--app-accent); }
+
 .topnav { display: flex; align-items: center; gap: 0.25rem; }
 
 .topnav-link {
@@ -655,17 +674,34 @@ summary:focus-visible,
     text-align: center;
 }
 
-.hero-eyebrow {
+/* The release announcement above the headline (QF-26111209): a filled version pill, then what the release adds. */
+.hero-release {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.8rem;
-    font-weight: 650;
-    color: var(--app-accent);
-    background: var(--app-accent-soft);
+    gap: 0.5rem;
+    max-width: 100%;
+    font-size: 0.85rem;
+    font-weight: 550;
+    color: var(--app-ink);
+    text-decoration: none;
+    background: var(--app-surface);
+    border: 1px solid var(--app-line);
     border-radius: 999px;
-    padding: 0.25rem 0.75rem;
+    padding: 0.25rem 0.8rem 0.25rem 0.25rem;
     margin-bottom: 1.25rem;
+}
+.hero-release:hover { border-color: var(--app-accent); }
+.hero-release-text { text-wrap: balance; } /* two even lines on a phone, not one word alone */
+.hero-release .icon { color: var(--app-accent); flex: none; }
+.hero-release-version {
+    flex: none;
+    font-size: 0.78rem;
+    font-weight: 650;
+    color: #fff;
+    background: var(--app-accent);
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    font-variant-numeric: tabular-nums;
 }
 
 .hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 0 auto 1rem; max-width: 52rem; }
@@ -1128,6 +1164,7 @@ summary:focus-visible,
    sizes are unchanged. Home's own controls follow in the Home section. */
 @media (max-width: 575.98px) {
     .brand { min-width: 44px; min-height: 44px; justify-content: center; }
+    .version-link { min-height: 44px; }
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }
     .output-tab, .sidebar-link { min-height: 44px; }
@@ -1144,8 +1181,10 @@ summary:focus-visible,
 }
 
 /* Home's own phone tap targets: the install Copy button, the jump links, the document tiles' Quick look and Open, and
-   the link to the FAQ (26111103 AC-05). The Quick look dialog's own buttons are sized in its phone block above. */
+   the link to the FAQ (26111103 AC-05), and the release announcement (QF-26111209). The Quick look dialog's own
+   buttons are sized in its phone block above. */
 @media (max-width: 575.98px) {
+    .hero-release { min-height: 44px; }
     .install button { min-height: 44px; }
     .jump-link { min-height: 44px; }
     .questions-more { min-height: 44px; }

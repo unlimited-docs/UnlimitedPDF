@@ -5,7 +5,16 @@
 <CanonicalLink Path="" />
 
 <section class="hero">
-    <div class="hero-eyebrow"><Icon Name="spark" Size="14" /> Runs entirely in your browser</div>
+    @* The current release and what it adds (QF-26111209); the version is read from the built library. Update the
+       sentence with each release. *@
+    @if (LibraryRelease.Version.Length > 0)
+    {
+        <a class="hero-release" href="@LibraryRelease.NotesUrl" target="_blank" rel="noopener">
+            <span class="hero-release-version">v@(LibraryRelease.Version)</span>
+            <span class="hero-release-text">Merge, split, and HTML to PDF are here</span>
+            <Icon Name="arrow" Size="14" />
+        </a>
+    }
     <h1>Generate PDFs in <span>pure .NET</span></h1>
     <p class="hero-lead">
         UnlimitedPDF builds PDF documents with text, tables, and JPEG or PNG images from plain C#.
