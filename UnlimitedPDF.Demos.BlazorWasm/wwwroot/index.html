@@ -4,8 +4,9 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>UnlimitedPDF Demos: PDF generation in pure .NET</title>
-    <meta name="description" content="Try UnlimitedPDF in your browser: create PDFs with text, tables, and images in pure .NET, and see the code behind every demo." />
+    <title>UnlimitedPDF: C# PDF library for .NET, with live demos</title>
+    <!-- The one description tag. Each page replaces its content as it opens (PageDescription), so there is never a second one. -->
+    <meta name="description" content="Try UnlimitedPDF, the C# PDF library for .NET, in your browser: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF." />
     <base href="/" />
     <link rel="preload" id="webassembly" />
     <link rel="stylesheet" href="lib/bootstrap/bootstrap.min.css" />
@@ -39,6 +40,11 @@
                 <p class="boot-tagline">Create PDFs with text, tables, and images in pure .NET, generated right here in your browser.</p>
                 <div class="boot-track" role="progressbar" aria-label="Loading the playground"><div class="boot-bar"></div></div>
                 <div class="boot-status" aria-hidden="true"></div>
+                <!-- For readers that don't run JavaScript, including agents and crawlers: what the site is and where to read about it. -->
+                <noscript>
+                    <p class="boot-tagline">The playground needs JavaScript. UnlimitedPDF is a C# PDF library for .NET 6, 8, 9, 10, and 11 with no third-party dependencies: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF.</p>
+                    <p><a href="llms.txt">Site summary for agents (llms.txt)</a> · <a href="https://github.com/unlimited-docs/UnlimitedPDF">Source and docs on GitHub</a> · <a href="https://www.nuget.org/packages/UnlimitedPDF">NuGet package</a></p>
+                </noscript>
             </div>
         </div>
     </div>

@@ -74,7 +74,8 @@ public static class SampleCatalog
         "playground/documents/account-statement",
         "AccountStatementSample.cs",
         "account-statement.pdf",
-        "table");
+        "table",
+        PageTitle: "Create a PDF bank statement in C#");
 
     /// <summary>
     /// Gets the Bookmarks and page numbers merge demo.
@@ -85,7 +86,8 @@ public static class SampleCatalog
         "playground/merge/bookmarks-and-numbers",
         "BookmarksAndNumbersSample.cs",
         "bookmarks-and-numbers.pdf",
-        "bookmark");
+        "bookmark",
+        PageTitle: "Merged PDF bookmarks and page numbers in C#");
 
     /// <summary>
     /// Gets the Certificate demo.
@@ -96,7 +98,8 @@ public static class SampleCatalog
         "playground/documents/certificate",
         "CertificateSample.cs",
         "certificate.pdf",
-        "award");
+        "award",
+        PageTitle: "Create a PDF certificate in C#");
 
     /// <summary>
     /// Gets the Common problems demo: known HTML to PDF problems, each as a small editable document.
@@ -108,7 +111,8 @@ public static class SampleCatalog
         "HtmlToPdfSample.cs",
         "common-html-to-pdf-problems.pdf",
         "warning",
-        "Common HTML to PDF problems");
+        PageTitle: "Common HTML to PDF problems in C#",
+        Heading: "Common HTML to PDF problems");
 
     /// <summary>
     /// Gets the Cover and page ranges merge demo.
@@ -119,7 +123,8 @@ public static class SampleCatalog
         "playground/merge/cover-and-ranges",
         "CoverAndRangesSample.cs",
         "cover-and-ranges.pdf",
-        "cover");
+        "cover",
+        PageTitle: "Merge a cover page and PDF page ranges in C#");
 
     /// <summary>
     /// Gets the Delivery note demo.
@@ -130,7 +135,8 @@ public static class SampleCatalog
         "playground/documents/delivery-note",
         "DeliveryNoteSample.cs",
         "delivery-note.pdf",
-        "receipt");
+        "receipt",
+        PageTitle: "Create a PDF delivery note in C#");
 
     /// <summary>
     /// Gets the Employee directory demo.
@@ -141,7 +147,8 @@ public static class SampleCatalog
         "playground/documents/employee-directory",
         "EmployeeDirectorySample.cs",
         "employee-directory.pdf",
-        "users");
+        "users",
+        PageTitle: "Create a PDF employee directory in C#");
 
     /// <summary>
     /// Gets the Employee pack merge demo.
@@ -152,7 +159,8 @@ public static class SampleCatalog
         "playground/merge/employee-pack",
         "MergePackSample.cs",
         "employee-pack.pdf",
-        "badge");
+        "badge",
+        PageTitle: "Employee PDF pack: generate and merge in C#");
 
     /// <summary>
     /// Gets the Headers and footers demo.
@@ -163,7 +171,8 @@ public static class SampleCatalog
         "playground/create/headers-and-footers",
         "HeadersFootersSample.cs",
         "headers-and-footers.pdf",
-        "layout");
+        "layout",
+        PageTitle: "PDF headers, footers, and page numbers in C#");
 
     /// <summary>
     /// Gets the HTML to PDF demo.
@@ -174,7 +183,8 @@ public static class SampleCatalog
         "playground/html/html-to-pdf",
         "HtmlToPdfSample.cs",
         "html-to-pdf.pdf",
-        "html");
+        "html",
+        PageTitle: "Convert HTML to PDF in C#");
 
     /// <summary>
     /// Gets the Images demo.
@@ -185,7 +195,8 @@ public static class SampleCatalog
         "playground/create/images",
         "ImagesSample.cs",
         "images.pdf",
-        "image");
+        "image",
+        PageTitle: "Add JPEG and PNG images to a PDF in C#");
 
     /// <summary>
     /// Gets the Invoice demo.
@@ -196,7 +207,8 @@ public static class SampleCatalog
         "playground/documents/invoice",
         "InvoiceSample.cs",
         "invoice.pdf",
-        "invoice");
+        "invoice",
+        PageTitle: "Create a PDF invoice in C#");
 
 
     /// <summary>
@@ -208,7 +220,8 @@ public static class SampleCatalog
         "playground/merge/join-files",
         "JoinFilesSample.cs",
         "joined.pdf",
-        "join");
+        "join",
+        PageTitle: "Merge PDF files in C#");
 
     /// <summary>
     /// Gets the Medical report demo.
@@ -219,7 +232,8 @@ public static class SampleCatalog
         "playground/documents/medical-report",
         "MedicalReportSample.cs",
         "medical-report.pdf",
-        "pulse");
+        "pulse",
+        PageTitle: "Create a PDF medical report in C#");
 
     /// <summary>
     /// Gets the Month-end pack merge demo.
@@ -230,7 +244,8 @@ public static class SampleCatalog
         "playground/merge/month-end-pack",
         "MergePackSample.cs",
         "month-end-pack.pdf",
-        "calendar");
+        "calendar",
+        PageTitle: "Month-end PDF pack: generate and merge in C#");
 
     /// <summary>
     /// Gets the Patient pack merge demo.
@@ -241,7 +256,8 @@ public static class SampleCatalog
         "playground/merge/patient-pack",
         "MergePackSample.cs",
         "patient-pack.pdf",
-        "heart");
+        "heart",
+        PageTitle: "Patient PDF pack: generate and merge in C#");
 
     /// <summary>
     /// Gets the Payslip demo.
@@ -252,7 +268,8 @@ public static class SampleCatalog
         "playground/documents/payslip",
         "PayslipSample.cs",
         "payslip.pdf",
-        "users");
+        "users",
+        PageTitle: "Create a PDF payslip in C#");
 
     /// <summary>
     /// Gets the Pick pages merge demo.
@@ -263,7 +280,8 @@ public static class SampleCatalog
         "playground/merge/pick-pages",
         "PickPagesSample.cs",
         "picked-pages.pdf",
-        "pick");
+        "pick",
+        PageTitle: "Extract and reorder PDF pages in C#");
 
     /// <summary>
     /// Gets the Purchase order demo.
@@ -274,7 +292,8 @@ public static class SampleCatalog
         "playground/documents/purchase-order",
         "PurchaseOrderSample.cs",
         "purchase-order.pdf",
-        "invoice");
+        "invoice",
+        PageTitle: "Create a PDF purchase order in C#");
 
     /// <summary>
     /// Gets the Quotation demo.
@@ -285,7 +304,8 @@ public static class SampleCatalog
         "playground/documents/quotation",
         "QuotationSample.cs",
         "quotation.pdf",
-        "invoice");
+        "invoice",
+        PageTitle: "Create a PDF quotation in C#");
 
     /// <summary>
     /// Gets the Receipt demo.
@@ -296,7 +316,8 @@ public static class SampleCatalog
         "playground/documents/receipt",
         "ReceiptSample.cs",
         "receipt.pdf",
-        "receipt");
+        "receipt",
+        PageTitle: "Create a PDF receipt in C#");
 
     /// <summary>
     /// Gets the Every N pages split demo.
@@ -307,7 +328,8 @@ public static class SampleCatalog
         "playground/split/every-n-pages",
         "SplitEveryNSample.cs",
         "every-n-pages.zip",
-        "pages");
+        "pages",
+        PageTitle: "Split a PDF every N pages in C#");
 
     /// <summary>
     /// Gets the Page ranges split demo.
@@ -318,7 +340,8 @@ public static class SampleCatalog
         "playground/split/page-ranges",
         "SplitRangesSample.cs",
         "page-ranges.zip",
-        "ranges");
+        "ranges",
+        PageTitle: "Split a PDF by page ranges in C#");
 
     /// <summary>
     /// Gets the Tables demo.
@@ -329,7 +352,8 @@ public static class SampleCatalog
         "playground/create/tables",
         "TablesSample.cs",
         "tables.pdf",
-        "table");
+        "table",
+        PageTitle: "Create PDF tables in C#");
 
     /// <summary>
     /// Gets the Text and pages demo.
@@ -340,7 +364,8 @@ public static class SampleCatalog
         "playground/create/text-and-pages",
         "TextBasicsSample.cs",
         "text-and-pages.pdf",
-        "text");
+        "text",
+        PageTitle: "Add text and pages to a PDF in C#");
 
 
     #endregion
