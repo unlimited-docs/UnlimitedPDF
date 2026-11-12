@@ -15,11 +15,19 @@ jobs:
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: true
           lfs: false
-      - name: Build And Deploy
+      # The deploy action's own builder (Oryx) does not support .NET 11, which the demos site targets, so the site is
+      # published here and uploaded as built (QF-38).
+      - name: Set up .NET 11
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 11.0.x
+      - name: Publish the demos site
+        run: dotnet publish UnlimitedPDF.Demos.BlazorWasm/UnlimitedPDF.Demos.BlazorWasm.csproj --configuration Release --output publish
+      - name: Deploy
         id: builddeploy
         uses: Azure/static-web-apps-deploy@v1
         with:
@@ -28,9 +36,10 @@ jobs:
           action: "upload"
           ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
           # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "./UnlimitedPDF.Demos.BlazorWasm" # App source code path
-          api_location: "Api" # Api source code path - optional
-          output_location: "wwwroot" # Built app content directory - optional
+          app_location: "publish/wwwroot" # The published site, including staticwebapp.config.json
+          api_location: "" # No API
+          output_location: "" # Already built
+          skip_app_build: true
           ###### End of Repository/Build Configurations ######
 
   close_pull_request_job:
