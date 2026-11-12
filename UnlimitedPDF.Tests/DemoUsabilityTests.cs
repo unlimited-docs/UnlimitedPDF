@@ -4,9 +4,11 @@ using System.Text.RegularExpressions;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// Usability guarantees of the demos Home page and Playground that markup and styles can prove: the skip link, the
-/// keyboard focus ring, phone tap targets, the current demo kept in view in the sidebar, and "Back to options"
-/// (26111103 V-03). Contrast, sizes, and fit are measured in the browser (26111103 V-01, V-02).
+/// Usability guarantees of the demos Home page, Playground, and FAQ that markup and styles can prove: the skip link,
+/// the keyboard focus ring, phone tap targets, the current demo kept in view in the sidebar, and "Back to options"
+/// (26111103 V-03); the FAQ search field border, the copy-link icon, the FAQ phone sizes, the scenario list's inset
+/// ring, and the gap above Remove buttons (26111201 V-03). Contrast, sizes, and fit are measured in the browser
+/// (26111103 V-01, V-02; 26111201 V-01, V-02).
 /// </summary>
 public class DemoUsabilityTests
 {
@@ -19,6 +21,44 @@ public class DemoUsabilityTests
     #region Methods
 
     #region Public Methods
+
+    [Theory]
+    [InlineData("Components/SamplePage")]
+    [InlineData("Components/SplitPartsPage")]
+    public void A_narrow_output_offers_back_to_options(string page)
+    {
+        var markup = Read(page + ".razor");
+        var code = Read(page + ".razor.cs");
+
+        Assert.Contains("id=\"@($\"{_id}-options\")\" tabindex=\"-1\" @ref=\"_optionsSection\"", markup, StringComparison.Ordinal);
+        Assert.Contains("class=\"btn btn-sm btn-text back-to-options\" @onclick=\"BackToOptionsAsync\"", markup, StringComparison.Ordinal);
+        Assert.Contains("> Back to options", markup, StringComparison.Ordinal);
+        Assert.Contains("await Interop.ScrollToElementAsync($\"{_id}-options\", smooth: true)", code, StringComparison.Ordinal);
+
+        // Shown only where the options sit above the output.
+        var css = Read("wwwroot/css/app.css");
+        Assert.Contains(".output-actions .btn.back-to-options { display: none; }", css, StringComparison.Ordinal);
+        Assert.Matches(@"@media \(max-width: 1279\.98px\) \{\s*\.output-actions \.btn\.back-to-options \{ display: inline-flex;", css);
+    }
+
+    [Fact]
+    public void Changed_components_never_render_raw_markup()
+    {
+        // A guard against typed option values reaching the page as markup (A05).
+        var files = new[]
+        {
+            "Layout/MainLayout.razor", "Layout/MainLayout.razor.cs", "Layout/PlaygroundLayout.razor", "Layout/PlaygroundLayout.razor.cs",
+            "Components/SamplePage.razor", "Components/SamplePage.razor.cs", "Components/SplitPartsPage.razor", "Components/SplitPartsPage.razor.cs",
+            "Pages/Playground/Create/HeadersFooters.razor", "Pages/Playground/Documents/EmployeeDirectory.razor",
+            "Components/FaqQuestionItem.razor", "Components/Icon.razor", "Pages/Playground/Html/CommonProblems.razor",
+            "Pages/Playground/Merge/BookmarksAndNumbers.razor", "Pages/Playground/Merge/CoverAndRanges.razor"
+        };
+
+        Assert.All(files, file => Assert.DoesNotContain("MarkupString", Read(file), StringComparison.Ordinal));
+
+        var script = Read("wwwroot/js/app.js");
+        Assert.All(new[] { "innerHTML", "outerHTML", "insertAdjacentHTML", "eval(" }, sink => Assert.DoesNotContain(sink, script, StringComparison.Ordinal));
+    }
 
     [Fact]
     public void Every_page_starts_with_a_skip_link_to_its_main_content()
@@ -35,18 +75,14 @@ public class DemoUsabilityTests
     }
 
     [Fact]
-    public void The_playground_skip_target_is_the_demo_past_the_sidebar()
+    public void Faq_topic_chips_and_clear_search_are_44_pixels_on_phones()
     {
-        var playground = Read("Layout/PlaygroundLayout.razor");
+        var phone = string.Join("\n", PhoneBlocks(Read("wwwroot/css/app.css")));
 
-        Assert.Matches("<div class=\"playground-content\" data-skip-target tabindex=\"-1\">", playground);
-        Assert.True(
-            playground.IndexOf("playground-sidebar", StringComparison.Ordinal) < playground.IndexOf("data-skip-target", StringComparison.Ordinal),
-            "The skip target comes after the sidebar.");
-
-        var script = Read("wwwroot/js/app.js");
-        Assert.Contains("export function focusSkipTarget()", script, StringComparison.Ordinal);
-        Assert.Contains("document.querySelector(\"[data-skip-target]\") ?? document.getElementById(\"main-content\")", script, StringComparison.Ordinal);
+        // Topic chips have their own rule; "Clear search" is a .btn and takes the shared phone size (26111201 AC-03, AC-04).
+        Assert.Matches(new Regex(@"(^|[,}])\s*\.faq-index a\s*\{[^}]*min-height: 44px", RegexOptions.Multiline), phone);
+        Assert.Matches(new Regex(@"(^|[,}])\s*\.btn\s*[,{][^}]*min-height: 44px", RegexOptions.Multiline), phone);
+        Assert.Matches("<button type=\"button\" class=\"btn [^\"]*\" @onclick=\"ClearSearchAsync\">Clear search</button>", Read("Pages/Faq.razor"));
     }
 
     [Fact]
@@ -79,6 +115,30 @@ public class DemoUsabilityTests
             selector => Assert.Matches(new Regex(@"(^|[,}])\s*" + Regex.Escape(selector) + @"\s*[,{][^}]*min-height: 44px", RegexOptions.Multiline), phone));
     }
 
+    [Theory]
+    [InlineData("Pages/Playground/Merge/BookmarksAndNumbers.razor")]
+    [InlineData("Pages/Playground/Merge/CoverAndRanges.razor")]
+    public void Remove_buttons_keep_a_gap_below_their_field(string page)
+    {
+        // The same gap as between fields, instead of touching the field above (26111201 AC-06).
+        // The tag's own @onclick holds "=>", so the match runs to the button's text rather than to the first ">".
+        var remove = Regex.Match(Read(page), "<button type=\"button\" class=\"(?<classes>[^\"]*)\"(?:(?!</button>).)*?>Remove</button>", RegexOptions.Singleline);
+
+        Assert.True(remove.Success, "The page has a Remove button.");
+        Assert.Contains("field-action", remove.Groups["classes"].Value.Split(' '));
+        Assert.Contains("margin-top: 0.7rem;", RuleBody(Read("wwwroot/css/app.css"), ".field-action"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Scrolling_to_the_output_honors_reduced_motion()
+    {
+        var script = Read("wwwroot/js/app.js");
+        var helper = Regex.Match(script, @"export function scrollIntoViewOnNarrow\(element\) \{(?<body>.*?)\n\}", RegexOptions.Singleline).Groups["body"].Value;
+
+        Assert.Contains("(prefers-reduced-motion: reduce)", helper, StringComparison.Ordinal);
+        Assert.Contains("behavior: reduced ? \"auto\" : \"smooth\"", helper, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_code_copy_button_gets_a_phone_tap_area_without_growing_over_the_code()
     {
@@ -109,50 +169,50 @@ public class DemoUsabilityTests
         Assert.DoesNotContain("window.scroll", helper, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData("Components/SamplePage")]
-    [InlineData("Components/SplitPartsPage")]
-    public void A_narrow_output_offers_back_to_options(string page)
+    [Fact]
+    public void The_faq_copy_link_control_shows_a_link_icon_in_the_muted_color()
     {
-        var markup = Read(page + ".razor");
-        var code = Read(page + ".razor.cs");
+        var item = Read("Components/FaqQuestionItem.razor");
+        var button = Regex.Match(item, "<button type=\"button\" class=\"faq-link\"[^>]*>(?<content>.*?)</button>", RegexOptions.Singleline);
 
-        Assert.Contains("id=\"@($\"{_id}-options\")\" tabindex=\"-1\" @ref=\"_optionsSection\"", markup, StringComparison.Ordinal);
-        Assert.Contains("class=\"btn btn-sm btn-text back-to-options\" @onclick=\"BackToOptionsAsync\"", markup, StringComparison.Ordinal);
-        Assert.Contains("> Back to options", markup, StringComparison.Ordinal);
-        Assert.Contains("await Interop.ScrollToElementAsync($\"{_id}-options\", smooth: true)", code, StringComparison.Ordinal);
-
-        // Shown only where the options sit above the output.
-        var css = Read("wwwroot/css/app.css");
-        Assert.Contains(".output-actions .btn.back-to-options { display: none; }", css, StringComparison.Ordinal);
-        Assert.Matches(@"@media \(max-width: 1279\.98px\) \{\s*\.output-actions \.btn\.back-to-options \{ display: inline-flex;", css);
+        // The icon replaces the "#" glyph; the spoken label and the copy behavior stay (26111201 AC-02).
+        Assert.True(button.Success, "The copy-link button is present.");
+        Assert.Equal("<Icon Name=\"link\" Size=\"18\" />", button.Groups["content"].Value.Trim());
+        Assert.Contains("aria-label=\"@($\"Copy a link to this question: {Question.Text}\")\"", button.Value, StringComparison.Ordinal);
+        Assert.Contains("@onclick=\"CopyLinkAsync\"", button.Value, StringComparison.Ordinal);
+        Assert.Contains("case \"link\":", Read("Components/Icon.razor"), StringComparison.Ordinal);
+        Assert.Contains("color: var(--app-muted);", RuleBody(Read("wwwroot/css/app.css"), ".faq-link"), StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Scrolling_to_the_output_honors_reduced_motion()
+    public void The_faq_search_field_uses_the_shared_field_border()
     {
-        var script = Read("wwwroot/js/app.js");
-        var helper = Regex.Match(script, @"export function scrollIntoViewOnNarrow\(element\) \{(?<body>.*?)\n\}", RegexOptions.Singleline).Groups["body"].Value;
+        // 3.5:1 on white instead of the earlier 1.35:1 (26111201 AC-01).
+        var rule = RuleBody(Read("wwwroot/css/app.css"), ".faq-search-input");
 
-        Assert.Contains("(prefers-reduced-motion: reduce)", helper, StringComparison.Ordinal);
-        Assert.Contains("behavior: reduced ? \"auto\" : \"smooth\"", helper, StringComparison.Ordinal);
+        Assert.Contains("border: 1px solid var(--app-field-border);", rule, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void Changed_components_never_render_raw_markup()
+    public void The_playground_skip_target_is_the_demo_past_the_sidebar()
     {
-        // A guard against typed option values reaching the page as markup (A05).
-        var files = new[]
-        {
-            "Layout/MainLayout.razor", "Layout/MainLayout.razor.cs", "Layout/PlaygroundLayout.razor", "Layout/PlaygroundLayout.razor.cs",
-            "Components/SamplePage.razor", "Components/SamplePage.razor.cs", "Components/SplitPartsPage.razor", "Components/SplitPartsPage.razor.cs",
-            "Pages/Playground/Create/HeadersFooters.razor", "Pages/Playground/Documents/EmployeeDirectory.razor"
-        };
+        var playground = Read("Layout/PlaygroundLayout.razor");
 
-        Assert.All(files, file => Assert.DoesNotContain("MarkupString", Read(file), StringComparison.Ordinal));
+        Assert.Matches("<div class=\"playground-content\" data-skip-target tabindex=\"-1\">", playground);
+        Assert.True(
+            playground.IndexOf("playground-sidebar", StringComparison.Ordinal) < playground.IndexOf("data-skip-target", StringComparison.Ordinal),
+            "The skip target comes after the sidebar.");
 
         var script = Read("wwwroot/js/app.js");
-        Assert.All(new[] { "innerHTML", "outerHTML", "insertAdjacentHTML", "eval(" }, sink => Assert.DoesNotContain(sink, script, StringComparison.Ordinal));
+        Assert.Contains("export function focusSkipTarget()", script, StringComparison.Ordinal);
+        Assert.Contains("document.querySelector(\"[data-skip-target]\") ?? document.getElementById(\"main-content\")", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_scenario_list_draws_its_focus_ring_inside_each_link()
+    {
+        // The list scrolls on its own below 1,280 px, so an outer ring would be clipped at its edges (26111201 AC-05).
+        Assert.Contains(".scenario-list a:focus-visible { outline-offset: -2px; }", Read("wwwroot/css/app.css"), StringComparison.Ordinal);
     }
 
     #endregion
@@ -179,6 +239,14 @@ public class DemoUsabilityTests
 
     private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", relative));
+
+    // The declarations of the first rule, in any block, whose selector is exactly the given one.
+    private static string RuleBody(string css, string selector)
+    {
+        var rule = Regex.Match(css, @"(^|\})\s*" + Regex.Escape(selector) + @"\s*\{(?<body>[^}]*)\}", RegexOptions.Multiline);
+        Assert.True(rule.Success, $"The stylesheet has a {selector} rule.");
+        return rule.Groups["body"].Value;
+    }
 
     #endregion
 

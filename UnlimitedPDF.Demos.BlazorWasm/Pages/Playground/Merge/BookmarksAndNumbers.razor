@@ -19,7 +19,7 @@
                     <label for="bookmark-@file.GetHashCode()">@file.Name (@file.File.PageCount @(file.File.PageCount == 1 ? "page" : "pages"))</label>
                     <input id="bookmark-@file.GetHashCode()" class="form-control" value="@(file.BookmarkTitle ?? file.Name)"
                            @onchange="e => Change(() => file.BookmarkTitle = e.Value?.ToString())" />
-                    <button type="button" class="btn btn-sm btn-outline-secondary" aria-label="Remove @file.Name" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary field-action" aria-label="Remove @file.Name" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
                 </div>
             }
             <PdfUploadField Id="bookmarks-upload" OnLoaded="file => Change(() => _input.Files.Add(file))" />

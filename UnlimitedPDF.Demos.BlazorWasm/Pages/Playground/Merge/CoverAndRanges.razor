@@ -30,7 +30,7 @@
                                    value="@file.LastPage" @onchange="e => Change(() => file.LastPage = Page(e.Value, file))" />
                         </div>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary field-action" @onclick="() => Change(() => _input.Files.Remove(file))">Remove</button>
                 </div>
             }
             <PdfUploadField Id="cover-upload" OnLoaded="file => Change(() => _input.Files.Add(file))" />
