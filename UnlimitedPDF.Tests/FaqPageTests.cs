@@ -181,7 +181,7 @@ public class FaqPageTests
         }.Select(f => File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/" + f)));
 
         Assert.StartsWith("@page \"/faq\"", page, StringComparison.Ordinal);
-        Assert.Contains("<PageTitle>FAQ · UnlimitedPDF Demos</PageTitle>", page, StringComparison.Ordinal);
+        Assert.Contains("<PageTitle>UnlimitedPDF FAQ: C# and .NET PDF library questions</PageTitle>", page, StringComparison.Ordinal);
         Assert.Contains("<h1>Frequently asked questions</h1>", page, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"Topics\"", page, StringComparison.Ordinal);
         Assert.Contains("aria-live=\"polite\"", page, StringComparison.Ordinal);

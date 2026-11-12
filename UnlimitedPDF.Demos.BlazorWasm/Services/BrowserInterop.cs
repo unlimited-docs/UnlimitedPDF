@@ -151,6 +151,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     public async Task<bool> ScrollToElementAsync(string id, bool smooth) => await (await _module.Value).InvokeAsync<bool>("scrollToElement", id, smooth);
 
     /// <summary>
+    /// Sets the content of the page's one meta description tag, adding the tag if it is missing.
+    /// </summary>
+    /// <param name="text">The description.</param>
+    public async Task SetDescriptionAsync(string text) => await (await _module.Value).InvokeVoidAsync("setDescription", text);
+
+    /// <summary>
     /// Opens a <c>dialog</c> element as a modal dialog and calls back when it closes.
     /// </summary>
     /// <typeparam name="T">The type of the component that listens.</typeparam>

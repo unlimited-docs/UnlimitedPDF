@@ -181,3 +181,14 @@ export function scrollToElement(id, smooth) {
     element.scrollIntoView({ behavior: smooth && !reduced ? "smooth" : "auto", block: "start" });
     return true;
 }
+
+export function setDescription(text) {
+    // Updates the one description tag from index.html, so a page never has two.
+    let meta = document.head.querySelector('meta[name="description"]');
+    if (!meta) {
+        meta = document.createElement("meta");
+        meta.name = "description";
+        document.head.appendChild(meta);
+    }
+    meta.content = text;
+}

@@ -1,7 +1,10 @@
 ﻿@page "/not-found"
 @layout MainLayout
 
-<PageTitle>Page not found · UnlimitedPDF Demos</PageTitle>
+<PageTitle>Page not found · UnlimitedPDF</PageTitle>
+<PageDescription Text="This page doesn't exist. The UnlimitedPDF playground has every demo." />
+@* A missing page is served with the app's normal response, so this keeps it out of search results. *@
+<HeadContent><meta name="robots" content="noindex" /></HeadContent>
 
 <section class="not-found">
     <h1>Page not found</h1>
