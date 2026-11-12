@@ -25,6 +25,10 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
   
   Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="1.0.0" />`
 
+- **Target frameworks**
+
+  One package targets .NET 6, .NET 8, .NET 9, .NET 10, and .NET 11 (`net6.0`, `net8.0`, `net9.0`, `net10.0`, `net11.0`), including Blazor WebAssembly.
+
 ## Demos
 
 `UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); splits PDFs, including your own uploads, in a Split category (every N pages and page ranges, with each part or a zip of all parts to download); converts HTML to PDF in an HTML to PDF category (templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
@@ -450,6 +454,7 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 - New: headers, footers, and body flow (`PdfDocument.Header`, `PdfDocument.Footer`, `PdfDocument.Body`, `PdfDocument.BodyMarginTop`, `PdfDocument.BodyMarginBottom`, `PdfDocument.AddPageSettings`, `PdfDocument.MarginLeft`, `PdfDocument.MarginRight`), and filled rectangles (`PdfPage.AddRectangle`).
 - New: images (`PdfImage`, `PdfPage.AddImage`), images and stacked content in table cells, row height modes (`PdfRowHeightMode`), and unit conversion (`PdfUnits`).
 - New: colors from 0–255 channels or hex strings (`PdfColor.FromRgb(0, 172, 140)`, `PdfColor.FromHex("#002A73")`).
+- New: .NET 11 support (`net11.0`), alongside .NET 6, 8, 9, and 10.
 - Renamed: see [Upgrading to 1.0.0](#upgrading-to-100).
 - `PdfCell.Text` now reads and writes the cell's first text item; text-only cells behave as before.
 - Table cells with `VerticalAlignment` set to `Top` or `Bottom` are now drawn that way (it had no effect before).

@@ -32,7 +32,7 @@ public static class FaqQuestions
             ], SampleCatalog.TextAndPages),
             new("dotnet-versions", "Which .NET versions does it support?",
             [
-                "One package targets .NET 6, .NET 8, .NET 9, and .NET 10."
+                "One package targets .NET 6, .NET 8, .NET 9, .NET 10, and .NET 11."
             ]),
             new("blazor-webassembly", "Does it run in Blazor WebAssembly?",
             [
