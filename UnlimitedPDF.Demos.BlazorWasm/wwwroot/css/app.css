@@ -538,6 +538,8 @@ summary:focus-visible,
 .field label, .field .field-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--app-muted); margin-bottom: 0.25rem; }
 .field .form-control { font-size: 0.9rem; }
 .field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-line); border-radius: 8px; background: #fff; }
+/* A button that acts on the field above it (Remove a file): the same gap as between fields (26111201 AC-06). */
+.field-action { margin-top: 0.7rem; }
 .field-hint { font-size: 0.75rem; color: var(--app-muted); margin-top: 0.25rem; }
 .field-error { font-size: 0.75rem; color: var(--app-danger); margin: 0.25rem 0 0; }
 
@@ -552,6 +554,9 @@ summary:focus-visible,
 .scenario-list a { display: block; padding: 0.2rem 0.5rem; border-radius: 6px; color: var(--app-ink); text-decoration: none; }
 .scenario-list a:hover { background: var(--app-canvas); }
 .scenario-list a[aria-current="page"] { background: var(--app-accent-soft); color: var(--app-accent); font-weight: 600; }
+/* An inset ring: the list scrolls on its own below 1,280 px, so a ring outside the link would be cut off at its edges
+   (26111201 AC-05). */
+.scenario-list a:focus-visible { outline-offset: -2px; }
 .scenario-group { margin: 0.35rem 0 0.1rem; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--app-muted); }
 .scenario-badge { display: inline-block; margin: 0; padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 600; justify-self: start; }
 .scenario-badge.is-handled { background: #e3f6f4; color: #0b6e66; }
@@ -1001,7 +1006,7 @@ summary:focus-visible,
     width: 100%;
     min-height: 44px;
     padding: 0.55rem 0.9rem 0.55rem 2.6rem;
-    border: 1px solid #cfd8ea;
+    border: 1px solid var(--app-field-border); /* 3.5:1 on white, like every other field (26111201 AC-01) */
     border-radius: 10px;
     background: var(--app-surface);
     color: var(--app-ink);
@@ -1045,7 +1050,8 @@ summary:focus-visible,
 
 .faq-not-yet { flex: none; font-size: 0.75rem; font-weight: 650; background: var(--app-warn-soft); color: #7a5200; border-radius: 6px; padding: 0.1rem 0.45rem; }
 
-.faq-link { flex: none; width: 44px; border: 0; background: none; color: #9aa6c2; font-weight: 600; font-size: 1rem; border-radius: 12px; }
+/* The copy-link control: a link icon in the muted color, 5.6:1 on white (26111201 AC-02). */
+.faq-link { flex: none; width: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--app-muted); border-radius: 12px; }
 .faq-link:hover { color: var(--app-accent); }
 .faq-link-status:empty { display: none; }
 .faq-link-status {
@@ -1082,6 +1088,7 @@ summary:focus-visible,
     .faq { padding: 1.5rem 0.9rem 2rem; }
     .faq-head h1 { font-size: 1.55rem; }
     .faq-toggle { padding: 0.8rem 0.25rem 0.8rem 0.9rem; }
+    .faq-index a { display: inline-flex; align-items: center; min-height: 44px; } /* topic chips (26111201 AC-03) */
     .faq-answer { padding: 0 0.9rem 0.9rem; }
     .faq-code .code-view pre { font-size: 0.76rem; padding: 2.5rem 0.8rem 0.8rem; }
 }

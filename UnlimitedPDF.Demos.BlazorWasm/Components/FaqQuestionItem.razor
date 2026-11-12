@@ -11,7 +11,7 @@
             <Icon Name="chevron" Size="18" />
         </button>
         <button type="button" class="faq-link" @onclick="CopyLinkAsync" aria-label="@($"Copy a link to this question: {Question.Text}")">
-            <span aria-hidden="true">#</span>
+            <Icon Name="link" Size="18" />
         </button>
         <span class="faq-link-status" role="status">@LinkStatus</span>
     </div>
