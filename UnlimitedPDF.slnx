@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/demos/">
+    <Project Path="UnlimitedPDF.Demo.ConsoleApp/UnlimitedPDF.Demo.ConsoleApp.csproj" />
+    <Project Path="UnlimitedPDF.Demos.BlazorWasm/UnlimitedPDF.Demos.BlazorWasm.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="UnlimitedPDF/UnlimitedPDF.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="UnlimitedPDF.Tests/UnlimitedPDF.Tests.csproj" />
+  </Folder>
+</Solution>

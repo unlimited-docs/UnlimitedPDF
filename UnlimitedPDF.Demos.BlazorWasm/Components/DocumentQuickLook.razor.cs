@@ -95,10 +95,10 @@ public partial class DocumentQuickLook : IDisposable
         int opening = _opening;
         _preparingOpening = opening;
         _failedOpening = null;
-        StateHasChanged();
         try
         {
-            // Let the button show that it is preparing before the document is built.
+            // Let the button show that it is preparing before the document is built: Blazor renders the click's
+            // changes when the handler first yields.
             await Task.Yield();
             var images = await ImageStore.GetManyAsync(document.Images.ToArray());
             using var stream = new MemoryStream();

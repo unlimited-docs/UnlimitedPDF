@@ -82,8 +82,8 @@ public partial class ImagePicker : IAsyncDisposable
         _readProgress = 0;
         _fileName = args.File.Name;
         _fileSize = args.File.Size;
-        StateHasChanged();
 
+        // The reading state shows when the handler first yields, below; Blazor renders event changes then (BL0012).
         var progress = new Progress<double>(value =>
         {
             _readProgress = value;
