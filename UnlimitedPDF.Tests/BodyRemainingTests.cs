@@ -12,6 +12,9 @@ public class BodyRemainingTests
     #region Fields and Constants
 
     private const double A4Height = 841.89;
+
+    // 4x the work should take about 4x the time; quadratic code takes about 16x. 8 sits safely between the two.
+    private const double MaxGrowthForFourTimesTheWork = 8;
     private const int Precision = 6;
 
     #endregion
@@ -244,41 +247,40 @@ public class BodyRemainingTests
     [Fact]
     public void Reading_remaining_with_a_large_page_coordinate_table_stays_within_its_budget()
     {
-        // Review F-22 (A-20): each read fingerprints the page-coordinate tables, so its cost grows with their rows.
-        var document = new PdfDocument();
-        var table = document.AddPage().AddTable(300, 800, 200);
-        table.AddColumn();
-        for (int r = 0; r < 1_000; r++) table.AddRow().GetCell(0).Text = "P" + r;
-        var watch = Stopwatch.StartNew();
-        for (int i = 0; i < 1_000; i++)
+        // Review F-22 (A-20): each read checks the page-coordinate tables, so it gets slower as they get more rows.
+        // That's fine, as long as 4x the rows means about 4x the time and no worse.
+        AssertGrowsLinearly(rows =>
         {
-            document.Body.AddText("line " + i);
-            _ = document.Body.RemainingHeight;
-        }
-        PdfPageReader.SaveBytes(document);
-        watch.Stop();
-
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+            var document = new PdfDocument();
+            var table = document.AddPage().AddTable(300, 800, 200);
+            table.AddColumn();
+            for (int r = 0; r < rows; r++) table.AddRow().GetCell(0).Text = "P" + r;
+            for (int i = 0; i < 500; i++)
+            {
+                document.Body.AddText("line " + i);
+                _ = document.Body.RemainingHeight;
+            }
+            PdfPageReader.SaveBytes(document);
+        }, size: 250);
     }
 
     [Fact]
     public void Reading_remaining_along_a_chain_of_kept_tables_stays_fast()
     {
         // Review F-32: each read copied the plan back to the chain's first kept table, so 4,000 kept tables took 2.9 s.
-        var document = new PdfDocument();
-        var watch = Stopwatch.StartNew();
-        for (int i = 0; i < 4_000; i++)
+        AssertGrowsLinearly(tables =>
         {
-            var table = document.Body.AddTable(200, keepWithNext: true);
-            table.AddColumn();
-            table.AddRow().GetCell(0).Text = "a" + i;
-            table.AddRow().GetCell(0).Text = "b" + i;
-            _ = document.Body.RemainingHeight;
-        }
-        PdfPageReader.SaveBytes(document);
-        watch.Stop();
-
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+            var document = new PdfDocument();
+            for (int i = 0; i < tables; i++)
+            {
+                var table = document.Body.AddTable(200, keepWithNext: true);
+                table.AddColumn();
+                table.AddRow().GetCell(0).Text = "a" + i;
+                table.AddRow().GetCell(0).Text = "b" + i;
+                _ = document.Body.RemainingHeight;
+            }
+            PdfPageReader.SaveBytes(document);
+        }, size: 1_000);
     }
 
     [Fact]
@@ -286,33 +288,31 @@ public class BodyRemainingTests
     {
         // Review F-27: each read inside a waiting kept run copied the whole plan of the page sequence, so reads grew
         // quadratically (40,000 lines took about 3.6 s).
-        var document = new PdfDocument();
-        var watch = Stopwatch.StartNew();
-        for (int i = 0; i < 40_000; i++)
+        AssertGrowsLinearly(lines =>
         {
-            document.Body.AddText("line " + i, keepWithNext: i % 2 == 0);
-            _ = document.Body.RemainingHeight;
-        }
-        PdfPageReader.SaveBytes(document);
-        watch.Stop();
-
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+            var document = new PdfDocument();
+            for (int i = 0; i < lines; i++)
+            {
+                document.Body.AddText("line " + i, keepWithNext: i % 2 == 0);
+                _ = document.Body.RemainingHeight;
+            }
+            PdfPageReader.SaveBytes(document);
+        }, size: 10_000);
     }
 
     [Fact]
     public void Reading_remaining_after_every_line_stays_fast()
     {
-        var document = new PdfDocument();
-        var watch = Stopwatch.StartNew();
-        for (int i = 0; i < 10_000; i++)
+        AssertGrowsLinearly(lines =>
         {
-            document.Body.AddText("line " + i);
-            _ = document.Body.RemainingHeight;
-        }
-        PdfPageReader.SaveBytes(document);
-        watch.Stop();
-
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(2), $"Took {watch.Elapsed}.");
+            var document = new PdfDocument();
+            for (int i = 0; i < lines; i++)
+            {
+                document.Body.AddText("line " + i);
+                _ = document.Body.RemainingHeight;
+            }
+            PdfPageReader.SaveBytes(document);
+        }, size: 5_000);
     }
 
     [Fact]
@@ -343,6 +343,37 @@ public class BodyRemainingTests
     #endregion
 
     #region Private Methods
+
+    // A fixed time limit kept failing on busy machines even though the code was fine (QF-26111206). So instead we check
+    // how the time grows: do 4x the work and it should take roughly 4x as long. If it takes 16x, reads have gone
+    // quadratic again. We warm up first and keep the fastest of three tries, so a slow machine or a busy moment
+    // doesn't skew the result.
+    private static void AssertGrowsLinearly(Action<int> run, int size)
+    {
+        run(size / 4);
+        var small = Fastest(() => run(size));
+        var large = Fastest(() => run(4 * size));
+        var ratio = large.TotalMilliseconds / Math.Max(small.TotalMilliseconds, 1);
+
+        Assert.True(
+            ratio < MaxGrowthForFourTimesTheWork,
+            $"{size:N0} took {small.TotalMilliseconds:F0} ms and {4 * size:N0} took {large.TotalMilliseconds:F0} ms: " +
+            $"{ratio:F1} times as long, where linear work is about 4.");
+    }
+
+    private static TimeSpan Fastest(Action run)
+    {
+        var fastest = TimeSpan.MaxValue;
+        for (int attempt = 0; attempt < 3; attempt++)
+        {
+            var watch = Stopwatch.StartNew();
+            run();
+            watch.Stop();
+            if (watch.Elapsed < fastest) fastest = watch.Elapsed;
+        }
+
+        return fastest;
+    }
 
     private static PdfTable Table(PdfTable table, int rows)
     {
