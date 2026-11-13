@@ -8,17 +8,24 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
-  # "Run workflow" in the Actions tab deploys main to production on demand, whatever DEPLOY_PRODUCTION says (QF-26111304).
+  # "Run workflow" in the Actions tab: with "Deploy to production" ticked, it builds main and deploys it to production,
+  # whatever DEPLOY_PRODUCTION says; unticked (or on another branch), it only builds, as a dry run (QF-26111304,
+  # QF-26111401).
   workflow_dispatch:
+    inputs:
+      deploy_production:
+        description: "Deploy to production"
+        type: boolean
+        default: false
 
 jobs:
   # Production: a merge to main deploys only while the repository variable DEPLOY_PRODUCTION is "true" (Settings >
-  # Secrets and variables > Actions > Variables); "Run workflow" on main always deploys. Pull requests still get their
-  # preview environment. (QF-26111304)
+  # Secrets and variables > Actions > Variables); "Run workflow" deploys only from main with "Deploy to production"
+  # ticked, and otherwise only builds. Pull requests still get their preview environment. (QF-26111304, QF-26111401)
   build_and_deploy_job:
     if: >-
       (github.event_name == 'push' && vars.DEPLOY_PRODUCTION == 'true') ||
-      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
@@ -35,8 +42,24 @@ jobs:
           dotnet-version: 11.0.x
       - name: Publish the demos site
         run: dotnet publish UnlimitedPDF.Demos.BlazorWasm/UnlimitedPDF.Demos.BlazorWasm.csproj --configuration Release --output publish
+      # A manual run without "Deploy to production" ticked, or started from a branch other than main, stops after the
+      # build and says so on the run's summary page (QF-26111401).
+      - name: Explain the build-only run
+        if: github.event_name == 'workflow_dispatch' && !(inputs.deploy_production && github.ref == 'refs/heads/main')
+        env:
+          TICKED: ${{ inputs.deploy_production }}
+          REF: ${{ github.ref_name }}
+        run: |
+          if [ "$TICKED" = "true" ]; then
+            message="Build only: production deploys only from main, and this run is on '$REF'."
+          else
+            message="Build only: 'Deploy to production' was not ticked. The site built; nothing was deployed."
+          fi
+          echo "::notice title=Build only::$message"
+          echo "$message" >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy
         id: builddeploy
+        if: github.event_name != 'workflow_dispatch' || (inputs.deploy_production && github.ref == 'refs/heads/main')
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_PURPLE_BAY_057E55A10 }}
@@ -60,7 +83,7 @@ jobs:
         env:
           FLAG: ${{ vars.DEPLOY_PRODUCTION }}
         run: |
-          message="Production deploy skipped: DEPLOY_PRODUCTION is '${FLAG:-not set}', not 'true'. Use Run workflow on main to deploy now."
+          message="Production deploy skipped: DEPLOY_PRODUCTION is '${FLAG:-not set}', not 'true'. Use Run workflow on main with 'Deploy to production' ticked to deploy now."
           echo "::notice title=Production deploy skipped::$message"
           echo "$message" >> "$GITHUB_STEP_SUMMARY"
 

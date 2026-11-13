@@ -13,19 +13,14 @@ export function revokeObjectUrl(url) {
 }
 
 export function canShowPdfInPage() {
-    // Whether a PDF placed in a frame is shown there (QF-26111303). Android Chrome has no in-page viewer and downloads
-    // the file instead; iPhone and iPad Safari leave the frame empty, and an iPad asking for desktop sites reports
-    // itself as a Mac with a touch screen. Elsewhere the browser says whether it has a viewer; a browser too old to say
-    // is trusted unless it calls itself a phone.
-    const ua = navigator.userAgent;
-    const appleTouch = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
-    if (appleTouch) {
-        return false;
-    }
+    // Whether a PDF placed in a frame is shown there (QF-26111303). The browser says whether it has a PDF viewer:
+    // Android Chrome has none and would download the file instead, so it gets the ready card. iPhone and iPad browsers
+    // show the PDF in the frame since every page names its font (QF-26111305, QF-26111402). A browser too old to say is
+    // trusted unless it calls itself a phone.
     if (typeof navigator.pdfViewerEnabled === "boolean") {
         return navigator.pdfViewerEnabled;
     }
-    return !/Android|Mobi/i.test(ua);
+    return !/Android|Mobi/i.test(navigator.userAgent);
 }
 
 export function showInFrame(frame, url) {
