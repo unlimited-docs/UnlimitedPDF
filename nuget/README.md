@@ -27,17 +27,18 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 - [Split PDFs](#split-pdfs)
 - [HTML to PDF](#html-to-pdf)
 - [Upgrading to 1.0.0](#upgrading-to-100)
+- [Changes in 1.0.1](#changes-in-101)
 - [Changes in 1.0.0](#changes-in-100)
 
 ## Install
 
 - **.NET CLI**
   
-  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 1.0.0`
+  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 1.0.1`
   
 - **Package Reference**
   
-  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="1.0.0" />`
+  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="1.0.1" />`
 
 - **Target frameworks**
 
@@ -454,6 +455,10 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 | `PdfTableCell.TopBorder`, `BottomBorder`, `LeftBorder`, `RightBorder` | `PdfCell.BorderTop`, `BorderBottom`, `BorderLeft`, `BorderRight` |
 | `PdfTable.GetEffectiveColumnWidths()`, `NormalizeSpans()`, `IsSameSpanCell(...)` | removed (internal layout helpers) |
 | `PdfPageSize.ToMediaBoxString()` | removed (internal PDF syntax); use `ToDimensions()` for the size in points |
+
+## Changes in 1.0.1
+
+- Fixed: text didn't show when a PDF was opened on an iPhone or iPad (Safari, Chrome, and other apps that use Apple's PDF viewer); only lines, fills, and images appeared. Every page now names the font its text uses. PDFs look the same in every other viewer, and the API is unchanged.
 
 ## Changes in 1.0.0
 
