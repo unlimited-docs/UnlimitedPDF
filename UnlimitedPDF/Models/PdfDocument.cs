@@ -419,8 +419,10 @@ public class PdfDocument
         return new PageEntry(builder, pageInternal, pageObject, size);
     }
 
-    // Pages without images keep an empty resource dictionary, exactly as before images existed. Pages with HTML text
-    // also map their standard fonts, and /F1 to the document font (WR-038); other pages get no font entry, as before.
+    // Every page with content maps /F1 to the document font (object 3), which all text outside HTML is drawn with, and
+    // pages with HTML text also map their standard fonts (WR-038). A page must name each font its content uses: viewers
+    // built on Apple's PDF engine (every browser on iPhone and iPad) skip text whose font isn't in the page's resources,
+    // where desktop viewers quietly fall back to a default font (QF-26111305).
     private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images, IReadOnlyCollection<StandardFont> fonts)
     {
         var resources = new PdfDictionary();
@@ -429,12 +431,10 @@ public class PdfDocument
             var entries = images.Select((image, i) => $"/Im{i + 1} {new PdfIndirectReference(_imageObjects[image.ContentKey])}");
             resources.AddEntry("XObject", $"<< {string.Join(" ", entries)} >>");
         }
-        if (fonts.Count > 0)
-        {
-            var entries = new[] { $"/F1 {new PdfIndirectReference(objectNumber: 3)}" }
-                .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"));
-            resources.AddEntry("Font", $"<< {string.Join(" ", entries)} >>");
-        }
+
+        var fontEntries = new[] { $"/F1 {new PdfIndirectReference(objectNumber: 3)}" }
+            .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"));
+        resources.AddEntry("Font", $"<< {string.Join(" ", fontEntries)} >>");
         return resources;
     }
 

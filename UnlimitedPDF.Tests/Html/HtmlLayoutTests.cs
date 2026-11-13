@@ -258,8 +258,10 @@ public class HtmlLayoutTests
     }
 
     [Fact]
-    public void Pages_without_html_text_get_no_font_resources()
+    public void Pages_without_html_text_map_only_the_document_font()
     {
+        // QF-26111305: every page names /F1, so viewers that skip text with an unknown font (iPhone and iPad) show it;
+        // only the page with HTML text also maps the HTML standard fonts.
         var doc = Document();
         doc.Body.AddText("plain");
         doc.Body.PageBreak();
@@ -267,8 +269,9 @@ public class HtmlLayoutTests
         var pages = PdfPageReader.Save(doc);
         string pdf = Encoding.ASCII.GetString(PdfPageReader.SaveBytes(doc));
         Assert.Equal(2, pages.Count);
+        Assert.Contains("/Font << /F1 3 0 R >>", pdf);
         Assert.Contains("/Font << /F1 3 0 R /HF5 ", pdf);
-        Assert.Single(Regex.Matches(pdf, "/Font <<"));
+        Assert.Equal(2, Regex.Matches(pdf, "/Font <<").Count);
         Assert.Contains("/BaseFont /Times-Roman", pdf);
     }
 

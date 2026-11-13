@@ -2,7 +2,8 @@ namespace UnlimitedPDF.Tests;
 
 /// <summary>
 /// Documents without images or the page layout API keep producing the bytes the library wrote before those features;
-/// the page layout goldens pin that API's own output.
+/// the page layout goldens pin that API's own output. The one intended change since: every page now names its font in
+/// its resources (<c>/Font &lt;&lt; /F1 3 0 R &gt;&gt;</c>), so iPhone and iPad viewers show the text (QF-26111305).
 /// </summary>
 public class GoldenOutputTests
 {
