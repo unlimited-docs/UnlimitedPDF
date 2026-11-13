@@ -1,7 +1,7 @@
 <div class="preview @(ShowsCard ? "is-card" : null)">
     @* The frame is always rendered so it can receive the first PDF; it stays hidden until then, and on browsers that
-       don't show a PDF placed in a frame (Android Chrome, iPhone and iPad Safari), where the ready card below takes
-       its place (QF-26111303). *@
+       don't show a PDF placed in a frame (Android Chrome), where the ready card below takes its place (QF-26111303,
+       QF-26111402). *@
     <iframe @ref="_frame" class="preview-frame @(_url is null || ShowsCard ? "is-hidden" : null)" title="PDF preview"
             aria-hidden="@(ShowsCard ? "true" : null)" tabindex="@(ShowsCard ? "-1" : null)"></iframe>
 

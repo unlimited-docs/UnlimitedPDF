@@ -7,8 +7,8 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Components;
 /// <summary>
 /// Shows a generated PDF in the browser's built-in PDF view, and offers the same bytes for download or a new tab.
 /// While a new PDF is generated, the previous one stays visible, dimmed under a progress overlay. Browsers that don't
-/// show a PDF placed in a frame (Android Chrome, iPhone and iPad Safari) get a "Your PDF is ready" card with Open PDF
-/// and Download instead, so nothing downloads by itself and no empty frame is shown (QF-26111303).
+/// show a PDF placed in a frame (Android Chrome) get a "Your PDF is ready" card with Open PDF and Download instead, so
+/// nothing downloads by itself (QF-26111303). iPhone and iPad show the PDF in the frame (QF-26111402).
 /// </summary>
 public partial class PdfPreview : IAsyncDisposable
 {

@@ -133,13 +133,14 @@ public class DemoUsabilityTests
     [Fact]
     public void Browsers_without_an_in_page_pdf_view_get_the_ready_card_instead_of_the_frame()
     {
-        // QF-26111303: Android Chrome downloads a PDF placed in a frame and iPhone and iPad Safari leave it empty, so
-        // those browsers never get the PDF in the frame and see a "Your PDF is ready" card with Open PDF and Download.
+        // QF-26111303: Android Chrome downloads a PDF placed in a frame, so browsers without a PDF viewer never get the
+        // PDF in the frame and see a "Your PDF is ready" card with Open PDF and Download. QF-26111402: iPhone and iPad
+        // are no longer singled out; they report a viewer and show the PDF in the frame.
         var script = Read("wwwroot/js/app.js");
         Assert.Contains("export function canShowPdfInPage()", script, StringComparison.Ordinal);
-        Assert.Contains("/iPad|iPhone|iPod/.test(ua)", script, StringComparison.Ordinal);
-        Assert.Contains("navigator.maxTouchPoints > 1", script, StringComparison.Ordinal);
         Assert.Contains("return navigator.pdfViewerEnabled;", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("iPhone|", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("maxTouchPoints", script, StringComparison.Ordinal);
 
         var code = Read("Components/PdfPreview.razor.cs");
         Assert.Contains("_inPage ??= await Interop.CanShowPdfInPageAsync();", code, StringComparison.Ordinal);
