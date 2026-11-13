@@ -363,8 +363,16 @@ summary:focus-visible,
 .output-tab:hover { color: var(--app-ink); }
 .output-tab[aria-selected="true"] { color: var(--app-accent); border-bottom-color: var(--app-accent); }
 
-.output-actions { display: flex; gap: 0.35rem; padding-bottom: 0.4rem; }
+.output-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; padding-bottom: 0.4rem; }
 .output-actions .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* Phones: Back to options, Open, and Download fit on one line at 375 px instead of Download being cut off at the
+   panel's edge; narrower screens wrap (QF-26111303). */
+@media (max-width: 575.98px) {
+    .output-head { padding-inline: 0.5rem; }
+    .output-actions { gap: 0.15rem; }
+    .output-actions .btn-sm { padding-inline: 0.5rem; }
+}
 
 .output-body { position: relative; }
 
@@ -448,6 +456,25 @@ summary:focus-visible,
 .preview-empty { color: var(--app-muted); }
 .preview-empty .icon { color: #a8b3cb; margin-bottom: 0.75rem; }
 .preview-empty strong { display: block; color: var(--app-ink); font-size: 1.05rem; margin-bottom: 0.25rem; }
+
+/* Browsers that don't show a PDF placed in a frame get the ready card instead of the frame, and the preview area takes
+   the card's height rather than a tall empty box (QF-26111303). */
+.preview.is-card { height: auto; min-height: 0; }
+.preview.is-card .preview-frame { position: absolute; inset: 0; height: 0; }
+.preview-ready {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 2rem 1.25rem;
+    text-align: center;
+    color: var(--app-muted);
+}
+.preview-ready > .icon { color: var(--app-accent); margin-bottom: 0.5rem; }
+.preview-ready strong { color: var(--app-ink); font-size: 1.05rem; }
+.preview-ready-meta { font-size: 0.85rem; overflow-wrap: anywhere; }
+.preview-ready-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1rem; }
+.preview-ready-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 .preview-overlay {
     background: rgba(246, 248, 252, 0.72);

@@ -131,6 +131,38 @@ public class DemoUsabilityTests
     }
 
     [Fact]
+    public void Browsers_without_an_in_page_pdf_view_get_the_ready_card_instead_of_the_frame()
+    {
+        // QF-26111303: Android Chrome downloads a PDF placed in a frame and iPhone and iPad Safari leave it empty, so
+        // those browsers never get the PDF in the frame and see a "Your PDF is ready" card with Open PDF and Download.
+        var script = Read("wwwroot/js/app.js");
+        Assert.Contains("export function canShowPdfInPage()", script, StringComparison.Ordinal);
+        Assert.Contains("/iPad|iPhone|iPod/.test(ua)", script, StringComparison.Ordinal);
+        Assert.Contains("navigator.maxTouchPoints > 1", script, StringComparison.Ordinal);
+        Assert.Contains("return navigator.pdfViewerEnabled;", script, StringComparison.Ordinal);
+
+        var code = Read("Components/PdfPreview.razor.cs");
+        Assert.Contains("_inPage ??= await Interop.CanShowPdfInPageAsync();", code, StringComparison.Ordinal);
+        Assert.Matches(@"if \(_inPage == true\)\s*\{\s*await Interop\.ShowInFrameAsync\(_frame, _url\);", code);
+
+        var markup = Read("Components/PdfPreview.razor");
+        Assert.Contains("<strong>Your PDF is ready</strong>", markup, StringComparison.Ordinal);
+        Assert.Contains("<span>Open it in your device's PDF viewer, or download it.</span>", markup, StringComparison.Ordinal);
+        Assert.DoesNotContain("can't show", markup, StringComparison.Ordinal); // no claim that the browser can't show PDFs
+        Assert.Contains("@onclick=\"OpenInNewTabAsync\"", markup, StringComparison.Ordinal);
+        Assert.Contains("@onclick=\"() => DownloadAsync(_fileName)\"", markup, StringComparison.Ordinal);
+
+        // Every caller names the file, so the card shows it and its Download saves under it.
+        Assert.Contains("_preview.ShowAsync(pdfBytes, Demo.FileName)", Read("Components/SamplePage.razor.cs"), StringComparison.Ordinal);
+        Assert.Contains("_preview.ShowAsync(parts[0].Bytes, parts[0].Part.FileName)", Read("Components/SplitPartsPage.razor.cs"), StringComparison.Ordinal);
+
+        // The output toolbar fits a 375 px phone instead of cutting off Download.
+        var css = Read("wwwroot/css/app.css");
+        Assert.Contains(".output-actions { display: flex; flex-wrap: wrap;", css, StringComparison.Ordinal);
+        Assert.Contains(".output-actions .btn-sm { padding-inline: 0.5rem; }", string.Join("\n", PhoneBlocks(css)), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Faq_topic_chips_and_clear_search_are_44_pixels_on_phones()
     {
         var phone = string.Join("\n", PhoneBlocks(Read("wwwroot/css/app.css")));

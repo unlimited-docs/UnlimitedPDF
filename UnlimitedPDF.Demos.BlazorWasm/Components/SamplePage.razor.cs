@@ -118,7 +118,7 @@ public partial class SamplePage
                 pdfBytes = stream.ToArray();
             }
 
-            await _preview.ShowAsync(pdfBytes);
+            await _preview.ShowAsync(pdfBytes, Demo.FileName);
             stopwatch.Stop();
 
             int pageCount = PageCount ?? CountPages(pdfBytes);

@@ -156,7 +156,7 @@ public partial class SplitPartsPage : IAsyncDisposable
         }
 
         _selected = index;
-        await _preview.ShowAsync(_parts[index].Bytes);
+        await _preview.ShowAsync(_parts[index].Bytes, _parts[index].Part.FileName);
         _announcement = $"Showing {_parts[index].Part.FileName}.";
         StateHasChanged();
     }
@@ -184,7 +184,7 @@ public partial class SplitPartsPage : IAsyncDisposable
 
             _parts = parts;
             _selected = 0;
-            await _preview.ShowAsync(parts[0].Bytes);
+            await _preview.ShowAsync(parts[0].Bytes, parts[0].Part.FileName);
 
             _result = new SplitResult(parts.Count, parts.Sum(part => part.Bytes.Length), stopwatch.ElapsedMilliseconds);
             _stale = false;
