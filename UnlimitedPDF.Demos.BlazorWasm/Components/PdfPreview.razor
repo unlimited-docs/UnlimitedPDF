@@ -1,6 +1,9 @@
-<div class="preview">
-    @* The frame is always rendered so it can receive the first PDF; it stays hidden until then. *@
-    <iframe @ref="_frame" class="preview-frame @(_url is null ? "is-hidden" : null)" title="PDF preview"></iframe>
+<div class="preview @(ShowsCard ? "is-card" : null)">
+    @* The frame is always rendered so it can receive the first PDF; it stays hidden until then, and on browsers that
+       don't show a PDF placed in a frame (Android Chrome, iPhone and iPad Safari), where the ready card below takes
+       its place (QF-26111303). *@
+    <iframe @ref="_frame" class="preview-frame @(_url is null || ShowsCard ? "is-hidden" : null)" title="PDF preview"
+            aria-hidden="@(ShowsCard ? "true" : null)" tabindex="@(ShowsCard ? "-1" : null)"></iframe>
 
     @if (_url is null && !Busy)
     {
@@ -9,6 +12,24 @@
                 <Icon Name="invoice" Size="44" />
                 <strong>Your PDF appears here</strong>
                 <span>Press Generate PDF to build it in your browser.</span>
+            </div>
+        </div>
+    }
+
+    @if (ShowsCard)
+    {
+        <div class="preview-ready">
+            <Icon Name="invoice" Size="44" />
+            <strong>Your PDF is ready</strong>
+            <span>Open it in your device's PDF viewer, or download it.</span>
+            <span class="preview-ready-meta">@_fileName · @FormatSize(_size)</span>
+            <div class="preview-ready-actions">
+                <button type="button" class="btn btn-solid theme-primary" disabled="@Busy" @onclick="OpenInNewTabAsync">
+                    <Icon Name="external" Size="16" /> Open PDF
+                </button>
+                <button type="button" class="btn btn-outline" disabled="@Busy" @onclick="() => DownloadAsync(_fileName)">
+                    <Icon Name="download" Size="16" /> Download
+                </button>
             </div>
         </div>
     }

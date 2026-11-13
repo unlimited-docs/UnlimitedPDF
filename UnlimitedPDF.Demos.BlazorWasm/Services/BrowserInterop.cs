@@ -45,6 +45,14 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task BlurActiveElementAsync() => InvokeVoidAsync("blurActiveElement");
 
     /// <summary>
+    /// Asks whether the browser shows a PDF placed in a frame. Android Chrome downloads it instead, and iPhone and iPad
+    /// Safari leave the frame empty (QF-26111303).
+    /// </summary>
+    /// <returns><see langword="true"/> when the browser shows PDFs inside the page, which is also the answer when the
+    /// browser can't be asked.</returns>
+    public Task<bool> CanShowPdfInPageAsync() => InvokeAsync("canShowPdfInPage", true);
+
+    /// <summary>
     /// Closes a dialog opened with <see cref="ShowDialogAsync{T}"/>; the browser returns focus to its opener.
     /// </summary>
     /// <param name="dialog">The <c>dialog</c> element.</param>
