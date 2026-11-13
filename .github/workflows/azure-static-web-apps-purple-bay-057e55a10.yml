@@ -8,10 +8,18 @@ on:
     types: [opened, synchronize, reopened, closed]
     branches:
       - main
+  # "Run workflow" in the Actions tab deploys main to production on demand, whatever DEPLOY_PRODUCTION says (QF-26111304).
+  workflow_dispatch:
 
 jobs:
+  # Production: a merge to main deploys only while the repository variable DEPLOY_PRODUCTION is "true" (Settings >
+  # Secrets and variables > Actions > Variables); "Run workflow" on main always deploys. Pull requests still get their
+  # preview environment. (QF-26111304)
   build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+    if: >-
+      (github.event_name == 'push' && vars.DEPLOY_PRODUCTION == 'true') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'pull_request' && github.event.action != 'closed')
     runs-on: ubuntu-latest
     name: Build and Deploy Job
     steps:
@@ -41,6 +49,20 @@ jobs:
           output_location: "" # Already built
           skip_app_build: true
           ###### End of Repository/Build Configurations ######
+
+  # Says why a merge to main did not reach production, on the run's summary page (QF-26111304).
+  production_deploy_skipped_job:
+    if: github.event_name == 'push' && vars.DEPLOY_PRODUCTION != 'true'
+    runs-on: ubuntu-latest
+    name: Production Deploy Skipped
+    steps:
+      - name: Explain the skipped deploy
+        env:
+          FLAG: ${{ vars.DEPLOY_PRODUCTION }}
+        run: |
+          message="Production deploy skipped: DEPLOY_PRODUCTION is '${FLAG:-not set}', not 'true'. Use Run workflow on main to deploy now."
+          echo "::notice title=Production deploy skipped::$message"
+          echo "$message" >> "$GITHUB_STEP_SUMMARY"
 
   close_pull_request_job:
     if: github.event_name == 'pull_request' && github.event.action == 'closed'
