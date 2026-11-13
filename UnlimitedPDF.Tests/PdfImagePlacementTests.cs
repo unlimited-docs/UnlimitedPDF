@@ -114,7 +114,7 @@ public class PdfImagePlacementTests
     }
 
     [Fact]
-    public void Image_pages_reference_images_and_other_pages_keep_empty_resources()
+    public void Image_pages_reference_images_and_every_page_names_the_document_font()
     {
         var document = new PdfDocument();
         document.AddPage().AddText("no images", 10, 10);
@@ -124,7 +124,10 @@ public class PdfImagePlacementTests
 
         var text = Encoding.Latin1.GetString(Save(document));
 
-        Assert.Contains($"/Resources <<{Environment.NewLine}>>", text);
+        // QF-26111305: a page with text and no images still names its font; no page has an empty resource dictionary.
+        var nl = Environment.NewLine;
+        Assert.Contains($"/Resources <<{nl}/Font << /F1 3 0 R >>{nl}>>", text);
+        Assert.DoesNotContain($"/Resources <<{nl}>>", text);
         Assert.Matches(@"/XObject << /Im1 \d+ 0 R /Im2 \d+ 0 R >>", text);
     }
 

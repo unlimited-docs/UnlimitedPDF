@@ -131,6 +131,24 @@ public class PageTitleTests
         }
     }
 
+    [Fact]
+    public void Llms_txt_installs_the_current_package_version()
+    {
+        // llms.txt is a static file, so its PackageReference is typed by hand; it must match the package version, the
+        // way the readmes do (QF-26111306).
+        var project = File.ReadAllText(RepositoryFile("UnlimitedPDF/UnlimitedPDF.csproj"));
+        string version = Regex.Match(project, "<Version>([^<]+)</Version>").Groups[1].Value;
+
+        Assert.NotEmpty(version);
+        Assert.Contains($"<PackageReference Include=\"UnlimitedPDF\" Version=\"{version}\" />", DemosFile("wwwroot/llms.txt"), StringComparison.Ordinal);
+        foreach (var readme in new[] { "README.md", "nuget/README.md" })
+        {
+            var text = File.ReadAllText(RepositoryFile(readme));
+            Assert.Contains($"dotnet add package UnlimitedPDF --version {version}`", text, StringComparison.Ordinal);
+            Assert.Contains($"<PackageReference Include=\"UnlimitedPDF\" Version=\"{version}\" />", text, StringComparison.Ordinal);
+        }
+    }
+
     #endregion
 
     #region Private Methods
