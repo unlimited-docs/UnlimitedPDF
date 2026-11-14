@@ -151,6 +151,16 @@ public sealed class PdfFont
 
     #endregion
 
+    #region Internal Methods
+
+    // True when the font can draw the code point: it maps a glyph to it, or to every part of a split vowel sign the
+    // shaper decomposes (fonts may map only the parts).
+    internal bool Draws(int codePoint) =>
+        Font.CharacterMap.GlyphFor(codePoint) != 0
+        || (IndicShaper.SplitParts(codePoint) is { } parts && parts.All(p => Font.CharacterMap.GlyphFor(p) != 0));
+
+    #endregion
+
     #region Private Methods
 
     // Options are read once, when a load starts, so changing them later affects only later loads.

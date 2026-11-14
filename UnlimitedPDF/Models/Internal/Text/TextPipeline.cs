@@ -13,10 +13,16 @@ internal abstract record TextSegment(string Text, double Width);
 internal sealed record StandardSegment(string Text, double Width) : TextSegment(Text, Width);
 
 /// <summary>
-/// Text shaped in a caller font: positioned glyphs, and the text each glyph stands for (the first glyph of a cluster
-/// carries the cluster's text).
+/// Text shaped in a caller font: positioned glyphs, the text each glyph stands for in <c>ToUnicode</c>, and the glyph
+/// ranges drawn inside an <c>ActualText</c> span because their glyphs do not read back as their text.
 /// </summary>
-internal sealed record FontSegment(PdfFont Font, ShapedRun Run, string[] GlyphTexts, string Text, double Width) : TextSegment(Text, Width);
+internal sealed record FontSegment(PdfFont Font, ShapedRun Run, string[] GlyphTexts, IReadOnlyList<ActualTextSpan> Spans, string Text, double Width) : TextSegment(Text, Width);
+
+/// <summary>
+/// Glyphs <paramref name="Start"/> (inclusive) to <paramref name="End"/> (exclusive) of a shaped run, and the original
+/// text they show.
+/// </summary>
+internal readonly record struct ActualTextSpan(int Start, int End, string Text);
 
 /// <summary>
 /// A line of text laid out in fonts: its segments in reading order and its total width in points.
@@ -59,7 +65,7 @@ internal static class TextPipeline
         {
             string element = elements.GetTextElement();
             var codePoints = CodePoints(element).ToList();
-            var chosen = candidates.FirstOrDefault(f => codePoints.All(cp => f.Font.CharacterMap.GlyphFor(cp) != 0));
+            var chosen = candidates.FirstOrDefault(f => codePoints.All(f.Draws));
             string? script = codePoints.Select(ScriptOf).FirstOrDefault(s => s is not null);
             if (runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) && (script is null || runs[^1].Script == script || runs[^1].Script == string.Empty))
             {
@@ -82,7 +88,9 @@ internal static class TextPipeline
                 continue;
             }
             var shaped = script is "deva" or "telu" or "taml" ? IndicShaper.Shape(runFont, runText, script) : TextShaper.Shape(runFont, runText, ScriptTags(script));
-            segments.Add(new FontSegment(runFont, shaped, GlyphTexts(runFont, shaped, runText), runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm));
+            var spans = new List<ActualTextSpan>();
+            var texts = GlyphTexts(runFont, shaped, runText, spans);
+            segments.Add(new FontSegment(runFont, shaped, texts, spans, runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm));
         }
         return new LaidOutText(segments, segments.Sum(s => s.Width));
     }
@@ -141,34 +149,52 @@ internal static class TextPipeline
         _ => new[] { "latn", "DFLT", "dflt" }
     };
 
-    // The first glyph of each cluster carries the cluster's text: from its first character to the next cluster. A
-    // cluster drawn unchanged (one glyph per character, each the character's own glyph, in text order) gives each
-    // glyph its own character instead, so a glyph keeps one meaning wherever it is drawn.
-    private static string[] GlyphTexts(PdfFont font, ShapedRun run, string text)
+    // The text of each glyph for ToUnicode, and the spans that need ActualText. Glyphs are taken in groups: the
+    // smallest runs of glyphs that hold every glyph of their clusters (a reordered syllable is one group). A glyph
+    // the font maps a character to stands for that character (the lowest non-control code point, so a glyph means
+    // the same wherever it is drawn); a formed glyph (ligature, half form, reph) stands for the group's characters
+    // that no character glyph accounts for. A group drawn unchanged (one glyph per character, each meaning its
+    // character, in text order) reads back through ToUnicode alone; every other group gets an ActualText span with
+    // its original text (D-005).
+    private static string[] GlyphTexts(PdfFont font, ShapedRun run, string text, List<ActualTextSpan> spans)
     {
-        var starts = run.Glyphs.Select(g => g.Cluster).Distinct().OrderBy(c => c).ToList();
-        var texts = new string[run.Glyphs.Count];
-        var seen = new HashSet<int>();
-        int i = 0;
-        while (i < run.Glyphs.Count)
+        var glyphs = run.Glyphs;
+        var starts = glyphs.Select(g => g.Cluster).Distinct().OrderBy(c => c).ToList();
+        var last = new Dictionary<int, int>();
+        for (int i = 0; i < glyphs.Count; i++) last[glyphs[i].Cluster] = i;
+
+        var texts = new string[glyphs.Count];
+        int at = 0;
+        while (at < glyphs.Count)
         {
-            int cluster = run.Glyphs[i].Cluster;
-            int end = i + 1;
-            while (end < run.Glyphs.Count && run.Glyphs[end].Cluster == cluster) end++;
-            if (!seen.Add(cluster))
+            int end = last[glyphs[at].Cluster] + 1;
+            for (int j = at; j < end; j++) end = Math.Max(end, last[glyphs[j].Cluster] + 1);
+
+            int first = int.MaxValue, final = int.MinValue;
+            for (int j = at; j < end; j++) (first, final) = (Math.Min(first, glyphs[j].Cluster), Math.Max(final, glyphs[j].Cluster));
+            int next = starts.FirstOrDefault(c => c > final, text.Length);
+            string groupText = text.Substring(first, Math.Max(0, next - first));
+            var characters = Characters(groupText);
+
+            var meanings = new string?[end - at];
+            for (int j = at; j < end; j++)
             {
-                for (int k = i; k < end; k++) texts[k] = string.Empty;
-                i = end;
-                continue;
+                int codePoint = font.Font.CharacterMap.CodePointFor(glyphs[j].Glyph);
+                meanings[j - at] = codePoint < 0 ? null : char.ConvertFromUtf32(codePoint);
             }
 
-            int next = starts.FirstOrDefault(s => s > cluster, text.Length);
-            string clusterText = text.Substring(cluster, Math.Max(0, next - cluster));
-            var characters = Characters(clusterText);
-            bool unchanged = characters.Count == end - i
-                && characters.Select((c, k) => font.Font.CharacterMap.GlyphFor(char.ConvertToUtf32(c, 0)) == run.Glyphs[i + k].Glyph).All(same => same);
-            for (int k = i; k < end; k++) texts[k] = unchanged ? characters[k - i] : k == i ? clusterText : string.Empty;
-            i = end;
+            bool unchanged = characters.Count == end - at && characters.Select((c, k) => meanings[k] == c).All(same => same);
+            if (!unchanged)
+            {
+                // The characters no character glyph accounts for, in text order, go to the formed glyphs.
+                var rest = new List<string>(characters);
+                foreach (var meaning in meanings) if (meaning is not null) rest.Remove(meaning);
+                string formed = rest.Count > 0 ? string.Concat(rest) : groupText;
+                for (int k = 0; k < meanings.Length; k++) meanings[k] ??= formed;
+                spans.Add(new ActualTextSpan(at, end, groupText));
+            }
+            for (int k = 0; k < meanings.Length; k++) texts[at + k] = meanings[k]!;
+            at = end;
         }
         return texts;
     }
@@ -182,7 +208,8 @@ internal static class TextPipeline
     }
 
     // Draws a shaped run: TJ arrays of hex glyph IDs whose spacing numbers move the pen from where the previous glyph's
-    // /W width leaves it to the glyph's shaped position; a change of vertical offset starts a new array after Ts.
+    // /W width leaves it to the glyph's shaped position; a change of vertical offset starts a new array after Ts. A
+    // span whose glyphs do not read back as their text is wrapped in a marked-content span with its ActualText.
     private static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink)
     {
         var font = segment.Font;
@@ -198,8 +225,17 @@ internal static class TextPipeline
         double pen = 0; // in 1/1000 em
         int rise = 0;
         bool open = false;
-        foreach (var glyph in segment.Run.Glyphs)
+        int span = 0;
+        var glyphs = segment.Run.Glyphs;
+        for (int i = 0; i < glyphs.Count; i++)
         {
+            var glyph = glyphs[i];
+            if (span < segment.Spans.Count && segment.Spans[span].Start == i)
+            {
+                // BDC = begin marked content: a /Span whose ActualText (UTF-16BE hex) replaces the glyphs' own text
+                if (open) { sb.Append("] TJ"); open = false; }
+                sb.Append(" /Span << /ActualText <FEFF").Append(Convert.ToHexString(Encoding.BigEndianUnicode.GetBytes(segment.Spans[span].Text))).Append("> >> BDC");
+            }
             if (glyph.Y != rise)
             {
                 if (open) { sb.Append("] TJ"); open = false; }
@@ -219,6 +255,13 @@ internal static class TextPipeline
             if (!first) sb.Append(' ');
             sb.Append('<').Append(glyph.Glyph.ToString("X4", CultureInfo.InvariantCulture)).Append('>');
             pen = target + Math.Round(font.Instance.Advance(glyph.Glyph) * 1000.0 / unitsPerEm);
+            if (span < segment.Spans.Count && segment.Spans[span].End == i + 1)
+            {
+                // EMC = end marked content
+                if (open) { sb.Append("] TJ"); open = false; }
+                sb.Append(" EMC");
+                span++;
+            }
         }
         if (open) sb.Append("] TJ");
         if (rise != 0) sb.Append(" 0 Ts");

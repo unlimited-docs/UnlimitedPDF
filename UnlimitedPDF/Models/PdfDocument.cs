@@ -198,7 +198,7 @@ public class PdfDocument
         {
             string element = elements.GetTextElement();
             if (missing.Contains(element) || !StandardText.IsMissing(element)) continue;
-            if (candidates.Any(f => CodePoints(element).All(cp => f.Font.CharacterMap.GlyphFor(cp) != 0))) continue;
+            if (candidates.Any(f => CodePoints(element).All(f.Draws))) continue;
             missing.Add(element);
         }
         return missing;

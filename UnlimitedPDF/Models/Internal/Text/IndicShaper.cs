@@ -79,6 +79,11 @@ internal static class IndicShaper
         return TextShaper.Finish(font, buffer, plan.ScriptTags, PositioningFeatures);
     }
 
+    /// <summary>
+    /// Returns the parts the shaper splits a vowel sign into, or null for any other code point.
+    /// </summary>
+    public static int[]? SplitParts(int codePoint) => SplitVowels.TryGetValue(codePoint, out var parts) ? parts : null;
+
     #endregion
 
     #region Private Methods
