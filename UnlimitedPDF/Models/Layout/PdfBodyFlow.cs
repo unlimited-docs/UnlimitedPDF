@@ -134,6 +134,25 @@ public sealed class PdfBodyFlow
         Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext));
 
     /// <summary>
+    /// Adds a line of text to the body flow, drawn with a caller font: characters the font lacks use the document's
+    /// <see cref="PdfDocument.FontFallback"/> fonts, then the built-in font (WR-039).
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="font">The font to draw with.</param>
+    /// <param name="spacing">The space above the line, in points; dropped at the top of a page.</param>
+    /// <param name="fontSize">The font size in points. The default is 12.</param>
+    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="x">The offset: from the body's left edge for left alignment, before its right edge for right
+    /// alignment, or from its middle for center alignment, in points.</param>
+    /// <param name="keepWithNext">Whether the line stays on the same page as the next item, for example a heading.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="font"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Adds a line of text to the body flow, drawn with a caller font.")]
+    public void AddText(string text, PdfFont font, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0, bool keepWithNext = false) =>
+        Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext, font ?? throw new ArgumentNullException(nameof(font))));
+
+    /// <summary>
     /// Starts a new page: the next item lands at the body top of a page the library adds.
     /// </summary>
     [AddedVersion("1.0.0")]
@@ -179,13 +198,13 @@ public sealed class PdfBodyFlow
         return new FlowTable(new PdfTable { Width = width }, spacing, x, keepWithNext);
     }
 
-    internal static FlowText CreateText(string text, double spacing, double fontSize, PdfTextAlignment alignment, double x, bool keepWithNext)
+    internal static FlowText CreateText(string text, double spacing, double fontSize, PdfTextAlignment alignment, double x, bool keepWithNext, PdfFont? font = null)
     {
         if (text is null) throw new ArgumentNullException(nameof(text));
         Guard.NonNegative(spacing, nameof(spacing));
         Guard.Positive(fontSize, nameof(fontSize));
         Guard.Finite(x, nameof(x));
-        return new FlowText(text, fontSize, alignment, spacing, x, keepWithNext);
+        return new FlowText(text, fontSize, alignment, spacing, x, keepWithNext, font);
     }
 
     #endregion

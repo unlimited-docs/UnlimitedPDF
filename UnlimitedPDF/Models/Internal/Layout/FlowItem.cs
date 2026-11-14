@@ -66,12 +66,13 @@ internal sealed class FlowText : FlowItem
     /// <summary>
     /// Creates the item.
     /// </summary>
-    public FlowText(string text, double fontSize, PdfTextAlignment alignment, double spacing, double x, bool keepWithNext)
+    public FlowText(string text, double fontSize, PdfTextAlignment alignment, double spacing, double x, bool keepWithNext, PdfFont? font = null)
         : base(spacing, x, keepWithNext)
     {
         Text = text;
         FontSize = fontSize;
         Alignment = alignment;
+        Font = font;
     }
 
     #endregion
@@ -82,6 +83,11 @@ internal sealed class FlowText : FlowItem
     /// Gets the alignment across the area width.
     /// </summary>
     public PdfTextAlignment Alignment { get; }
+
+    /// <summary>
+    /// Gets the caller font, or null for the built-in font.
+    /// </summary>
+    public PdfFont? Font { get; }
 
     /// <summary>
     /// Gets the font size in points.

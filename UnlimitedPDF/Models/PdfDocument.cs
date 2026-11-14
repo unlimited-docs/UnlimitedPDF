@@ -16,6 +16,7 @@ public class PdfDocument
     private readonly List<PdfPageSettings> _rules = new();
     private readonly Dictionary<StandardFont, int> _standardFontObjects = new();
     private readonly EmbeddedFonts _embeddedFonts = new();
+    private readonly FontList _fontFallback = new();
     private double _bodyMarginBottom;
     private double _bodyMarginTop;
     private PageEntry? _flowRoot;
@@ -39,6 +40,7 @@ public class PdfDocument
         _fileHeader = new PdfHeader();
         _objects = new PdfBody();
         _pages = new PdfPages();
+        _embeddedFonts.Fallback = _fontFallback;
         Header = new PdfPageSection(LayoutChanged);
         Footer = new PdfPageSection(LayoutChanged);
         Body = new PdfBodyFlow(this);
@@ -474,7 +476,7 @@ public class PdfDocument
         switch (item)
         {
             case FlowText text:
-                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink));
+                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink, text.Font));
                 break;
             case FlowImage image:
                 var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
@@ -534,7 +536,7 @@ public class PdfDocument
             switch (band.Items[i])
             {
                 case SectionText text:
-                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink));
+                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink, text.Font));
                     break;
                 case SectionImage image:
                     var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
@@ -1160,6 +1162,13 @@ public class PdfDocument
     /// Gets the footer band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
     /// </summary>
     public PdfPageSection Footer { get; }
+
+    /// <summary>
+    /// Gets the fonts that draw characters the font of a text call lacks, tried in order for each character (WR-039).
+    /// Text added without a font uses this list too. A character no listed font has is drawn with the built-in
+    /// Helvetica when it is a Western European (WinAnsi) character, else as '?'. Null entries are rejected.
+    /// </summary>
+    public IList<PdfFont> FontFallback => _fontFallback;
 
     /// <summary>
     /// Gets the header band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).

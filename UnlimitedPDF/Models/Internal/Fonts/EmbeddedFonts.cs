@@ -204,6 +204,11 @@ internal sealed class EmbeddedFonts
 
     public IReadOnlyList<EmbeddedFace> Faces => _order;
 
+    /// <summary>
+    /// Gets or sets the document's fallback fonts (<see cref="PdfDocument.FontFallback"/>).
+    /// </summary>
+    public IReadOnlyList<PdfFont> Fallback { get; set; } = Array.Empty<PdfFont>();
+
     #endregion
 }
 

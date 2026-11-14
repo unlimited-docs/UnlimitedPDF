@@ -211,6 +211,24 @@ public class PdfTable
     }
 
     /// <summary>
+    /// Sets the first text item of the cell at the given row and column to text drawn with a caller font, adding rows
+    /// and columns first when needed. Images and other text items in the cell are untouched.
+    /// </summary>
+    /// <param name="row">The 0-based row index.</param>
+    /// <param name="column">The 0-based column index.</param>
+    /// <param name="text">The text; null stores an empty string.</param>
+    /// <param name="font">The font to draw with.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="font"/> is null.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Sets the first text item of a cell to text drawn with a caller font.")]
+    public void SetText(int row, int column, string text, PdfFont font)
+    {
+        if (font is null) throw new ArgumentNullException(nameof(font));
+        var cell = GetOrCreateCell(row, column);
+        cell.SetText(new PdfCellText(text ?? string.Empty, font));
+    }
+
+    /// <summary>
     /// Removes trailing rows and columns whose cells are all empty. A cell holding an image, or any non-empty text,
     /// is not empty.
     /// </summary>

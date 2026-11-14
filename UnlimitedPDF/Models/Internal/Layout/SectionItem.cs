@@ -14,7 +14,7 @@ internal abstract record SectionItem;
 /// <param name="Y">The offset of the line's top edge.</param>
 /// <param name="FontSize">The font size.</param>
 /// <param name="Alignment">The alignment within the band width.</param>
-internal sealed record SectionText(string Text, double X, double Y, double FontSize, PdfTextAlignment Alignment) : SectionItem;
+internal sealed record SectionText(string Text, double X, double Y, double FontSize, PdfTextAlignment Alignment, PdfFont? Font = null) : SectionItem;
 
 /// <summary>
 /// An image whose top-left corner is at (<paramref name="X"/>, <paramref name="Y"/>).

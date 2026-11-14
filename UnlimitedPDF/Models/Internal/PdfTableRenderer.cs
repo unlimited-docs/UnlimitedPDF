@@ -137,7 +137,7 @@ internal static class PdfTableRenderer
         if (layout.Items.Count == 1 && layout.Items[0].Item is PdfCellText single
             && single.FontSize == PdfCellText.DefaultFontSize && cell.VerticalAlignment == PdfCellVerticalAlignment.Middle)
         {
-            DrawSingleMiddleLine(sb, cell, single.Text, currentX, currentY, cellWidth, rowHeight, sink);
+            DrawSingleMiddleLine(sb, cell, single, currentX, currentY, cellWidth, rowHeight, sink);
             return;
         }
 
@@ -155,6 +155,11 @@ internal static class PdfTableRenderer
             {
                 // Each line box is centered on its baseline the same way the single-line case is (center - size / 3).
                 double baseline = top - item.Height / 2 - text.FontSize / 3;
+                if (TextPipeline.Layout(text.Text, text.Font, sink.EmbeddedFonts.Fallback, text.FontSize) is { } laidOut)
+                {
+                    sb.AppendLine(TextPipeline.Draw(laidOut, AlignedX(cell, currentX, cellWidth, laidOut.Width), baseline, text.FontSize, sink));
+                    continue;
+                }
                 double textX = AlignedX(cell, currentX, cellWidth, GetTextWidth(text.Text, text.FontSize));
                 var (resource, literal) = StandardText.Prepare(text.Text, sink);
                 sb.AppendLine("BT"); // Begin text
@@ -214,8 +219,17 @@ internal static class PdfTableRenderer
     }
 
     // The original single-line text placement, kept verbatim apart from escaping and invariant numbers.
-    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, string text, double currentX, double currentY, double cellWidth, double rowHeight, PageDrawSink sink)
+    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, PdfCellText item, double currentX, double currentY, double cellWidth, double rowHeight, PageDrawSink sink)
     {
+        string text = item.Text;
+        double middleBaseline = currentY - (rowHeight / 2) - 4; // Simple middle alignment
+        if (TextPipeline.Layout(text, item.Font, sink.EmbeddedFonts.Fallback, 12) is { } layout)
+        {
+            // Caller fonts are placed with their real shaped width (G-012).
+            sb.AppendLine(TextPipeline.Draw(layout, AlignedX(cell, currentX, cellWidth, layout.Width), middleBaseline, 12, sink));
+            return;
+        }
+
         var (resource, literal) = StandardText.Prepare(text, sink);
         sb.AppendLine("BT"); // Begin text
         sb.AppendLine("0 0 0 rg"); // Set text color to black
