@@ -132,6 +132,21 @@ public class PageTitleTests
     }
 
     [Fact]
+    public void Llms_txt_lists_fonts_and_languages_and_what_is_not_supported()
+    {
+        // CR-001, AC-16, D-019: supported fonts and scripts on one line, the scripts and formats not supported on another.
+        var lines = DemosFile("wwwroot/llms.txt").Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        string fonts = Assert.Single(lines, l => l.StartsWith("- Fonts and languages:", StringComparison.Ordinal));
+        string notSupported = Assert.Single(lines, l => l.StartsWith("- Not supported yet:", StringComparison.Ordinal));
+
+        foreach (string term in new[] { "`PdfFont`", "`.ttf`", "`.otf`", "variable fonts", "`PdfHtmlLoadOptions.Fonts`", "Latin, Devanagari (Hindi), Telugu, and Tamil", "only the glyphs used", "`?`" })
+            Assert.Contains(term, fonts, StringComparison.Ordinal);
+        foreach (string term in new[] { "right-to-left scripts", "Chinese, Japanese, and Korean", "`.ttc`", "WOFF", "encryption", "digital signatures", "PDF/A" })
+            Assert.Contains(term, notSupported, StringComparison.Ordinal);
+        Assert.DoesNotContain("custom fonts", notSupported, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Llms_txt_installs_the_current_package_version()
     {
         // llms.txt is a static file, so its PackageReference is typed by hand; it must match the package version, the

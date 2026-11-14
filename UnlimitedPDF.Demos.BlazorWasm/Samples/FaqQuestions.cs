@@ -41,20 +41,27 @@ public static class FaqQuestions
             new("linux-and-containers", "Does it run on Linux, macOS, and in containers?",
             [
                 "It has no native code, so it runs wherever your .NET app runs, including Linux and macOS servers and containers.",
-                "Text uses the PDF standard fonts, which PDF viewers provide, so no fonts have to be installed on the machine."
+                "Text in the PDF standard fonts needs no installed fonts, because PDF viewers provide them. Fonts you load with PdfFont are read from the file, stream, or bytes you give, not from the machine's font folders, and are embedded in the PDF, so they don't have to be installed where it is opened either."
             ])
         ]),
         new("text-and-fonts", "Text and fonts",
         [
             new("question-marks", "Why do some characters show as \"?\"",
             [
-                "Text added with AddText, in tables, and in headers and footers is written in ASCII, so any other character, even an accented letter, becomes a question mark.",
-                "HTML content supports the wider WinAnsi set: ASCII plus accented Latin letters, the euro sign, and typographic quotes and dashes. Characters outside it, such as Greek, Cyrillic, Chinese, or emoji, still become a question mark."
+                "A character becomes a question mark when no font you use has it. Without fonts of your own, text uses the PDF standard fonts, which have ASCII plus accented Latin letters, the euro sign, and typographic quotes and dashes; Greek, Cyrillic, Hindi, Chinese, emoji, and other characters become a question mark.",
+                "Load a font that has the characters with PdfFont and pass it to AddText, or add it to the document's FontFallback list. PdfDocument.FindMissingCharacters lists the characters no font can draw, and FailOnMissingCharacters makes Save fail on them instead. HTML adds a MissingCharacter warning for each one."
             ], SampleCatalog.CommonProblems),
             new("own-fonts", "Can I use my own fonts?",
             [
-                "Not yet. Text uses the PDF standard fonts: AddText, tables, headers, and footers use Helvetica, and HTML can choose Helvetica, Times, or Courier, each in regular, bold, italic, and bold italic."
-            ], NotYet: true),
+                "Yes. Load a .ttf or .otf font, with TrueType or CFF outlines and including variable fonts, once with PdfFont, from a file, a stream, or bytes. Pass it to AddText, header and footer text, the body flow, or table cells. The PDF embeds only the glyphs the document uses.",
+                "For HTML, register fonts under the family names your CSS uses with PdfHtmlLoadOptions.Fonts. Font collections (.ttc) and web fonts (WOFF, WOFF2) can't be loaded, and HTML @font-face rules are ignored."
+            ]),
+            new("languages", "Which languages can I use?",
+            [
+                "With the PDF standard fonts: English and other Western European languages, such as French, German, and Spanish.",
+                "With fonts you load: languages written in Latin letters, Hindi and the other languages written in Devanagari, Telugu, and Tamil. Each is shaped with the font's own rules, so conjuncts, vowel signs, and marks are drawn in place, and copied or searched text reads back as written.",
+                "Right-to-left scripts, such as Arabic and Hebrew, and Chinese, Japanese, and Korean are not supported yet."
+            ]),
             new("wrap-text", "Does text wrap onto the next line?",
             [
                 "Text added with AddText stays on one line. For paragraphs that wrap, add HTML to the body flow: its lines wrap at the body's width and continue onto new pages."

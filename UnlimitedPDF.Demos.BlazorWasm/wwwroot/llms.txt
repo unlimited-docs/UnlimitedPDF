@@ -8,9 +8,10 @@ Key facts:
 - Target frameworks: `net6.0`, `net8.0`, `net9.0`, `net10.0`, and `net11.0`, including Blazor WebAssembly (`browser`).
 - License: Apache-2.0, so commercial use is allowed.
 - Every public type is in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` needed.
-- Main types: `PdfDocument` (pages, header, footer, body flow, save), `PdfPage` (text, rectangles, images, tables), `PdfTable`, `PdfImage`, `PdfColor`, `PdfFile` (load an existing PDF), `PdfHtml`, and `PdfOperations` (`Merge`, `Split`, `ConvertHtml`).
+- Main types: `PdfDocument` (pages, header, footer, body flow, save), `PdfPage` (text, rectangles, images, tables), `PdfTable`, `PdfImage`, `PdfColor`, `PdfFont` (load a font), `PdfFile` (load an existing PDF), `PdfHtml`, and `PdfOperations` (`Merge`, `Split`, `ConvertHtml`).
 - Positions and sizes are in PDF points (1/72 inch); `PdfUnits` converts from millimeters, centimeters, inches, and pixels.
-- Not supported yet: custom fonts (text uses the PDF standard fonts, and characters outside Western European are written as `?`), encryption, digital signatures, and PDF/A.
+- Fonts and languages: load `.ttf` and `.otf` fonts (TrueType or CFF outlines, including variable fonts) with `PdfFont` and use them in every text call and in HTML (`PdfHtmlLoadOptions.Fonts`). Latin, Devanagari (Hindi), Telugu, and Tamil text is shaped with the font's rules, PDFs embed only the glyphs used, and copied text reads back as written. Without a font, text uses the PDF standard fonts with Western European characters; a character no font has is written as `?`.
+- Not supported yet: right-to-left scripts (Arabic, Hebrew), Chinese, Japanese, and Korean, font collections (`.ttc`) and web fonts (WOFF, WOFF2), encryption, digital signatures, and PDF/A.
 
 Quick start:
 
@@ -26,7 +27,7 @@ pdfDocument.Save("sample.pdf");
 
 ## Docs
 
-- [README on GitHub](https://github.com/unlimited-docs/UnlimitedPDF#readme): install, sample code, tables across pages, headers and footers, images, merge, split, HTML to PDF, upgrading to 1.0.0, and the change list.
+- [README on GitHub](https://github.com/unlimited-docs/UnlimitedPDF#readme): install, sample code, tables across pages, headers and footers, images, merge, split, HTML to PDF, fonts and languages, upgrading to 1.0.0, and the change list.
 - [NuGet package](https://www.nuget.org/packages/UnlimitedPDF): package versions and target frameworks.
 - [FAQ](https://unlimitedpdf.dev/faq): platforms, text and fonts, tables and layout, images, merge and split, HTML to PDF, and license.
 

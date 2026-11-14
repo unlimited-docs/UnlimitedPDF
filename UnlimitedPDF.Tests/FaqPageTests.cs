@@ -112,7 +112,8 @@ public class FaqPageTests
     public void Text_outside_html_draws_western_characters_and_a_question_mark_for_other_scripts()
     {
         // The "question-marks" answer: without a caller font, AddText draws WinAnsi characters with the built-in
-        // Helvetica (é is WinAnsi code 233, octal 351) and writes '?' for characters outside WinAnsi (WR-039).
+        // Helvetica (é is WinAnsi code 233, octal 351) and writes '?' for characters outside WinAnsi (WR-039);
+        // FindMissingCharacters reports them (D-015).
         var document = new PdfDocument();
         var page = document.AddPage();
         page.AddText("Café", 72, 720);
@@ -123,6 +124,62 @@ public class FaqPageTests
         var saved = Assert.Single(PdfPageReader.Read(output.ToArray()));
         Assert.True(saved.Shows(@"Caf\351"));
         Assert.True(saved.Shows("?"));
+        Assert.Equal(new[] { "త" }, document.FindMissingCharacters("Café త"));
+    }
+
+    [Fact]
+    public void A_loaded_font_draws_what_the_standard_fonts_write_as_a_question_mark()
+    {
+        // The "question-marks" and "own-fonts" answers: a font in FontFallback draws the Telugu letter, it is no longer
+        // missing, the PDF embeds the font, and the strict save passes.
+        var builder = new TestFontBuilder("Telugu Test");
+        builder.MapCharacters("త");
+        var telugu = PdfFont.FromBytes(builder.Build());
+        var document = new PdfDocument { FailOnMissingCharacters = true };
+        document.FontFallback.Add(telugu);
+        document.AddPage().AddText("త", 72, 700);
+
+        var pdf = PdfPageReader.SaveBytes(document);
+
+        Assert.Empty(document.FindMissingCharacters("త"));
+        Assert.Single(PdfInspector.Read(pdf).Fonts());
+        Assert.Equal("త", Assert.Single(PdfInspector.Read(pdf).PageText()));
+    }
+
+    [Fact]
+    public void The_font_answers_describe_the_1_1_0_behavior()
+    {
+        // CR-001, AC-16, D-019: every statement about fonts and characters matches the shipped behavior (PR-012).
+        string Answer(string id) => string.Join(" ", FaqQuestions.Questions.Single(q => q.Id == id).Answer);
+
+        string marks = Answer("question-marks");
+        foreach (string term in new[] { "PdfFont", "FontFallback", "FindMissingCharacters", "FailOnMissingCharacters", "MissingCharacter", "accented Latin letters" })
+            Assert.Contains(term, marks, StringComparison.Ordinal);
+        Assert.DoesNotContain("written in ASCII", marks, StringComparison.Ordinal);
+
+        var ownFonts = FaqQuestions.Questions.Single(q => q.Id == "own-fonts");
+        Assert.False(ownFonts.NotYet);
+        Assert.StartsWith("Yes.", ownFonts.Answer[0], StringComparison.Ordinal);
+        foreach (string term in new[] { ".ttf", ".otf", "variable fonts", "PdfFont", "embeds only the glyphs", "PdfHtmlLoadOptions.Fonts", ".ttc", "WOFF", "@font-face" })
+            Assert.Contains(term, Answer("own-fonts"), StringComparison.Ordinal);
+
+        string platforms = FaqQuestions.Questions.Single(q => q.Id == "linux-and-containers").Answer[1];
+        Assert.Contains("PdfFont", platforms, StringComparison.Ordinal);
+        Assert.Contains("embedded in the PDF", platforms, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_languages_answer_names_the_shaped_scripts_and_what_is_not_supported()
+    {
+        var group = FaqQuestions.Groups.Single(g => g.Id == "text-and-fonts");
+        var languages = group.Questions.Single(q => q.Id == "languages");
+        string answer = string.Join(" ", languages.Answer);
+
+        Assert.Equal("Which languages can I use?", languages.Text);
+        Assert.False(languages.NotYet);
+        Assert.Equal(group.Questions.ToList().FindIndex(q => q.Id == "own-fonts") + 1, group.Questions.ToList().IndexOf(languages));
+        foreach (string term in new[] { "Western European", "Latin letters", "Devanagari", "Telugu", "Tamil", "Right-to-left scripts", "Arabic", "Hebrew", "Chinese, Japanese, and Korean are not supported" })
+            Assert.Contains(term, answer, StringComparison.Ordinal);
     }
 
     [Fact]

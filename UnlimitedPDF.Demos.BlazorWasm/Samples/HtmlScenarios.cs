@@ -221,7 +221,7 @@ public static class HtmlScenarios
             PdfHtmlWarningKind.ContentClipped),
         Scenario("non-latin-characters", "Text", "Characters shown as boxes",
             "Accented letters, currency signs, or other scripts show as empty boxes or missing characters.",
-            "Western European characters such as é, ü, and € are drawn with the standard fonts. Characters outside that set, such as Cyrillic, Chinese, and emoji, are drawn as ?.",
+            "Western European characters such as é, ü, and € are drawn with the standard fonts. Devanagari, Telugu, and Tamil text needs a font registered in PdfHtmlLoadOptions.Fonts. Characters no font has, such as the Cyrillic, Chinese, and emoji here, are drawn as ? and each one is reported.",
             true, Page("Names and prices", "The first line is drawn as written; the second line shows ? for each character outside the standard fonts.",
                 "<p>Café Müller, Señora Ñúñez, Øresund: 25,00 € – “quoted”</p>"
                 + "<p>Привет, 你好, 🙂</p>"),
