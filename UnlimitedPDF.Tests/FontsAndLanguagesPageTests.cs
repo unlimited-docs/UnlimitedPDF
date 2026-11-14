@@ -92,6 +92,24 @@ public class FontsAndLanguagesPageTests
         Assert.Matches(new Regex(@"@if \(_variable is \{ \} range\)"), page);
     }
 
+    [Fact]
+    public void The_faq_answers_on_own_fonts_and_languages_open_the_demo()
+    {
+        foreach (string id in new[] { "own-fonts", "languages" })
+            Assert.Same(SampleCatalog.FontsAndLanguages, FaqQuestions.Questions.Single(q => q.Id == id).Demo);
+    }
+
+    [Fact]
+    public void The_readme_demos_paragraph_names_the_languages_category()
+    {
+        string readme = File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n", StringComparison.Ordinal);
+        int start = readme.IndexOf("## Demos\n", StringComparison.Ordinal);
+        string demos = readme.Substring(start, readme.IndexOf("\n## ", start + 3, StringComparison.Ordinal) - start);
+
+        Assert.Contains("in a Languages category (Fonts and languages, with text calls or HTML)", demos, StringComparison.Ordinal);
+        Assert.Contains("Hindi, Telugu, Tamil, French, or a mix with fonts you upload", demos, StringComparison.Ordinal);
+    }
+
     #endregion
 
     #region Private Methods

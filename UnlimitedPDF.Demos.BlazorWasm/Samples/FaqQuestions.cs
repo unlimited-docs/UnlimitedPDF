@@ -55,13 +55,13 @@ public static class FaqQuestions
             [
                 "Yes. Load a .ttf or .otf font, with TrueType or CFF outlines and including variable fonts, once with PdfFont, from a file, a stream, or bytes. Pass it to AddText, header and footer text, the body flow, or table cells. The PDF embeds only the glyphs the document uses.",
                 "For HTML, register fonts under the family names your CSS uses with PdfHtmlLoadOptions.Fonts. Font collections (.ttc) and web fonts (WOFF, WOFF2) can't be loaded, and HTML @font-face rules are ignored."
-            ]),
+            ], SampleCatalog.FontsAndLanguages),
             new("languages", "Which languages can I use?",
             [
                 "With the PDF standard fonts: English and other Western European languages, such as French, German, and Spanish.",
                 "With fonts you load: languages written in Latin letters, Hindi and the other languages written in Devanagari, Telugu, and Tamil. Each is shaped with the font's own rules, so conjuncts, vowel signs, and marks are drawn in place, and copied or searched text reads back as written.",
                 "Right-to-left scripts, such as Arabic and Hebrew, and Chinese, Japanese, and Korean are not supported yet."
-            ]),
+            ], SampleCatalog.FontsAndLanguages),
             new("wrap-text", "Does text wrap onto the next line?",
             [
                 "Text added with AddText stays on one line. For paragraphs that wrap, add HTML to the body flow: its lines wrap at the body's width and continue onto new pages."
