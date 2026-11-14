@@ -11,9 +11,10 @@ internal sealed class HtmlModel
 {
     #region Constructors and Finalizers
 
-    private HtmlModel(HtmlDocumentTree tree, Dictionary<HtmlElement, ComputedStyle> styles, Dictionary<HtmlElement, PdfImage> images, IReadOnlyDictionary<string, IReadOnlyList<PdfFont>>? fonts)
+    private HtmlModel(HtmlDocumentTree tree, Dictionary<HtmlElement, ComputedStyle> styles, Dictionary<HtmlElement, PdfImage> images, IReadOnlyDictionary<string, IReadOnlyList<PdfFont>>? fonts, bool synthesizeMissingStyles)
     {
         Fonts = fonts ?? new Dictionary<string, IReadOnlyList<PdfFont>>();
+        SynthesizeMissingStyles = synthesizeMissingStyles;
         Tree = tree;
         Styles = styles;
         Images = images;
@@ -54,7 +55,7 @@ internal sealed class HtmlModel
             if (!cache.TryGetValue(src, out var image)) cache[src] = image = ToImage(loader.Load(src, element.Line), src, element.Line, warnings);
             if (image is not null) images[element] = image;
         }
-        return new HtmlModel(tree, styles, images, options?.Fonts.Snapshot());
+        return new HtmlModel(tree, styles, images, options?.Fonts.Snapshot(), options?.SynthesizeMissingStyles ?? false);
     }
 
     /// <summary>
@@ -90,7 +91,7 @@ internal sealed class HtmlModel
                 cache[src] = image = ToImage(await loader.LoadAsync(src, element.Line, cancellationToken).ConfigureAwait(false), src, element.Line, warnings);
             if (image is not null) images[element] = image;
         }
-        return new HtmlModel(tree, styles, images, options?.Fonts.Snapshot());
+        return new HtmlModel(tree, styles, images, options?.Fonts.Snapshot(), options?.SynthesizeMissingStyles ?? false);
     }
 
     #endregion
@@ -150,6 +151,11 @@ internal sealed class HtmlModel
     /// Gets the caller fonts registered for the load, by lowercase CSS family name (WR-039).
     /// </summary>
     public IReadOnlyDictionary<string, IReadOnlyList<PdfFont>> Fonts { get; }
+
+    /// <summary>
+    /// Gets whether a missing bold or italic face is synthesized (D-012).
+    /// </summary>
+    public bool SynthesizeMissingStyles { get; }
 
     /// <summary>
     /// Gets every element's computed style.

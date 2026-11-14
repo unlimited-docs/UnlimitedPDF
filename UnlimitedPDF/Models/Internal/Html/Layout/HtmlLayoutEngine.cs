@@ -73,7 +73,7 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="lastPage">The last page offset blank space (heights, padding) may reach, or null for no limit.</param>
     /// <param name="fontFallback">The document's fallback fonts (WR-039), or null for none.</param>
     public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, int? lastPage = null, IReadOnlyList<PdfFont>? fontFallback = null)
-        : this(model, width, edges, warnings, measuring: false, new LayoutCache(new HtmlFonts(model.Fonts, fontFallback ?? Array.Empty<PdfFont>())), lastPage)
+        : this(model, width, edges, warnings, measuring: false, new LayoutCache(new HtmlFonts(model.Fonts, fontFallback ?? Array.Empty<PdfFont>(), model.SynthesizeMissingStyles)), lastPage)
     {
     }
 
@@ -108,7 +108,7 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="fontFallback">The document's fallback fonts (WR-039).</param>
     /// <returns>The height in points.</returns>
     public static double MeasureHeight(HtmlModel model, HtmlBox box, double width, IReadOnlyList<PdfFont> fontFallback) =>
-        new HtmlLayoutEngine(model, width, Unlimited, new List<PdfHtmlWarning>(), measuring: true, new LayoutCache(new HtmlFonts(model.Fonts, fontFallback))).Measure(box, width);
+        new HtmlLayoutEngine(model, width, Unlimited, new List<PdfHtmlWarning>(), measuring: true, new LayoutCache(new HtmlFonts(model.Fonts, fontFallback, model.SynthesizeMissingStyles))).Measure(box, width);
 
     /// <summary>
     /// Lays out the whole HTML.

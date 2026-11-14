@@ -8,7 +8,8 @@ namespace UnlimitedPDF.Models.Internal.Html.Layout;
 /// <c>font-family</c> list that has it (a registered caller family gives its face nearest the text's weight and
 /// style; a built-in family name gives the standard font), then the fallback fonts, then the standard font, which
 /// draws Western European (WinAnsi) characters and '?' for the rest. Without registered fonts and fallback fonts,
-/// HTML text keeps the standard-font path unchanged (<see cref="Simple"/>).
+/// HTML text keeps the standard-font path unchanged (<see cref="Simple"/>). A face that is not bold or not italic
+/// where the text asks for it is a missing face: reported, or synthesized when the load opted in.
 /// </summary>
 internal sealed class HtmlFonts
 {
@@ -25,10 +26,11 @@ internal sealed class HtmlFonts
 
     #region Constructors and Finalizers
 
-    public HtmlFonts(IReadOnlyDictionary<string, IReadOnlyList<PdfFont>> fonts, IReadOnlyList<PdfFont> fallback)
+    public HtmlFonts(IReadOnlyDictionary<string, IReadOnlyList<PdfFont>> fonts, IReadOnlyList<PdfFont> fallback, bool synthesize = false)
     {
         _fonts = fonts;
         _fallback = fallback;
+        Synthesize = synthesize;
     }
 
     #endregion
@@ -45,8 +47,8 @@ internal sealed class HtmlFonts
     /// <param name="faces">The family's faces.</param>
     /// <param name="weight">The CSS weight.</param>
     /// <param name="italic">Whether the style is italic or oblique.</param>
-    /// <returns>The face, and whether it matches the weight and style exactly.</returns>
-    public static (PdfFont Face, bool Exact) Match(IReadOnlyList<PdfFont> faces, int weight, bool italic)
+    /// <returns>The face.</returns>
+    public static PdfFont Match(IReadOnlyList<PdfFont> faces, int weight, bool italic)
     {
         static int Distance(PdfFont face, int weight) =>
             weight < face.MinimumWeight ? face.MinimumWeight - weight : weight > face.MaximumWeight ? weight - face.MaximumWeight : 0;
@@ -55,8 +57,46 @@ internal sealed class HtmlFonts
             .Select((face, order) => (Face: face, Distance: Distance(face, weight), Style: face.IsItalic == italic ? 0 : 1, Order: order))
             .OrderBy(f => f.Distance).ThenBy(f => f.Style).ThenBy(f => f.Order)
             .First();
-        return (best.Face.AtWeight(weight), best.Distance == 0 && best.Style == 0);
+        return best.Face.AtWeight(weight);
     }
+
+    /// <summary>
+    /// Returns how a face misses a style: whether the text asks for bold (weight 600 or more) and the face is not
+    /// bold, or the other way round, and the same for italic.
+    /// </summary>
+    public static (bool Weight, bool Italic) Gap(PdfFont face, int weight, bool italic) =>
+        ((weight >= StandardFonts.BoldWeight) != (face.Weight >= StandardFonts.BoldWeight), italic != face.IsItalic);
+
+    /// <summary>
+    /// Returns the registered families of a style whose face misses the style and cannot be synthesized, among the
+    /// faces in <paramref name="used"/>: the family name and the face used.
+    /// </summary>
+    /// <param name="style">The text's style.</param>
+    /// <param name="used">The caller fonts the text is drawn with.</param>
+    /// <returns>The missing faces.</returns>
+    public IEnumerable<(string Family, PdfFont Face)> MissingFaces(ComputedStyle style, IReadOnlyCollection<PdfFont> used)
+    {
+        foreach (string name in style.FontFamilies.Distinct(StringComparer.Ordinal))
+        {
+            if (!_fonts.TryGetValue(name, out var faces) || faces.Count == 0) continue;
+            var face = Match(faces, style.FontWeight, style.Italic);
+            if (!used.Contains(face)) continue;
+            var (weightGap, italicGap) = Gap(face, style.FontWeight, style.Italic);
+            bool bold = style.FontWeight >= StandardFonts.BoldWeight;
+
+            // Synthesis adds bold to a lighter face and a slant to an upright one; it cannot take either away.
+            bool covered = Synthesize && (!weightGap || bold) && (!italicGap || style.Italic);
+            if ((weightGap || italicGap) && !covered) yield return (name, face);
+        }
+    }
+
+    /// <summary>
+    /// Returns the styles to synthesize for text drawn with a caller font: bold when the text is bold and the face is
+    /// not, a slant when the text is italic and the face is not; none unless the load opted in.
+    /// </summary>
+    public (bool Bold, bool Italic) Synthesis(ComputedStyle style, PdfFont font) => Synthesize
+        ? (style.FontWeight >= StandardFonts.BoldWeight && font.Weight < StandardFonts.BoldWeight, style.Italic && !font.IsItalic)
+        : (false, false);
 
     /// <summary>
     /// Returns the fonts a style tries, in order; null stands for the standard font.
@@ -71,7 +111,7 @@ internal sealed class HtmlFonts
         {
             if (_fonts.TryGetValue(name, out var faces) && faces.Count > 0)
             {
-                var face = Match(faces, style.FontWeight, style.Italic).Face;
+                var face = Match(faces, style.FontWeight, style.Italic);
                 if (!candidates.Contains(face)) candidates.Add(face);
             }
             else if (!standard && StandardFonts.IsKnown(name))
@@ -133,6 +173,11 @@ internal sealed class HtmlFonts
     /// Gets whether HTML text takes the standard-font path unchanged: no registered fonts and no fallback fonts.
     /// </summary>
     public bool Simple => _fonts.Count == 0 && _fallback.Count == 0;
+
+    /// <summary>
+    /// Gets whether missing bold and italic faces are synthesized (D-012).
+    /// </summary>
+    public bool Synthesize { get; }
 
     #endregion
 }

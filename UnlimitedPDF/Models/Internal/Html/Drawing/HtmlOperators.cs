@@ -7,6 +7,13 @@ namespace UnlimitedPDF.Models.Internal.Html.Drawing;
 /// </summary>
 internal static class HtmlOperators
 {
+    #region Fields and Constants
+
+    // The horizontal shear of a synthesized italic: tan(12 degrees), rounded.
+    private const double ItalicSkew = 0.2126;
+
+    #endregion
+
     #region Methods
 
     #region Public Methods
@@ -144,12 +151,19 @@ internal static class HtmlOperators
     /// <param name="sink">The page's draw sink.</param>
     /// <param name="wordSpacing">Extra space after each space, for justified text.</param>
     /// <param name="characterSpacing">Extra space after each cluster, for <c>letter-spacing</c>.</param>
+    /// <param name="fakeBold">Whether to synthesize bold: fill and stroke the outlines, the stroke a thirtieth of the
+    /// font size wide (D-012).</param>
+    /// <param name="fakeItalic">Whether to synthesize italic: slant the text 12 degrees (D-012).</param>
     /// <returns>The operators.</returns>
-    public static string ShapedText(FontSegment segment, double fontSize, PdfColor color, double x, double baseline, PageDrawSink sink, double wordSpacing = 0, double characterSpacing = 0)
+    public static string ShapedText(FontSegment segment, double fontSize, PdfColor color, double x, double baseline, PageDrawSink sink, double wordSpacing = 0, double characterSpacing = 0, bool fakeBold = false, bool fakeItalic = false)
     {
-        // q/Q = save and restore state, BT/ET = text object, rg = fill color; the segment sets its font and position
-        var sb = new StringBuilder("q BT ").Append(Color(color)).Append(" rg");
-        TextPipeline.DrawShaped(sb, segment, x, baseline, fontSize, sink, characterSpacing, wordSpacing);
+        // q/Q = save and restore state, BT/ET = text object, rg/RG = fill and stroke color, w = line width, Tr = text
+        // render mode (2 = fill, then stroke); the segment sets its font and position
+        var sb = new StringBuilder("q ");
+        if (fakeBold) sb.Append(Color(color)).Append(" RG ").Append(N(fontSize / 30)).Append(" w ");
+        sb.Append("BT ").Append(Color(color)).Append(" rg");
+        if (fakeBold) sb.Append(" 2 Tr");
+        TextPipeline.DrawShaped(sb, segment, x, baseline, fontSize, sink, characterSpacing, wordSpacing, fakeItalic ? ItalicSkew : 0);
         return sb.Append(" ET Q").ToString();
     }
 

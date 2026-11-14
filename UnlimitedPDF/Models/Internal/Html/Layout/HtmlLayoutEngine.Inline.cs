@@ -17,6 +17,7 @@ internal sealed partial class HtmlLayoutEngine
 
     private readonly HashSet<string> _reportedLinks = new(StringComparer.Ordinal);
     private readonly HashSet<string> _reportedMissing = new(StringComparer.Ordinal);
+    private readonly HashSet<(string Family, bool Bold, bool Italic)> _reportedFaces = new();
 
     #endregion
 
@@ -290,16 +291,33 @@ internal sealed partial class HtmlLayoutEngine
         foreach (var segment in Fonts.Layout(text, style).Segments)
         {
             int spaces = segment.Text.Count(c => c == ' ');
-            if (segment is FontSegment shaped) commands.Add(new ShapedTextCommand(shaped, size, style.Color, x, baseline, wordSpacing, letterSpacing));
+            if (segment is FontSegment shaped)
+            {
+                var (fakeBold, fakeItalic) = Fonts.Synthesis(style, shaped.Font);
+                commands.Add(new ShapedTextCommand(shaped, size, style.Color, x, baseline, wordSpacing, letterSpacing, fakeBold, fakeItalic));
+            }
             else commands.Add(new TextCommand(standard, size, style.Color, x, baseline, WinAnsiEncoding.Encode(segment.Text), wordSpacing, letterSpacing, segment.Text));
             x += segment.Width + letterSpacing * HtmlFonts.Slots(segment) + wordSpacing * spaces;
         }
     }
 
-    // Each character drawn as '?' (in no font, and not WinAnsi) is reported once (D-007).
+    // Each character drawn as '?' (in no font, and not WinAnsi) is reported once (D-007), and each registered family
+    // drawn without a face of the text's weight and style once per weight and style (D-012).
     private void ReportMissing(string text, ComputedStyle style)
     {
         if (!_report && _measuring) return;
+        if (!Fonts.Simple)
+        {
+            var used = Fonts.Layout(text, style).Segments.OfType<FontSegment>().Select(s => s.Font).ToHashSet();
+            bool bold = style.FontWeight >= StandardFonts.BoldWeight;
+            foreach (var (family, face) in Fonts.MissingFaces(style, used))
+            {
+                if (!_reportedFaces.Add((family, bold, style.Italic))) continue;
+                string wanted = (bold, style.Italic) switch { (true, true) => "bold italic", (true, false) => "bold", (false, true) => "italic", _ => "regular" };
+                string chosen = (face.Weight >= StandardFonts.BoldWeight ? "bold" : "regular") + (face.IsItalic ? " italic" : string.Empty);
+                Warn(PdfHtmlWarningKind.MissingFontFace, family, $"The font family \"{family}\" has no {wanted} face; its {chosen} face (weight {face.Weight.ToString(CultureInfo.InvariantCulture)}) is used. Register the face, or set SynthesizeMissingStyles.");
+            }
+        }
         var missing = Fonts.Simple
             ? StandardText.MissingElements(text)
             : Fonts.Layout(text, style).Segments.OfType<StandardSegment>().SelectMany(segment => StandardText.MissingElements(segment.Text));

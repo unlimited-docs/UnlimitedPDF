@@ -40,6 +40,14 @@ public sealed class PdfHtmlLoadOptions
     public PdfHtmlFontCollection Fonts { get; } = new();
 
     /// <summary>
+    /// Gets or sets whether bold or italic text in a registered family that has no bold or italic face is drawn with a
+    /// synthesized style (D-012): bold as the outline stroked as well as filled, one thirtieth of the font size wide;
+    /// italic slanted by 12 degrees. Without it, the nearest registered face is used and a
+    /// <see cref="PdfHtmlWarningKind.MissingFontFace"/> warning is added. The default is false.
+    /// </summary>
+    public bool SynthesizeMissingStyles { get; set; }
+
+    /// <summary>
     /// Gets or sets the largest HTML input in bytes, or null for <see cref="PdfHtml.DefaultMaxInputSize"/>.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>

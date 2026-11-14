@@ -237,9 +237,9 @@ internal static class TextPipeline
     /// numbers move the pen from where the previous glyph's /W width leaves it to the glyph's shaped position; a change
     /// of vertical offset starts a new array after Ts. A span whose glyphs do not read back as their text is wrapped in
     /// a marked-content span with its ActualText. Extra letter spacing goes after each cluster and extra word spacing
-    /// after each space, in points.
+    /// after each space, in points; a skew slants the text (the text matrix's horizontal shear).
     /// </summary>
-    public static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink, double letterSpacing = 0, double wordSpacing = 0)
+    public static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink, double letterSpacing = 0, double wordSpacing = 0, double skew = 0)
     {
         var font = segment.Font;
         double unitsPerEm = font.Font.UnitsPerEm;
@@ -249,7 +249,7 @@ internal static class TextPipeline
 
         // Tf = font and size, Tm = text position, TJ = show glyphs with spacing, Ts = text rise for glyphs placed above
         // or below the baseline
-        sb.Append(" /").Append(resource).Append(' ').Append(PdfNumber.Format(fontSize)).Append(" Tf 1 0 0 1 ")
+        sb.Append(" /").Append(resource).Append(' ').Append(PdfNumber.Format(fontSize)).Append(" Tf 1 0 ").Append(PdfNumber.Format(skew)).Append(" 1 ")
           .Append(PdfNumber.Format(x)).Append(' ').Append(PdfNumber.Format(baseline)).Append(" Tm");
         double pen = 0; // in 1/1000 em
         double shift = 0; // extra spacing so far, in 1/1000 em

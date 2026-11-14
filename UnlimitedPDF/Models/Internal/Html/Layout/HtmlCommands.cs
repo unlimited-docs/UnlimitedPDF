@@ -29,9 +29,9 @@ internal sealed record LineCommand(double X1, double Y1, double X2, double Y2, d
 internal sealed record TextCommand(StandardFont Font, double FontSize, PdfColor Color, double X, double Baseline, byte[] Codes, double WordSpacing, double CharacterSpacing, string Text = "") : HtmlCommand;
 
 /// <summary>
-/// A run of text shaped in a caller font (WR-039).
+/// A run of text shaped in a caller font (WR-039), with the bold and italic styles to synthesize (D-012).
 /// </summary>
-internal sealed record ShapedTextCommand(FontSegment Segment, double FontSize, PdfColor Color, double X, double Baseline, double WordSpacing, double CharacterSpacing) : HtmlCommand;
+internal sealed record ShapedTextCommand(FontSegment Segment, double FontSize, PdfColor Color, double X, double Baseline, double WordSpacing, double CharacterSpacing, bool FakeBold = false, bool FakeItalic = false) : HtmlCommand;
 
 /// <summary>
 /// An image drawn into a box.
