@@ -21,7 +21,13 @@ internal sealed record FontSegment(PdfFont Font, ShapedRun Run, string[] GlyphTe
 /// <summary>
 /// A line of text laid out in fonts: its segments in reading order and its total width in points.
 /// </summary>
-internal sealed record LaidOutText(IReadOnlyList<TextSegment> Segments, double Width);
+internal sealed record LaidOutText(IReadOnlyList<TextSegment> Segments, double Width)
+{
+    /// <summary>
+    /// Gets the whole line's text.
+    /// </summary>
+    public string Text => string.Concat(Segments.Select(s => s.Text));
+}
 
 /// <summary>
 /// Lays out and draws a line of text with caller fonts (WR-039, D-007): each text element (grapheme cluster) takes
@@ -97,7 +103,7 @@ internal static class TextPipeline
             else
             {
                 // Tj = show text in the built-in font
-                var (resource, literal) = StandardText.Prepare(segment.Text, sink);
+                var (resource, literal) = StandardText.Prepare(segment.Text, sink, layout.Text);
                 sb.Append(" /").Append(resource).Append(' ').Append(PdfNumber.Format(fontSize)).Append(" Tf 1 0 0 1 ")
                   .Append(PdfNumber.Format(pen)).Append(' ').Append(PdfNumber.Format(baseline)).Append(" Tm (").Append(literal).Append(") Tj");
             }

@@ -177,6 +177,34 @@ public class PdfDocument
     }
 
     /// <summary>
+    /// Returns the characters of <paramref name="text"/> that no font can draw and that would be drawn as '?': not
+    /// in <paramref name="font"/>, not in any <see cref="FontFallback"/> font, and not a Western European (WinAnsi)
+    /// character the built-in font draws (D-015). Each is one text element (an emoji, for example, is one entry),
+    /// listed once, in order of first appearance.
+    /// </summary>
+    /// <param name="text">The text to check.</param>
+    /// <param name="font">The font the text would be drawn with, or null for text added without a font.</param>
+    /// <returns>The missing characters; empty when every character can be drawn.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Returns the characters of a text that no font can draw.")]
+    public IReadOnlyList<string> FindMissingCharacters(string text, PdfFont? font = null)
+    {
+        if (text is null) throw new ArgumentNullException(nameof(text));
+        var candidates = (font is null ? Array.Empty<PdfFont>() : new[] { font }).Concat(_fontFallback).ToList();
+        var missing = new List<string>();
+        var elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            string element = elements.GetTextElement();
+            if (missing.Contains(element) || !StandardText.IsMissing(element)) continue;
+            if (candidates.Any(f => CodePoints(element).All(cp => f.Font.CharacterMap.GlyphFor(cp) != 0))) continue;
+            missing.Add(element);
+        }
+        return missing;
+    }
+
+    /// <summary>
     /// Writes a PDF document to the specified file path. The document is validated before the file is opened,
     /// so an invalid document leaves an existing file unchanged.
     /// </summary>
@@ -688,6 +716,17 @@ public class PdfDocument
             }
         }
 
+        // With FailOnMissingCharacters, a character drawn as '?' stops the save here, before anything is written
+        // (D-015).
+        if (FailOnMissingCharacters)
+        {
+            for (int i = 0; i < visible.Count; i++)
+            {
+                if (sinks[i] is { MissingCharacters.Count: > 0 } sink)
+                    throw new PdfTextException(sink.MissingCharacters[0].Character, sink.MissingCharacters[0].Text, i + 1);
+            }
+        }
+
         // Caller fonts: one set of objects per face, holding the glyphs every page of this save draws (WR-039).
         RegisterEmbeddedFonts(sinks);
 
@@ -787,6 +826,12 @@ public class PdfDocument
                 .Select(file => (file.Source, (IReadOnlyDictionary<int, int>)_importedObjects[file])));
         }
         _objects.Objects.First(o => o.ObjectNumber == 1).Content = catalog.ToString();
+    }
+
+    private static IEnumerable<int> CodePoints(string text)
+    {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+            yield return char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
     }
 
     // Writes each caller font the save draws with: its glyphs from every page (the first text recorded for a glyph is
@@ -1162,6 +1207,13 @@ public class PdfDocument
     /// Gets the footer band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
     /// </summary>
     public PdfPageSection Footer { get; }
+
+    /// <summary>
+    /// Gets or sets whether saving fails with <see cref="PdfTextException"/>, before anything is written, when text
+    /// added through <see cref="PdfPage.AddText(string, double, double, double)"/>, headers, footers, the body flow,
+    /// or table cells holds a character no font can draw, instead of drawing it as '?' (D-015). The default is false.
+    /// </summary>
+    public bool FailOnMissingCharacters { get; set; }
 
     /// <summary>
     /// Gets the fonts that draw characters the font of a text call lacks, tried in order for each character (WR-039).

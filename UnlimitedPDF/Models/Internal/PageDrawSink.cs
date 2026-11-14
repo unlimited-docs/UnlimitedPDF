@@ -63,6 +63,11 @@ internal sealed class PageDrawSink
     }
 
     /// <summary>
+    /// Records a character the page draws as '?' because no font has it, with the text that holds it (D-015).
+    /// </summary>
+    public void RecordMissing(string character, string text) => MissingCharacters.Add((character, text));
+
+    /// <summary>
     /// Returns the glyphs the page draws with a face and the text each stands for.
     /// </summary>
     public IReadOnlyDictionary<int, string> GlyphsOf(EmbeddedFace face) => _faceGlyphs[face];
@@ -84,6 +89,11 @@ internal sealed class PageDrawSink
     public IReadOnlyList<EmbeddedFace> Faces => _faces;
 
     public IReadOnlyCollection<StandardFont> Fonts => _fonts;
+
+    /// <summary>
+    /// Gets the characters the page draws as '?', with the text that holds each, in drawing order.
+    /// </summary>
+    public List<(string Character, string Text)> MissingCharacters { get; } = new();
 
     /// <summary>
     /// Gets the function that returns an image's resource name, registering the image on the page.
