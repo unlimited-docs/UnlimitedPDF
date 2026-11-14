@@ -34,7 +34,12 @@ internal class PdfTextElement
     /// Returns the PDF content stream command for drawing this text element.
     /// </summary>
     /// <returns>A string representing the text drawing command.</returns>
-    public override string ToString()
+    /// <summary>
+    /// Returns the operators that draw the text, recording in <paramref name="sink"/> the font the text uses.
+    /// </summary>
+    /// <param name="sink">The page's draw sink.</param>
+    /// <returns>The operators.</returns>
+    public string ToContent(PageDrawSink sink)
     {
         // BT = Begin Text, ET = End Text
         // Tf = Set font and size
@@ -42,6 +47,8 @@ internal class PdfTextElement
         // Tj = Show text
         // The text is escaped like every other string the library writes (WR-005); text without a backslash or an
         // unbalanced parenthesis is written unchanged.
-        return $"BT /{FontName} {PdfNumber.Format(FontSize)} Tf {PdfNumber.Format(X)} {PdfNumber.Format(Y)} Td ({PdfLiteralString.Escape(Text)}) Tj ET";
+        // Text with characters outside ASCII uses the WinAnsi Helvetica resource instead of /F1 (WR-039).
+        var (resource, literal) = StandardText.IsAscii(Text) ? (FontName, PdfLiteralString.Escape(Text)) : StandardText.Prepare(Text, sink);
+        return $"BT /{resource} {PdfNumber.Format(FontSize)} Tf {PdfNumber.Format(X)} {PdfNumber.Format(Y)} Td ({literal}) Tj ET";
     }
 }

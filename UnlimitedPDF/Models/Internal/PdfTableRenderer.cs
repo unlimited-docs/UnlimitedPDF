@@ -54,13 +54,13 @@ internal static class PdfTableRenderer
     /// <param name="table">The table.</param>
     /// <param name="pageNumber">The 1-based page number, used in error messages.</param>
     /// <param name="tableNumber">The 1-based position of the table among the page's tables, used in error messages.</param>
-    /// <param name="imageName">Returns the page resource name of an image, for example "/Im1".</param>
+    /// <param name="sink">The page's draw sink: image resource names and the fonts the page uses.</param>
     /// <returns>The operators.</returns>
     /// <exception cref="InvalidOperationException">A row leaves an image no room.</exception>
-    public static string Render(PdfTable table, int pageNumber, int tableNumber, Func<PdfImageData, string> imageName)
+    public static string Render(PdfTable table, int pageNumber, int tableNumber, PageDrawSink sink)
     {
         var layout = Layout(table, pageNumber, tableNumber);
-        return RenderAt(table, layout, table.X, table.Y, imageName);
+        return RenderAt(table, layout, table.X, table.Y, sink);
     }
 
     /// <summary>
@@ -71,12 +71,12 @@ internal static class PdfTableRenderer
     /// <param name="layout">The table's layout.</param>
     /// <param name="x">The x-coordinate of the table's left edge, in points.</param>
     /// <param name="top">The y-coordinate of the table's top edge, in points.</param>
-    /// <param name="imageName">Returns the page resource name of an image, for example "/Im1".</param>
+    /// <param name="sink">The page's draw sink: image resource names and the fonts the page uses.</param>
     /// <returns>The operators.</returns>
-    public static string RenderAt(PdfTable table, TableLayout layout, double x, double top, Func<PdfImageData, string> imageName)
+    public static string RenderAt(PdfTable table, TableLayout layout, double x, double top, PageDrawSink sink)
     {
         var sb = new StringBuilder();
-        DrawRows(sb, table, layout, Enumerable.Range(0, table.RowCount), x, top, imageName);
+        DrawRows(sb, table, layout, Enumerable.Range(0, table.RowCount), x, top, sink);
         return sb.ToString();
     }
 
@@ -87,15 +87,15 @@ internal static class PdfTableRenderer
     /// <param name="table">The table.</param>
     /// <param name="plan">The table's page plan.</param>
     /// <param name="part">The part to draw; one of <paramref name="plan"/>'s parts.</param>
-    /// <param name="imageName">Returns the page resource name of an image, for example "/Im1".</param>
+    /// <param name="sink">The page's draw sink: image resource names and the fonts the page uses.</param>
     /// <returns>The operators; empty when the part has no rows.</returns>
-    public static string RenderPart(PdfTable table, TablePlan plan, TablePart part, Func<PdfImageData, string> imageName)
+    public static string RenderPart(PdfTable table, TablePlan plan, TablePart part, PageDrawSink sink)
     {
         var rows = Enumerable.Range(part.FirstRow, part.EndRow - part.FirstRow);
         if (part.RepeatsHeader) rows = Enumerable.Range(0, plan.HeaderRowCount).Concat(rows);
 
         var sb = new StringBuilder();
-        DrawRows(sb, table, plan.Layout, rows, part.X, part.Top, imageName);
+        DrawRows(sb, table, plan.Layout, rows, part.X, part.Top, sink);
         return sb.ToString();
     }
 
@@ -128,7 +128,7 @@ internal static class PdfTableRenderer
         double currentY,
         double cellWidth,
         double rowHeight,
-        Func<PdfImageData, string> imageName)
+        PageDrawSink sink)
     {
         if (layout.Items.Count == 0) return;
 
@@ -137,7 +137,7 @@ internal static class PdfTableRenderer
         if (layout.Items.Count == 1 && layout.Items[0].Item is PdfCellText single
             && single.FontSize == PdfCellText.DefaultFontSize && cell.VerticalAlignment == PdfCellVerticalAlignment.Middle)
         {
-            DrawSingleMiddleLine(sb, cell, single.Text, currentX, currentY, cellWidth, rowHeight);
+            DrawSingleMiddleLine(sb, cell, single.Text, currentX, currentY, cellWidth, rowHeight, sink);
             return;
         }
 
@@ -156,18 +156,19 @@ internal static class PdfTableRenderer
                 // Each line box is centered on its baseline the same way the single-line case is (center - size / 3).
                 double baseline = top - item.Height / 2 - text.FontSize / 3;
                 double textX = AlignedX(cell, currentX, cellWidth, GetTextWidth(text.Text, text.FontSize));
+                var (resource, literal) = StandardText.Prepare(text.Text, sink);
                 sb.AppendLine("BT"); // Begin text
                 sb.AppendLine("0 0 0 rg"); // Set text color to black
-                sb.AppendLine($"/F1 {PdfNumber.Format(text.FontSize)} Tf"); // Font
+                sb.AppendLine($"/{resource} {PdfNumber.Format(text.FontSize)} Tf"); // Font
                 sb.AppendLine($"1 0 0 1 {PdfNumber.Format(textX)} {PdfNumber.Format(baseline)} Tm"); // Set text matrix for absolute position
-                sb.AppendLine($"({PdfLiteralString.Escape(text.Text)}) Tj"); // Show text
+                sb.AppendLine($"({literal}) Tj"); // Show text
                 sb.AppendLine("ET"); // End text
             }
             else if (item.Item is PdfCellImage image)
             {
                 double imageX = AlignedX(cell, currentX, cellWidth, item.Width);
                 var element = new PdfImageElement(image.Image.Data, imageX, top - item.Height, item.Width, item.Height);
-                sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                sb.AppendLine(element.ToContent(sink.ImageName(image.Image.Data)));
             }
 
             top -= item.Height;
@@ -176,7 +177,7 @@ internal static class PdfTableRenderer
 
     // Draws the given rows one below the other from top. Every cell is drawn with its own background and closed border,
     // so each page part of a table looks complete.
-    private static void DrawRows(StringBuilder sb, PdfTable table, TableLayout layout, IEnumerable<int> rows, double left, double top, Func<PdfImageData, string> imageName)
+    private static void DrawRows(StringBuilder sb, PdfTable table, TableLayout layout, IEnumerable<int> rows, double left, double top, PageDrawSink sink)
     {
         double currentY = top;
 
@@ -202,7 +203,7 @@ internal static class PdfTableRenderer
                 sb.AppendLine(FormattableString.Invariant($"{border.Width} w")); // Border width
                 sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re s")); // Stroke rectangle
 
-                DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, imageName);
+                DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, sink);
 
                 sb.AppendLine("Q"); // Restore graphics state
 
@@ -213,11 +214,12 @@ internal static class PdfTableRenderer
     }
 
     // The original single-line text placement, kept verbatim apart from escaping and invariant numbers.
-    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, string text, double currentX, double currentY, double cellWidth, double rowHeight)
+    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, string text, double currentX, double currentY, double cellWidth, double rowHeight, PageDrawSink sink)
     {
+        var (resource, literal) = StandardText.Prepare(text, sink);
         sb.AppendLine("BT"); // Begin text
         sb.AppendLine("0 0 0 rg"); // Set text color to black
-        sb.AppendLine($"/F1 12 Tf"); // Font
+        sb.AppendLine($"/{resource} 12 Tf"); // Font
 
         // Calculate text position based on horizontal alignment
         double textWidth = GetTextWidth(text, 12);
@@ -225,7 +227,7 @@ internal static class PdfTableRenderer
 
         double textY = currentY - (rowHeight / 2) - 4; // Simple middle alignment
         sb.AppendLine(FormattableString.Invariant($"1 0 0 1 {textX} {textY} Tm")); // Set text matrix for absolute position
-        sb.AppendLine($"({PdfLiteralString.Escape(text)}) Tj"); // Show text
+        sb.AppendLine($"({literal}) Tj"); // Show text
         sb.AppendLine("ET"); // End text
     }
 

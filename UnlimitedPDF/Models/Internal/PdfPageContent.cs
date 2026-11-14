@@ -6,4 +6,4 @@ namespace UnlimitedPDF.Models.Internal;
 /// </summary>
 /// <param name="Data">The content stream bytes.</param>
 /// <param name="Images">The distinct images the content draws; image n is named /Im(n+1).</param>
-internal sealed record PdfPageContent(byte[] Data, IReadOnlyList<PdfImageData> Images);
+internal sealed record PdfPageContent(byte[] Data, IReadOnlyList<PdfImageData> Images, PageDrawSink Sink);

@@ -49,10 +49,11 @@ internal static class LayoutDrawing
     /// <param name="right">The area's right edge.</param>
     /// <param name="x">The offset: from the left edge (Left), before the right edge (Right), or from the middle (Center).</param>
     /// <param name="top">The y-coordinate of the line's top edge.</param>
+    /// <param name="sink">The page's draw sink, which records the font the text uses.</param>
     /// <returns>The operators.</returns>
-    public static string Text(string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top)
+    public static string Text(string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top, PageDrawSink sink)
     {
-        double width = HelveticaMetrics.Width(text, fontSize);
+        double width = StandardText.Width(text, fontSize);
         double textX = alignment switch
         {
             PdfTextAlignment.Right => right - x - width,
@@ -64,8 +65,9 @@ internal static class LayoutDrawing
         double baseline = top - LineHeight(fontSize) / 2 - fontSize / 3;
 
         // BT/ET = text object, Tf = font and size, rg = black fill, Tm = text position, Tj = show text
-        return $"BT /F1 {PdfNumber.Format(fontSize)} Tf 0 0 0 rg 1 0 0 1 {PdfNumber.Format(textX)} {PdfNumber.Format(baseline)} Tm " +
-               $"({PdfLiteralString.Escape(text)}) Tj ET";
+        var (resource, literal) = StandardText.Prepare(text, sink);
+        return $"BT /{resource} {PdfNumber.Format(fontSize)} Tf 0 0 0 rg 1 0 0 1 {PdfNumber.Format(textX)} {PdfNumber.Format(baseline)} Tm " +
+               $"({literal}) Tj ET";
     }
 
     #endregion

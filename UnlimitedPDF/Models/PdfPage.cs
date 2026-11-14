@@ -156,7 +156,7 @@ public class PdfPage
     internal PdfPageContent BuildContent(
         IReadOnlyDictionary<PdfTable, TablePlan>? plans,
         IReadOnlyList<(PdfTable Table, TablePart Part)> carriedParts,
-        Action<StringBuilder, Func<PdfImageData, string>>? after)
+        Action<StringBuilder, PageDrawSink>? after)
     {
         var sb = new StringBuilder();
         var images = new List<PdfImageData>();
@@ -174,9 +174,10 @@ public class PdfPage
             return name;
         }
 
+        var sink = new PageDrawSink(NameFor);
         foreach (var (carriedTable, part) in carriedParts)
         {
-            sb.Append(PdfTableRenderer.RenderPart(carriedTable, plans![carriedTable], part, NameFor));
+            sb.Append(PdfTableRenderer.RenderPart(carriedTable, plans![carriedTable], part, sink));
         }
 
         int tableNumber = 0;
@@ -186,25 +187,29 @@ public class PdfPage
             {
                 if (plans is null)
                 {
-                    sb.Append(PdfTableRenderer.Render(table, _pageNumber, ++tableNumber, NameFor));
+                    sb.Append(PdfTableRenderer.Render(table, _pageNumber, ++tableNumber, sink));
                 }
                 else
                 {
                     var plan = plans[table];
-                    sb.Append(PdfTableRenderer.RenderPart(table, plan, plan.Parts[0], NameFor));
+                    sb.Append(PdfTableRenderer.RenderPart(table, plan, plan.Parts[0], sink));
                 }
             }
             else if (element is PdfImageElement image)
             {
                 sb.AppendLine(image.ToContent(NameFor(image.Image)));
             }
+            else if (element is PdfTextElement text)
+            {
+                sb.AppendLine(text.ToContent(sink));
+            }
             else
             {
                 sb.AppendLine(element.ToString());
             }
         }
-        after?.Invoke(sb, NameFor);
-        return new PdfPageContent(Encoding.ASCII.GetBytes(sb.ToString().Trim()), images);
+        after?.Invoke(sb, sink);
+        return new PdfPageContent(Encoding.ASCII.GetBytes(sb.ToString().Trim()), images, sink);
     }
 
     /// <summary>

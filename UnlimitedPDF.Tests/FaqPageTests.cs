@@ -109,15 +109,20 @@ public class FaqPageTests
     }
 
     [Fact]
-    public void Text_outside_html_writes_a_question_mark_for_a_character_outside_ascii()
+    public void Text_outside_html_draws_western_characters_and_a_question_mark_for_other_scripts()
     {
-        // The "question-marks" answer: AddText, tables, headers, and footers write ASCII.
+        // The "question-marks" answer: without a caller font, AddText draws WinAnsi characters with the built-in
+        // Helvetica (é is WinAnsi code 233, octal 351) and writes '?' for characters outside WinAnsi (WR-039).
         var document = new PdfDocument();
-        document.AddPage().AddText("Café", 72, 720);
+        var page = document.AddPage();
+        page.AddText("Café", 72, 720);
+        page.AddText("త", 72, 700); // Telugu letter TA
         using var output = new MemoryStream();
         document.Save(output);
 
-        Assert.True(Assert.Single(PdfPageReader.Read(output.ToArray())).Shows("Caf?"));
+        var saved = Assert.Single(PdfPageReader.Read(output.ToArray()));
+        Assert.True(saved.Shows(@"Caf\351"));
+        Assert.True(saved.Shows("?"));
     }
 
     [Fact]

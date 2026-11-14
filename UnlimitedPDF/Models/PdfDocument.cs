@@ -47,7 +47,7 @@ public class PdfDocument
         var pagesObject = new PdfObject (objectNumber: 2, content: _pages.ToString());
 
         // Define a font resource
-        var font = new PdfObject(objectNumber: 3, content: new PdfFont().ToString());
+        var font = new PdfObject(objectNumber: 3, content: new HelveticaFontObject().ToString());
 
         // Add all objects to the document body
         _objects.AddObject(catalog);
@@ -441,51 +441,50 @@ public class PdfDocument
     // Draws a page's body flow content, then its header and footer bands (WR-031, WR-033).
     private static void DrawLayout(StringBuilder sb, PageDrawSink sink, PlannedPage page, BandContent? header, BandContent? footer, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
-        var imageName = sink.ImageName;
         foreach (var placement in page.Flow)
         {
             if (placement.Html is { } fragment)
                 HtmlPainter.Draw(sb, sink, fragment, placement.Left, ((FlowHtml)placement.Item).HeadingBookmarks);
             else
-                DrawFlow(sb, imageName, placement, plans);
+                DrawFlow(sb, sink, placement, plans);
         }
 
         var g = page.Geometry;
-        if (header is not null) DrawSection(sb, imageName, header, g, g.HeaderTop, g.HeaderHeight);
-        if (footer is not null) DrawSection(sb, imageName, footer, g, g.FooterTop, g.FooterHeight);
+        if (header is not null) DrawSection(sb, sink, header, g, g.HeaderTop, g.HeaderHeight);
+        if (footer is not null) DrawSection(sb, sink, footer, g, g.FooterTop, g.FooterHeight);
     }
 
-    private static void DrawFlow(StringBuilder sb, Func<PdfImageData, string> imageName, FlowPlacement placement, IReadOnlyDictionary<PdfTable, TablePlan> plans)
+    private static void DrawFlow(StringBuilder sb, PageDrawSink sink, FlowPlacement placement, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
         if (placement.Part is TablePart part)
         {
             var table = ((FlowTable)placement.Item).Table;
-            sb.Append(PdfTableRenderer.RenderPart(table, plans[table], part, imageName));
+            sb.Append(PdfTableRenderer.RenderPart(table, plans[table], part, sink));
             return;
         }
 
-        DrawItem(sb, imageName, placement.Item, placement.Left, placement.Right, placement.Top);
+        DrawItem(sb, sink, placement.Item, placement.Left, placement.Right, placement.Top);
     }
 
     // Draws one flow or block item with its top edge at top, inside the area between left and right.
-    private static void DrawItem(StringBuilder sb, Func<PdfImageData, string> imageName, FlowItem item, double left, double right, double top)
+    private static void DrawItem(StringBuilder sb, PageDrawSink sink, FlowItem item, double left, double right, double top)
     {
         switch (item)
         {
             case FlowText text:
-                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top));
+                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink));
                 break;
             case FlowImage image:
                 var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
                 var element = new PdfImageElement(image.Image.Data, left + image.X + box.OffsetX, top - box.BoxHeight + box.OffsetY, box.DrawWidth, box.DrawHeight);
-                sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                sb.AppendLine(element.ToContent(sink.ImageName(image.Image.Data)));
                 break;
             case FlowRectangle rectangle:
                 sb.AppendLine(LayoutDrawing.Rectangle(left + rectangle.X, top - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
                 break;
             case FlowTable table:
                 var layout = PdfTableRenderer.Layout(table.Table, 0, table.Index + 1);
-                sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, left + table.X, top, imageName));
+                sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, left + table.X, top, sink));
                 break;
             case FlowBlock block:
                 double y = top;
@@ -493,7 +492,7 @@ public class PdfDocument
                 {
                     var child = block.Children[i];
                     if (i > 0) y -= child.Spacing;
-                    DrawItem(sb, imageName, child, left + block.X, right, y);
+                    DrawItem(sb, sink, child, left + block.X, right, y);
                     y -= PagePlanner.MeasureSimple(child);
                 }
                 break;
@@ -523,7 +522,7 @@ public class PdfDocument
     }
 
     // Draws a band's prepared content clipped to the band (WR-031).
-    private static void DrawSection(StringBuilder sb, Func<PdfImageData, string> imageName, BandContent band, PageGeometry g, double top, double height)
+    private static void DrawSection(StringBuilder sb, PageDrawSink sink, BandContent band, PageGeometry g, double top, double height)
     {
         sb.AppendLine("q"); // Save graphics state
         sb.AppendLine($"{PdfNumber.Format(g.Left)} {PdfNumber.Format(top - height)} {PdfNumber.Format(g.ContentWidth)} {PdfNumber.Format(height)} re W n"); // Clip to the band
@@ -533,15 +532,15 @@ public class PdfDocument
             switch (band.Items[i])
             {
                 case SectionText text:
-                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y));
+                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink));
                     break;
                 case SectionImage image:
                     var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
                     var element = new PdfImageElement(image.Image.Data, g.Left + image.X + box.OffsetX, top - image.Y - box.BoxHeight + box.OffsetY, box.DrawWidth, box.DrawHeight);
-                    sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                    sb.AppendLine(element.ToContent(sink.ImageName(image.Image.Data)));
                     break;
                 case SectionTable table:
-                    sb.Append(PdfTableRenderer.RenderAt(table.Table, band.Layouts[i]!, g.Left + table.Table.X, top - table.Table.Y, imageName));
+                    sb.Append(PdfTableRenderer.RenderAt(table.Table, band.Layouts[i]!, g.Left + table.Table.X, top - table.Table.Y, sink));
                     break;
                 case SectionRectangle rectangle:
                     sb.AppendLine(LayoutDrawing.Rectangle(g.Left + rectangle.X, top - rectangle.Y - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
@@ -661,10 +660,11 @@ public class PdfDocument
             var header = headers[i];
             var footer = footers[i];
             int index = i;
-            Action<StringBuilder, Func<PdfImageData, string>>? after = drawLayout
-                ? (sb, name) => DrawLayout(sb, sinks[index] = new PageDrawSink(name), page, header, footer, plans)
+            Action<StringBuilder, PageDrawSink>? after = drawLayout
+                ? (sb, sink) => DrawLayout(sb, sink, page, header, footer, plans)
                 : null;
             contents[i] = builder.BuildContent(plans, page.Carried, after);
+            sinks[i] = contents[i]!.Sink;
         }
 
         // Store each distinct image once per document, and each standard font HTML text uses (WR-038). Objects added by

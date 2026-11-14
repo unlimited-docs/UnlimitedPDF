@@ -1,11 +1,11 @@
 ﻿namespace UnlimitedPDF.Models.Internal;
 
 /// <summary>
-/// Represents a font resource in a PDF document.
+/// The document's first font object (object 3, resource /F1): Helvetica without an encoding entry, used by ASCII text.
 /// </summary>
-internal class PdfFont
+internal sealed class HelveticaFontObject
 {
-    public PdfFont(string fontName = "Helvetica")
+    public HelveticaFontObject(string fontName = "Helvetica")
     {
         FontName = fontName;
     }

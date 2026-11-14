@@ -318,12 +318,12 @@ public class TableRenderingTests
     {
         int count = 0;
         var names = new Dictionary<string, string>();
-        return PdfTableRenderer.Render(table, 1, 1, image =>
+        return PdfTableRenderer.Render(table, 1, 1, new PageDrawSink(image =>
         {
             if (!names.TryGetValue(image.ContentKey, out var name))
                 names[image.ContentKey] = name = $"/Im{++count}";
             return name;
-        });
+        }));
     }
 
     private static PdfTable SingleCellTable(Action<PdfCell> fill, PdfRowHeightMode rule = PdfRowHeightMode.Exactly, double rowHeight = 20)
