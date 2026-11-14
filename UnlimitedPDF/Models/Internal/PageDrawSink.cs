@@ -11,6 +11,8 @@ internal sealed class PageDrawSink
     #region Fields and Constants
 
     private readonly SortedSet<StandardFont> _fonts = new();
+    private readonly List<EmbeddedFace> _faces = new();
+    private readonly Dictionary<EmbeddedFace, SortedDictionary<int, string>> _faceGlyphs = new(ReferenceEqualityComparer.Instance);
 
     #endregion
 
@@ -20,9 +22,10 @@ internal sealed class PageDrawSink
     /// Creates the sink.
     /// </summary>
     /// <param name="imageName">Returns the page resource name of an image, registering it.</param>
-    public PageDrawSink(Func<PdfImageData, string> imageName)
+    public PageDrawSink(Func<PdfImageData, string> imageName, EmbeddedFonts? fonts = null)
     {
         ImageName = imageName;
+        EmbeddedFonts = fonts ?? new EmbeddedFonts();
     }
 
     #endregion
@@ -42,6 +45,28 @@ internal sealed class PageDrawSink
         return StandardFontObject.ResourceName(font);
     }
 
+    /// <summary>
+    /// Records that the page draws <paramref name="glyph"/> of a caller font, standing for <paramref name="text"/>
+    /// (the first text recorded for a glyph is kept), and returns the font's resource name.
+    /// </summary>
+    public string FaceResource(PdfFont font, int glyph, string text)
+    {
+        var face = EmbeddedFonts.Face(font);
+        if (!_faceGlyphs.TryGetValue(face, out var glyphs))
+        {
+            glyphs = new SortedDictionary<int, string>();
+            _faceGlyphs[face] = glyphs;
+            _faces.Add(face);
+        }
+        if (!glyphs.ContainsKey(glyph)) glyphs[glyph] = text;
+        return face.ResourceName;
+    }
+
+    /// <summary>
+    /// Returns the glyphs the page draws with a face and the text each stands for.
+    /// </summary>
+    public IReadOnlyDictionary<int, string> GlyphsOf(EmbeddedFace face) => _faceGlyphs[face];
+
     #endregion
 
     #endregion
@@ -51,6 +76,13 @@ internal sealed class PageDrawSink
     /// <summary>
     /// Gets the standard fonts the page uses, in resource-name order.
     /// </summary>
+    public EmbeddedFonts EmbeddedFonts { get; }
+
+    /// <summary>
+    /// Gets the caller fonts the page draws with, in order of first use.
+    /// </summary>
+    public IReadOnlyList<EmbeddedFace> Faces => _faces;
+
     public IReadOnlyCollection<StandardFont> Fonts => _fonts;
 
     /// <summary>

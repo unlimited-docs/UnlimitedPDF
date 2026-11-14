@@ -15,6 +15,7 @@ public class PdfDocument
     private readonly List<RemainingQuery> _queries = new();
     private readonly List<PdfPageSettings> _rules = new();
     private readonly Dictionary<StandardFont, int> _standardFontObjects = new();
+    private readonly EmbeddedFonts _embeddedFonts = new();
     private double _bodyMarginBottom;
     private double _bodyMarginTop;
     private PageEntry? _flowRoot;
@@ -423,7 +424,7 @@ public class PdfDocument
     // pages with HTML text also map their standard fonts (WR-038). A page must name each font its content uses: viewers
     // built on Apple's PDF engine (every browser on iPhone and iPad) skip text whose font isn't in the page's resources,
     // where desktop viewers quietly fall back to a default font (QF-26111305).
-    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images, IReadOnlyCollection<StandardFont> fonts)
+    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images, IReadOnlyCollection<StandardFont> fonts, IReadOnlyList<EmbeddedFace> faces)
     {
         var resources = new PdfDictionary();
         if (images.Count > 0)
@@ -433,7 +434,8 @@ public class PdfDocument
         }
 
         var fontEntries = new[] { $"/F1 {new PdfIndirectReference(objectNumber: 3)}" }
-            .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"));
+            .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"))
+            .Concat(faces.Select(face => $"/{face.ResourceName} {new PdfIndirectReference(face.Objects![0])}"));
         resources.AddEntry("Font", $"<< {string.Join(" ", fontEntries)} >>");
         return resources;
     }
@@ -663,7 +665,7 @@ public class PdfDocument
             Action<StringBuilder, PageDrawSink>? after = drawLayout
                 ? (sb, sink) => DrawLayout(sb, sink, page, header, footer, plans)
                 : null;
-            contents[i] = builder.BuildContent(plans, page.Carried, after);
+            contents[i] = builder.BuildContent(plans, page.Carried, after, _embeddedFonts);
             sinks[i] = contents[i]!.Sink;
         }
 
@@ -684,6 +686,9 @@ public class PdfDocument
             }
         }
 
+        // Caller fonts: one set of objects per face, holding the glyphs every page of this save draws (WR-039).
+        RegisterEmbeddedFonts(sinks);
+
         // Where each element id first appears, for links that jump to it (WR-038).
         var targets = new Dictionary<string, (int PageObject, double X, double Y)>(StringComparer.Ordinal);
         for (int i = 0; i < visible.Count; i++)
@@ -700,7 +705,7 @@ public class PdfDocument
             var entry = visible[i];
             if (entry.Builder is null || contents[i] is not { } content) continue;
             entry.Builder.CommitContent(content.Data);
-            entry.Page!.Resources = CreateResources(content.Images, sinks[i]?.Fonts ?? Array.Empty<StandardFont>());
+            entry.Page!.Resources = CreateResources(content.Images, sinks[i]?.Fonts ?? Array.Empty<StandardFont>(), sinks[i]?.Faces ?? Array.Empty<EmbeddedFace>());
             entry.Page.Annots = sinks[i] is { Links.Count: > 0 } sink
                 ? LinkAnnotations.Syntax(sink.Links, id => targets.TryGetValue(id, out var target) ? target : null)
                 : null;
@@ -780,6 +785,47 @@ public class PdfDocument
                 .Select(file => (file.Source, (IReadOnlyDictionary<int, int>)_importedObjects[file])));
         }
         _objects.Objects.First(o => o.ObjectNumber == 1).Content = catalog.ToString();
+    }
+
+    // Writes each caller font the save draws with: its glyphs from every page (the first text recorded for a glyph is
+    // kept), and its five objects, appended after every existing object at the first save that uses the face and
+    // rewritten by later saves (WR-039, WR-002).
+    private void RegisterEmbeddedFonts(IReadOnlyList<PageDrawSink?> sinks)
+    {
+        foreach (var face in _embeddedFonts.Faces)
+        {
+            var used = new SortedDictionary<int, string>();
+            foreach (var sink in sinks)
+            {
+                if (sink is null || !sink.Faces.Contains(face)) continue;
+                foreach (var (glyph, text) in sink.GlyphsOf(face))
+                    if (!used.ContainsKey(glyph)) used[glyph] = text;
+            }
+            if (used.Count == 0) continue;
+
+            if (face.Objects is null)
+            {
+                int first = _objects.Objects.Max(o => o.ObjectNumber) + 1;
+                face.Objects = Enumerable.Range(first, 5).ToArray();
+                _objects.AddObject(new PdfObject(first, string.Empty));
+                _objects.AddObject(new PdfObject(first + 1, string.Empty));
+                _objects.AddObject(new PdfObject(first + 2, string.Empty));
+                _objects.AddObject(new PdfRawObject(first + 3, Array.Empty<byte>(), Array.Empty<byte>()));
+                _objects.AddObject(new PdfRawObject(first + 4, Array.Empty<byte>(), Array.Empty<byte>()));
+            }
+
+            var written = EmbeddedFonts.Write(face, used);
+            var objects = _objects.Objects;
+            objects.First(o => o.ObjectNumber == face.Objects[0]).Content = written.Type0;
+            objects.First(o => o.ObjectNumber == face.Objects[1]).Content = written.CidFont;
+            objects.First(o => o.ObjectNumber == face.Objects[2]).Content = written.Descriptor;
+            var program = (PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[3]);
+            program.Body = written.ProgramBody;
+            program.StreamData = written.ProgramData;
+            var toUnicode = (PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[4]);
+            toUnicode.Body = written.ToUnicodeBody;
+            toUnicode.StreamData = written.ToUnicodeData;
+        }
     }
 
     // Appends a standard font's dictionary as a new object numbered after every existing object, once per document.

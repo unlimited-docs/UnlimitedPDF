@@ -141,6 +141,13 @@ public class PdfPage
     /// on this page. Layout errors are thrown here, before the document commits anything.
     /// </summary>
     /// <returns>The compiled content and the distinct images it draws, in resource-name order.</returns>
+    /// <summary>
+    /// Adds glyphs of a caller font at a page position, each with the text it stands for (the drawing step of WR-039;
+    /// the text pipeline chooses the glyphs).
+    /// </summary>
+    internal void AddGlyphs(PdfFont font, IReadOnlyList<(int Glyph, string Text)> glyphs, double x, double y, double fontSize = 12) =>
+        _contentElements.Add(new PdfGlyphRunElement(font, glyphs, x, y, fontSize));
+
     internal PdfPageContent BuildContent() => BuildContent(plans: null, carriedParts: Array.Empty<(PdfTable, TablePart)>(), after: null);
 
     /// <summary>
@@ -156,7 +163,8 @@ public class PdfPage
     internal PdfPageContent BuildContent(
         IReadOnlyDictionary<PdfTable, TablePlan>? plans,
         IReadOnlyList<(PdfTable Table, TablePart Part)> carriedParts,
-        Action<StringBuilder, PageDrawSink>? after)
+        Action<StringBuilder, PageDrawSink>? after,
+        EmbeddedFonts? fonts = null)
     {
         var sb = new StringBuilder();
         var images = new List<PdfImageData>();
@@ -174,7 +182,7 @@ public class PdfPage
             return name;
         }
 
-        var sink = new PageDrawSink(NameFor);
+        var sink = new PageDrawSink(NameFor, fonts);
         foreach (var (carriedTable, part) in carriedParts)
         {
             sb.Append(PdfTableRenderer.RenderPart(carriedTable, plans![carriedTable], part, sink));
@@ -202,6 +210,10 @@ public class PdfPage
             else if (element is PdfTextElement text)
             {
                 sb.AppendLine(text.ToContent(sink));
+            }
+            else if (element is PdfGlyphRunElement run)
+            {
+                sb.AppendLine(run.ToContent(sink));
             }
             else
             {
