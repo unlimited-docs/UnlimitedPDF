@@ -97,6 +97,7 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\ReceiptLine.cs" Link="Demo\Samples\Inputs\ReceiptLine.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FontScript.cs" Link="Demo\Samples\FontScript.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FontSlots.cs" Link="Demo\Samples\FontSlots.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\FontsAndLanguagesSample.cs" Link="Demo\Samples\FontsAndLanguagesSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\LanguageInvoice.cs" Link="Demo\Samples\LanguageInvoice.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\LanguageInvoices.cs" Link="Demo\Samples\LanguageInvoices.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\FontsAndLanguagesInput.cs" Link="Demo\Samples\Inputs\FontsAndLanguagesInput.cs" />
