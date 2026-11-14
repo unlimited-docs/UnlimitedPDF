@@ -1,5 +1,6 @@
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
+using UnlimitedPDF.Models.Internal.Text;
 
 namespace UnlimitedPDF;
 
@@ -22,6 +23,8 @@ public sealed class PdfFont
     private const ushort BitmapOnly = 0x0200;
 
     private static long _defaultMaxFileSize = BuiltInDefaultMaxFileSize;
+
+    private FontLayout? _layout;
 
     #endregion
 
@@ -287,6 +290,9 @@ public sealed class PdfFont
     internal bool EmbedWholeFont { get; }
 
     internal OpenTypeFont Font { get; }
+
+    // The font's GSUB, GPOS, and GDEF tables, read on first use.
+    internal FontLayout Layout => _layout ??= new FontLayout(Font);
 
     // The advances, outlines, and metrics at this font's weight.
     internal FontInstance Instance { get; }
