@@ -169,11 +169,13 @@ public class CffFontTests
     }
 
     [Fact]
-    public void Variable_cff2_outlines_are_not_supported_yet()
+    public void Cff2_outlines_without_variation_axes_are_corrupt()
     {
         var font = new TestFontBuilder().MapCharacters("A").AddTable("CFF2", new byte[] { 2, 0, 5, 0, 0 }).Build();
 
-        Assert.Equal(PdfFontErrorReason.UnsupportedFormat, Assert.Throws<PdfFontException>(() => PdfFont.FromBytes(font)).Reason);
+        var error = Assert.Throws<PdfFontException>(() => PdfFont.FromBytes(font));
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("no fvar", error.Message);
     }
 
     [Fact]

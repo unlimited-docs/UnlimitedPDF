@@ -151,6 +151,19 @@ internal sealed class OpenTypeFont
     public int Advance(int glyph) => _advances[glyph < _advances.Length ? glyph : _advances.Length - 1];
 
     /// <summary>
+    /// Returns the left side bearing of a glyph from <c>hmtx</c>, in font units, or 0 when the table omits it.
+    /// </summary>
+    /// <param name="glyph">The glyph ID.</param>
+    /// <returns>The left side bearing.</returns>
+    public int LeftSideBearing(int glyph)
+    {
+        var (hmtx, length) = TableRange("hmtx");
+        int metrics = _advances.Length;
+        long offset = glyph < metrics ? 4L * glyph + 2 : 4L * metrics + 2L * (glyph - metrics);
+        return offset + 2 <= length ? Data.I16(hmtx + (int)offset) : 0;
+    }
+
+    /// <summary>
     /// Returns the glyph IDs a composite TrueType glyph is built from (empty for a simple glyph).
     /// </summary>
     /// <param name="glyph">The glyph ID.</param>

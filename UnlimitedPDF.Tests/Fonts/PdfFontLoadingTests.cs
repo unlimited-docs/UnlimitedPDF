@@ -90,13 +90,13 @@ public class PdfFontLoadingTests : IDisposable
     }
 
     [Fact]
-    public void Null_arguments_throw_argument_null_exceptions()
+    public async Task Null_arguments_throw_argument_null_exceptions()
     {
         Assert.Equal("data", Assert.Throws<ArgumentNullException>(() => PdfFont.FromBytes(null!)).ParamName);
         Assert.Equal("path", Assert.Throws<ArgumentNullException>(() => PdfFont.FromFile(null!)).ParamName);
         Assert.Equal("stream", Assert.Throws<ArgumentNullException>(() => PdfFont.FromStream(null!)).ParamName);
-        Assert.Equal("path", Assert.ThrowsAsync<ArgumentNullException>(() => PdfFont.FromFileAsync(null!)).Result.ParamName);
-        Assert.Equal("stream", Assert.ThrowsAsync<ArgumentNullException>(() => PdfFont.FromStreamAsync(null!)).Result.ParamName);
+        Assert.Equal("path", (await Assert.ThrowsAsync<ArgumentNullException>(() => PdfFont.FromFileAsync(null!))).ParamName);
+        Assert.Equal("stream", (await Assert.ThrowsAsync<ArgumentNullException>(() => PdfFont.FromStreamAsync(null!))).ParamName);
     }
 
     [Fact]

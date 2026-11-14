@@ -1,4 +1,5 @@
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
+using UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 
 namespace UnlimitedPDF;
 
@@ -26,11 +27,15 @@ public sealed class PdfFont
 
     #region Constructors and Finalizers
 
-    private PdfFont(OpenTypeFont font, int weight)
+    private PdfFont(OpenTypeFont font, FontInstance instance, int weight, VariationAxis? weightAxis)
     {
         Font = font;
+        Instance = instance;
         Weight = weight;
         EmbedWholeFont = (font.FsType & NoSubsetting) != 0;
+        IsVariable = weightAxis is not null;
+        MinimumWeight = weightAxis is null ? weight : (int)Math.Round(weightAxis.Minimum);
+        MaximumWeight = weightAxis is null ? weight : (int)Math.Round(weightAxis.Maximum);
     }
 
     #endregion
@@ -158,10 +163,19 @@ public sealed class PdfFont
     {
         cancellationToken.ThrowIfCancellationRequested();
         var font = OpenTypeFont.Parse(data);
-        if (font.Outlines == FontOutlines.Cff2)
-            throw new PdfFontException(PdfFontErrorReason.UnsupportedFormat, "The font has variable CFF2 outlines, which are not supported yet.");
-
         CheckEmbedding(font, settings.IgnoreEmbeddingRestrictions);
+
+        // A variable font with a weight axis draws the requested weight, limited to the axis range (WR-039); any
+        // other font draws its own weight only.
+        var axes = VariationAxes.Read(font);
+        if (font.Outlines == FontOutlines.Cff2 && axes is null) throw FontBytes.Corrupt("has CFF2 outlines but no fvar table");
+        var weightAxis = axes?.WeightAxis;
+        if (weightAxis is not null)
+        {
+            double chosen = Math.Max(weightAxis.Minimum, Math.Min(weightAxis.Maximum, settings.Weight ?? weightAxis.Default));
+            var coordinates = axes!.Normalize(chosen);
+            return new PdfFont(font, FontInstance.Create(font, axes, coordinates), (int)Math.Round(chosen), weightAxis);
+        }
 
         int weight = font.WeightClass is >= 1 and <= 1000 ? font.WeightClass : 400;
         if (settings.Weight is int requested && requested != weight)
@@ -170,7 +184,8 @@ public sealed class PdfFont
                 PdfFontErrorReason.WeightNotAvailable,
                 string.Format(CultureInfo.InvariantCulture, "The font \"{0}\" has only weight {1}; weight {2} was requested.", Describe(font), weight, requested));
         }
-        return new PdfFont(font, weight);
+        var defaults = axes?.Normalize(null) ?? Array.Empty<double>();
+        return new PdfFont(font, FontInstance.Create(font, axes, defaults), weight, null);
     }
 
     // Honors the font's embedding permissions unless the caller asserts the rights (PR-022). Bits 0-3 hold one usage
@@ -251,17 +266,17 @@ public sealed class PdfFont
     /// <summary>
     /// Gets whether the font is a variable font that holds a range of weights.
     /// </summary>
-    public bool IsVariable => false;
+    public bool IsVariable { get; }
 
     /// <summary>
     /// Gets the heaviest weight the font can draw; equal to <see cref="Weight"/> for a font with one weight.
     /// </summary>
-    public int MaximumWeight => Weight;
+    public int MaximumWeight { get; }
 
     /// <summary>
     /// Gets the lightest weight the font can draw; equal to <see cref="Weight"/> for a font with one weight.
     /// </summary>
-    public int MinimumWeight => Weight;
+    public int MinimumWeight { get; }
 
     /// <summary>
     /// Gets the weight this font draws with, from 1 to 1000 (400 is regular, 700 is bold).
@@ -272,6 +287,9 @@ public sealed class PdfFont
     internal bool EmbedWholeFont { get; }
 
     internal OpenTypeFont Font { get; }
+
+    // The advances, outlines, and metrics at this font's weight.
+    internal FontInstance Instance { get; }
 
     #endregion
 

@@ -34,7 +34,7 @@ internal sealed class CffDict
         while (p < end)
         {
             int b0 = data.U8(p);
-            if (b0 <= 21)
+            if (b0 <= 24) // operators; 22 to 24 (vsindex, blend, vstore) occur only in CFF2
             {
                 int op = b0;
                 p++;

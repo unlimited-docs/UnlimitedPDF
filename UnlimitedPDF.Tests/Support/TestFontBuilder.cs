@@ -8,7 +8,7 @@ namespace UnlimitedPDF.Tests.Support;
 /// offsets), <c>head</c>, <c>hhea</c>, <c>hmtx</c>, <c>maxp</c>, <c>name</c>, <c>OS/2</c>, and <c>post</c>. Later tests
 /// add their own tables (for example layout tables) with <see cref="AddTable"/>.
 /// </summary>
-internal sealed class TestFontBuilder
+internal sealed partial class TestFontBuilder
 {
     #region Fields and Constants
 
@@ -98,9 +98,9 @@ internal sealed class TestFontBuilder
     public byte[] Build()
     {
         var tables = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
-        if (Cff)
+        if (Cff || Cff2)
         {
-            tables["CFF "] = BuildCff();
+            tables[Cff2 ? "CFF2" : "CFF "] = Cff2 ? BuildCff2() : BuildCff();
             tables["head"] = BuildHead((0, -200, 1000, 900));
             tables["maxp"] = new BigEndianWriter().U32(0x00005000).U16((ushort)_glyphs.Count).ToArray();
         }
@@ -118,8 +118,9 @@ internal sealed class TestFontBuilder
         tables["name"] = BuildName();
         tables["OS/2"] = BuildOs2();
         tables["post"] = BuildPost();
+        AddVariationTables(tables);
         foreach (var (tag, data) in _extraTables) tables[tag] = data;
-        return Assemble(tables, Cff ? 0x4F54544Fu : 0x00010000u);
+        return Assemble(tables, Cff || Cff2 ? 0x4F54544Fu : 0x00010000u);
     }
 
     /// <summary>
