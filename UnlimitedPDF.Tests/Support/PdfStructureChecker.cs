@@ -6,7 +6,9 @@ namespace UnlimitedPDF.Tests.Support;
 /// <summary>
 /// Re-reads a PDF written by the library and reports structural defects: a wrong header, xref offsets that do
 /// not point at their object, stream <c>/Length</c> values that differ from the data, references to missing
-/// objects, missing image transparency masks, and images stored more than once (PR-010).
+/// objects, missing image transparency masks, images stored more than once (PR-010), and damaged embedded fonts:
+/// a Type0 font without Identity-H, a CIDFont, descriptor, <c>ToUnicode</c> map, or font program, an unsafe font
+/// name, an invalid TrueType or CFF program, and widths that differ from the program (A05, A08).
 /// </summary>
 internal static class PdfStructureChecker
 {
@@ -68,8 +70,33 @@ internal static class PdfStructureChecker
         CheckReferences(objects, errors);
         CheckSoftMasks(objects, errors);
         CheckImagesStoredOnce(objects, errors);
+        if (errors.Count == 0) PdfFontChecks.Check(pdf, errors);
 
         return errors;
+    }
+
+    /// <summary>
+    /// Returns every object's dictionary text and raw stream data, and the catalog's object number, for
+    /// <see cref="PdfInspector"/>. Fails the test when the file is structurally damaged.
+    /// </summary>
+    /// <param name="pdf">The complete PDF file bytes.</param>
+    /// <returns>The objects and the root object number.</returns>
+    public static (IReadOnlyDictionary<int, (string Dictionary, byte[]? Stream)> Objects, int Root) ReadObjects(byte[] pdf)
+    {
+        var errors = new List<string>();
+        var text = Encoding.Latin1.GetString(pdf);
+        var xrefOffset = ReadStartXref(text, errors);
+        var offsets = xrefOffset < 0 ? null : ReadXref(text, xrefOffset, errors, out var trailer);
+        if (offsets is null) throw new InvalidOperationException("The PDF cannot be read: " + string.Join(" ", errors));
+
+        var objects = new Dictionary<int, (string, byte[]?)>();
+        for (int number = 1; number < offsets.Length; number++)
+        {
+            var info = ReadObject(text, pdf, number, offsets[number], errors);
+            if (info is not null) objects[number] = (info.Dictionary, info.StreamData);
+        }
+        var rootMatch = Regex.Match(text[(int)xrefOffset..], @"/Root\s+(\d+)\s+\d+\s+R", RegexOptions.CultureInvariant);
+        return (objects, rootMatch.Success ? int.Parse(rootMatch.Groups[1].Value, CultureInfo.InvariantCulture) : 0);
     }
 
     #endregion
