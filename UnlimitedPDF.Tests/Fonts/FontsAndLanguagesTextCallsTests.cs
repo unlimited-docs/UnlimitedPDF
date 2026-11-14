@@ -172,8 +172,15 @@ internal static class DemoFonts
 
     #region Public Methods
 
-    public static List<PdfFont> For(FontsAndLanguagesInput input) =>
-        FontSlots.Needed(Text(input)).Select(script => PdfFont.FromBytes(Build(input, script, variable: false))).ToList();
+    public static List<PdfFont> For(FontsAndLanguagesInput input) => Slots(input).Select(s => s.Font).ToList();
+
+    // The filled slots for the HTML sample: each needed script with its font, which is also its heading font.
+    public static List<(FontScript Script, PdfFont Font, PdfFont HeadingFont)> Slots(FontsAndLanguagesInput input) =>
+        FontSlots.Needed(Text(input)).Select(script =>
+        {
+            var font = PdfFont.FromBytes(Build(input, script, variable: false));
+            return (script, font, font);
+        }).ToList();
 
     // One variable font holding every character the invoice draws; each glyph widens by 100 units at the axis maximum.
     public static byte[] VariableBytes(FontsAndLanguagesInput input) => Build(input, null, variable: true);
