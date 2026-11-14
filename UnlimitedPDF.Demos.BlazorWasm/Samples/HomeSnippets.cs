@@ -39,6 +39,21 @@ public static class HomeSnippets
     }
 
     /// <summary>
+    /// The Languages sample: a font for Telugu added to the fallback list, then text in two scripts.
+    /// </summary>
+    /// <param name="fontBytes">A font with Telugu letters, for example read from a .ttf file.</param>
+    /// <param name="output">The stream the PDF is written to.</param>
+    public static void Languages(byte[] fontBytes, Stream output)
+    {
+        // snippet:languages
+        var document = new PdfDocument();
+        document.FontFallback.Add(PdfFont.FromBytes(fontBytes));
+        document.AddPage().AddText("Hello, నమస్తే!", 72, 720, 24);
+        document.Save(output);
+        // end
+    }
+
+    /// <summary>
     /// The Merge sample: two PDFs joined in one call.
     /// </summary>
     /// <param name="invoicePdf">The first PDF's bytes.</param>

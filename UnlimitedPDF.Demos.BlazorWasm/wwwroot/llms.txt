@@ -58,6 +58,10 @@ pdfDocument.Save("sample.pdf");
 - [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.
 - [Common HTML to PDF problems in C#](https://unlimitedpdf.dev/playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.
 
+## Languages
+
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): Upload your own fonts and make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML. Fonts stay in your browser.
+
 ## Complete business documents
 
 - [Create a PDF invoice in C#](https://unlimitedpdf.dev/playground/documents/invoice): A tax invoice with a logo, product photos in the line items, and computed totals.

@@ -1,0 +1,256 @@
+@page "/playground/languages/fonts-and-languages"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.FontsAndLanguages" Build="BuildAsync" PageCount="null" OnReset="Reset"
+            SourceFile="@(_input.Mode == DrawMode.Html ? "FontsAndLanguagesHtmlSample.cs" : "FontsAndLanguagesSample.cs")"
+            FileName="@($"fonts-and-languages-{_input.Language}.pdf")">
+    <Inputs>
+        <CollapsibleSection Title="Invoice">
+            <div class="field">
+                <span class="field-label">Draw with</span>
+                <div class="segmented" role="group" aria-label="Draw with">
+                    <button type="button" aria-pressed="@(_input.Mode == DrawMode.TextCalls ? "true" : "false")" @onclick="() => SetMode(DrawMode.TextCalls)">Text calls</button>
+                    <button type="button" aria-pressed="@(_input.Mode == DrawMode.Html ? "true" : "false")" @onclick="() => SetMode(DrawMode.Html)">HTML</button>
+                </div>
+            </div>
+            <div class="field">
+                <span class="field-label">Language</span>
+                <div class="segmented wrap" role="group" aria-label="Language">
+                    @foreach (var preset in LanguageInvoices.All)
+                    {
+                        <button type="button" aria-pressed="@(_input.Language == preset.Id ? "true" : "false")" @onclick="() => UseLanguage(preset)">@preset.Name</button>
+                    }
+                </div>
+                <p class="field-hint">Each language starts a full invoice you can edit below.</p>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Fonts">
+            <p class="field-hint">Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
+            <div class="font-slots">
+                @foreach (var script in FontSlots.Scripts)
+                {
+                    <FontSlot @key="script" Script="script" Needed="_needed.Contains(script)" Value="SlotFont(script)" ValueChanged="font => SetFont(script, font)" />
+                }
+            </div>
+            @if (_missing.Count > 0)
+            {
+                <p class="missing-note" role="status">
+                    @_missing.Count @(_missing.Count == 1 ? "character has" : "characters have") no font and @(_missing.Count == 1 ? "is" : "are") drawn as ?: @string.Join(" ", _missing.Take(12))@(_missing.Count > 12 ? " ..." : "")
+                    @if (_emptyNeeded is { } slot)
+                    {
+                        <text> Add a font to the @slot slot.</text>
+                    }
+                </p>
+            }
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Seller and buyer" InitiallyOpen="false">
+            <div class="field">
+                <label for="fl-seller-name">Seller name</label>
+                <input id="fl-seller-name" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field">
+                <label for="fl-seller-address">Seller address</label>
+                <input id="fl-seller-address" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field">
+                <label for="fl-buyer-name">Buyer name</label>
+                <input id="fl-buyer-name" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field">
+                <label for="fl-buyer-address">Buyer address</label>
+                <input id="fl-buyer-address" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="fl-number">Invoice number</label>
+                    <input id="fl-number" class="form-control" @bind="_input.InvoiceNumber" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="fl-date">Date</label>
+                    <input id="fl-date" type="date" class="form-control" @bind="_input.InvoiceDate" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Line items">
+            <div class="rows">
+                @for (int index = 0; index < _input.Items.Count; index++)
+                {
+                    var line = _input.Items[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Item @number</span>
+                            <button type="button" class="row-remove" title="Remove item @number" aria-label="Remove item @number" @onclick="() => RemoveItem(line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
+                        <div class="field-row">
+                            <div class="field">
+                                <label>Qty</label>
+                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                            </div>
+                            <div class="field">
+                                <label>Rate</label>
+                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddItem">+ Add item</button>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Options" InitiallyOpen="false">
+            @if (_variable is { } range)
+            {
+                <div class="field-row">
+                    <div class="field">
+                        <label for="fl-heading-weight">Heading weight</label>
+                        <select id="fl-heading-weight" class="form-control" @bind="_input.HeadingWeight">
+                            @foreach (int weight in Weights(range))
+                            {
+                                <option value="@weight">@weight</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="fl-body-weight">Body weight</label>
+                        <select id="fl-body-weight" class="form-control" @bind="_input.BodyWeight">
+                            @foreach (int weight in Weights(range))
+                            {
+                                <option value="@weight">@weight</option>
+                            }
+                        </select>
+                    </div>
+                </div>
+                <p class="field-hint">Shown because a slot holds a variable font, which draws any weight from @range.Min to @range.Max.</p>
+            }
+            <label class="check-field">
+                <input type="checkbox" @bind="_input.FailOnMissingCharacters" /> Fail on missing characters instead of drawing ?
+            </label>
+            @if (_input.Mode == DrawMode.Html)
+            {
+                <label class="check-field">
+                    <input type="checkbox" @bind="_input.SynthesizeMissingStyles" /> Synthesize missing bold and italic
+                </label>
+            }
+        </CollapsibleSection>
+
+        @if (_input.Mode == DrawMode.Html)
+        {
+            <CollapsibleSection Title="Warnings">
+                @if (_html is null || _html.Warnings.Count == 0)
+                {
+                    <p class="field-hint">Nothing was skipped or replaced.</p>
+                }
+                else
+                {
+                    @* Without a font every missing character is its own warning, so the list shows the first few. *@
+                    <ul class="warning-list" aria-label="Warnings">
+                        @foreach (var warning in _html.Warnings.Take(MaxWarningsShown))
+                        {
+                            <li><strong>@warning.Kind</strong> @warning.Message</li>
+                        }
+                    </ul>
+                    @if (_html.Warnings.Count > MaxWarningsShown)
+                    {
+                        <p class="field-hint">And @(_html.Warnings.Count - MaxWarningsShown) more.</p>
+                    }
+                }
+            </CollapsibleSection>
+        }
+    </Inputs>
+</SamplePage>
+
+@code {
+    private const int MaxWarningsShown = 8;
+
+    private readonly Dictionary<FontScript, UploadedFont> _slots = new();
+    private FontScript? _emptyNeeded;
+    private PdfHtml? _html;
+    private FontsAndLanguagesInput _input = new();
+    private IReadOnlyList<string> _missing = Array.Empty<string>();
+    private IReadOnlyList<FontScript> _needed = Array.Empty<FontScript>();
+    private SamplePage? _page;
+    private (int Min, int Max)? _variable;
+
+    protected override void OnInitialized() => Refresh();
+
+    private void AddItem()
+    {
+        _input.Items.Add(new LanguageInvoiceLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private Task<PdfDocument> BuildAsync()
+    {
+        // Each filled slot's font at the body weight and at the heading weight (the same font for one weight).
+        var filled = FontSlots.Scripts.Where(_slots.ContainsKey).Select(script => (Script: script, Upload: _slots[script])).ToList();
+        var fonts = filled.Select(s => (s.Script, Font: UploadedFontLoader.AtWeight(s.Upload, _input.BodyWeight), Heading: UploadedFontLoader.AtWeight(s.Upload, _input.HeadingWeight))).ToList();
+        Refresh();
+        if (_input.Mode == DrawMode.Html)
+        {
+            var document = FontsAndLanguagesHtmlSample.Build(_input, fonts, out var html);
+            _html = html;
+            return Task.FromResult(document);
+        }
+        _html = null;
+        return Task.FromResult(FontsAndLanguagesSample.Build(_input, fonts.Select(f => f.Font).ToList(), fonts.Select(f => f.Heading).ToList()));
+    }
+
+    // The scripts the invoice needs, the characters no font has, the first needed slot still empty, and the weight
+    // range of the variable fonts in the slots.
+    private void Refresh()
+    {
+        _needed = FontSlots.Needed(_input.AllText());
+        var fonts = FontSlots.Scripts.Where(_slots.ContainsKey).Select(script => _slots[script].Font).ToList();
+        _missing = FontsAndLanguagesSample.MissingCharacters(_input, fonts);
+        _emptyNeeded = _needed.Where(script => !_slots.ContainsKey(script)).Cast<FontScript?>().FirstOrDefault();
+        var variable = _slots.Values.Select(s => s.Font).Where(f => f.IsVariable).ToList();
+        _variable = variable.Count == 0 ? null : (variable.Min(f => f.MinimumWeight), variable.Max(f => f.MaximumWeight));
+    }
+
+    private void RemoveItem(LanguageInvoiceLine line)
+    {
+        _input.Items.Remove(line);
+        Refresh();
+        _page?.NotifyInputsChanged();
+    }
+
+    // Reset restores the invoice and options; the uploaded fonts stay, since they are not defaults.
+    private void Reset()
+    {
+        _input = new FontsAndLanguagesInput();
+        _html = null;
+        Refresh();
+    }
+
+    private void SetFont(FontScript script, UploadedFont? font)
+    {
+        if (font is null) _slots.Remove(script);
+        else _slots[script] = font;
+        Refresh();
+        _page?.NotifyInputsChanged();
+    }
+
+    private void SetMode(DrawMode mode)
+    {
+        _input.Mode = mode;
+        _page?.NotifyInputsChanged();
+    }
+
+    private UploadedFont? SlotFont(FontScript script) => _slots.GetValueOrDefault(script);
+
+    private void UseLanguage(LanguageInvoice preset)
+    {
+        _input.Apply(preset);
+        Refresh();
+        _page?.NotifyInputsChanged();
+    }
+
+    private static IEnumerable<int> Weights((int Min, int Max) range) =>
+        Enumerable.Range(1, 9).Select(step => step * 100).Where(weight => weight >= range.Min && weight <= range.Max);
+}

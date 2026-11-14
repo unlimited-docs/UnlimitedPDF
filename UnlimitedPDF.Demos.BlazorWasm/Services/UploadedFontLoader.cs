@@ -43,22 +43,32 @@ public static class UploadedFontLoader
     public static async Task<FontLoadResult> LoadAsync(IBrowserFile file, bool assertRights = false)
     {
         ArgumentNullException.ThrowIfNull(file);
-        long limit = PdfFont.DefaultMaxFileSize;
-        if (file.Size > limit) return Failed(PdfFontErrorReason.TooLarge);
+        var (bytes, error) = await ReadAsync(file);
+        return bytes is null ? new FontLoadResult(null, error, false) : Load(file.Name, bytes, assertRights);
+    }
 
-        byte[] bytes;
+    /// <summary>
+    /// Reads an uploaded file's bytes with the library's size limit, so a restricted font can be loaded again once
+    /// the visitor asserts the rights.
+    /// </summary>
+    /// <param name="file">The uploaded file.</param>
+    /// <returns>The bytes, or null with the size message.</returns>
+    public static async Task<(byte[]? Bytes, string? Error)> ReadAsync(IBrowserFile file)
+    {
+        ArgumentNullException.ThrowIfNull(file);
+        long limit = PdfFont.DefaultMaxFileSize;
+        if (file.Size > limit) return (null, Message(PdfFontErrorReason.TooLarge));
         try
         {
             await using var stream = file.OpenReadStream(limit);
             using var buffer = new MemoryStream();
             await stream.CopyToAsync(buffer);
-            bytes = buffer.ToArray();
+            return (buffer.ToArray(), null);
         }
         catch (IOException)
         {
-            return Failed(PdfFontErrorReason.TooLarge);
+            return (null, Message(PdfFontErrorReason.TooLarge));
         }
-        return Load(file.Name, bytes, assertRights);
     }
 
     /// <summary>

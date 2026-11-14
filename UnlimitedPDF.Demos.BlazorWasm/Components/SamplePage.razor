@@ -65,7 +65,7 @@
                     <PdfPreview @ref="_preview" Busy="_busy" />
                 </div>
                 <div id="@($"{_id}-panel-code")" role="tabpanel" aria-labelledby="@($"{_id}-tab-code")" hidden="@(_tab != OutputTab.Code)">
-                    <CodeView Source="@_source" AriaLabel="@($"{Demo.SourceFile} source")" />
+                    <CodeView Source="@_source" AriaLabel="@($"{ShownSourceFile} source")" />
                 </div>
             </div>
 

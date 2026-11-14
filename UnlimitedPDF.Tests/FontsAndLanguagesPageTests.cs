@@ -1,0 +1,107 @@
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
+using UnlimitedPDF.Demos.BlazorWasm.Samples;
+
+namespace UnlimitedPDF.Tests;
+
+/// <summary>
+/// The Fonts and languages page and its place on the site (CR-002, AC-17, AC-18, AC-20, AC-23; V-23, V-24, V-27): the
+/// Languages category and its home-page sample, the code card that follows the drawing mode, the font slots with their
+/// notes and free-font links, and the listings the site checks share with every demo.
+/// </summary>
+public class FontsAndLanguagesPageTests
+{
+    #region Methods
+
+    #region Public Methods
+
+    [Fact]
+    public void The_languages_category_holds_the_demo_after_html_to_pdf()
+    {
+        var categories = SampleCatalog.Categories;
+        var languages = categories.Single(c => c.Id == "languages");
+
+        Assert.Equal("Languages", languages.Title);
+        Assert.Equal(categories.Single(c => c.Id == "html-to-pdf"), categories[categories.ToList().IndexOf(languages) - 1]);
+        Assert.Same(SampleCatalog.FontsAndLanguages, Assert.Single(languages.Demos));
+        Assert.Equal("playground/languages/fonts-and-languages", SampleCatalog.FontsAndLanguages.Route);
+        Assert.Equal(("language", "green", "languages"), (languages.Icon, languages.Tone, languages.Snippet));
+        Assert.Contains("Hindi, Telugu, Tamil, French", SampleCatalog.FontsAndLanguages.Description, StringComparison.Ordinal);
+        Assert.Contains("@page \"/playground/languages/fonts-and-languages\"", DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor"), StringComparison.Ordinal);
+        Assert.Contains(".tone-green {", DemosFile("wwwroot/css/app.css"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_home_page_sample_draws_text_in_two_scripts_with_a_loaded_font()
+    {
+        var builder = new TestFontBuilder("Telugu Test");
+        builder.MapCharacters("Hello, నమస్తే!");
+        using var output = new MemoryStream();
+
+        HomeSnippets.Languages(builder.Build(), output);
+
+        PdfStructureChecker.AssertValid(output.ToArray());
+        Assert.Equal("Hello, నమస్తే!", Assert.Single(PdfInspector.Read(output.ToArray()).PageText()));
+    }
+
+    [Fact]
+    public void The_code_card_shows_the_sample_of_the_chosen_drawing_mode_and_the_download_names_the_language()
+    {
+        string page = DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor");
+        string frame = DemosFile("Components/SamplePage.razor.cs");
+
+        Assert.Contains("SourceFile=\"@(_input.Mode == DrawMode.Html ? \"FontsAndLanguagesHtmlSample.cs\" : \"FontsAndLanguagesSample.cs\")\"", page, StringComparison.Ordinal);
+        Assert.Contains("FileName=\"@($\"fonts-and-languages-{_input.Language}.pdf\")\"", page, StringComparison.Ordinal);
+        Assert.Contains("_source = SampleSource.Read(ShownSourceFile);", frame, StringComparison.Ordinal);
+        Assert.Contains("private string ShownSourceFile => SourceFile ?? Demo.SourceFile;", frame, StringComparison.Ordinal);
+        Assert.Contains("DownloadAsync(ShownFileName)", frame, StringComparison.Ordinal);
+
+        // Both samples are compiled into the site and embedded for the code card.
+        Assert.Contains("<EmbeddedResource Include=\"Samples\\*Sample.cs\"", DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj"), StringComparison.Ordinal);
+        Assert.True(File.Exists(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Samples/FontsAndLanguagesHtmlSample.cs")));
+    }
+
+    [Fact]
+    public void The_fonts_section_says_fonts_stay_in_the_browser_and_links_free_fonts_safely()
+    {
+        string page = DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor");
+        string slot = DemosFile("Components/FontSlot.razor");
+
+        Assert.Contains("Your fonts stay in your browser; nothing is uploaded.", page, StringComparison.Ordinal);
+        Assert.Contains("allowed to embed", page, StringComparison.Ordinal);
+        Assert.Contains("check its license", page, StringComparison.Ordinal);
+        Assert.Contains("@foreach (var script in FontSlots.Scripts)", page, StringComparison.Ordinal);
+        Assert.Contains("href=\"@FontSlots.FreeFontLink(Script)\" target=\"_blank\" rel=\"noopener noreferrer\"", slot, StringComparison.Ordinal);
+        Assert.Contains(">Get a free one ", slot, StringComparison.Ordinal);
+        Assert.Contains("I have the right to embed this font", slot, StringComparison.Ordinal);
+        Assert.Contains("accept=\".ttf,.otf,font/ttf,font/otf\"", slot, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_page_wires_the_missing_note_options_and_warnings_to_the_library()
+    {
+        string page = DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor");
+
+        Assert.Contains("FontsAndLanguagesSample.MissingCharacters(_input, fonts)", page, StringComparison.Ordinal);
+        Assert.Contains("Add a font to the @slot slot.", page, StringComparison.Ordinal);
+        Assert.Contains("@bind=\"_input.FailOnMissingCharacters\"", page, StringComparison.Ordinal);
+        Assert.Contains("@bind=\"_input.SynthesizeMissingStyles\"", page, StringComparison.Ordinal);
+        Assert.Contains("@foreach (var warning in _html.Warnings.Take(MaxWarningsShown))", page, StringComparison.Ordinal);
+        Assert.Contains("And @(_html.Warnings.Count - MaxWarningsShown) more.", page, StringComparison.Ordinal);
+        Assert.Contains("UploadedFontLoader.AtWeight(s.Upload, _input.HeadingWeight)", page, StringComparison.Ordinal);
+        Assert.Matches(new Regex(@"@if \(_variable is \{ \} range\)"), page);
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private static string DemosFile(string relative) => File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/" + relative));
+
+    private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", relative));
+
+    #endregion
+
+    #endregion
+}
