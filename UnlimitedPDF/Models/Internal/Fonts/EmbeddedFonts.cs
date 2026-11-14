@@ -1,5 +1,6 @@
 using System.IO.Compression;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
+using UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 
 namespace UnlimitedPDF.Models.Internal.Fonts;
 
@@ -78,19 +79,22 @@ internal sealed class EmbeddedFonts
     public static FaceObjects Write(EmbeddedFace face, IReadOnlyDictionary<int, string> used)
     {
         var font = face.Font;
-        if (font.Font.Outlines != FontOutlines.TrueType)
-            throw new NotSupportedException("Embedding fonts with CFF outlines is not supported yet.");
         var objects = face.Objects!;
         var source = font.Font;
         var instance = font.Instance;
         double scale = 1000.0 / source.UnitsPerEm;
+        bool trueType = source.Outlines == FontOutlines.TrueType;
 
+        // Both outline kinds keep glyph IDs, so CIDs equal glyph IDs: TrueType through an identity CIDToGIDMap, CFF
+        // through a charset that maps every glyph to the CID of the same number.
         var kept = TrueTypeSubsetter.KeptGlyphs(font, used.Keys);
-        var program = TrueTypeSubsetter.Build(font, kept);
         string name = SubsetTag(source.PostScriptName + "|" + font.Weight, kept) + "+" + SafeName(source);
+        var program = trueType ? TrueTypeSubsetter.Build(font, kept) : CffSubsetter.Build(font, kept, name);
 
         var compressed = Compress(program);
-        var programBody = Encoding.ASCII.GetBytes($"<< /Length {compressed.Length} /Length1 {program.Length} /Filter /FlateDecode >>");
+        var programBody = Encoding.ASCII.GetBytes(trueType
+            ? $"<< /Length {compressed.Length} /Length1 {program.Length} /Filter /FlateDecode >>"
+            : $"<< /Subtype /CIDFontType0C /Length {compressed.Length} /Filter /FlateDecode >>");
         var toUnicode = ToUnicode(used);
         var toUnicodeBody = Encoding.ASCII.GetBytes($"<< /Length {toUnicode.Length} >>");
 
@@ -101,12 +105,12 @@ internal sealed class EmbeddedFonts
             $"<< /Type /FontDescriptor /FontName /{name} /Flags {flags} " +
             $"/FontBBox [{N(xMin * scale)} {N(yMin * scale)} {N(xMax * scale)} {N(yMax * scale)}] /ItalicAngle {N(source.ItalicAngle)} " +
             $"/Ascent {N(instance.Ascender * scale)} /Descent {N(instance.Descender * scale)} /CapHeight {N(instance.CapHeight * scale)} " +
-            $"/StemV {N(stemV)} /FontFile2 {objects[3]} 0 R >>";
+            $"/StemV {N(stemV)} /{(trueType ? "FontFile2" : "FontFile3")} {objects[3]} 0 R >>";
 
         string cidFont =
-            $"<< /Type /Font /Subtype /CIDFontType2 /BaseFont /{name} " +
+            $"<< /Type /Font /Subtype /{(trueType ? "CIDFontType2" : "CIDFontType0")} /BaseFont /{name} " +
             "/CIDSystemInfo << /Registry (Adobe) /Ordering (Identity) /Supplement 0 >> " +
-            $"/FontDescriptor {objects[2]} 0 R /CIDToGIDMap /Identity /W {Widths(used.Keys, instance, scale)} >>";
+            $"/FontDescriptor {objects[2]} 0 R {(trueType ? "/CIDToGIDMap /Identity " : string.Empty)}/W {Widths(used.Keys, instance, scale)} >>";
 
         string type0 = $"<< /Type /Font /Subtype /Type0 /BaseFont /{name} /Encoding /Identity-H /DescendantFonts [{objects[1]} 0 R] /ToUnicode {objects[4]} 0 R >>";
         return new FaceObjects(type0, cidFont, descriptor, programBody, compressed, toUnicodeBody, toUnicode);
