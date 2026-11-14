@@ -81,8 +81,8 @@ internal static class TextPipeline
                 segments.Add(new StandardSegment(runText, StandardText.Width(runText, fontSize)));
                 continue;
             }
-            var shaped = TextShaper.Shape(runFont, runText, ScriptTags(script));
-            segments.Add(new FontSegment(runFont, shaped, GlyphTexts(shaped, runText), runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm));
+            var shaped = script is "deva" or "telu" or "taml" ? IndicShaper.Shape(runFont, runText, script) : TextShaper.Shape(runFont, runText, ScriptTags(script));
+            segments.Add(new FontSegment(runFont, shaped, GlyphTexts(runFont, shaped, runText), runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm));
         }
         return new LaidOutText(segments, segments.Sum(s => s.Width));
     }
@@ -141,20 +141,44 @@ internal static class TextPipeline
         _ => new[] { "latn", "DFLT", "dflt" }
     };
 
-    // The first glyph of each cluster carries the cluster's text: from its first character to the next cluster.
-    private static string[] GlyphTexts(ShapedRun run, string text)
+    // The first glyph of each cluster carries the cluster's text: from its first character to the next cluster. A
+    // cluster drawn unchanged (one glyph per character, each the character's own glyph, in text order) gives each
+    // glyph its own character instead, so a glyph keeps one meaning wherever it is drawn.
+    private static string[] GlyphTexts(PdfFont font, ShapedRun run, string text)
     {
         var starts = run.Glyphs.Select(g => g.Cluster).Distinct().OrderBy(c => c).ToList();
         var texts = new string[run.Glyphs.Count];
         var seen = new HashSet<int>();
-        for (int i = 0; i < run.Glyphs.Count; i++)
+        int i = 0;
+        while (i < run.Glyphs.Count)
         {
             int cluster = run.Glyphs[i].Cluster;
-            if (!seen.Add(cluster)) { texts[i] = string.Empty; continue; }
+            int end = i + 1;
+            while (end < run.Glyphs.Count && run.Glyphs[end].Cluster == cluster) end++;
+            if (!seen.Add(cluster))
+            {
+                for (int k = i; k < end; k++) texts[k] = string.Empty;
+                i = end;
+                continue;
+            }
+
             int next = starts.FirstOrDefault(s => s > cluster, text.Length);
-            texts[i] = text.Substring(cluster, Math.Max(0, next - cluster));
+            string clusterText = text.Substring(cluster, Math.Max(0, next - cluster));
+            var characters = Characters(clusterText);
+            bool unchanged = characters.Count == end - i
+                && characters.Select((c, k) => font.Font.CharacterMap.GlyphFor(char.ConvertToUtf32(c, 0)) == run.Glyphs[i + k].Glyph).All(same => same);
+            for (int k = i; k < end; k++) texts[k] = unchanged ? characters[k - i] : k == i ? clusterText : string.Empty;
+            i = end;
         }
         return texts;
+    }
+
+    private static List<string> Characters(string text)
+    {
+        var characters = new List<string>(text.Length);
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+            characters.Add(text.Substring(i, char.IsSurrogatePair(text, i) ? 2 : 1));
+        return characters;
     }
 
     // Draws a shaped run: TJ arrays of hex glyph IDs whose spacing numbers move the pen from where the previous glyph's
