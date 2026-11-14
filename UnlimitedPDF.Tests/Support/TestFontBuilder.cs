@@ -98,20 +98,49 @@ internal sealed class TestFontBuilder
     public byte[] Build()
     {
         var tables = new SortedDictionary<string, byte[]>(StringComparer.Ordinal);
-        var (glyf, loca, bounds) = BuildGlyphs();
+        if (Cff)
+        {
+            tables["CFF "] = BuildCff();
+            tables["head"] = BuildHead((0, -200, 1000, 900));
+            tables["maxp"] = new BigEndianWriter().U32(0x00005000).U16((ushort)_glyphs.Count).ToArray();
+        }
+        else
+        {
+            var (glyf, loca, bounds) = BuildGlyphs();
+            tables["glyf"] = glyf;
+            tables["head"] = BuildHead(bounds);
+            tables["loca"] = loca;
+            tables["maxp"] = BuildMaxp();
+        }
         tables["cmap"] = BuildCmap();
-        tables["glyf"] = glyf;
-        tables["head"] = BuildHead(bounds);
         tables["hhea"] = BuildHhea();
         tables["hmtx"] = BuildHmtx();
-        tables["loca"] = loca;
-        tables["maxp"] = BuildMaxp();
         tables["name"] = BuildName();
         tables["OS/2"] = BuildOs2();
         tables["post"] = BuildPost();
         foreach (var (tag, data) in _extraTables) tables[tag] = data;
-        return Assemble(tables, 0x00010000);
+        return Assemble(tables, Cff ? 0x4F54544Fu : 0x00010000u);
     }
+
+    /// <summary>
+    /// Adds a glyph with a raw Type 2 charstring (CFF fonts only), for testing charstring limits, and returns its ID.
+    /// </summary>
+    public int AddCharstringGlyph(ushort advance, byte[] charstring)
+    {
+        _glyphs.Add(new Glyph(advance, Array.Empty<(short, short)[]>(), Array.Empty<(int, short, short)>()) { Charstring = charstring });
+        return _glyphs.Count - 1;
+    }
+
+    /// <summary>
+    /// Returns a Type 2 charstring number operand.
+    /// </summary>
+    public static byte[] CharstringNumber(int value) => value switch
+    {
+        >= -107 and <= 107 => new[] { (byte)(value + 139) },
+        >= 108 and <= 1131 => new[] { (byte)((value - 108) / 256 + 247), (byte)((value - 108) % 256) },
+        >= -1131 and <= -108 => new[] { (byte)((-value - 108) / 256 + 251), (byte)((-value - 108) % 256) },
+        _ => new byte[] { 28, (byte)(value >> 8), (byte)value }
+    };
 
     /// <summary>
     /// Returns the checksum of a table or a whole font: the sum of its big-endian 32-bit words, zero-padded.
@@ -178,6 +207,123 @@ internal sealed class TestFontBuilder
     #endregion
 
     #region Private Methods
+
+    // Writes a CFF version 1 table: header, Name, Top DICT, String, and Global Subr INDEXes, then (for a CID-keyed
+    // font) the charset, FDSelect, and FDArray, then the CharStrings INDEX, the Private DICT, and the local Subrs.
+    // Offsets in DICTs use the fixed five-byte integer form, so every DICT's size is known before the layout.
+    private byte[] BuildCff()
+    {
+        var charStrings = _glyphs.Select(CharstringFor).ToList();
+        var strings = CffCidKeyed ? new List<byte[]> { Encoding.ASCII.GetBytes("Adobe"), Encoding.ASCII.GetBytes("Identity") } : new List<byte[]>();
+        var header = new byte[] { 1, 0, 4, 4 };
+        var nameIndex = CffIndex(new List<byte[]> { Encoding.ASCII.GetBytes(PostScriptName ?? FamilyName.Replace(" ", string.Empty)) });
+        var stringIndex = CffIndex(strings);
+        var globalIndex = CffIndex(CffGlobalSubrs);
+        var charStringIndex = CffIndex(charStrings);
+        var localIndex = CffLocalSubrs.Count > 0 ? CffIndex(CffLocalSubrs) : Array.Empty<byte>();
+
+        // The Private DICT's size is fixed: Subrs (5 + 1 bytes) when there are local subroutines.
+        int privateSize = CffLocalSubrs.Count > 0 ? 6 : 0;
+        byte[] PrivateDict() => CffLocalSubrs.Count > 0 ? DictInt(privateSize).Concat(new byte[] { 19 }).ToArray() : Array.Empty<byte>();
+
+        // Top DICT: CharStrings (6 bytes) and Private (11), or for a CID-keyed font ROS (7), charset (6), FDArray (7),
+        // FDSelect (7), and CharStrings (6).
+        int topSize = CffCidKeyed ? 33 : 17;
+        int topIndexSize = 2 + 1 + 8 + topSize;
+        int afterGlobals = header.Length + nameIndex.Length + topIndexSize + stringIndex.Length + globalIndex.Length;
+
+        int charset = 0, fdSelect = 0, fdArray = 0, charStringsOffset, privateOffset;
+        byte[] charsetBytes = Array.Empty<byte>(), fdSelectBytes = Array.Empty<byte>(), fdArrayBytes = Array.Empty<byte>();
+        if (CffCidKeyed)
+        {
+            charset = afterGlobals;
+            charsetBytes = new BigEndianWriter().U8(2).U16(1).U16((ushort)Math.Max(0, _glyphs.Count - 2)).ToArray();
+            fdSelect = charset + charsetBytes.Length;
+            fdSelectBytes = new BigEndianWriter().U8(3).U16(1).U16(0).U8(0).U16((ushort)_glyphs.Count).ToArray();
+            fdArray = fdSelect + fdSelectBytes.Length;
+            int fdArraySize = 2 + 1 + 8 + 11; // one Font DICT holding Private
+            charStringsOffset = fdArray + fdArraySize;
+            privateOffset = charStringsOffset + charStringIndex.Length;
+            fdArrayBytes = CffIndex(new List<byte[]> { DictInt(privateSize).Concat(DictInt(privateOffset)).Concat(new byte[] { 18 }).ToArray() });
+        }
+        else
+        {
+            charStringsOffset = afterGlobals;
+            privateOffset = charStringsOffset + charStringIndex.Length;
+        }
+
+        var top = new List<byte>();
+        if (CffCidKeyed)
+        {
+            top.AddRange(new byte[] { 248, 27, 248, 28, 139, 12, 30 }); // ROS: SID 391 "Adobe", SID 392 "Identity", supplement 0
+            top.AddRange(DictInt(charset)); top.Add(15);
+            top.AddRange(DictInt(fdArray)); top.AddRange(new byte[] { 12, 36 });
+            top.AddRange(DictInt(fdSelect)); top.AddRange(new byte[] { 12, 37 });
+        }
+        top.AddRange(DictInt(charStringsOffset)); top.Add(17);
+        if (!CffCidKeyed)
+        {
+            top.AddRange(DictInt(privateSize)); top.AddRange(DictInt(privateOffset)); top.Add(18);
+        }
+        var topBytes = top.ToArray();
+        if (topBytes.Length != topSize) throw new InvalidOperationException($"Top DICT layout mismatch ({topBytes.Length} vs {topSize}).");
+
+        var cff = new MemoryStream();
+        cff.Write(header);
+        cff.Write(nameIndex);
+        cff.Write(CffIndex(new List<byte[]> { topBytes }));
+        cff.Write(stringIndex);
+        cff.Write(globalIndex);
+        cff.Write(charsetBytes);
+        cff.Write(fdSelectBytes);
+        cff.Write(fdArrayBytes);
+        cff.Write(charStringIndex);
+        cff.Write(PrivateDict());
+        cff.Write(localIndex);
+        return cff.ToArray();
+    }
+
+    private byte[] CharstringFor(Glyph glyph)
+    {
+        if (glyph.Charstring is { } raw) return raw;
+        if (glyph.Components.Count > 0) throw new NotSupportedException("CFF test fonts have no composite glyphs.");
+
+        var code = new List<byte>();
+        code.AddRange(CharstringNumber(glyph.Advance)); // width (nominalWidthX is 0)
+        short x = 0, y = 0;
+        foreach (var contour in glyph.Contours)
+        {
+            code.AddRange(CharstringNumber(contour[0].X - x));
+            code.AddRange(CharstringNumber(contour[0].Y - y));
+            code.Add(21); // rmoveto
+            (x, y) = contour[0];
+            for (int i = 1; i < contour.Length; i++)
+            {
+                code.AddRange(CharstringNumber(contour[i].X - x));
+                code.AddRange(CharstringNumber(contour[i].Y - y));
+                (x, y) = contour[i];
+            }
+            if (contour.Length > 1) code.Add(5); // rlineto
+        }
+        code.Add(14); // endchar
+        return code.ToArray();
+    }
+
+    private static byte[] CffIndex(IReadOnlyList<byte[]> entries)
+    {
+        var w = new BigEndianWriter();
+        w.U16((ushort)entries.Count);
+        if (entries.Count == 0) return w.ToArray();
+        w.U8(4);
+        uint offset = 1;
+        w.U32(offset);
+        foreach (var entry in entries) w.U32(offset += (uint)entry.Length);
+        foreach (var entry in entries) w.Bytes(entry);
+        return w.ToArray();
+    }
+
+    // A DICT integer in the fixed five-byte form (operator 29).
+    private static byte[] DictInt(int value) => new BigEndianWriter().U8(29).U32(unchecked((uint)value)).ToArray();
 
     private static byte[] WithoutAdjustment(byte[] head)
     {
@@ -375,6 +521,21 @@ internal sealed class TestFontBuilder
 
     public short Ascender { get; set; } = 800;
 
+    /// <summary>
+    /// Gets or sets whether the font has CFF outlines (an <c>OTTO</c> font with a <c>CFF </c> table) instead of
+    /// TrueType outlines.
+    /// </summary>
+    public bool Cff { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the CFF table is CID-keyed (ROS, charset, FDArray, FDSelect) instead of name-keyed.
+    /// </summary>
+    public bool CffCidKeyed { get; set; }
+
+    public List<byte[]> CffGlobalSubrs { get; } = new();
+
+    public List<byte[]> CffLocalSubrs { get; } = new();
+
     public short CapHeight { get; set; } = 700;
 
     public short Descender { get; set; } = -200;
@@ -403,7 +564,10 @@ internal sealed class TestFontBuilder
 
     #region Nested Types
 
-    private sealed record Glyph(ushort Advance, (short X, short Y)[][] Contours, IReadOnlyList<(int Glyph, short Dx, short Dy)> Components);
+    private sealed record Glyph(ushort Advance, (short X, short Y)[][] Contours, IReadOnlyList<(int Glyph, short Dx, short Dy)> Components)
+    {
+        public byte[]? Charstring { get; init; }
+    }
 
     #endregion
 }

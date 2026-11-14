@@ -9,6 +9,7 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// and non-fonts as unsupported, and turns every damaged or hostile input into <see cref="PdfFontException"/> without
 /// hanging or throwing anything else.
 /// </summary>
+[Collection(nameof(FontFuzzCollection))]
 public class OpenTypeFontTests
 {
     #region Methods
@@ -238,4 +239,13 @@ public class OpenTypeFontTests
     #endregion
 
     #endregion
+}
+
+/// <summary>
+/// The font reader tests that fuzz thousands of damaged fonts run apart from the parallel tests, so their CPU load
+/// cannot slow the timing-based tests elsewhere in the suite.
+/// </summary>
+[CollectionDefinition(nameof(FontFuzzCollection), DisableParallelization = true)]
+public class FontFuzzCollection
+{
 }

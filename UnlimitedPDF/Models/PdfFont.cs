@@ -158,8 +158,8 @@ public sealed class PdfFont
     {
         cancellationToken.ThrowIfCancellationRequested();
         var font = OpenTypeFont.Parse(data);
-        if (font.Outlines == FontOutlines.Cff)
-            throw new PdfFontException(PdfFontErrorReason.UnsupportedFormat, "The font has CFF outlines, which are not supported yet.");
+        if (font.Outlines == FontOutlines.Cff2)
+            throw new PdfFontException(PdfFontErrorReason.UnsupportedFormat, "The font has variable CFF2 outlines, which are not supported yet.");
 
         CheckEmbedding(font, settings.IgnoreEmbeddingRestrictions);
 

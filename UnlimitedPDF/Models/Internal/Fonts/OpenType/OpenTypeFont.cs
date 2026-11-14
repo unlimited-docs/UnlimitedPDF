@@ -1,3 +1,5 @@
+using UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
+
 namespace UnlimitedPDF.Models.Internal.Fonts.OpenType;
 
 /// <summary>
@@ -6,7 +8,8 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType;
 internal enum FontOutlines
 {
     TrueType,
-    Cff
+    Cff,
+    Cff2
 }
 
 /// <summary>
@@ -65,9 +68,16 @@ internal sealed class OpenTypeFont
         ReadOs2();
         ReadPost();
 
-        if (_tables.ContainsKey("CFF ") || _tables.ContainsKey("CFF2"))
+        if (_tables.ContainsKey("CFF2"))
+        {
+            Outlines = FontOutlines.Cff2;
+            _glyphOffsets = Array.Empty<int>();
+            _components = Array.Empty<int[]>();
+        }
+        else if (_tables.TryGetValue("CFF ", out var cff))
         {
             Outlines = FontOutlines.Cff;
+            Cff = CffFont.Read(data, cff.Offset, cff.Length, GlyphCount);
             _glyphOffsets = Array.Empty<int>();
             _components = Array.Empty<int[]>();
         }
@@ -129,7 +139,7 @@ internal sealed class OpenTypeFont
         }
 
         var font = new OpenTypeFont(data, tables);
-        if (version == 0x4F54544F && font.Outlines != FontOutlines.Cff) throw FontBytes.Corrupt("is marked as CFF but has no CFF table");
+        if (version == 0x4F54544F && font.Outlines == FontOutlines.TrueType) throw FontBytes.Corrupt("is marked as CFF but has no CFF table");
         return font;
     }
 
@@ -360,6 +370,11 @@ internal sealed class OpenTypeFont
     public short CapHeight { get; private set; }
 
     public CharacterMap CharacterMap { get; }
+
+    /// <summary>
+    /// Gets the parsed <c>CFF </c> table, or null when the font has TrueType or CFF2 outlines.
+    /// </summary>
+    public CffFont? Cff { get; }
 
     public FontBytes Data { get; }
 
