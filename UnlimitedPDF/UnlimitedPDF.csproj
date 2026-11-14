@@ -2,15 +2,15 @@
 
   <PropertyGroup>
     <PackageId>UnlimitedPDF</PackageId>
-    <Version>1.0.1</Version>
-    <PackageVersion>1.0.1</PackageVersion>
+    <Version>1.1.0</Version>
+    <PackageVersion>1.1.0</PackageVersion>
     
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/unlimited-docs/UnlimitedPDF</RepositoryUrl>
     <PackageProjectUrl>https://unlimitedpdf.dev/</PackageProjectUrl>
-    <PackageTags>pdf;pdf-library;pdf-generation;create-pdf;pdf-tables;pdf-images;pdf-headers-footers;merge-pdf;split-pdf;html-to-pdf;enterprise-pdf;dotnet;csharp;blazor;unlimitedpdf;unlimited-pdf</PackageTags>
+    <PackageTags>pdf;pdf-library;pdf-generation;create-pdf;pdf-fonts;unicode;multilingual;hindi;telugu;tamil;pdf-tables;pdf-images;pdf-headers-footers;merge-pdf;split-pdf;html-to-pdf;enterprise-pdf;dotnet;csharp;blazor;unlimitedpdf;unlimited-pdf</PackageTags>
     <Description>UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, images, headers, and footers, merging and splitting existing PDFs, and converting HTML to PDF, saved to a file or a stream. No third-party dependencies.</Description>
-    <PackageReleaseNotes>1.0.1: text now shows in iPhone and iPad PDF viewers. Every page names the font its text uses; pages look the same everywhere else, and the API is unchanged. https://github.com/unlimited-docs/UnlimitedPDF#changes-in-101 — 1.0.0: merge PDFs, split PDFs, and HTML to PDF with a built-in renderer; tables that continue across pages with repeated header rows; headers, footers, page numbers, and a body flow that adds pages as needed; JPEG and PNG images, also in table cells; colors from RGB or hex; .NET 11 support. Part of the API is renamed, so code written for 0.0.x needs the new names. The full change list and the upgrade table: https://github.com/unlimited-docs/UnlimitedPDF#changes-in-100</PackageReleaseNotes>
+    <PackageReleaseNotes>1.1.0: your own fonts and more languages. Load .ttf and .otf fonts (including variable fonts) with PdfFont and draw Hindi, Telugu, Tamil, and Latin-script text, shaped by the font's rules, on every text call and in HTML; fallback fonts per character; FindMissingCharacters and FailOnMissingCharacters; PDFs embed only the glyphs they use, and copied text reads back as written. Text without a font now draws Western European characters such as é and € instead of ?. https://github.com/unlimited-docs/UnlimitedPDF#changes-in-110 — 1.0.1: text now shows in iPhone and iPad PDF viewers. Every page names the font its text uses; pages look the same everywhere else, and the API is unchanged. https://github.com/unlimited-docs/UnlimitedPDF#changes-in-101 — 1.0.0: merge PDFs, split PDFs, and HTML to PDF with a built-in renderer; tables that continue across pages with repeated header rows; headers, footers, page numbers, and a body flow that adds pages as needed; JPEG and PNG images, also in table cells; colors from RGB or hex; .NET 11 support. Part of the API is renamed, so code written for 0.0.x needs the new names. The full change list and the upgrade table: https://github.com/unlimited-docs/UnlimitedPDF#changes-in-100</PackageReleaseNotes>
     <Authors>Vikram Reddy</Authors>
     <Company>Unlimited Docs</Company>
     <Copyright>Copyright © 2025-2026 UnlimitedPDF</Copyright>

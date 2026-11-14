@@ -4,7 +4,7 @@
 
 Key facts:
 
-- Install: `dotnet add package UnlimitedPDF`, or `<PackageReference Include="UnlimitedPDF" Version="1.0.1" />`.
+- Install: `dotnet add package UnlimitedPDF`, or `<PackageReference Include="UnlimitedPDF" Version="1.1.0" />`.
 - Target frameworks: `net6.0`, `net8.0`, `net9.0`, `net10.0`, and `net11.0`, including Blazor WebAssembly (`browser`).
 - License: Apache-2.0, so commercial use is allowed.
 - Every public type is in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` needed.

@@ -29,7 +29,9 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 - [Merge PDFs](#merge-pdfs)
 - [Split PDFs](#split-pdfs)
 - [HTML to PDF](#html-to-pdf)
+- [Fonts and languages](#fonts-and-languages)
 - [Upgrading to 1.0.0](#upgrading-to-100)
+- [Changes in 1.1.0](#changes-in-110)
 - [Changes in 1.0.1](#changes-in-101)
 - [Changes in 1.0.0](#changes-in-100)
 
@@ -37,11 +39,11 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 - **.NET CLI**
   
-  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 1.0.1`
+  Install with [NuGet](https://www.nuget.org/): `dotnet add package UnlimitedPDF --version 1.1.0`
   
 - **Package Reference**
   
-  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="1.0.1" />`
+  Add package reference to project: `<PackageReference Include="UnlimitedPDF" Version="1.1.0" />`
 
 - **Target frameworks**
 
@@ -427,8 +429,8 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 
 ![invoice.pdf converted from an invoice.html (the demo site's invoice template): logo, addresses, an items table with totals, and payment details](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/html-to-pdf.jpg)
 
-- Supported: block and inline layout with wrapping and justified text; headings, paragraphs, `div`, `span`, `blockquote`, `pre`, and the HTML5 section elements; nested `ul`, `ol`, and `dl` lists with every common marker style and `start`, `reversed`, and `value`; tables nested to any depth with `colspan`, `rowspan`, captions, and both border models; PNG and JPEG images; `<style>`, `<link rel="stylesheet">`, and `style` attributes with type, class, id, attribute, descendant, and child selectors; colors, fonts, sizes, margins, padding, borders, backgrounds, widths, and page breaks. HTML is laid out as a document, not as a browser shows it: scripts, flexbox, grid, floats, positioning, transforms, rounded corners, background images, and web fonts are not supported, and each one skipped is listed in `Warnings`.
-- Text uses the standard PDF fonts: `serif` is Times, `monospace` is Courier, and other families are Helvetica, each with bold and italic. Western European characters such as `é`, `ñ`, and `€` are supported; other characters are written as `?`.
+- Supported: block and inline layout with wrapping and justified text; headings, paragraphs, `div`, `span`, `blockquote`, `pre`, and the HTML5 section elements; nested `ul`, `ol`, and `dl` lists with every common marker style and `start`, `reversed`, and `value`; tables nested to any depth with `colspan`, `rowspan`, captions, and both border models; PNG and JPEG images; `<style>`, `<link rel="stylesheet">`, and `style` attributes with type, class, id, attribute, descendant, and child selectors; colors, fonts, sizes, margins, padding, borders, backgrounds, widths, and page breaks. HTML is laid out as a document, not as a browser shows it: scripts, flexbox, grid, floats, positioning, transforms, rounded corners, background images, and `@font-face` web fonts are not supported, and each one skipped is listed in `Warnings`.
+- Fonts: text uses the standard PDF fonts unless you register your own: `serif` is Times, `monospace` is Courier, and other families are Helvetica, each with bold and italic, with Western European characters such as `é`, `ñ`, and `€`. Register fonts for other languages and characters; see [Fonts and languages](#fonts-and-languages).
 - Pages: the HTML uses the document's page size and margins (A4 with 36 pt margins for `ConvertHtml`). Lines and images never split across pages, table rows move to the next page whole, `thead` rows repeat on every page, and a row taller than a page continues cell by cell. `break-before`, `break-after`, `break-inside: avoid`, and the `page-break-*` properties are honored. Content wider than the page narrows to fit; anything that still doesn't fit is clipped and reported.
 - Resources: `data:` URIs, and relative paths inside the base folder (the HTML file's folder, or `BaseFolder`). Paths that leave that folder, absolute paths, and symbolic links are never read. Anything else goes to your `ResourceResolver` (or `ResourceResolverAsync` with the `Async` load methods). Images and stylesheets that can't be loaded are skipped, an image showing its `alt` text instead.
 - Links: `http`, `https`, and `mailto` links are clickable, and `#id` links jump inside the document; other link types keep their text only. `headingBookmarks: true` turns `h1` to `h6` into bookmarks.
@@ -438,8 +440,52 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
   - Floats and positioning: ignored; elements stay in the normal flow.
   - Background images: skipped; background colors are drawn.
   - Images other than PNG and JPEG, such as SVG and WebP: their `alt` text is shown.
-  - Characters outside Western European, such as Cyrillic, Chinese, and emoji: written as `?`.
+  - Characters outside Western European that no registered or fallback font has, such as Cyrillic, Chinese, and emoji without a font for them: written as `?`, with a `MissingCharacter` warning.
   - `pre` lines don't wrap, as in a browser, so a line wider than the page is clipped; use `white-space: pre-wrap` to wrap it.
+
+## Fonts and languages
+
+Draw text in your own fonts: Hindi, Telugu, Tamil, French, and other languages written in Latin letters, each shaped the way its script needs. Load a `.ttf` or `.otf` font once with `PdfFont`, then pass it to any text call; characters it doesn't have come from the document's fallback fonts. The PDF embeds only the glyphs it uses, and copied or searched text reads back exactly as written.
+
+```cs
+using UnlimitedPDF;
+
+var latin = PdfFont.FromFile("fonts/BrandSans-Regular.ttf");
+var hindi = PdfFont.FromFile("fonts/BrandDevanagari-Regular.ttf");
+var telugu = PdfFont.FromFile("fonts/BrandTelugu-Regular.ttf");
+
+var document = new PdfDocument();
+document.FontFallback.Add(hindi); // used for characters the call's font doesn't have
+document.FontFallback.Add(telugu);
+
+var page = document.AddPage();
+page.AddText("Invoice", latin, 72, 760, 18);
+page.AddText("Merci, नमस्ते, ధన్యవాదాలు", latin, 72, 730); // three scripts in one line
+
+// Find characters no font can draw before saving, or make Save fail on them instead of drawing '?'.
+var missing = document.FindMissingCharacters("Thank you 🙏", latin); // ["🙏"]
+document.FailOnMissingCharacters = true;
+document.Save("invoice.pdf");
+
+// HTML: register fonts under the family names your CSS uses.
+var options = new PdfHtmlLoadOptions();
+options.Fonts.Add("Brand Sans", latin);
+options.Fonts.Add("Brand Sans", PdfFont.FromFile("fonts/BrandSans-Bold.ttf"));
+options.Fonts.Add("Brand Devanagari", hindi);
+var html = PdfHtml.FromString("<p style=\"font-family: 'Brand Sans', 'Brand Devanagari'\">Total <b>₹ 1,250</b> कुल</p>", options);
+PdfOperations.ConvertHtml(html, "total.pdf");
+```
+
+- Fonts: `PdfFont.FromFile`, `FromFileAsync`, `FromStream`, `FromStreamAsync`, and `FromBytes` load `.ttf` and `.otf` fonts with TrueType or CFF outlines. A variable font draws any weight it holds: `new PdfFontLoadOptions { Weight = 700 }`. Font collections (`.ttc`), WOFF, WOFF2, damaged fonts, fonts over 50 MB (`PdfFont.DefaultMaxFileSize`, or `MaxFileSize` per load), and fonts whose license forbids embedding throw `PdfFontException` with a `Reason`. Set `IgnoreEmbeddingRestrictions` only when you hold the rights to embed the font.
+- Where: `PdfPage.AddText`, headers and footers, the body flow, flow blocks, table cells (`new PdfCellText(text, font)` or `PdfTable.SetText(row, column, text, font)`), and HTML. Each character takes the call's font, then the `PdfDocument.FontFallback` fonts in order, so one line can mix scripts.
+- Scripts: Latin (accents, ligatures, kerning), Devanagari, Telugu, and Tamil are shaped with the font's own rules: conjuncts, half forms, reph, vowel signs drawn before their consonant, and marks placed above and below. Copy, search, and read-aloud return the original text.
+- Missing characters: a character no font has is drawn as `?`. `FindMissingCharacters` lists them before you save; `FailOnMissingCharacters` makes `Save` throw `PdfTextException` (the character, its text, and its page) before anything is written; HTML adds a `MissingCharacter` warning.
+- Without a font: text uses the built-in Helvetica as before, and Western European characters such as `é`, `ñ`, `€`, dashes, and curly quotes are drawn as written. Documents with only ASCII text are written byte for byte as before.
+- HTML: `font-family` names map to the fonts registered in `PdfHtmlLoadOptions.Fonts`, matched by weight and style; register one font per weight and style, or one variable font. Each character takes the first listed family that has it, then the fallback fonts (`PdfDocument.FontFallback`, or `PdfHtmlConvertOptions.FontFallback` for `ConvertHtml`), then the standard fonts. When a bold or italic font is missing, the nearest registered one is used with a `MissingFontFace` warning; `SynthesizeMissingStyles` draws the regular font thickened or slanted instead. `@font-face` rules are ignored with a `FontFaceIgnored` warning, and their font files are never read.
+- Known limitations:
+  - Right-to-left scripts, such as Arabic and Hebrew, and Chinese, Japanese, and Korean are not supported.
+  - Font collections (`.ttc`) and web fonts (WOFF, WOFF2) can't be loaded; convert them to `.ttf` or `.otf`.
+  - HTML `@font-face` rules are ignored; register fonts in code instead.
 
 ## Upgrading to 1.0.0
 
@@ -468,6 +514,16 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 | `PdfTableCell.TopBorder`, `BottomBorder`, `LeftBorder`, `RightBorder` | `PdfCell.BorderTop`, `BorderBottom`, `BorderLeft`, `BorderRight` |
 | `PdfTable.GetEffectiveColumnWidths()`, `NormalizeSpans()`, `IsSameSpanCell(...)` | removed (internal layout helpers) |
 | `PdfPageSize.ToMediaBoxString()` | removed (internal PDF syntax); use `ToDimensions()` for the size in points |
+
+## Changes in 1.1.0
+
+- New: your own fonts and more languages (`PdfFont`, `PdfFontLoadOptions`, `PdfFontException`, `PdfFontErrorReason`): text in Hindi, Telugu, Tamil, and languages written in Latin letters, shaped by the font's rules, on every text call (`PdfPage.AddText`, headers, footers, the body flow, flow blocks, and table cells with `PdfCellText` and `PdfTable.SetText`). PDFs embed only the glyphs they use. See [Fonts and languages](#fonts-and-languages).
+- New: fallback fonts and missing characters (`PdfDocument.FontFallback`, `PdfDocument.FindMissingCharacters`, `PdfDocument.FailOnMissingCharacters`, `PdfTextException`).
+- New: fonts in HTML (`PdfHtmlLoadOptions.Fonts`, `PdfHtmlFontCollection`, `PdfHtmlLoadOptions.SynthesizeMissingStyles`, `PdfHtmlConvertOptions.FontFallback`), and the warning kinds `MissingCharacter`, `MissingFontFace`, and `FontFaceIgnored`.
+- Changed: text drawn without a font now shows Western European characters such as `é`, `ü`, `€`, dashes, and curly quotes instead of `?`. Documents with only ASCII text are written exactly as before.
+- Changed: HTML reports each character it draws as `?` with a `MissingCharacter` warning, so `FailOnWarning` now fails on such characters, and reports `@font-face` as `FontFaceIgnored` instead of `UnsupportedProperty`.
+- Changed: in HTML, a word wider than its line is split only between whole characters, so an emoji or a letter with its accent stays together.
+- The package includes `THIRD-PARTY-NOTICES.txt`, the license of the Unicode data the script tables are built from.
 
 ## Changes in 1.0.1
 
