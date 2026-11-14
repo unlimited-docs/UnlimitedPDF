@@ -38,6 +38,10 @@ internal static class HtmlPainter
                     break;
                 case TextCommand t:
                     sb.AppendLine(HtmlOperators.Text(sink.FontResource(t.Font), t.FontSize, t.Color, left + t.X, t.Baseline, t.Codes, t.WordSpacing, t.CharacterSpacing));
+                    foreach (string missing in StandardText.MissingElements(t.Text)) sink.RecordMissing(missing, t.Text);
+                    break;
+                case ShapedTextCommand s:
+                    sb.AppendLine(HtmlOperators.ShapedText(s.Segment, s.FontSize, s.Color, left + s.X, s.Baseline, sink, s.WordSpacing, s.CharacterSpacing));
                     break;
                 case ImageCommand i:
                     if (i.Width > 0 && i.Height > 0) sb.AppendLine(HtmlOperators.Image(sink.ImageName(i.Image.Data), left + i.X, i.Bottom, i.Width, i.Height));

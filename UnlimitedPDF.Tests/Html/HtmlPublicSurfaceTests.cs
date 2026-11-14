@@ -33,13 +33,13 @@ public class HtmlPublicSurfaceTests
         Assert.Equal(new[] { "DefaultMaxInputSize", "DefaultMaxNestingDepth", "DefaultMaxResourceSize", "DefaultMaxTotalResourceSize", "Warnings" },
             typeof(PdfHtml).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static).Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
         Assert.Empty(typeof(PdfHtml).GetConstructors());
-        Assert.Equal(new[] { "BaseFolder", "FailOnWarning", "MaxInputSize", "MaxNestingDepth", "MaxResourceSize", "MaxTotalResourceSize", "ResourceResolver", "ResourceResolverAsync" },
+        Assert.Equal(new[] { "BaseFolder", "FailOnWarning", "Fonts", "MaxInputSize", "MaxNestingDepth", "MaxResourceSize", "MaxTotalResourceSize", "ResourceResolver", "ResourceResolverAsync" },
             typeof(PdfHtmlLoadOptions).GetProperties().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
         Assert.Equal(new[] { "Kind", "Line", "Message", "PageNumber", "Source" },
             typeof(PdfHtmlWarning).GetProperties().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
         Assert.Equal(new[] { "Reason", "Warning" },
             typeof(PdfHtmlException).GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly).Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
-        Assert.Equal(new[] { "UnsupportedElement", "UnsupportedProperty", "UnsupportedValue", "ResourceNotFound", "ResourceBlocked", "ResourceNotResolved", "UnsupportedImageFormat", "InvalidImage", "LinkDropped", "ContentClipped" },
+        Assert.Equal(new[] { "UnsupportedElement", "UnsupportedProperty", "UnsupportedValue", "ResourceNotFound", "ResourceBlocked", "ResourceNotResolved", "UnsupportedImageFormat", "InvalidImage", "LinkDropped", "ContentClipped", "MissingCharacter" },
             Enum.GetNames(typeof(PdfHtmlWarningKind)));
         Assert.Equal(new[] { "InputTooLarge", "NestingTooDeep", "ResourceTooLarge", "ResourcesTooLarge", "Warning" },
             Enum.GetNames(typeof(PdfHtmlErrorReason)));
@@ -48,7 +48,7 @@ public class HtmlPublicSurfaceTests
     [Fact]
     public void Html_types_are_in_the_UnlimitedPDF_namespace()
     {
-        foreach (var type in new[] { typeof(PdfHtml), typeof(PdfHtmlLoadOptions), typeof(PdfHtmlWarning), typeof(PdfHtmlException), typeof(PdfHtmlWarningKind), typeof(PdfHtmlErrorReason) })
+        foreach (var type in new[] { typeof(PdfHtml), typeof(PdfHtmlLoadOptions), typeof(PdfHtmlFontCollection), typeof(PdfHtmlWarning), typeof(PdfHtmlException), typeof(PdfHtmlWarningKind), typeof(PdfHtmlErrorReason) })
             Assert.Equal("UnlimitedPDF", type.Namespace);
     }
 

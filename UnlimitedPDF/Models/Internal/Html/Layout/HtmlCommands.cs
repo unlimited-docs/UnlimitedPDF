@@ -24,9 +24,14 @@ internal sealed record CircleCommand(double CenterX, double CenterY, double Radi
 internal sealed record LineCommand(double X1, double Y1, double X2, double Y2, double Width, PdfColor Color, HtmlBorderStyle Style) : HtmlCommand;
 
 /// <summary>
-/// A run of text in a standard font.
+/// A run of text in a standard font, with the text it was encoded from (characters drawn as '?' are recorded from it).
 /// </summary>
-internal sealed record TextCommand(StandardFont Font, double FontSize, PdfColor Color, double X, double Baseline, byte[] Codes, double WordSpacing, double CharacterSpacing) : HtmlCommand;
+internal sealed record TextCommand(StandardFont Font, double FontSize, PdfColor Color, double X, double Baseline, byte[] Codes, double WordSpacing, double CharacterSpacing, string Text = "") : HtmlCommand;
+
+/// <summary>
+/// A run of text shaped in a caller font (WR-039).
+/// </summary>
+internal sealed record ShapedTextCommand(FontSegment Segment, double FontSize, PdfColor Color, double X, double Baseline, double WordSpacing, double CharacterSpacing) : HtmlCommand;
 
 /// <summary>
 /// An image drawn into a box.

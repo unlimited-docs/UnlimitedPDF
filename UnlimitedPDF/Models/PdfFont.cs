@@ -24,6 +24,7 @@ public sealed class PdfFont
 
     private static long _defaultMaxFileSize = BuiltInDefaultMaxFileSize;
 
+    private readonly Dictionary<int, PdfFont> _weights = new();
     private FontLayout? _layout;
 
     #endregion
@@ -152,6 +153,24 @@ public sealed class PdfFont
     #endregion
 
     #region Internal Methods
+
+    // The same variable font at another weight, clamped to the weight axis; one object per weight, so each weight is
+    // one embedded face. A font with one weight returns itself.
+    internal PdfFont AtWeight(int weight)
+    {
+        if (!IsVariable) return this;
+        int clamped = Math.Max(MinimumWeight, Math.Min(MaximumWeight, weight));
+        if (clamped == Weight) return this;
+        lock (_weights)
+        {
+            if (_weights.TryGetValue(clamped, out var known)) return known;
+            var axes = VariationAxes.Read(Font)!;
+            var instance = FontInstance.Create(Font, axes, axes.Normalize(clamped));
+            var font = new PdfFont(Font, instance, clamped, axes.WeightAxis) { _layout = _layout };
+            _weights[clamped] = font;
+            return font;
+        }
+    }
 
     // True when the font can draw the code point: it maps a glyph to it, or to every part of a split vowel sign the
     // shaper decomposes (fonts may map only the parts).

@@ -1222,6 +1222,9 @@ public class PdfDocument
     /// </summary>
     public IList<PdfFont> FontFallback => _fontFallback;
 
+    // The same list, read-only, for layout.
+    internal IReadOnlyList<PdfFont> FallbackFonts => _fontFallback;
+
     /// <summary>
     /// Gets the header band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
     /// </summary>

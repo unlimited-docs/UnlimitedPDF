@@ -215,7 +215,7 @@ public class HtmlEntryPointTests
             Assert.Equal("1.0.0", method.GetCustomAttribute<AddedVersionAttribute>()!.Version);
             Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()!.Description));
         }
-        Assert.Equal(new[] { "HeadingBookmarks", "MarginBottom", "MarginLeft", "MarginRight", "MarginTop", "PageSize" },
+        Assert.Equal(new[] { "FontFallback", "HeadingBookmarks", "MarginBottom", "MarginLeft", "MarginRight", "MarginTop", "PageSize" },
             typeof(PdfHtmlConvertOptions).GetProperties().Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal));
         Assert.Equal("UnlimitedPDF", typeof(PdfHtmlConvertOptions).Namespace);
     }

@@ -132,6 +132,27 @@ internal static class HtmlOperators
         return sb.ToString();
     }
 
+    /// <summary>
+    /// Returns the operators that draw one run of text shaped in a caller font (WR-039), recording its glyphs in the
+    /// page's sink.
+    /// </summary>
+    /// <param name="segment">The shaped segment.</param>
+    /// <param name="fontSize">The font size.</param>
+    /// <param name="color">The text color.</param>
+    /// <param name="x">The x-coordinate of the run's start.</param>
+    /// <param name="baseline">The y-coordinate of the baseline.</param>
+    /// <param name="sink">The page's draw sink.</param>
+    /// <param name="wordSpacing">Extra space after each space, for justified text.</param>
+    /// <param name="characterSpacing">Extra space after each cluster, for <c>letter-spacing</c>.</param>
+    /// <returns>The operators.</returns>
+    public static string ShapedText(FontSegment segment, double fontSize, PdfColor color, double x, double baseline, PageDrawSink sink, double wordSpacing = 0, double characterSpacing = 0)
+    {
+        // q/Q = save and restore state, BT/ET = text object, rg = fill color; the segment sets its font and position
+        var sb = new StringBuilder("q BT ").Append(Color(color)).Append(" rg");
+        TextPipeline.DrawShaped(sb, segment, x, baseline, fontSize, sink, characterSpacing, wordSpacing);
+        return sb.Append(" ET Q").ToString();
+    }
+
     #endregion
 
     #region Private Methods

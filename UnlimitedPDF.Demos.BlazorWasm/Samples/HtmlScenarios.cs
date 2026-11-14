@@ -224,7 +224,9 @@ public static class HtmlScenarios
             "Western European characters such as é, ü, and € are drawn with the standard fonts. Characters outside that set, such as Cyrillic, Chinese, and emoji, are drawn as ?.",
             true, Page("Names and prices", "The first line is drawn as written; the second line shows ? for each character outside the standard fonts.",
                 "<p>Café Müller, Señora Ñúñez, Øresund: 25,00 € – “quoted”</p>"
-                + "<p>Привет, 你好, 🙂</p>")),
+                + "<p>Привет, 你好, 🙂</p>"),
+            // One warning for each distinct character drawn as ?: six Cyrillic letters, two Chinese characters, one emoji.
+            Enumerable.Repeat(PdfHtmlWarningKind.MissingCharacter, 9).ToArray()),
         Scenario("nbsp-and-whitespace", "Text", "Non-breaking spaces and whitespace",
             "Amounts joined with &nbsp; still break across lines, or runs of spaces and line breaks in the source show up as gaps.",
             "Words joined by &nbsp; stay on one line, and runs of spaces and line breaks collapse to one space.",

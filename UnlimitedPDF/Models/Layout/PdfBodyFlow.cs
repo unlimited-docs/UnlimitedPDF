@@ -63,7 +63,7 @@ public sealed class PdfBodyFlow
     [AddedVersion("1.0.0")]
     [Description("Adds loaded HTML to the body flow.")]
     public void AddHtml(PdfHtml html, double spacing = 0, bool headingBookmarks = false, bool keepWithNext = false) =>
-        Add(CreateHtml(html, spacing, headingBookmarks, keepWithNext));
+        Add(CreateHtml(html, spacing, headingBookmarks, keepWithNext, _document.FallbackFonts));
 
     /// <summary>
     /// Adds an image. Sizes follow <see cref="PdfPage.AddImage"/>.
@@ -163,11 +163,11 @@ public sealed class PdfBodyFlow
 
     #region Internal Methods
 
-    internal static FlowHtml CreateHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext)
+    internal static FlowHtml CreateHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext, IReadOnlyList<PdfFont> fontFallback)
     {
         if (html is null) throw new ArgumentNullException(nameof(html));
         Guard.NonNegative(spacing, nameof(spacing));
-        return new FlowHtml(html, spacing, headingBookmarks, keepWithNext);
+        return new FlowHtml(html, spacing, headingBookmarks, keepWithNext, fontFallback);
     }
 
     internal static FlowImage CreateImage(PdfImage image, double? width, double? height, double spacing, double x, PdfImagePlacementOptions? options, bool keepWithNext)

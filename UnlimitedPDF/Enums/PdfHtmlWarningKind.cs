@@ -57,5 +57,11 @@ public enum PdfHtmlWarningKind
     /// <summary>
     /// Content still wider than the page body after narrowing, clipped at the body edge.
     /// </summary>
-    ContentClipped
+    ContentClipped,
+
+    /// <summary>
+    /// A character that no font can draw: not in the text's <c>font-family</c> fonts, not in the fallback fonts, and
+    /// not a Western European (WinAnsi) character the built-in fonts have. It is drawn as '?'.
+    /// </summary>
+    MissingCharacter
 }

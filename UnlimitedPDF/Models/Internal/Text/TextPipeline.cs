@@ -54,10 +54,24 @@ internal static class TextPipeline
     public static LaidOutText? Layout(string text, PdfFont? font, IReadOnlyList<PdfFont> fallback, double fontSize)
     {
         if (font is null && fallback.Count == 0) return null;
-        var candidates = new List<PdfFont>();
+        var candidates = new List<PdfFont?>();
         if (font is not null) candidates.Add(font);
         candidates.AddRange(fallback.Where(f => !ReferenceEquals(f, font)));
+        return Layout(text, candidates, fontSize, run => StandardText.Width(run, fontSize));
+    }
 
+    /// <summary>
+    /// Lays out <paramref name="text"/> with fonts tried in order for each text element. A null candidate stands for
+    /// the built-in font, which takes an element when it draws no character of it as '?'; an element no candidate
+    /// takes is drawn with the built-in font too.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="candidates">The fonts in order; null for the built-in font.</param>
+    /// <param name="fontSize">The font size in points.</param>
+    /// <param name="standardWidth">The width of a run drawn with the built-in font, in points.</param>
+    /// <returns>The laid-out text.</returns>
+    public static LaidOutText Layout(string text, IReadOnlyList<PdfFont?> candidates, double fontSize, Func<string, double> standardWidth)
+    {
         // Split into text elements, choose each one's font, and group runs by font and script.
         var runs = new List<(PdfFont? Font, string Script, StringBuilder Text)>();
         var elements = StringInfo.GetTextElementEnumerator(text);
@@ -65,7 +79,7 @@ internal static class TextPipeline
         {
             string element = elements.GetTextElement();
             var codePoints = CodePoints(element).ToList();
-            var chosen = candidates.FirstOrDefault(f => codePoints.All(f.Draws));
+            var chosen = candidates.FirstOrDefault(f => f is null ? !StandardText.IsMissing(element) : codePoints.All(f.Draws));
             string? script = codePoints.Select(ScriptOf).FirstOrDefault(s => s is not null);
             if (runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) && (script is null || runs[^1].Script == script || runs[^1].Script == string.Empty))
             {
@@ -84,7 +98,7 @@ internal static class TextPipeline
             string runText = builder.ToString();
             if (runFont is null)
             {
-                segments.Add(new StandardSegment(runText, StandardText.Width(runText, fontSize)));
+                segments.Add(new StandardSegment(runText, standardWidth(runText)));
                 continue;
             }
             var shaped = script is "deva" or "telu" or "taml" ? IndicShaper.Shape(runFont, runText, script) : TextShaper.Shape(runFont, runText, ScriptTags(script));
@@ -207,10 +221,25 @@ internal static class TextPipeline
         return characters;
     }
 
-    // Draws a shaped run: TJ arrays of hex glyph IDs whose spacing numbers move the pen from where the previous glyph's
-    // /W width leaves it to the glyph's shaped position; a change of vertical offset starts a new array after Ts. A
-    // span whose glyphs do not read back as their text is wrapped in a marked-content span with its ActualText.
-    private static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink)
+    /// <summary>
+    /// Returns the number of clusters in a shaped segment: the places extra letter spacing goes, one after each.
+    /// </summary>
+    public static int Clusters(FontSegment segment)
+    {
+        var glyphs = segment.Run.Glyphs;
+        int count = 0;
+        for (int i = 0; i < glyphs.Count; i++) if (i + 1 == glyphs.Count || glyphs[i + 1].Cluster != glyphs[i].Cluster) count++;
+        return count;
+    }
+
+    /// <summary>
+    /// Writes the operators that draw a shaped segment inside a text object: TJ arrays of hex glyph IDs whose spacing
+    /// numbers move the pen from where the previous glyph's /W width leaves it to the glyph's shaped position; a change
+    /// of vertical offset starts a new array after Ts. A span whose glyphs do not read back as their text is wrapped in
+    /// a marked-content span with its ActualText. Extra letter spacing goes after each cluster and extra word spacing
+    /// after each space, in points.
+    /// </summary>
+    public static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink, double letterSpacing = 0, double wordSpacing = 0)
     {
         var font = segment.Font;
         double unitsPerEm = font.Font.UnitsPerEm;
@@ -223,6 +252,7 @@ internal static class TextPipeline
         sb.Append(" /").Append(resource).Append(' ').Append(PdfNumber.Format(fontSize)).Append(" Tf 1 0 0 1 ")
           .Append(PdfNumber.Format(x)).Append(' ').Append(PdfNumber.Format(baseline)).Append(" Tm");
         double pen = 0; // in 1/1000 em
+        double shift = 0; // extra spacing so far, in 1/1000 em
         int rise = 0;
         bool open = false;
         int span = 0;
@@ -244,7 +274,7 @@ internal static class TextPipeline
             }
             bool first = !open;
             if (!open) { sb.Append(" ["); open = true; }
-            double target = glyph.X * 1000.0 / unitsPerEm;
+            double target = glyph.X * 1000.0 / unitsPerEm + shift;
             double adjust = Math.Round(pen - target, 3);
             if (Math.Abs(adjust) >= 0.001)
             {
@@ -255,6 +285,11 @@ internal static class TextPipeline
             if (!first) sb.Append(' ');
             sb.Append('<').Append(glyph.Glyph.ToString("X4", CultureInfo.InvariantCulture)).Append('>');
             pen = target + Math.Round(font.Instance.Advance(glyph.Glyph) * 1000.0 / unitsPerEm);
+            if (i + 1 == glyphs.Count || glyphs[i + 1].Cluster != glyph.Cluster)
+            {
+                if (letterSpacing != 0) shift += letterSpacing * 1000 / fontSize;
+                if (wordSpacing != 0 && glyph.Cluster < segment.Text.Length && segment.Text[glyph.Cluster] == ' ') shift += wordSpacing * 1000 / fontSize;
+            }
             if (span < segment.Spans.Count && segment.Spans[span].End == i + 1)
             {
                 // EMC = end marked content

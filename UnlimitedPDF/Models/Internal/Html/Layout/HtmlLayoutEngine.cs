@@ -71,8 +71,9 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="edges">The free room on each page, counted from the page the HTML starts on.</param>
     /// <param name="warnings">Receives layout warnings.</param>
     /// <param name="lastPage">The last page offset blank space (heights, padding) may reach, or null for no limit.</param>
-    public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, int? lastPage = null)
-        : this(model, width, edges, warnings, measuring: false, new LayoutCache(), lastPage)
+    /// <param name="fontFallback">The document's fallback fonts (WR-039), or null for none.</param>
+    public HtmlLayoutEngine(HtmlModel model, double width, Func<int, HtmlPageRoom> edges, List<PdfHtmlWarning> warnings, int? lastPage = null, IReadOnlyList<PdfFont>? fontFallback = null)
+        : this(model, width, edges, warnings, measuring: false, new LayoutCache(new HtmlFonts(model.Fonts, fontFallback ?? Array.Empty<PdfFont>())), lastPage)
     {
     }
 
@@ -104,9 +105,10 @@ internal sealed partial class HtmlLayoutEngine
     /// <param name="model">The loaded HTML.</param>
     /// <param name="box">The box.</param>
     /// <param name="width">The width.</param>
+    /// <param name="fontFallback">The document's fallback fonts (WR-039).</param>
     /// <returns>The height in points.</returns>
-    public static double MeasureHeight(HtmlModel model, HtmlBox box, double width) =>
-        new HtmlLayoutEngine(model, width, Unlimited, new List<PdfHtmlWarning>(), measuring: true, new LayoutCache()).Measure(box, width);
+    public static double MeasureHeight(HtmlModel model, HtmlBox box, double width, IReadOnlyList<PdfFont> fontFallback) =>
+        new HtmlLayoutEngine(model, width, Unlimited, new List<PdfHtmlWarning>(), measuring: true, new LayoutCache(new HtmlFonts(model.Fonts, fontFallback))).Measure(box, width);
 
     /// <summary>
     /// Lays out the whole HTML.
@@ -193,6 +195,7 @@ internal sealed partial class HtmlLayoutEngine
                 FillCommand f => f.Bottom,
                 ImageCommand i => i.Bottom,
                 TextCommand t => t.Baseline - Descent * t.FontSize,
+                ShapedTextCommand t => t.Baseline - Descent * t.FontSize,
                 LineCommand l => Math.Min(l.Y1, l.Y2) - (l.Y1 == l.Y2 ? l.Width / 2 : 0),
                 CircleCommand c => c.CenterY - c.Radius,
                 _ => null,
@@ -220,7 +223,7 @@ internal sealed partial class HtmlLayoutEngine
     }
 
     // Whether a command puts a mark on the page. Element ids, links, and clips do not.
-    private static bool Draws(HtmlCommand command) => command is FillCommand or ImageCommand or TextCommand or LineCommand or CircleCommand;
+    private static bool Draws(HtmlCommand command) => command is FillCommand or ImageCommand or TextCommand or ShapedTextCommand or LineCommand or CircleCommand;
 
     // Lays a box out once per width on a page of unlimited height (F-05), with its warnings kept for when it is placed.
     private CachedLayout LayoutUnbounded(HtmlBox box, double width)
@@ -518,7 +521,7 @@ internal sealed partial class HtmlLayoutEngine
                 if (pending.Marker.Text is not { } text) return;
                 var codes = WinAnsiEncoding.Encode(text);
                 double width = StandardFontMetrics.Measure(font, text, size);
-                Emit(new TextCommand(font, size, s.Color, pending.ContentLeft - size * 0.3 - width, baseline, codes, 0, 0));
+                Emit(new TextCommand(font, size, s.Color, pending.ContentLeft - size * 0.3 - width, baseline, codes, 0, 0, text));
                 break;
         }
     }
@@ -575,6 +578,13 @@ internal sealed partial class HtmlLayoutEngine
 
     #endregion
 
+    #region Properties, Indexers
+
+    // The fonts HTML text is drawn with, shared by every engine of one layout (WR-039).
+    private HtmlFonts Fonts => _cache.Fonts;
+
+    #endregion
+
     #region Nested Types
 
     /// <summary>
@@ -625,6 +635,10 @@ internal sealed partial class HtmlLayoutEngine
     // Results shared by every engine of one layout: intrinsic widths per box and layouts per box and width (F-05).
     private sealed class LayoutCache
     {
+        public LayoutCache(HtmlFonts fonts) => Fonts = fonts;
+
+        public HtmlFonts Fonts { get; }
+
         public Dictionary<(HtmlBox Box, bool Preferred, bool BreakWords), (double Min, double Max)> Intrinsic { get; } = new();
 
         public Dictionary<(HtmlBox Box, double Width), CachedLayout> Layouts { get; } = new();

@@ -16,6 +16,7 @@ internal sealed partial class HtmlLayoutEngine
     private const double Descent = 0.2;
 
     private readonly HashSet<string> _reportedLinks = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _reportedMissing = new(StringComparer.Ordinal);
 
     #endregion
 
@@ -239,8 +240,11 @@ internal sealed partial class HtmlLayoutEngine
                 double runBaseline = baseline + shift;
                 if (run.Length > 0)
                 {
+                    string runText = run.ToString();
                     if (item.Background is { } bg) backgrounds.Add(new FillCommand(x, runBaseline - Descent * size, runWidth, size, bg));
-                    texts.Add(new TextCommand(font, size, style.Color, x, runBaseline, WinAnsiEncoding.Encode(run.ToString()), extra, style.LetterSpacing));
+                    if (Fonts.Simple) texts.Add(new TextCommand(font, size, style.Color, x, runBaseline, WinAnsiEncoding.Encode(runText), extra, style.LetterSpacing, runText));
+                    else AddRun(runText, style, x, runBaseline, extra, texts);
+                    ReportMissing(runText, style);
                     double thickness = Math.Max(0.5, size * 0.05);
                     if (style.Underline) texts.Add(new LineCommand(x, runBaseline - size * 0.12, x + runWidth, runBaseline - size * 0.12, thickness, style.Color, HtmlBorderStyle.Solid));
                     if (style.LineThrough) texts.Add(new LineCommand(x, runBaseline + size * 0.28, x + runWidth, runBaseline + size * 0.28, thickness, style.Color, HtmlBorderStyle.Solid));
@@ -276,6 +280,41 @@ internal sealed partial class HtmlLayoutEngine
             fragment.Commands.AddRange(texts);
             if (overflow || tooTall) fragment.Commands.Add(new ClipEndCommand());
         }
+    }
+
+    // A run in caller fonts (WR-039): one command per font segment, placed one after another.
+    private void AddRun(string text, ComputedStyle style, double x, double baseline, double wordSpacing, List<HtmlCommand> commands)
+    {
+        var standard = Font(style);
+        double size = style.FontSize, letterSpacing = style.LetterSpacing;
+        foreach (var segment in Fonts.Layout(text, style).Segments)
+        {
+            int spaces = segment.Text.Count(c => c == ' ');
+            if (segment is FontSegment shaped) commands.Add(new ShapedTextCommand(shaped, size, style.Color, x, baseline, wordSpacing, letterSpacing));
+            else commands.Add(new TextCommand(standard, size, style.Color, x, baseline, WinAnsiEncoding.Encode(segment.Text), wordSpacing, letterSpacing, segment.Text));
+            x += segment.Width + letterSpacing * HtmlFonts.Slots(segment) + wordSpacing * spaces;
+        }
+    }
+
+    // Each character drawn as '?' (in no font, and not WinAnsi) is reported once (D-007).
+    private void ReportMissing(string text, ComputedStyle style)
+    {
+        if (!_report && _measuring) return;
+        var missing = Fonts.Simple
+            ? StandardText.MissingElements(text)
+            : Fonts.Layout(text, style).Segments.OfType<StandardSegment>().SelectMany(segment => StandardText.MissingElements(segment.Text));
+        foreach (string element in missing)
+        {
+            if (!_reportedMissing.Add(element)) continue;
+            string codes = string.Join(" ", CodePointsOf(element).Select(c => "U+" + c.ToString("X4", CultureInfo.InvariantCulture)));
+            Warn(PdfHtmlWarningKind.MissingCharacter, element, $"The character {codes} is in no font; it is drawn as '?'. Register a font that has it, or add one to the fallback fonts.");
+        }
+    }
+
+    private static IEnumerable<int> CodePointsOf(string text)
+    {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+            yield return char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
     }
 
     private void AddLink(InlineItem item, double x, double bottom, double width, double height, List<HtmlCommand> commands)
@@ -343,31 +382,42 @@ internal sealed partial class HtmlLayoutEngine
         _ => 0
     };
 
-    private static IEnumerable<Token> SplitWord(Token token, double firstWidth, double width)
+    // Splits a word wider than its line between text elements, never inside one (WR-039): a base letter, its marks,
+    // and a surrogate pair stay together. Break points are found from each element's own width; a piece in caller
+    // fonts takes its shaped width.
+    private IEnumerable<Token> SplitWord(Token token, double firstWidth, double width)
     {
         var style = token.Item.Style;
-        var font = Font(style);
         var sb = new StringBuilder();
         double available = firstWidth;
         double current = 0;
         bool first = true;
-        foreach (char c in token.Text)
+        Token Piece() => token with { Text = sb.ToString(), Width = Fonts.Simple ? current : Fonts.Measure(sb.ToString(), style), Starts = first ? token.Starts : new List<HtmlElement>() };
+
+        var elements = StringInfo.GetTextElementEnumerator(token.Text);
+        while (elements.MoveNext())
         {
-            double w = StandardFontMetrics.Measure(font, c.ToString(), style.FontSize) + style.LetterSpacing;
+            string element = elements.GetTextElement();
+            double w = ElementWidth(element, style);
             if (sb.Length > 0 && current + w > available + Tolerance)
             {
                 // The first piece keeps the ids and headings that start at the word (F-17).
-                yield return token with { Text = sb.ToString(), Width = current, Starts = first ? token.Starts : new List<HtmlElement>() };
+                yield return Piece();
                 first = false;
                 sb.Clear();
                 current = 0;
                 available = width;
             }
-            sb.Append(c);
+            sb.Append(element);
             current += w;
         }
-        if (sb.Length > 0) yield return token with { Text = sb.ToString(), Width = current, Starts = first ? token.Starts : new List<HtmlElement>() };
+        if (sb.Length > 0) yield return Piece();
     }
+
+    // The width of one text element, letter spacing included.
+    private double ElementWidth(string element, ComputedStyle style) => Fonts.Simple
+        ? StandardFontMetrics.Measure(Font(style), element, style.FontSize) + style.LetterSpacing * element.Length
+        : Fonts.Measure(element, style);
 
     private static double StrutAbove(ComputedStyle style)
     {
@@ -399,7 +449,9 @@ internal sealed partial class HtmlLayoutEngine
             var text = (TextItem)item;
             string value = ApplyTransform(text.Text, style.TextTransform);
             var font = Font(style);
-            double Measure(string s) => StandardFontMetrics.Measure(font, s, style.FontSize) + style.LetterSpacing * s.Length;
+            double Measure(string s) => Fonts.Simple
+                ? StandardFontMetrics.Measure(font, s, style.FontSize) + style.LetterSpacing * s.Length
+                : Fonts.Measure(s, style);
             var starts = item.Starts;
             bool startsUsed = false;
             List<HtmlElement> TakeStarts()
@@ -499,6 +551,7 @@ internal sealed partial class HtmlLayoutEngine
         CircleCommand c => c with { CenterX = c.CenterX + dx, CenterY = c.CenterY + dy },
         LineCommand l => l with { X1 = l.X1 + dx, X2 = l.X2 + dx, Y1 = l.Y1 + dy, Y2 = l.Y2 + dy },
         TextCommand t => t with { X = t.X + dx, Baseline = t.Baseline + dy },
+        ShapedTextCommand t => t with { X = t.X + dx, Baseline = t.Baseline + dy },
         ImageCommand i => i with { X = i.X + dx, Bottom = i.Bottom + dy },
         ClipBeginCommand c => c with { X = c.X + dx, Bottom = c.Bottom + dy },
         LinkCommand k => k with { X = k.X + dx, Bottom = k.Bottom + dy },
