@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 namespace UnlimitedPDF.Models.Internal.Fonts.OpenType;
 
 /// <summary>
@@ -15,7 +13,14 @@ internal sealed class CharacterMap
     private readonly int _format;
     private readonly int _count;
     private readonly int _glyphCount;
-    private readonly ConcurrentDictionary<int, int> _codePoints = new();
+    private readonly Lazy<int[]> _codePoints;
+
+    // The reverse map is built once per font (A06). Format 4 asks the forward lookup for every BMP code point, a fixed
+    // cost whatever the table holds; format 12 walks its groups' glyph ranges, which a crafted table can make overlap
+    // many times, so that walk stops after this many entries. Real fonts visit at most one entry per mapped code
+    // point; past the cap the remaining glyphs have no code point, and their text still reaches copy and search
+    // through ActualText.
+    private const int MaxReverseEntries = 4_000_000;
 
     #endregion
 
@@ -28,6 +33,7 @@ internal sealed class CharacterMap
         _format = format;
         _count = count;
         _glyphCount = glyphCount;
+        _codePoints = new Lazy<int[]>(BuildCodePoints);
     }
 
     #endregion
@@ -105,12 +111,12 @@ internal sealed class CharacterMap
 
     /// <summary>
     /// Returns the lowest code point that maps to a glyph, skipping control characters (fonts often map carriage
-    /// return or null to the space or empty glyph), or -1 when none does. One search per glyph, then cached: format 12
-    /// walks the groups once, format 4 the segments (and at most 65,536 glyph-array entries).
+    /// return or null to the space or empty glyph), or -1 when none does. The first call builds the font's reverse map
+    /// once; later calls read it.
     /// </summary>
     /// <param name="glyph">The glyph ID.</param>
     /// <returns>The code point, or -1.</returns>
-    public int CodePointFor(int glyph) => glyph <= 0 || glyph >= _glyphCount ? -1 : _codePoints.GetOrAdd(glyph, FindCodePoint);
+    public int CodePointFor(int glyph) => glyph <= 0 || glyph >= _glyphCount ? -1 : _codePoints.Value[glyph];
 
     #endregion
 
@@ -118,36 +124,41 @@ internal sealed class CharacterMap
 
     private static bool IsControl(long codePoint) => codePoint < 0x20 || codePoint is >= 0x7F and <= 0x9F;
 
-    private int FindCodePoint(int glyph)
+    // The lowest code point of each glyph, or -1.
+    private int[] BuildCodePoints()
     {
+        var codePoints = new int[_glyphCount];
+        Array.Fill(codePoints, -1);
         if (_format == 12)
         {
-            for (int i = 0; i < _count; i++)
+            long entries = 0;
+            for (int i = 0; i < _count && entries < MaxReverseEntries; i++)
             {
                 int group = _subtable + 16 + 12 * i;
                 long start = _data.U32(group), end = _data.U32(group + 4), first = _data.U32(group + 8);
-                if (glyph < first || glyph - first > end - start) continue;
-                long codePoint = start + (glyph - first);
-                if (!IsControl(codePoint) && codePoint <= 0x10FFFF) return (int)codePoint; // each group maps a code point to one glyph
+                if (end < start || first >= _glyphCount) continue;
+                long last = Math.Min(first + (end - start), _glyphCount - 1);
+                for (long glyph = first; glyph <= last && entries < MaxReverseEntries; glyph++, entries++)
+                {
+                    long codePoint = start + (glyph - first);
+                    if (codePoint > 0x10FFFF) break;
+                    if (IsControl(codePoint)) continue;
+                    ref int slot = ref codePoints[glyph];
+                    if (slot < 0 || codePoint < slot) slot = (int)codePoint;
+                }
             }
-            return -1;
+            return codePoints;
         }
 
-        int ends = _subtable + 14, starts = ends + 2 * _count + 2, deltas = starts + 2 * _count, rangeOffsets = deltas + 2 * _count;
-        for (int s = 0; s < _count; s++)
+        // Ascending code points, so the first hit per glyph is its lowest; the forward lookup keeps both directions in
+        // agreement even for overlapping segments.
+        for (int c = 0x20; c < 0xFFFF; c++)
         {
-            int start = _data.U16(starts + 2 * s), end = _data.U16(ends + 2 * s);
-            int delta = _data.I16(deltas + 2 * s), rangeOffset = _data.U16(rangeOffsets + 2 * s);
-            if (rangeOffset == 0)
-            {
-                int codePoint = (glyph - delta) & 0xFFFF;
-                if (codePoint >= start && codePoint <= end && codePoint != 0xFFFF && !IsControl(codePoint)) return codePoint;
-                continue;
-            }
-            for (int c = Math.Max(start, 0x20); c <= end && c != 0xFFFF; c++)
-                if (!IsControl(c) && Format4(c) == glyph) return c;
+            if (IsControl(c)) continue;
+            int glyph = GlyphFor(c);
+            if (glyph > 0 && codePoints[glyph] < 0) codePoints[glyph] = c;
         }
-        return -1;
+        return codePoints;
     }
 
     private int Format12(int codePoint)

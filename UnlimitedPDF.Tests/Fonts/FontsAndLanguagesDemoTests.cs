@@ -73,14 +73,15 @@ public class FontsAndLanguagesDemoTests
     }
 
     [Fact]
-    public void A_font_without_a_scripts_letters_is_reported_and_latin_is_never_reported()
+    public void A_font_without_a_scripts_letters_is_reported()
     {
         var telugu = Font(Telugu + " ");
 
         Assert.True(FontSlots.Covers(telugu, FontScript.Telugu));
         Assert.False(FontSlots.Covers(telugu, FontScript.Devanagari));
         Assert.False(FontSlots.Covers(telugu, FontScript.Tamil));
-        Assert.True(FontSlots.Covers(telugu, FontScript.Latin)); // the built-in font draws any missing Latin letter
+        Assert.False(FontSlots.Covers(telugu, FontScript.Latin)); // RV-09: told apart by whether the font is embedded
+        Assert.True(FontSlots.Covers(Font("Ab"), FontScript.Latin));
         Assert.True(FontSlots.Covers(Font("क"), FontScript.Devanagari)); // one letter of the script is enough
     }
 

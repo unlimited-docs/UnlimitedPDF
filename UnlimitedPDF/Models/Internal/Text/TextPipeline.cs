@@ -186,7 +186,9 @@ internal static class TextPipeline
 
             int first = int.MaxValue, final = int.MinValue;
             for (int j = at; j < end; j++) (first, final) = (Math.Min(first, glyphs[j].Cluster), Math.Max(final, glyphs[j].Cluster));
-            int next = starts.FirstOrDefault(c => c > final, text.Length);
+            // final is a cluster of the run, so it is in starts; the next start ends the group's text (linear overall, A06).
+            int index = starts.BinarySearch(final);
+            int next = index + 1 < starts.Count ? starts[index + 1] : text.Length;
             string groupText = text.Substring(first, Math.Max(0, next - first));
             var characters = Characters(groupText);
 
@@ -201,8 +203,14 @@ internal static class TextPipeline
             if (!unchanged)
             {
                 // The characters no character glyph accounts for, in text order, go to the formed glyphs.
-                var rest = new List<string>(characters);
-                foreach (var meaning in meanings) if (meaning is not null) rest.Remove(meaning);
+                var accounted = new Dictionary<string, int>();
+                foreach (var meaning in meanings) if (meaning is not null) accounted[meaning] = accounted.GetValueOrDefault(meaning) + 1;
+                var rest = new List<string>(characters.Count);
+                foreach (string character in characters)
+                {
+                    if (accounted.TryGetValue(character, out int count) && count > 0) accounted[character] = count - 1;
+                    else rest.Add(character);
+                }
                 string formed = rest.Count > 0 ? string.Concat(rest) : groupText;
                 for (int k = 0; k < meanings.Length; k++) meanings[k] ??= formed;
                 spans.Add(new ActualTextSpan(at, end, groupText));

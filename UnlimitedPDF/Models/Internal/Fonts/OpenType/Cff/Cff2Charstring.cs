@@ -49,6 +49,8 @@ internal static class Cff2Charstring
         int p = 0;
         while (p < code.Length)
         {
+            // The same step budget as CFF (A06): calls that draw nothing never grow the output.
+            if (++state.Steps > Type2Charstring.MaxSteps) throw FontBytes.Corrupt("has a CFF2 glyph that runs too long through subroutines");
             int b0 = code[p];
             if (b0 >= 32 || b0 == 28)
             {
@@ -104,6 +106,14 @@ internal static class Cff2Charstring
                     break;
                 case RRCurveTo:
                     EmitSplit(state, b0, 6);
+                    break;
+                case 26: // vvcurveto
+                case 27: // hhcurveto
+                    EmitSplitLeading(state, b0);
+                    break;
+                case 30: // vhcurveto
+                case 31: // hvcurveto
+                    EmitSplitAlternating(state, b0);
                     break;
                 case Escape:
                 {
@@ -161,6 +171,44 @@ internal static class Cff2Charstring
             for (int j = i; j < Math.Min(values.Length, i + chunk); j++) WriteNumber(state.Output, values[j]);
             state.Output.WriteByte((byte)op);
         }
+    }
+
+    // Splits an hhcurveto or vvcurveto run (an optional leading operand, then curves of 4) into calls of at most 48
+    // operands; the leading operand stays with the first curve.
+    private static void EmitSplitLeading(State state, int op)
+    {
+        int count = state.Stack.Count;
+        if (count < 4 || count % 4 > 1) throw FontBytes.Corrupt("has a CFF2 curve operator with the wrong number of operands");
+        var values = state.Stack.ToArray();
+        state.Stack.Clear();
+        int i = 0;
+        while (i < values.Length)
+        {
+            int take = Math.Min(values.Length - i, (i == 0 && count % 4 == 1) ? 1 + 44 : 48);
+            for (int j = i; j < i + take; j++) WriteNumber(state.Output, values[j]);
+            state.Output.WriteByte((byte)op);
+            i += take;
+        }
+    }
+
+    // Splits an hvcurveto or vhcurveto run (curves of 4 that alternate between starting horizontally and vertically,
+    // with an optional final operand) into calls of at most 48 operands. Each split comes after an even number of
+    // curves, so every call starts in the same direction, and the final operand stays with the last curve.
+    private static void EmitSplitAlternating(State state, int op)
+    {
+        int count = state.Stack.Count;
+        if (count < 4 || count % 4 > 1) throw FontBytes.Corrupt("has a CFF2 curve operator with the wrong number of operands");
+        var values = state.Stack.ToArray();
+        state.Stack.Clear();
+        int i = 0;
+        while (values.Length - i > Type2Charstring.MaxOperands)
+        {
+            for (int j = i; j < i + 40; j++) WriteNumber(state.Output, values[j]);
+            state.Output.WriteByte((byte)op);
+            i += 40;
+        }
+        for (int j = i; j < values.Length; j++) WriteNumber(state.Output, values[j]);
+        state.Output.WriteByte((byte)op);
     }
 
     private static void Push(State state, double value)
@@ -230,6 +278,8 @@ internal static class Cff2Charstring
         public CffIndex? LocalSubrs { get; }
 
         public MemoryStream Output { get; } = new();
+
+        public int Steps { get; set; }
 
         public List<double> Stack { get; } = new();
 

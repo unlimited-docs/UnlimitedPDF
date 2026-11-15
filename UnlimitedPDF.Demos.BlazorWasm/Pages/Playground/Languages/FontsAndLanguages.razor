@@ -193,7 +193,8 @@
         Refresh();
         if (_input.Mode == DrawMode.Html)
         {
-            var document = FontsAndLanguagesHtmlSample.Build(_input, fonts, out var html);
+            // HTML takes each font once; the weights go into the CSS.
+            var document = FontsAndLanguagesHtmlSample.Build(_input, filled.Select(s => (s.Script, s.Upload.Font)).ToList(), out var html);
             _html = html;
             return Task.FromResult(document);
         }

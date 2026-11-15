@@ -16,7 +16,7 @@ public class IndicShaperTests
     private const char Ka = 'क', Ssa = 'ष', Sa = 'स', Ra = 'र', I = 'ि', Ii = 'ी', Halant = '्', Nukta = '़', Anusvara = 'ं';
     private const char TeKa = 'క', TeI = 'ి', TeHalant = '్', TeE = 'ె', TeAiLength = 'ౖ', TeAi = 'ై', TeRa = 'ర', TeIi = 'ీ';
     private const char TaKa = 'க', TaE = 'ெ', TaAa = 'ா', TaO = 'ொ';
-    private const char Zwnj = '‌', Dotted = '◌';
+    private const char Zwnj = '‌', Zwj = '‍', Dotted = '◌';
 
     private const string Devanagari = "कषसरिी़्ं◌‌";
 
@@ -86,6 +86,36 @@ public class IndicShaperTests
         Assert.Equal(new[] { f[Ka], reph }, Glyphs(f.Shape("" + Ra + Halant + Ka)));
         Assert.Equal(new[] { f[Ka], reph, f[Ii] }, Glyphs(f.Shape("" + Ra + Halant + Ka + Ii)));
         Assert.Equal(new[] { f[I], f[Ka], reph }, Glyphs(f.Shape("" + Ra + Halant + Ka + I)));
+    }
+
+    [Theory]
+    [InlineData(Zwj)]
+    [InlineData(Zwnj)]
+    public void A_joiner_after_ra_and_halant_asks_for_no_reph(char joiner)
+    {
+        // RV-06: ZWJ asks for an eyelash Ra, ZWNJ for a visible halant; neither is a reph.
+        var f = new Font(Devanagari + Zwj);
+        int reph = f.AddGlyph();
+        f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
+
+        var glyphs = Glyphs(f.Shape("" + Ra + Halant + joiner + Ka));
+
+        Assert.DoesNotContain(reph, glyphs);
+        Assert.Equal(new[] { f[Ra], f[Halant] }, glyphs.Take(2));
+        Assert.Equal(f[Ka], glyphs[^1]);
+    }
+
+    [Fact]
+    public void A_reph_moves_after_a_conjunct_that_took_in_the_base()
+    {
+        // RV-07: akhn forms KSSA from the base, so no glyph keeps the base class; the reph still goes after it.
+        var f = new Font(Devanagari);
+        int reph = f.AddGlyph(), kssa = f.AddGlyph();
+        f.Gsub.AddFeature("akhn", f.Gsub.AddLookup(4, 0, Ligature(f[Ka], new[] { f[Halant], f[Ssa] }, kssa)));
+        f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
+
+        Assert.Equal(new[] { kssa, reph }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + Ssa)));
+        Assert.Equal(new[] { kssa, reph, f[Ii] }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + Ssa + Ii)));
     }
 
     [Fact]

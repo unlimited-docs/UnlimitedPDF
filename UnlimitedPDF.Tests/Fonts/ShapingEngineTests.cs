@@ -288,6 +288,19 @@ public class ShapingEngineTests
     }
 
     [Fact]
+    public void Rules_that_always_fail_late_are_stopped()
+    {
+        // RV-02: one context lookup with 1,000 subtables (all one shared subtable) whose input is 1,000 'a' then 'b'.
+        // Text of 'a' never matches, so no rule applies, yet each glyph tries 1,000 subtables of 1,000 comparisons.
+        var builder = Builder();
+        builder.AddTable("GSUB", AlwaysFailingGsub(subtables: 1000, inputLength: 1001, G('a'), G('b')));
+
+        var error = Assert.Throws<PdfFontException>(() => Shape(builder.Build(), new string('a', 1000)));
+
+        Assert.Contains("take too long to match", error.Message);
+    }
+
+    [Fact]
     public void Random_damage_to_layout_tables_never_escapes_as_another_exception()
     {
         var builder = Builder();
@@ -338,6 +351,28 @@ public class ShapingEngineTests
         if (gpos is not null) builder.AddTable("GPOS", gpos.Build());
         if (gdef is not null) builder.AddTable("GDEF", gdef);
         return builder.Build();
+    }
+
+    // A GSUB with one context lookup (type 5, format 3) whose subtable offsets all point at one subtable: input
+    // coverages of 'a' then one of 'b', so text of 'a' fails at the last position.
+    private static byte[] AlwaysFailingGsub(int subtables, int inputLength, int a, int b)
+    {
+        var script = new BigEndianWriter().U16(1).Bytes(Encoding.ASCII.GetBytes("DFLT")).U16(8)
+            .U16(4).U16(0)
+            .U16(0).U16(0xFFFF).U16(1).U16(0).ToArray();
+        var feature = new BigEndianWriter().U16(1).Bytes(Encoding.ASCII.GetBytes("ccmp")).U16(8).U16(0).U16(1).U16(0).ToArray();
+        int shared = 6 + 2 * subtables;
+        var subtable = new BigEndianWriter().U16(3).U16((ushort)inputLength).U16(0);
+        int coverageA = 6 + 2 * inputLength, coverageB = coverageA + 6;
+        for (int i = 0; i < inputLength; i++) subtable.U16((ushort)(i < inputLength - 1 ? coverageA : coverageB));
+        subtable.U16(1).U16(1).U16((ushort)a).U16(1).U16(1).U16((ushort)b);
+        var lookup = new BigEndianWriter().U16(5).U16(0).U16((ushort)subtables);
+        for (int i = 0; i < subtables; i++) lookup.U16((ushort)shared);
+        lookup.Bytes(subtable.ToArray());
+        var lookupList = new BigEndianWriter().U16(1).U16(4).Bytes(lookup.ToArray()).ToArray();
+        int scriptOffset = 10, featureOffset = scriptOffset + script.Length, lookupOffset = featureOffset + feature.Length;
+        return new BigEndianWriter().U16(1).U16(0).U16((ushort)scriptOffset).U16((ushort)featureOffset).U16((ushort)lookupOffset)
+            .Bytes(script).Bytes(feature).Bytes(lookupList).ToArray();
     }
 
     private static int G(char c) => Letters.IndexOf(c) + 1;

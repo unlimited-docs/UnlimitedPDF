@@ -1,5 +1,8 @@
+using System.Diagnostics;
 using System.Text;
 using System.Text.RegularExpressions;
+using UnlimitedPDF.Models.Internal.Fonts.OpenType;
+using UnlimitedPDF.Models.Internal.Text;
 using L = UnlimitedPDF.Tests.Support.LayoutTableBuilder;
 
 namespace UnlimitedPDF.Tests.Fonts;
@@ -197,6 +200,51 @@ public class ActualTextTests
         Assert.Equal('B', bmpMap.CodePointFor(2));
     }
 
+    [Fact]
+    public void Overlapping_format_4_segments_keep_the_reverse_lookup_fast()
+    {
+        // RV-04: 800 segments of nearly the whole BMP share one all-zero glyph array; only U+FFF5 maps (to glyph 5).
+        var data = OverlappingFormat4Cmap(800);
+        var map = CharacterMap.Read(new FontBytes(data), 0, data.Length, 10);
+        var clock = Stopwatch.StartNew();
+
+        Assert.Equal(0xFFF5, map.CodePointFor(5));
+        Assert.All(Enumerable.Range(1, 9).Where(g => g != 5), g => Assert.Equal(-1, map.CodePointFor(g)));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), clock.Elapsed.ToString());
+    }
+
+    [Fact]
+    public void Overlapping_format_12_groups_keep_the_reverse_lookup_fast()
+    {
+        // 2,000 groups that each map U+0020 to U+10FFFF onto glyphs from 1: about 131 million entries without the cap.
+        const int groups = 2000;
+        var w = new BigEndianWriter().U16(0).U16(1).U16(3).U16(10).U32(12);
+        w.U16(12).U16(0).U32((uint)(16 + 12 * groups)).U32(0).U32(groups);
+        for (int i = 0; i < groups; i++) w.U32(0x20).U32(0x10FFFF).U32(1);
+        var data = w.ToArray();
+        var map = CharacterMap.Read(new FontBytes(data), 0, data.Length, 65535);
+        var clock = Stopwatch.StartNew();
+
+        Assert.Equal(0x20, map.CodePointFor(1));
+        Assert.Equal(0x20 + 999, map.CodePointFor(1000));
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), clock.Elapsed.ToString());
+    }
+
+    [Fact]
+    public void A_long_word_lays_out_in_linear_time()
+    {
+        // RV-03: an 80,000-character word took about 12 s when each glyph group searched the whole cluster list.
+        var font = Latin("ab", out _);
+        string word = string.Concat(Enumerable.Repeat("ab", 40_000));
+        TextPipeline.Layout("ab", font, Array.Empty<PdfFont>(), 12);
+        var clock = Stopwatch.StartNew();
+
+        var layout = TextPipeline.Layout(word, font, Array.Empty<PdfFont>(), 12)!;
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(3), clock.Elapsed.ToString());
+        Assert.Equal(word, layout.Text);
+    }
+
     #endregion
 
     #region Private Methods
@@ -234,6 +282,26 @@ public class ActualTextTests
         w.U16(unchecked((ushort)(space - 0x0D))).U16(unchecked((ushort)(space - 0x20))).U16(0).U16(1); // deltas
         w.U16(0).U16(0).U16(4).U16(0); // range offsets: segment 2 reads the glyph array 4 bytes on
         w.U16((ushort)a).U16((ushort)b); // glyph array
+        return w.ToArray();
+    }
+
+    // A cmap whose format 4 subtable has `wide` segments from U+0020 to U+FFF0 reading one shared all-zero glyph
+    // array, then U+FFF5 (to glyph 5 by its delta) and the closing U+FFFF segment.
+    private static byte[] OverlappingFormat4Cmap(int wide)
+    {
+        int segments = wide + 2;
+        var w = new BigEndianWriter();
+        w.U16(0).U16(1).U16(3).U16(1).U32(12);
+        w.U16(4).U16(0).U16(0).U16((ushort)(2 * segments)).U16(0).U16(0).U16(0);
+        for (int i = 0; i < wide; i++) w.U16(0xFFF0);
+        w.U16(0xFFF5).U16(0xFFFF).U16(0); // end codes, pad
+        for (int i = 0; i < wide; i++) w.U16(0x20);
+        w.U16(0xFFF5).U16(0xFFFF); // start codes
+        for (int i = 0; i < wide; i++) w.U16(0);
+        w.U16(16).U16(1); // deltas: 0xFFF5 + 16 wraps to glyph 5
+        for (int i = 0; i < wide; i++) w.U16((ushort)(2 * segments - 2 * i)); // each points past the range offsets
+        w.U16(0).U16(0);
+        for (int i = 0; i < 0x10000; i++) w.U16(0); // the shared glyph array
         return w.ToArray();
     }
 

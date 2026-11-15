@@ -74,20 +74,24 @@ public class FontsAndLanguagesHtmlTests
     }
 
     [Fact]
-    public void A_variable_fonts_heading_weight_is_registered_as_a_real_bold_face()
+    public void A_variable_font_draws_the_chosen_body_and_heading_weights()
     {
+        // RV-08: the font is registered once and the weights come from the CSS. The test font's glyphs widen by 100
+        // units from weight 400 to 900, so weights 650 and 900 differ by 50 (400 and 700, the old fixed weights, by 60).
         var input = Input("french");
         input.SynthesizeMissingStyles = false;
-        byte[] bytes = DemoFonts.VariableBytes(input);
-        var slots = new List<(FontScript, PdfFont, PdfFont)>
-        {
-            (FontScript.Latin, PdfFont.FromBytes(bytes), PdfFont.FromBytes(bytes, new PdfFontLoadOptions { Weight = 700 }))
-        };
+        input.BodyWeight = 650;
+        input.HeadingWeight = 900;
+        var slots = new List<(FontScript, PdfFont)> { (FontScript.Latin, PdfFont.FromBytes(DemoFonts.VariableBytes(input))) };
 
         var (pdf, html) = Save(input, slots);
 
         Assert.Empty(html.Warnings);
-        Assert.Equal(2, PdfInspector.Read(pdf).Fonts().Count);
+        var fonts = PdfInspector.Read(pdf).Fonts();
+        Assert.Equal(2, fonts.Count);
+        int glyph = fonts[0].Widths.Keys.Intersect(fonts[1].Widths.Keys).First(g => g != 0);
+        var widths = fonts.Select(f => f.Widths[glyph]).Order().ToArray();
+        Assert.Equal(50, widths[1] - widths[0], 1);
         Assert.DoesNotContain(" 2 Tr", Content(pdf), StringComparison.Ordinal);
     }
 
@@ -96,13 +100,13 @@ public class FontsAndLanguagesHtmlTests
     {
         var input = Input("tamil");
 
-        var (pdf, html) = Save(input, Array.Empty<(FontScript, PdfFont, PdfFont)>());
+        var (pdf, html) = Save(input, Array.Empty<(FontScript, PdfFont)>());
 
         Assert.Contains("?", Text(pdf), StringComparison.Ordinal);
         Assert.Contains(html.Warnings, w => w.Kind == PdfHtmlWarningKind.MissingCharacter && w.Source == "₹");
 
         input.FailOnMissingCharacters = true;
-        var document = FontsAndLanguagesHtmlSample.Build(input, Array.Empty<(FontScript, PdfFont, PdfFont)>(), out _);
+        var document = FontsAndLanguagesHtmlSample.Build(input, Array.Empty<(FontScript, PdfFont)>(), out _);
         var error = Assert.Throws<PdfTextException>(() => PdfPageReader.SaveBytes(document));
         Assert.Equal(1, error.PageNumber);
     }
@@ -127,7 +131,7 @@ public class FontsAndLanguagesHtmlTests
         return input;
     }
 
-    private static (byte[] Pdf, PdfHtml Html) Save(FontsAndLanguagesInput input, IReadOnlyList<(FontScript, PdfFont, PdfFont)> slots)
+    private static (byte[] Pdf, PdfHtml Html) Save(FontsAndLanguagesInput input, IReadOnlyList<(FontScript, PdfFont)> slots)
     {
         var document = FontsAndLanguagesHtmlSample.Build(input, slots, out var html);
         return (PdfPageReader.SaveBytes(document), html);

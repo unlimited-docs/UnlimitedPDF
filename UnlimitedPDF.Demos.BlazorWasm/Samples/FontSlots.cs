@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using UnlimitedPDF;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
@@ -11,15 +12,21 @@ public static class FontSlots
 {
     #region Fields and Constants
 
-    // Letters each script's check looks for; a font with none of them has no letters of the script. Latin is not
-    // checked: the built-in font draws every Western European letter a font lacks, so the library reports no Latin
-    // letter as missing.
+    // Letters each script's check looks for; a font with none of them has no letters of the script. Latin is checked
+    // another way (see LatinLetters).
     private static readonly Dictionary<FontScript, string> Letters = new()
     {
         [FontScript.Devanagari] = "कखगचजटडतदनपबमयरलवसह",
         [FontScript.Telugu] = "కఖగచజటడతదనపబమయరలవసహ",
         [FontScript.Tamil] = "கஙசஞடணதநபமயரலவழளறன"
     };
+
+    // The built-in font draws every Western European letter a font lacks, so the library never reports a Latin letter
+    // as missing. Instead the check draws these letters with the font and saves the page: a font with none of them is
+    // not used, so no font is embedded.
+    private const string LatinLetters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+
+    private static readonly ConditionalWeakTable<PdfFont, StrongBox<bool>> LatinCovered = new();
 
     #endregion
 
@@ -28,7 +35,8 @@ public static class FontSlots
     #region Public Methods
 
     /// <summary>
-    /// Returns whether a font has any letter of a script. Latin always counts as covered (see <see cref="Letters"/>).
+    /// Returns whether a font has any letter of a script. For Latin it draws the letters with the font and checks that
+    /// the saved page embeds a font, once per font.
     /// </summary>
     /// <param name="font">The font.</param>
     /// <param name="script">The script.</param>
@@ -36,6 +44,7 @@ public static class FontSlots
     public static bool Covers(PdfFont font, FontScript script)
     {
         ArgumentNullException.ThrowIfNull(font);
+        if (script == FontScript.Latin) return LatinCovered.GetValue(font, f => new StrongBox<bool>(EmbedsForLatin(f))).Value;
         if (!Letters.TryGetValue(script, out var letters)) return true;
         var missing = new PdfDocument().FindMissingCharacters(letters, font);
         return missing.Count < letters.Length;
@@ -84,6 +93,19 @@ public static class FontSlots
         >= '஀' and <= '௿' => FontScript.Tamil,
         _ => null
     };
+
+    #endregion
+
+    #region Private Methods
+
+    private static bool EmbedsForLatin(PdfFont font)
+    {
+        var document = new PdfDocument();
+        document.AddPage().AddText(LatinLetters, font, 72, 720);
+        using var output = new MemoryStream();
+        document.Save(output);
+        return output.GetBuffer().AsSpan(0, (int)output.Length).IndexOf("/Subtype /Type0"u8) >= 0;
+    }
 
     #endregion
 

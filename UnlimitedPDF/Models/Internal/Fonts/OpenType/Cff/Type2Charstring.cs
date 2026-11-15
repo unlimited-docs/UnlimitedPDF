@@ -17,6 +17,11 @@ internal static class Type2Charstring
     // A flattened glyph larger than this is treated as hostile (subroutines that call each other repeatedly).
     public const int MaxFlattenedLength = 65536;
 
+    // The most operands and operators one glyph may execute, subroutine calls included. Real glyphs execute a few
+    // hundred; subroutines that call each other many times without drawing anything would otherwise run unbounded,
+    // since they never grow the output (A06).
+    public const int MaxSteps = 1_000_000;
+
     private const int CallSubr = 10;
     private const int Return = 11;
     private const int Escape = 12;
@@ -61,6 +66,7 @@ internal static class Type2Charstring
         int p = 0;
         while (p < code.Length)
         {
+            if (++state.Steps > MaxSteps) throw FontBytes.Corrupt("has a CFF glyph that runs too long through subroutines");
             int b0 = code[p];
             if (b0 >= 32 || b0 == 28)
             {
@@ -181,6 +187,8 @@ internal static class Type2Charstring
         public MemoryStream Output { get; } = new();
 
         public int Stems { get; set; }
+
+        public int Steps { get; set; }
 
         public bool WidthSeen { get; set; }
 

@@ -228,10 +228,12 @@ internal static class IndicShaper
         }
         if (!consonant) return;
 
-        // Reph: Ra + halant at the start of a syllable that goes on, when the font forms a reph from it.
+        // Reph: Ra + halant at the start of a syllable that goes on, when the font forms a reph from it. Explicit-reph
+        // scripts need a ZWJ after the halant; elsewhere a joiner there asks for no reph (ZWJ an eyelash Ra, ZWNJ a
+        // visible halant).
         int limit = start;
         bool reph = plan.HasReph && end - start >= 3 && buffer[start].Category == Cat.Ra && buffer[start + 1].Category == Cat.Halant
-            && (!plan.ExplicitReph || Cat0(buffer, start + 2) == Cat.Zwj)
+            && (plan.ExplicitReph ? Cat0(buffer, start + 2) == Cat.Zwj : Cat0(buffer, start + 2) is not (Cat.Zwj or Cat.Zwnj))
             && plan.WouldSubstitute("rphf", buffer[start].Glyph, buffer[start + 1].Glyph);
         if (reph) limit = start + 2 + (plan.ExplicitReph ? 1 : 0);
 
@@ -345,10 +347,10 @@ internal static class IndicShaper
     {
         int baseIndex = -1;
         for (int i = start; i < end; i++) if ((buffer[i].Position & 0xFF) == 3) { baseIndex = i; break; }
-        if (baseIndex < 0) return;
 
-        // Pre-base vowel signs.
-        var matras = Enumerable.Range(start, end - start).Where(i => (buffer[i].Position & 0xFF) == 1).ToList();
+        // Pre-base vowel signs. When a basic-stage ligature took in the base (akhn, cjct), no glyph keeps the base
+        // class and no halant before it is left to move after, but the reph below still moves.
+        var matras = baseIndex < 0 ? new List<int>() : Enumerable.Range(start, end - start).Where(i => (buffer[i].Position & 0xFF) == 1).ToList();
         if (matras.Count > 0)
         {
             int lastHalant = -1;

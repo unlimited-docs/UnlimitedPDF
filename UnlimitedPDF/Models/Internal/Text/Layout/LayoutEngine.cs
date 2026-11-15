@@ -16,6 +16,12 @@ internal sealed class LayoutEngine
     public const int MaxNestingDepth = 16;
     public const int OperationsPerGlyph = 64;
 
+    // The steps one run may take while looking for rules to apply, applied or not: subtables tried, rules tried, and
+    // glyphs compared or skipped. Real fonts take under a hundred per glyph; rules that always fail late would
+    // otherwise run unbounded, since only applied rules spend the operation budget (A06).
+    public const int StepsPerGlyph = 4_096;
+    public const int StepsBase = 262_144;
+
     // Lookup flags.
     private const int IgnoreBaseGlyphs = 0x0002;
     private const int IgnoreLigatures = 0x0004;
@@ -28,6 +34,7 @@ internal sealed class LayoutEngine
     private readonly int _maxLength;
     private readonly int _glyphCount;
     private long _budget;
+    private long _steps;
     private int _nextLigatureId = 1;
 
     #endregion
@@ -41,6 +48,7 @@ internal sealed class LayoutEngine
         _gdef = gdef;
         _buffer = buffer;
         _budget = (long)OperationsPerGlyph * buffer.Count + 4096;
+        _steps = (long)StepsPerGlyph * buffer.Count + StepsBase;
         _maxLength = 32 * buffer.Count + 256;
     }
 
@@ -61,6 +69,7 @@ internal sealed class LayoutEngine
         {
             for (int i = _buffer.Count - 1; i >= 0; i--)
             {
+                Step();
                 if ((_buffer[i].Mask & mask) == 0 || Skip(_buffer[i], lookup)) continue;
                 ApplyOnce(lookup, i, 0, out _);
             }
@@ -70,6 +79,7 @@ internal sealed class LayoutEngine
         int position = 0;
         while (position < _buffer.Count)
         {
+            Step();
             var glyph = _buffer[position];
             if ((glyph.Mask & mask) != 0 && !Skip(glyph, lookup) && ApplyOnce(lookup, position, 0, out int next))
                 position = Math.Max(next, position + 1);
@@ -91,6 +101,11 @@ internal sealed class LayoutEngine
         if (--_budget < 0) throw FontBytes.Corrupt("has layout rules that do too much work for its text");
     }
 
+    private void Step()
+    {
+        if (--_steps < 0) throw FontBytes.Corrupt("has layout rules that take too long to match its text");
+    }
+
     private bool Skip(ShapingGlyph glyph, LayoutLookup lookup)
     {
         int flags = lookup.Flags;
@@ -109,13 +124,21 @@ internal sealed class LayoutEngine
 
     private int NextIndex(int from, LayoutLookup lookup)
     {
-        for (int i = from + 1; i < _buffer.Count; i++) if (!Skip(_buffer[i], lookup)) return i;
+        for (int i = from + 1; i < _buffer.Count; i++)
+        {
+            Step();
+            if (!Skip(_buffer[i], lookup)) return i;
+        }
         return -1;
     }
 
     private int PreviousIndex(int from, LayoutLookup lookup)
     {
-        for (int i = from - 1; i >= 0; i--) if (!Skip(_buffer[i], lookup)) return i;
+        for (int i = from - 1; i >= 0; i--)
+        {
+            Step();
+            if (!Skip(_buffer[i], lookup)) return i;
+        }
         return -1;
     }
 
@@ -125,6 +148,7 @@ internal sealed class LayoutEngine
         next = position + 1;
         foreach (int subtable in lookup.Subtables)
         {
+            Step();
             bool applied = _table.Tag == "GSUB"
                 ? Substitute(lookup, subtable, position, depth, out next)
                 : Position(lookup, subtable, position, depth, out next);
@@ -219,6 +243,7 @@ internal sealed class LayoutEngine
         data.Require(set + 2, 2L * count, "a ligature set");
         for (int l = 0; l < count; l++)
         {
+            Step();
             int ligature = set + data.U16(set + 2 + 2 * l);
             int ligatureGlyph = Existing(data.U16(ligature));
             int components = data.U16(ligature + 2);
@@ -412,6 +437,7 @@ internal sealed class LayoutEngine
         int target = -1;
         for (int i = position - 1; i >= 0; i--)
         {
+            Step();
             var candidate = _buffer[i];
             if (lookup.Type == 6)
             {
@@ -526,6 +552,7 @@ internal sealed class LayoutEngine
         data.Require(set + 2, 2L * rules, "a rule set");
         for (int r = 0; r < rules; r++)
         {
+            Step();
             int rule = set + data.U16(set + 2 + 2 * r);
             int p = rule;
             int[] backtrack = Array.Empty<int>(), lookahead = Array.Empty<int>();

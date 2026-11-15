@@ -8,8 +8,8 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
 /// Fonts and languages, drawn with HTML: the same invoice as HTML, with the fonts you load registered under CSS family
-/// names. Each font was loaded once with <c>PdfFont.FromStream(upload)</c>; a variable font was loaded again with
-/// <c>new PdfFontLoadOptions { Weight = 700 }</c> and registered as the family's bold face.
+/// names. Each font was loaded once with <c>PdfFont.FromStream(upload)</c>. A variable font covers its whole weight
+/// range, so the body and heading weights are plain CSS <c>font-weight</c> values.
 /// </summary>
 public static class FontsAndLanguagesHtmlSample
 {
@@ -21,20 +21,15 @@ public static class FontsAndLanguagesHtmlSample
     /// Builds the invoice from HTML.
     /// </summary>
     /// <param name="input">The invoice and options.</param>
-    /// <param name="fonts">The loaded fonts in slot order: each slot's script, its font, and its heading-weight font
-    /// (the same font when it has one weight).</param>
+    /// <param name="fonts">The loaded fonts in slot order: each slot's script and its font.</param>
     /// <param name="html">The loaded HTML; after saving, its warnings list what was skipped or replaced.</param>
     /// <returns>The document, ready to save.</returns>
-    public static PdfDocument Build(FontsAndLanguagesInput input, IReadOnlyList<(FontScript Script, PdfFont Font, PdfFont HeadingFont)> fonts, out PdfHtml html)
+    public static PdfDocument Build(FontsAndLanguagesInput input, IReadOnlyList<(FontScript Script, PdfFont Font)> fonts, out PdfHtml html)
     {
-        // Each font is registered under a CSS family name; a heading-weight font becomes the family's bold face.
-        // Without a bold face, SynthesizeMissingStyles thickens the regular one for <b> and headings.
+        // Each font is registered under a CSS family name. A variable font draws each CSS weight as its own instance;
+        // for a font with one weight, SynthesizeMissingStyles thickens it for bold headings.
         var options = new PdfHtmlLoadOptions { SynthesizeMissingStyles = input.SynthesizeMissingStyles };
-        foreach (var (script, font, headingFont) in fonts)
-        {
-            options.Fonts.Add(Family(script), font);
-            if (!ReferenceEquals(headingFont, font)) options.Fonts.Add(Family(script), headingFont);
-        }
+        foreach (var (script, font) in fonts) options.Fonts.Add(Family(script), font);
 
         // The families are listed in slot order, so each character takes the first font that has it.
         string families = string.Concat(fonts.Select(f => $"'{Family(f.Script)}', ")) + "sans-serif";
@@ -66,14 +61,16 @@ public static class FontsAndLanguagesHtmlSample
         var sb = new StringBuilder();
         sb.Append("<style>")
           // Line height 1.6 leaves room for marks drawn above and below Indic letters.
-          .Append("body { font-family: ").Append(families).Append("; font-size: 10pt; line-height: 1.6; color: #1f2937 }")
+          .Append("body { font-family: ").Append(families).Append("; font-size: 10pt; line-height: 1.6; color: #1f2937; font-weight: ")
+          .Append(input.BodyWeight.ToString(CultureInfo.InvariantCulture)).Append(" }")
+          .Append("h1, b, .items th, .total td { font-weight: ").Append(input.HeadingWeight.ToString(CultureInfo.InvariantCulture)).Append(" }")
           .Append(".band { background-color: #e8f5ee; border-bottom: 3pt solid #168059; padding: 14pt 18pt }")
           .Append("h1 { font-size: 22pt; margin: 0 }")
           .Append(".parties { width: 100%; margin-top: 14pt } .parties td { vertical-align: top; width: 50% }")
           .Append(".items { width: 100%; border-collapse: collapse; margin-top: 12pt }")
           .Append(".items th, .items td { border: 0.75pt solid #1f2937; padding: 4pt 6pt }")
           .Append(".items th { background-color: #d1ebdd; text-align: left }")
-          .Append(".num { text-align: right } .total td { background-color: #d1ebdd; font-weight: bold }")
+          .Append(".num { text-align: right } .total td { background-color: #d1ebdd }")
           .Append(".thanks { margin-top: 16pt; color: #475569 }")
           .Append("</style>");
 
