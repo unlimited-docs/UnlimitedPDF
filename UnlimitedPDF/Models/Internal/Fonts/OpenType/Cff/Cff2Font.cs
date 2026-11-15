@@ -93,10 +93,10 @@ internal sealed class Cff2Font
     /// Returns glyph <paramref name="glyph"/> as a CFF version 1 charstring at the given coordinates: blends
     /// evaluated, subroutines expanded, <c>endchar</c> appended.
     /// </summary>
-    public byte[] Instance(int glyph, double[] coordinates)
+    public byte[] Instance(int glyph, double[] coordinates, CharstringWork? work = null)
     {
         int fd = _fontOfGlyph[glyph];
-        return Cff2Charstring.Instance(CharStrings.Bytes(glyph), _localSubrs[fd], GlobalSubrs, Store, _defaultVsIndex[fd], coordinates);
+        return Cff2Charstring.Instance(CharStrings.Bytes(glyph), _localSubrs[fd], GlobalSubrs, Store, _defaultVsIndex[fd], coordinates, work);
     }
 
     #endregion

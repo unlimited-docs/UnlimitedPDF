@@ -47,10 +47,11 @@ internal static class Type2Charstring
     /// <param name="charstring">The glyph's charstring bytes.</param>
     /// <param name="localSubrs">The glyph's local subroutines, or null.</param>
     /// <param name="globalSubrs">The global subroutines.</param>
+    /// <param name="work">The work shared with the font's other glyphs, or null for this glyph alone.</param>
     /// <returns>The charstring without subroutine calls.</returns>
-    public static byte[] Flatten(byte[] charstring, CffIndex? localSubrs, CffIndex globalSubrs)
+    public static byte[] Flatten(byte[] charstring, CffIndex? localSubrs, CffIndex globalSubrs, CharstringWork? work = null)
     {
-        var state = new State(localSubrs, globalSubrs);
+        var state = new State(localSubrs, globalSubrs, work ?? new CharstringWork(1));
         bool ended = Run(charstring, state, depth: 0);
         if (!ended) throw FontBytes.Corrupt("has a CFF glyph that does not end with endchar");
         return state.Output.ToArray();
@@ -67,6 +68,7 @@ internal static class Type2Charstring
         while (p < code.Length)
         {
             if (++state.Steps > MaxSteps) throw FontBytes.Corrupt("has a CFF glyph that runs too long through subroutines");
+            state.Work.Step();
             int b0 = code[p];
             if (b0 >= 32 || b0 == 28)
             {
@@ -172,10 +174,11 @@ internal static class Type2Charstring
 
     private sealed class State
     {
-        public State(CffIndex? localSubrs, CffIndex globalSubrs)
+        public State(CffIndex? localSubrs, CffIndex globalSubrs, CharstringWork work)
         {
             LocalSubrs = localSubrs;
             GlobalSubrs = globalSubrs;
+            Work = work;
         }
 
         public CffIndex GlobalSubrs { get; }
@@ -191,6 +194,8 @@ internal static class Type2Charstring
         public int Steps { get; set; }
 
         public bool WidthSeen { get; set; }
+
+        public CharstringWork Work { get; }
 
         public void Write(ReadOnlySpan<byte> bytes) => Output.Write(bytes);
     }

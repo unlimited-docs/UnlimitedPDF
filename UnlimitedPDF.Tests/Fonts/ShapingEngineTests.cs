@@ -301,6 +301,22 @@ public class ShapingEngineTests
     }
 
     [Fact]
+    public void Long_rule_arrays_are_read_only_as_far_as_glyphs_are_compared()
+    {
+        // RV-20: 1,000 subtables of 30,000 input coverages of 'b'; text of 'a' fails at the first coverage, so each
+        // attempt reads one entry (the arrays used to be read whole first, about 0.1 s per glyph).
+        var builder = Builder();
+        builder.AddTable("GSUB", AlwaysFailingGsub(subtables: 1000, inputLength: 30000, G('b'), G('b')));
+        var font = builder.Build();
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+
+        var run = Shape(font, new string('a', 200));
+
+        Assert.Equal(200, run.Glyphs.Count);
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(3), clock.Elapsed.ToString());
+    }
+
+    [Fact]
     public void Random_damage_to_layout_tables_never_escapes_as_another_exception()
     {
         var builder = Builder();

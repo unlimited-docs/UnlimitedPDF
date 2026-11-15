@@ -95,7 +95,8 @@ internal sealed class CffFont
         if (top.Has(OpCharset)) CheckCharset(data, table, limit, top.Int(OpCharset), glyphCount);
 
         var font = new CffFont(charStrings, globalSubrs, localSubrs, fontOfGlyph, cidKeyed, Encoding.ASCII.GetString(names.Bytes(0)));
-        for (int g = 0; g < glyphCount; g++) font.Flatten(g);
+        var work = new CharstringWork(glyphCount);
+        for (int g = 0; g < glyphCount; g++) font.Flatten(g, work);
         return font;
     }
 
@@ -103,8 +104,10 @@ internal sealed class CffFont
     /// Returns a glyph's charstring with every subroutine call expanded.
     /// </summary>
     /// <param name="glyph">The glyph ID.</param>
+    /// <param name="work">The work shared with the font's other glyphs, or null for this glyph alone.</param>
     /// <returns>The flattened charstring.</returns>
-    public byte[] Flatten(int glyph) => Type2Charstring.Flatten(CharStrings.Bytes(glyph), _localSubrsByFont[_fontOfGlyph[glyph]], GlobalSubrs);
+    public byte[] Flatten(int glyph, CharstringWork? work = null) =>
+        Type2Charstring.Flatten(CharStrings.Bytes(glyph), _localSubrsByFont[_fontOfGlyph[glyph]], GlobalSubrs, work);
 
     #endregion
 

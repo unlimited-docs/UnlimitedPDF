@@ -5,8 +5,8 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 /// <summary>
 /// Turns a CFF2 charstring into a CFF version 1 charstring at fixed variation coordinates (D-013): every
 /// <c>blend</c> is evaluated, <c>vsindex</c> dropped, subroutines expanded (at most 10 levels, A06), <c>endchar</c>
-/// appended, and long <c>rlineto</c> and <c>rrcurveto</c> runs split to stay within CFF version 1's 48-operand
-/// limit. CFF2 allows 513 operands.
+/// appended, and runs longer than CFF version 1's 48-operand limit (CFF2 allows 513) split into valid groups: line and
+/// curve runs keep their meaning group by group, and stem hints start each later group from an absolute edge.
 /// </summary>
 internal static class Cff2Charstring
 {
@@ -15,7 +15,12 @@ internal static class Cff2Charstring
     public const int MaxOperands = 513;
 
     private const int RLineTo = 5;
+    private const int HLineTo = 6;
+    private const int VLineTo = 7;
     private const int RRCurveTo = 8;
+    private const int VStemHm = 23;
+    private const int RCurveLine = 24;
+    private const int RLineCurve = 25;
     private const int CallSubr = 10;
     private const int Escape = 12;
     private const int EndChar = 14;
@@ -31,9 +36,9 @@ internal static class Cff2Charstring
 
     #region Public Methods
 
-    public static byte[] Instance(byte[] charstring, CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates)
+    public static byte[] Instance(byte[] charstring, CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates, CharstringWork? work = null)
     {
-        var state = new State(localSubrs, globalSubrs, store, vsIndex, coordinates);
+        var state = new State(localSubrs, globalSubrs, store, vsIndex, coordinates, work ?? new CharstringWork(1));
         Run(charstring, state, depth: 0);
         if (state.Stack.Count > 0) throw FontBytes.Corrupt("has a CFF2 glyph that ends with unused operands");
         state.Output.WriteByte(EndChar);
@@ -51,6 +56,7 @@ internal static class Cff2Charstring
         {
             // The same step budget as CFF (A06): calls that draw nothing never grow the output.
             if (++state.Steps > Type2Charstring.MaxSteps) throw FontBytes.Corrupt("has a CFF2 glyph that runs too long through subroutines");
+            state.Work.Step();
             int b0 = code[p];
             if (b0 >= 32 || b0 == 28)
             {
@@ -87,6 +93,7 @@ internal static class Cff2Charstring
                 case CntrMask:
                 {
                     state.Stems += state.Stack.Count / 2; // operands before the first mask are an implicit vstem
+                    if (state.Stack.Count > Type2Charstring.MaxOperands) EmitStems(state, VStemHm); // written out explicitly
                     Emit(state, b0);
                     int maskBytes = (state.Stems + 7) / 8;
                     if (p + maskBytes > code.Length) throw FontBytes.Corrupt("has a truncated CFF2 hint mask");
@@ -99,10 +106,20 @@ internal static class Cff2Charstring
                 case 18: // hstemhm
                 case 23: // vstemhm
                     state.Stems += state.Stack.Count / 2;
-                    Emit(state, b0);
+                    EmitStems(state, b0);
                     break;
                 case RLineTo:
                     EmitSplit(state, b0, 2);
+                    break;
+                case HLineTo:
+                case VLineTo:
+                    EmitSplitAlternatingLines(state, b0);
+                    break;
+                case RCurveLine:
+                    EmitSplitWithTail(state, b0, RRCurveTo, group: 6);
+                    break;
+                case RLineCurve:
+                    EmitSplitWithTail(state, b0, RLineTo, group: 2);
                     break;
                 case RRCurveTo:
                     EmitSplit(state, b0, 6);
@@ -138,7 +155,7 @@ internal static class Cff2Charstring
         int n = (int)nValue;
         int k = state.Store.RegionCount(state.VsIndex);
         if (nValue != n || n < 0 || state.Stack.Count < (long)n * (k + 1)) throw FontBytes.Corrupt("has a CFF2 blend without enough operands");
-        var scalars = state.Store.Scalars(state.VsIndex, state.Coordinates);
+        var scalars = state.Work.Scalars(state.Store, state.VsIndex, state.Coordinates);
         int baseIndex = state.Stack.Count - n * (k + 1);
         for (int i = 0; i < n; i++)
         {
@@ -211,6 +228,66 @@ internal static class Cff2Charstring
         state.Output.WriteByte((byte)op);
     }
 
+    // Splits an hlineto or vlineto run (single operands that alternate between horizontal and vertical lines) after an
+    // even number of lines, so every call starts in the same direction.
+    private static void EmitSplitAlternatingLines(State state, int op)
+    {
+        if (state.Stack.Count == 0) throw FontBytes.Corrupt("has a CFF2 line operator without operands");
+        var values = state.Stack.ToArray();
+        state.Stack.Clear();
+        for (int i = 0; i < values.Length; i += Type2Charstring.MaxOperands)
+        {
+            for (int j = i; j < Math.Min(values.Length, i + Type2Charstring.MaxOperands); j++) WriteNumber(state.Output, values[j]);
+            state.Output.WriteByte((byte)op);
+        }
+    }
+
+    // Splits an rcurveline run (curves of 6, then one line of 2) or an rlinecurve run (lines of 2, then one curve of 6):
+    // the leading groups go out as rrcurveto or rlineto calls of 42 operands until the rest, which keeps at least one
+    // leading group and the tail, fits in one call.
+    private static void EmitSplitWithTail(State state, int op, int leadingOp, int group)
+    {
+        int tail = 8 - group; // the line after curves, or the curve after lines
+        int count = state.Stack.Count;
+        if (count < group + tail || (count - tail) % group != 0) throw FontBytes.Corrupt("has a CFF2 path operator with the wrong number of operands");
+        var values = state.Stack.ToArray();
+        state.Stack.Clear();
+        int i = 0;
+        while (values.Length - i > Type2Charstring.MaxOperands)
+        {
+            for (int j = i; j < i + 42; j++) WriteNumber(state.Output, values[j]);
+            state.Output.WriteByte((byte)leadingOp);
+            i += 42;
+        }
+        for (int j = i; j < values.Length; j++) WriteNumber(state.Output, values[j]);
+        state.Output.WriteByte((byte)op);
+    }
+
+    // Writes stem hints (edge and width pairs, each edge relative to the previous one) in calls of at most 24 stems.
+    // Each stem operator measures its first edge from zero, so a later call starts from the absolute edge.
+    private static void EmitStems(State state, int op)
+    {
+        if (state.Stack.Count <= Type2Charstring.MaxOperands)
+        {
+            Emit(state, op);
+            return;
+        }
+        if (state.Stack.Count % 2 != 0) throw FontBytes.Corrupt("has CFF2 stem hints with an odd number of operands");
+        var values = state.Stack.ToArray();
+        state.Stack.Clear();
+        double edge = 0;
+        for (int i = 0; i < values.Length; i += Type2Charstring.MaxOperands)
+        {
+            int end = Math.Min(values.Length, i + Type2Charstring.MaxOperands);
+            for (int j = i; j < end; j++)
+            {
+                WriteNumber(state.Output, j == i ? edge + values[j] : values[j]);
+                edge += values[j];
+            }
+            state.Output.WriteByte((byte)op);
+        }
+    }
+
     private static void Push(State state, double value)
     {
         if (state.Stack.Count >= MaxOperands) throw FontBytes.Corrupt($"has a CFF2 glyph with more than {MaxOperands} operands");
@@ -262,13 +339,14 @@ internal static class Cff2Charstring
 
     private sealed class State
     {
-        public State(CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates)
+        public State(CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates, CharstringWork work)
         {
             LocalSubrs = localSubrs;
             GlobalSubrs = globalSubrs;
             Store = store;
             VsIndex = vsIndex;
             Coordinates = coordinates;
+            Work = work;
         }
 
         public double[] Coordinates { get; }
@@ -288,6 +366,8 @@ internal static class Cff2Charstring
         public ItemVariationStore? Store { get; }
 
         public int VsIndex { get; set; }
+
+        public CharstringWork Work { get; }
     }
 
     #endregion

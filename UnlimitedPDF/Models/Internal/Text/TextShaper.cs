@@ -1,4 +1,3 @@
-using System.Globalization;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 using UnlimitedPDF.Models.Internal.Text.Layout;
 

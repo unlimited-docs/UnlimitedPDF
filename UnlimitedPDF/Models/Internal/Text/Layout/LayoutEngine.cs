@@ -5,9 +5,11 @@ namespace UnlimitedPDF.Models.Internal.Text.Layout;
 /// <summary>
 /// Applies GSUB and GPOS lookups to a glyph buffer (D-003): GSUB types 1, 2, 4, 5, 6, and 8 and GPOS types 1, 2, 4, 5,
 /// 6, 7, and 8 (extension types 7 and 9 are resolved by <see cref="LayoutTable"/>), honoring lookup flags, mark
-/// attachment classes, and mark filtering sets. Contextual lookups call nested lookups at most 16 levels deep, and all
-/// work is counted against a budget of 64 operations per glyph; a font that exceeds either, or grows the text too far,
-/// fails with <see cref="PdfFontException"/> (A06).
+/// attachment classes, and mark filtering sets. Contextual lookups call nested lookups at most 16 levels deep; applied
+/// rules are counted against a budget of 64 operations per glyph, and the search for rules (subtables, rules, and
+/// glyphs tried, applied or not) against a step budget per glyph. Rule arrays are read one entry per glyph compared,
+/// never ahead. A font that exceeds a limit, or grows the text too far, fails with <see cref="PdfFontException"/>
+/// (A06).
 /// </summary>
 internal sealed class LayoutEngine
 {
@@ -492,30 +494,29 @@ internal sealed class LayoutEngine
 
         if (format == 3)
         {
+            // Each array is a count and coverage offsets, read one entry per glyph compared (RV-20).
             int p = subtable + 2;
-            int[] backtrack = Array.Empty<int>(), lookahead = Array.Empty<int>(), input;
+            var backtrack = (Count: 0, At: 0);
+            var lookahead = (Count: 0, At: 0);
+            if (chained) backtrack = Array16(ref p, "a chained context rule");
+            int inputCount = data.U16(p);
+            int lookupCount = 0;
+            if (!chained) lookupCount = data.U16(p + 2);
+            int inputAt = p + (chained ? 2 : 4);
+            data.Require(inputAt, 2L * inputCount, "a context rule");
+            p = inputAt + 2 * inputCount;
             if (chained)
             {
-                backtrack = Offsets(ref p, subtable);
-                input = Offsets(ref p, subtable);
-                lookahead = Offsets(ref p, subtable);
+                lookahead = Array16(ref p, "a chained context rule");
+                lookupCount = data.U16(p);
+                p += 2;
             }
-            else
-            {
-                int inputCount = data.U16(p);
-                int lookupCount = data.U16(p + 2);
-                data.Require(p + 4, 2L * inputCount, "a context rule");
-                input = Enumerable.Range(0, inputCount).Select(i => subtable + data.U16(p + 4 + 2 * i)).ToArray();
-                p += 4 + 2 * inputCount;
-                return input.Length > 0 && Match(lookup, position, input.Length, (k, g) => LayoutData.Coverage(data, input[k], g) >= 0, out var matchedNoChain)
-                    && ApplyRecords(p, lookupCount, matchedNoChain, depth, out next);
-            }
-            if (input.Length == 0) return false;
-            if (!Match(lookup, position, input.Length, (k, g) => LayoutData.Coverage(data, input[k], g) >= 0, out var matched)) return false;
-            if (!MatchBack(lookup, position, backtrack.Length, (k, g) => LayoutData.Coverage(data, backtrack[k], g) >= 0)) return false;
-            if (!MatchAhead(lookup, matched[^1], lookahead.Length, (k, g) => LayoutData.Coverage(data, lookahead[k], g) >= 0)) return false;
-            int count = data.U16(p);
-            return ApplyRecords(p + 2, count, matched, depth, out next);
+            bool Covered(int at, int k, int g) => LayoutData.Coverage(data, subtable + data.U16(at + 2 * k), g) >= 0;
+            if (inputCount == 0) return false;
+            if (!Match(lookup, position, inputCount, (k, g) => Covered(inputAt, k, g), out var matched)) return false;
+            if (!MatchBack(lookup, position, backtrack.Count, (k, g) => Covered(backtrack.At, k, g))) return false;
+            if (!MatchAhead(lookup, matched[^1], lookahead.Count, (k, g) => Covered(lookahead.At, k, g))) return false;
+            return ApplyRecords(p, lookupCount, matched, depth, out next);
         }
 
         int coverageIndex = LayoutData.Coverage(data, subtable + data.U16(subtable + 2), glyph);
@@ -555,52 +556,39 @@ internal sealed class LayoutEngine
             Step();
             int rule = set + data.U16(set + 2 + 2 * r);
             int p = rule;
-            int[] backtrack = Array.Empty<int>(), lookahead = Array.Empty<int>();
-            if (chained) backtrack = Values(ref p);
+
+            // The arrays are read one entry per glyph compared (RV-20); the input array leaves out the first glyph.
+            var backtrack = (Count: 0, At: 0);
+            var lookahead = (Count: 0, At: 0);
+            if (chained) backtrack = Array16(ref p, "a rule");
             int inputCount = data.U16(p);
-            if (inputCount == 0) { if (!chained) continue; }
             int lookupCount = 0;
             if (!chained) { lookupCount = data.U16(p + 2); p += 4; }
             else p += 2;
-            data.Require(p, 2L * Math.Max(0, inputCount - 1), "a rule");
-            var input = Enumerable.Range(0, Math.Max(0, inputCount - 1)).Select(i => (int)data.U16(p + 2 * i)).ToArray();
-            p += 2 * input.Length;
-            if (chained) { lookahead = Values(ref p); lookupCount = data.U16(p); p += 2; }
+            int inputAt = p;
+            data.Require(inputAt, 2L * Math.Max(0, inputCount - 1), "a rule");
+            p += 2 * Math.Max(0, inputCount - 1);
+            if (chained) { lookahead = Array16(ref p, "a rule"); lookupCount = data.U16(p); p += 2; }
             if (inputCount == 0) continue;
 
             // Part 0 is backtrack, 1 input, 2 lookahead (only class-based rules look at the part).
-            if (!Match(lookup, position, inputCount, (k, g) => k == 0 || matches(1, g, input[k - 1]), out var matched)) continue;
-            if (!MatchBack(lookup, position, backtrack.Length, (k, g) => matches(0, g, backtrack[k]))) continue;
-            if (!MatchAhead(lookup, matched[^1], lookahead.Length, (k, g) => matches(2, g, lookahead[k]))) continue;
+            if (!Match(lookup, position, inputCount, (k, g) => k == 0 || matches(1, g, data.U16(inputAt + 2 * (k - 1))), out var matched)) continue;
+            if (!MatchBack(lookup, position, backtrack.Count, (k, g) => matches(0, g, data.U16(backtrack.At + 2 * k)))) continue;
+            if (!MatchAhead(lookup, matched[^1], lookahead.Count, (k, g) => matches(2, g, data.U16(lookahead.At + 2 * k)))) continue;
             if (ApplyRecords(p, lookupCount, matched, depth, out next)) return true;
         }
         return false;
     }
 
-    // Reads a count and that many 16-bit values.
-    private int[] Values(ref int p)
+    // Reads a count of 16-bit entries and checks they are in the data; returns the count and where the entries start.
+    private (int Count, int At) Array16(ref int p, string what)
     {
         var data = _table.Data;
-        int start = p;
-        int count = data.U16(start);
-        data.Require(start + 2, 2L * count, "a rule");
-        var values = new int[count];
-        for (int i = 0; i < count; i++) values[i] = data.U16(start + 2 + 2 * i);
+        int count = data.U16(p);
+        data.Require(p + 2, 2L * count, what);
+        var array = (count, p + 2);
         p += 2 + 2 * count;
-        return values;
-    }
-
-    // Reads a count and that many coverage offsets relative to the subtable.
-    private int[] Offsets(ref int p, int subtable)
-    {
-        var data = _table.Data;
-        int start = p;
-        int count = data.U16(start);
-        data.Require(start + 2, 2L * count, "a chained context rule");
-        var offsets = new int[count];
-        for (int i = 0; i < count; i++) offsets[i] = subtable + data.U16(start + 2 + 2 * i);
-        p += 2 + 2 * count;
-        return offsets;
+        return array;
     }
 
     private bool Match(LayoutLookup lookup, int position, int count, Func<int, int, bool> matches, out List<int> matched)
@@ -648,6 +636,7 @@ internal sealed class LayoutEngine
         var positions = new List<int>(matched);
         for (int r = 0; r < count; r++)
         {
+            Step();
             int sequenceIndex = data.U16(records + 4 * r);
             int lookupIndex = data.U16(records + 4 * r + 2);
             if (sequenceIndex >= positions.Count) continue;
@@ -658,7 +647,11 @@ internal sealed class LayoutEngine
             ApplyOnce(_table.Lookup(lookupIndex), at, depth + 1, out _);
             int delta = _buffer.Count - before;
             if (delta == 0) continue;
-            for (int i = 0; i < positions.Count; i++) if (positions[i] > at) positions[i] += delta;
+            for (int i = 0; i < positions.Count; i++)
+            {
+                Step();
+                if (positions[i] > at) positions[i] += delta;
+            }
         }
         next = Math.Max(positions[^1] + 1, matched[0] + 1);
         return true;

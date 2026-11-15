@@ -1,5 +1,3 @@
-using System.Globalization;
-
 namespace UnlimitedPDF.Models.Internal.Text;
 
 /// <summary>

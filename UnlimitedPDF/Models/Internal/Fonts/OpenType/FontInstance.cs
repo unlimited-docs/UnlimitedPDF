@@ -59,11 +59,14 @@ internal sealed class FontInstance
         {
             var (offset, length) = font.TableRange("CFF2");
             var cff2 = Cff2Font.Read(font.Data, offset, length, font.GlyphCount, axisCount);
-            charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => cff2.Instance(g, coordinates)).ToArray();
+            // One shared budget and scalar cache for every glyph of the instance (A06).
+            var work = new CharstringWork(font.GlyphCount);
+            charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => cff2.Instance(g, coordinates, work)).ToArray();
         }
         else if (font.Outlines == FontOutlines.Cff)
         {
-            charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => font.Cff!.Flatten(g)).ToArray();
+            var work = new CharstringWork(font.GlyphCount);
+            charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => font.Cff!.Flatten(g, work)).ToArray();
         }
 
         if (atDefault || axes is null) return new FontInstance(font, coordinates, advances, null, charstrings, metrics);
