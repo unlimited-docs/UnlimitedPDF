@@ -107,7 +107,7 @@ internal sealed class CffFont
     /// <param name="work">The work shared with the font's other glyphs, or null for this glyph alone.</param>
     /// <returns>The flattened charstring.</returns>
     public byte[] Flatten(int glyph, CharstringWork? work = null) =>
-        Type2Charstring.Flatten(CharStrings.Bytes(glyph), _localSubrsByFont[_fontOfGlyph[glyph]], GlobalSubrs, work);
+        Type2Charstring.Flatten(CharStrings.Span(glyph), _localSubrsByFont[_fontOfGlyph[glyph]], GlobalSubrs, work);
 
     #endregion
 

@@ -49,7 +49,7 @@ internal static class Type2Charstring
     /// <param name="globalSubrs">The global subroutines.</param>
     /// <param name="work">The work shared with the font's other glyphs, or null for this glyph alone.</param>
     /// <returns>The charstring without subroutine calls.</returns>
-    public static byte[] Flatten(byte[] charstring, CffIndex? localSubrs, CffIndex globalSubrs, CharstringWork? work = null)
+    public static byte[] Flatten(ReadOnlySpan<byte> charstring, CffIndex? localSubrs, CffIndex globalSubrs, CharstringWork? work = null)
     {
         var state = new State(localSubrs, globalSubrs, work ?? new CharstringWork(1));
         bool ended = Run(charstring, state, depth: 0);
@@ -62,7 +62,7 @@ internal static class Type2Charstring
     #region Private Methods
 
     // Returns true when endchar was reached; false when the charstring (a subroutine) returned.
-    private static bool Run(byte[] code, State state, int depth)
+    private static bool Run(ReadOnlySpan<byte> code, State state, int depth)
     {
         int p = 0;
         while (p < code.Length)
@@ -75,7 +75,7 @@ internal static class Type2Charstring
                 int length = b0 == 28 ? 3 : b0 <= 246 ? 1 : b0 <= 254 ? 2 : 5;
                 if (p + length > code.Length) throw FontBytes.Corrupt("has a truncated CFF glyph");
                 if (state.Operands.Count >= MaxOperands) throw FontBytes.Corrupt($"has a CFF glyph with more than {MaxOperands} operands");
-                state.Operands.Add((Value(code, p, b0), code.AsSpan(p, length).ToArray()));
+                state.Operands.Add((Value(code, p, b0), code.Slice(p, length).ToArray()));
                 p += length;
                 continue;
             }
@@ -93,7 +93,7 @@ internal static class Type2Charstring
                     state.Operands.RemoveAt(state.Operands.Count - 1);
                     int index = (int)number + Bias(subrs.Count);
                     if (number != Math.Floor(number) || index < 0 || index >= subrs.Count) throw FontBytes.Corrupt("calls a CFF subroutine that does not exist");
-                    if (Run(subrs.Shared(index), state, depth + 1)) return true;
+                    if (Run(subrs.Span(index), state, depth + 1)) return true;
                     break;
                 }
                 case Return:
@@ -110,7 +110,7 @@ internal static class Type2Charstring
                     Emit(state, b0);
                     int maskBytes = (state.Stems + 7) / 8;
                     if (p + maskBytes > code.Length) throw FontBytes.Corrupt("has a truncated CFF hint mask");
-                    state.Write(code.AsSpan(p, maskBytes));
+                    state.Write(code.Slice(p, maskBytes));
                     p += maskBytes;
                     break;
                 }
@@ -157,7 +157,7 @@ internal static class Type2Charstring
         if (op is not (1 or 3 or 18 or 23 or HintMask or CntrMask)) state.WidthSeen = true;
     }
 
-    private static double Value(byte[] code, int p, int b0) => b0 switch
+    private static double Value(ReadOnlySpan<byte> code, int p, int b0) => b0 switch
     {
         28 => (short)((code[p + 1] << 8) | code[p + 2]),
         <= 246 => b0 - 139,

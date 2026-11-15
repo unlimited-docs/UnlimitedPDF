@@ -36,7 +36,7 @@ internal static class Cff2Charstring
 
     #region Public Methods
 
-    public static byte[] Instance(byte[] charstring, CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates, CharstringWork? work = null)
+    public static byte[] Instance(ReadOnlySpan<byte> charstring, CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates, CharstringWork? work = null)
     {
         var state = new State(localSubrs, globalSubrs, store, vsIndex, coordinates, work ?? new CharstringWork(1));
         Run(charstring, state, depth: 0);
@@ -49,7 +49,7 @@ internal static class Cff2Charstring
 
     #region Private Methods
 
-    private static void Run(byte[] code, State state, int depth)
+    private static void Run(ReadOnlySpan<byte> code, State state, int depth)
     {
         int p = 0;
         while (p < code.Length)
@@ -79,7 +79,7 @@ internal static class Cff2Charstring
                     double number = Pop(state);
                     int index = (int)number + Type2Charstring.Bias(subrs.Count);
                     if (number != Math.Floor(number) || index < 0 || index >= subrs.Count) throw FontBytes.Corrupt("calls a CFF subroutine that does not exist");
-                    Run(subrs.Shared(index), state, depth + 1);
+                    Run(subrs.Span(index), state, depth + 1);
                     break;
                 }
                 case VsIndex:
@@ -99,7 +99,7 @@ internal static class Cff2Charstring
                     Emit(state, b0);
                     int maskBytes = (state.Stems + 7) / 8;
                     if (p + maskBytes > code.Length) throw FontBytes.Corrupt("has a truncated CFF2 hint mask");
-                    state.Output.Write(code, p, maskBytes);
+                    state.Output.Write(code.Slice(p, maskBytes));
                     p += maskBytes;
                     break;
                 }
@@ -303,7 +303,7 @@ internal static class Cff2Charstring
         return value;
     }
 
-    private static double Value(byte[] code, int p, int b0) => b0 switch
+    private static double Value(ReadOnlySpan<byte> code, int p, int b0) => b0 switch
     {
         28 => (short)((code[p + 1] << 8) | code[p + 2]),
         <= 246 => b0 - 139,

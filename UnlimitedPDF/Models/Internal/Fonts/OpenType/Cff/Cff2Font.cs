@@ -96,7 +96,7 @@ internal sealed class Cff2Font
     public byte[] Instance(int glyph, double[] coordinates, CharstringWork? work = null)
     {
         int fd = _fontOfGlyph[glyph];
-        return Cff2Charstring.Instance(CharStrings.Bytes(glyph), _localSubrs[fd], GlobalSubrs, Store, _defaultVsIndex[fd], coordinates, work);
+        return Cff2Charstring.Instance(CharStrings.Span(glyph), _localSubrs[fd], GlobalSubrs, Store, _defaultVsIndex[fd], coordinates, work);
     }
 
     #endregion

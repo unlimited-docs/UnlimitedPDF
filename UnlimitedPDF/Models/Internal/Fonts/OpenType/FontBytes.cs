@@ -47,6 +47,18 @@ internal sealed class FontBytes
         if (offset < 0 || length < 0 || offset + length > _data.Length) throw Corrupt($"is truncated or damaged: {what} lies outside the data");
     }
 
+    /// <summary>
+    /// Returns <paramref name="length"/> bytes starting at <paramref name="offset"/> without copying them.
+    /// </summary>
+    /// <param name="offset">The first byte.</param>
+    /// <param name="length">The number of bytes.</param>
+    /// <returns>A read-only view of the bytes.</returns>
+    public ReadOnlySpan<byte> Span(int offset, int length)
+    {
+        Require(offset, length, "a table");
+        return _data.AsSpan(offset, length);
+    }
+
     public byte[] Slice(int offset, int length)
     {
         Require(offset, length, "a table");

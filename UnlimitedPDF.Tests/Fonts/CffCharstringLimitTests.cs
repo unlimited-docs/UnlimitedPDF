@@ -107,6 +107,23 @@ public class CffCharstringLimitTests
         Assert.True(clock.Elapsed < TimeSpan.FromSeconds(3), clock.Elapsed.ToString());
     }
 
+    [Fact]
+    public void Font_dicts_that_share_one_subroutine_index_keep_no_copies_of_it()
+    {
+        // RV-29: 256 Font DICTs name one Private DICT whose only subroutine is 1 MB and returns at once; each glyph
+        // calls it. Copies kept per Font DICT used to hold about 244 MB after loading this 1 MB table.
+        var table = SharedSubroutineCff(fontDicts: 256, glyphs: 256, subroutineLength: 1_000_000);
+        GC.Collect();
+        long before = GC.GetTotalMemory(forceFullCollection: true);
+
+        var font = CffFont.Read(new FontBytes(table), 0, table.Length, 256);
+        long kept = GC.GetTotalMemory(forceFullCollection: true) - before;
+
+        Assert.True(kept < 8 * 1024 * 1024, $"{kept / (1024 * 1024)} MB kept");
+        Assert.Equal(new byte[] { 14 }, font.Flatten(0)[^1..]);
+        GC.KeepAlive(font);
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(70000)]
@@ -252,6 +269,51 @@ public class CffCharstringLimitTests
 
     private static byte[] Instance(byte[] charstring, List<byte[]> globalSubrs) =>
         Cff2Charstring.Instance(charstring, null, Subrs(globalSubrs), null, 0, Array.Empty<double>());
+
+    // A CID-keyed CFF table whose Font DICTs all name one Private DICT with one local subroutine of the given length
+    // that returns at its first byte; glyph g uses Font DICT g mod fontDicts and calls the subroutine once.
+    private static byte[] SharedSubroutineCff(int fontDicts, int glyphs, int subroutineLength)
+    {
+        static byte[] DictInt(int v) => new byte[] { 29, (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v };
+        static byte[] Index(IReadOnlyList<byte[]> items)
+        {
+            var w = new BigEndianWriter().U16((ushort)items.Count);
+            if (items.Count == 0) return w.ToArray();
+            w.U8(4);
+            uint offset = 1;
+            w.U32(offset);
+            foreach (var item in items) w.U32(offset += (uint)item.Length);
+            foreach (var item in items) w.Bytes(item);
+            return w.ToArray();
+        }
+
+        var header = new byte[] { 1, 0, 4, 4 };
+        var name = Index(new[] { Encoding.ASCII.GetBytes("A") });
+        var strings = Index(new[] { Encoding.ASCII.GetBytes("Adobe"), Encoding.ASCII.GetBytes("Identity") });
+        var global = Index(Array.Empty<byte[]>());
+        const int topSize = 7 + 7 + 7 + 6;
+        int topIndexSize = 2 + 1 + 2 * 4 + topSize;
+        int fdSelect = header.Length + name.Length + topIndexSize + strings.Length + global.Length;
+        var fdSelectBytes = new byte[] { 0 }.Concat(Enumerable.Range(0, glyphs).Select(g => (byte)(g % fontDicts))).ToArray();
+        int fdArray = fdSelect + fdSelectBytes.Length;
+        int fdArraySize = Index(Enumerable.Range(0, fontDicts).Select(_ => new byte[11]).ToList()).Length;
+        int charStrings = fdArray + fdArraySize;
+        // Each glyph: -107 callsubr endchar.
+        var charStringIndex = Index(Enumerable.Range(0, glyphs).Select(_ => new byte[] { 32, CallSubr, EndChar }).ToList());
+        int privateDict = charStrings + charStringIndex.Length;
+        var privateBytes = DictInt(6).Append((byte)19).ToArray(); // Subrs right after this 6-byte Private DICT
+        var fdArrayBytes = Index(Enumerable.Range(0, fontDicts).Select(_ => DictInt(6).Concat(DictInt(privateDict)).Append((byte)18).ToArray()).ToList());
+        var subroutine = new byte[subroutineLength];
+        subroutine[0] = Return;
+
+        var top = new List<byte> { 248, 27, 248, 28, 139, 12, 30 }; // ROS: Adobe Identity 0
+        top.AddRange(DictInt(fdArray)); top.AddRange(new byte[] { 12, 36 });
+        top.AddRange(DictInt(fdSelect)); top.AddRange(new byte[] { 12, 37 });
+        top.AddRange(DictInt(charStrings)); top.Add(17);
+        return header.Concat(name).Concat(Index(new[] { top.ToArray() })).Concat(strings).Concat(global)
+            .Concat(fdSelectBytes).Concat(fdArrayBytes).Concat(charStringIndex).Concat(privateBytes).Concat(Index(new[] { subroutine }))
+            .ToArray();
+    }
 
     // An item variation store with one axis, one region from 0 to 1, and one data with `regions` region indexes.
     private static ItemVariationStore Store(int regions)
