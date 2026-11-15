@@ -124,6 +124,22 @@ public class CffCharstringLimitTests
         GC.KeepAlive(font);
     }
 
+    [Fact]
+    public void Font_dicts_that_share_one_subroutine_index_read_it_once()
+    {
+        // RV-31: 256 Font DICTs name one Local Subr INDEX of 65,535 subroutines; each used to read its own copy of the
+        // INDEX's offsets (about 64 MB kept from a table of a few hundred KB).
+        var table = SharedSubroutineCff(fontDicts: 256, glyphs: 256, subroutineLength: 1, subroutineCount: 65535);
+        GC.Collect();
+        long before = GC.GetTotalMemory(forceFullCollection: true);
+
+        var font = CffFont.Read(new FontBytes(table), 0, table.Length, 256);
+        long kept = GC.GetTotalMemory(forceFullCollection: true) - before;
+
+        Assert.True(kept < 8 * 1024 * 1024, $"{kept / (1024 * 1024)} MB kept");
+        GC.KeepAlive(font);
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(70000)]
@@ -270,9 +286,10 @@ public class CffCharstringLimitTests
     private static byte[] Instance(byte[] charstring, List<byte[]> globalSubrs) =>
         Cff2Charstring.Instance(charstring, null, Subrs(globalSubrs), null, 0, Array.Empty<double>());
 
-    // A CID-keyed CFF table whose Font DICTs all name one Private DICT with one local subroutine of the given length
-    // that returns at its first byte; glyph g uses Font DICT g mod fontDicts and calls the subroutine once.
-    private static byte[] SharedSubroutineCff(int fontDicts, int glyphs, int subroutineLength)
+    // A CID-keyed CFF table whose Font DICTs all name one Private DICT with local subroutines that return at their
+    // first byte (the first of the given length, the rest one byte); glyph g uses Font DICT g mod fontDicts and calls
+    // subroutine -107 (biased) once.
+    private static byte[] SharedSubroutineCff(int fontDicts, int glyphs, int subroutineLength, int subroutineCount = 1)
     {
         static byte[] DictInt(int v) => new byte[] { 29, (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v };
         static byte[] Index(IReadOnlyList<byte[]> items)
@@ -303,15 +320,15 @@ public class CffCharstringLimitTests
         int privateDict = charStrings + charStringIndex.Length;
         var privateBytes = DictInt(6).Append((byte)19).ToArray(); // Subrs right after this 6-byte Private DICT
         var fdArrayBytes = Index(Enumerable.Range(0, fontDicts).Select(_ => DictInt(6).Concat(DictInt(privateDict)).Append((byte)18).ToArray()).ToList());
-        var subroutine = new byte[subroutineLength];
-        subroutine[0] = Return;
+        var subroutines = Enumerable.Range(0, subroutineCount).Select(i => new byte[i == 0 ? subroutineLength : 1]).ToList();
+        foreach (var subroutine in subroutines) subroutine[0] = Return;
 
         var top = new List<byte> { 248, 27, 248, 28, 139, 12, 30 }; // ROS: Adobe Identity 0
         top.AddRange(DictInt(fdArray)); top.AddRange(new byte[] { 12, 36 });
         top.AddRange(DictInt(fdSelect)); top.AddRange(new byte[] { 12, 37 });
         top.AddRange(DictInt(charStrings)); top.Add(17);
         return header.Concat(name).Concat(Index(new[] { top.ToArray() })).Concat(strings).Concat(global)
-            .Concat(fdSelectBytes).Concat(fdArrayBytes).Concat(charStringIndex).Concat(privateBytes).Concat(Index(new[] { subroutine }))
+            .Concat(fdSelectBytes).Concat(fdArrayBytes).Concat(charStringIndex).Concat(privateBytes).Concat(Index(subroutines))
             .ToArray();
     }
 

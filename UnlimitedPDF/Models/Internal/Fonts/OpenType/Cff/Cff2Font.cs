@@ -70,6 +70,7 @@ internal sealed class Cff2Font
         if (fdArray.Count is 0 or > 256) throw FontBytes.Corrupt("has an invalid CFF2 FDArray");
         var localSubrs = new CffIndex?[fdArray.Count];
         var vsIndex = new int[fdArray.Count];
+        var subrsAt = new Dictionary<int, CffIndex>(); // Font DICTs that name one Local Subr INDEX share it (A06)
         for (int fd = 0; fd < fdArray.Count; fd++)
         {
             var (offset, size) = fdArray.Entry(fd);
@@ -79,7 +80,10 @@ internal sealed class Cff2Font
             if (privateSize < 0 || privateOffset < 0 || (long)table + privateOffset + privateSize > limit) throw FontBytes.Corrupt("has a CFF2 Private DICT outside the table");
             var privateDict = CffDict.Read(data, table + privateOffset, privateSize);
             vsIndex[fd] = privateDict.Int(OpVsIndex);
-            if (privateDict.Has(OpSubrs)) localSubrs[fd] = CffIndex.Read(data, table + privateOffset + privateDict.Int(OpSubrs), limit, "Local Subr INDEX", wideCount: true);
+            if (!privateDict.Has(OpSubrs)) continue;
+            int at = table + privateOffset + privateDict.Int(OpSubrs);
+            if (!subrsAt.TryGetValue(at, out var subrs)) subrsAt[at] = subrs = CffIndex.Read(data, at, limit, "Local Subr INDEX", wideCount: true);
+            localSubrs[fd] = subrs;
         }
 
         var fontOfGlyph = new byte[glyphCount];

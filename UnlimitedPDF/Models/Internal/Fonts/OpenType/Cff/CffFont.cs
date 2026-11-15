@@ -80,10 +80,11 @@ internal sealed class CffFont
             var fdArray = CffIndex.Read(data, table + top.Int(OpFdArray), limit, "FDArray");
             if (fdArray.Count is 0 or > 256) throw FontBytes.Corrupt("has an invalid CFF FDArray");
             localSubrs = new CffIndex?[fdArray.Count];
+            var subrsAt = new Dictionary<int, CffIndex>(); // Font DICTs that name one Local Subr INDEX share it (A06)
             for (int fd = 0; fd < fdArray.Count; fd++)
             {
                 var (fdOffset, fdLength) = fdArray.Entry(fd);
-                localSubrs[fd] = ReadPrivateSubrs(data, table, limit, CffDict.Read(data, fdOffset, fdLength));
+                localSubrs[fd] = ReadPrivateSubrs(data, table, limit, CffDict.Read(data, fdOffset, fdLength), subrsAt);
             }
             ReadFdSelect(data, table + top.Int(OpFdSelect), limit, glyphCount, fdArray.Count, fontOfGlyph);
         }
@@ -114,15 +115,20 @@ internal sealed class CffFont
     #region Private Methods
 
     // Reads a Private DICT named by a Top DICT or Font DICT and returns its local subroutines, if any. The Subrs
-    // offset is relative to the Private DICT's start.
-    private static CffIndex? ReadPrivateSubrs(FontBytes data, int table, int limit, CffDict dict)
+    // offset is relative to the Private DICT's start. An INDEX already read at the same offset is reused, so Font
+    // DICTs that share one keep one copy of its offsets.
+    private static CffIndex? ReadPrivateSubrs(FontBytes data, int table, int limit, CffDict dict, Dictionary<int, CffIndex>? known = null)
     {
         if (!dict.Has(OpPrivate)) return null;
         int size = dict.Int(OpPrivate, 0), offset = dict.Int(OpPrivate, 1);
         if (size < 0 || offset < 0 || (long)table + offset + size > limit) throw FontBytes.Corrupt("has a CFF Private DICT outside the CFF table");
         var privateDict = CffDict.Read(data, table + offset, size);
         if (!privateDict.Has(OpSubrs)) return null;
-        return CffIndex.Read(data, table + offset + privateDict.Int(OpSubrs), limit, "Local Subr INDEX");
+        int at = table + offset + privateDict.Int(OpSubrs);
+        if (known is not null && known.TryGetValue(at, out var index)) return index;
+        index = CffIndex.Read(data, at, limit, "Local Subr INDEX");
+        if (known is not null) known[at] = index;
+        return index;
     }
 
     private static void ReadFdSelect(FontBytes data, int offset, int limit, int glyphCount, int fontCount, byte[] fontOfGlyph)
