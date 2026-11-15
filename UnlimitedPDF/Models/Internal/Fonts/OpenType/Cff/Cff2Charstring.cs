@@ -79,12 +79,14 @@ internal static class Cff2Charstring
                     double number = Pop(state);
                     int index = (int)number + Type2Charstring.Bias(subrs.Count);
                     if (number != Math.Floor(number) || index < 0 || index >= subrs.Count) throw FontBytes.Corrupt("calls a CFF subroutine that does not exist");
-                    Run(subrs.Bytes(index), state, depth + 1);
+                    Run(subrs.Shared(index), state, depth + 1);
                     break;
                 }
                 case VsIndex:
                     if (state.Stack.Count == 0) throw FontBytes.Corrupt("has a CFF2 vsindex without its operand");
-                    state.VsIndex = (int)Pop(state);
+                    double vsIndex = Pop(state);
+                    if (vsIndex != Math.Floor(vsIndex) || vsIndex is < 0 or > ushort.MaxValue) throw FontBytes.Corrupt("has an invalid CFF2 vsindex");
+                    state.VsIndex = (int)vsIndex;
                     break;
                 case Blend:
                     DoBlend(state);

@@ -91,7 +91,7 @@ internal sealed class ItemVariationStore
     /// <returns>One scalar per region of that data, in its region order.</returns>
     public double[] Scalars(int outer, double[] coordinates)
     {
-        if (outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
+        if (outer < 0 || outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
         return _data[outer].RegionIndexes.Select(r => RegionScalar(_regions[r], coordinates)).ToArray();
     }
 
@@ -99,16 +99,16 @@ internal sealed class ItemVariationStore
     /// Returns the region count of one ItemVariationData (the number of deltas a CFF2 <c>blend</c> takes per value).
     /// </summary>
     public int RegionCount(int outer) =>
-        outer < _data.Length ? _data[outer].RegionIndexes.Length : throw FontBytes.Corrupt("uses item variation data that does not exist");
+        outer >= 0 && outer < _data.Length ? _data[outer].RegionIndexes.Length : throw FontBytes.Corrupt("uses item variation data that does not exist");
 
     /// <summary>
     /// Returns the interpolated delta of item (<paramref name="outer"/>, <paramref name="inner"/>).
     /// </summary>
     public double Delta(FontBytes data, int outer, int inner, double[] coordinates)
     {
-        if (outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
+        if (outer < 0 || outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
         var d = _data[outer];
-        if (inner >= d.Items) throw FontBytes.Corrupt("uses a variation delta that does not exist");
+        if (inner < 0 || inner >= d.Items) throw FontBytes.Corrupt("uses a variation delta that does not exist");
         var scalars = Scalars(outer, coordinates);
         int p = d.Rows + inner * d.RowSize;
         double total = 0;

@@ -9,6 +9,7 @@ internal sealed class CffIndex
     #region Fields and Constants
 
     private readonly int[] _starts;
+    private byte[]?[]? _shared;
 
     #endregion
 
@@ -70,6 +71,19 @@ internal sealed class CffIndex
     /// <param name="index">The 0-based entry.</param>
     /// <returns>The offset and length.</returns>
     public (int Offset, int Length) Entry(int index) => (_starts[index], _starts[index + 1] - _starts[index]);
+
+    /// <summary>
+    /// Returns entry <paramref name="index"/>, copied the first time and shared afterwards; callers must not change
+    /// it. Subroutines are run this way, so a call costs no copying (A06: a subroutine that returns at once could
+    /// otherwise make each call cost its whole length).
+    /// </summary>
+    /// <param name="index">The 0-based entry.</param>
+    /// <returns>The entry's bytes.</returns>
+    public byte[] Shared(int index)
+    {
+        var shared = LazyInitializer.EnsureInitialized(ref _shared, () => new byte[]?[Count]);
+        return shared[index] ??= Bytes(index);
+    }
 
     /// <summary>
     /// Returns a copy of entry <paramref name="index"/>.

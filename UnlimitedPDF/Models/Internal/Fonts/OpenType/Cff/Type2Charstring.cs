@@ -93,7 +93,7 @@ internal static class Type2Charstring
                     state.Operands.RemoveAt(state.Operands.Count - 1);
                     int index = (int)number + Bias(subrs.Count);
                     if (number != Math.Floor(number) || index < 0 || index >= subrs.Count) throw FontBytes.Corrupt("calls a CFF subroutine that does not exist");
-                    if (Run(subrs.Bytes(index), state, depth + 1)) return true;
+                    if (Run(subrs.Shared(index), state, depth + 1)) return true;
                     break;
                 }
                 case Return:
