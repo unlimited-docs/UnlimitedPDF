@@ -3,9 +3,10 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 /// <summary>
 /// An OpenType ItemVariationStore (used by <c>HVAR</c>, <c>MVAR</c>, and <c>CFF2</c>): variation regions plus delta
 /// sets addressed by (outer, inner) indexes (D-013). Every count and offset is checked when it is read (A06). Each
-/// ItemVariationData is read once however many entries name it, and distinct ones cannot hold more region indexes
-/// than fit in the store's bytes; <see cref="Delta"/> works out each region scalar and each delta once for given
-/// coordinates, since every glyph may name the same delta set (A06).
+/// ItemVariationData is read once however many entries name it, and distinct ones, with their region indexes and delta
+/// rows, cannot hold more bytes than the store, so every delta lookup together reads its bytes at most once;
+/// <see cref="Delta"/> works out each region scalar and each delta once for given coordinates, since every glyph may
+/// name the same delta set (A06).
 /// </summary>
 internal sealed class ItemVariationStore
 {
@@ -63,7 +64,7 @@ internal sealed class ItemVariationStore
 
         var deltaData = new DeltaData[dataCount];
         var known = new Dictionary<int, DeltaData>();
-        long regionIndexesLeft = (limit - offset) / 2; // each region index of distinct data takes two bytes of the store
+        long bytesLeft = limit - offset; // distinct data lie in separate parts of a well-formed store
         for (int i = 0; i < dataCount; i++)
         {
             long subtable = offset + (long)data.U32(offset + 8 + 4 * i);
@@ -81,17 +82,17 @@ internal sealed class ItemVariationStore
             int wordCount = wordField & 0x7FFF;
             if (wordCount > regionIndexCount) throw FontBytes.Corrupt("has an invalid item variation data");
             if (s + 6L + 2L * regionIndexCount > limit) throw FontBytes.Corrupt("has a truncated item variation data");
-            if ((regionIndexesLeft -= regionIndexCount) < 0) throw FontBytes.Corrupt("has item variation data that overlap");
+            int wordSize = longWords ? 4 : 2, smallSize = longWords ? 2 : 1;
+            int rowSize = wordCount * wordSize + (regionIndexCount - wordCount) * smallSize;
+            int rows = s + 6 + 2 * regionIndexCount;
+            if (rows + (long)rowSize * items > limit) throw FontBytes.Corrupt("has truncated variation deltas");
+            if ((bytesLeft -= 6L + 2L * regionIndexCount + (long)rowSize * items) < 0) throw FontBytes.Corrupt("has item variation data that overlap");
             var regionIndexes = new int[regionIndexCount];
             for (int r = 0; r < regionIndexCount; r++)
             {
                 regionIndexes[r] = data.U16(s + 6 + 2 * r);
                 if (regionIndexes[r] >= regionCount) throw FontBytes.Corrupt("uses a variation region that does not exist");
             }
-            int wordSize = longWords ? 4 : 2, smallSize = longWords ? 2 : 1;
-            int rowSize = wordCount * wordSize + (regionIndexCount - wordCount) * smallSize;
-            int rows = s + 6 + 2 * regionIndexCount;
-            if (rows + (long)rowSize * items > limit) throw FontBytes.Corrupt("has truncated variation deltas");
             known[s] = deltaData[i] = new DeltaData(items, regionIndexes, wordCount, longWords, rows, rowSize);
         }
         return new ItemVariationStore(regions, deltaData);

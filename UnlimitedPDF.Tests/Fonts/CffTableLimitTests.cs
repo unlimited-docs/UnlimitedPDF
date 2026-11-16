@@ -8,7 +8,8 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// <summary>
 /// Limits on the parts of a CFF or CFF2 table that Font DICTs share, found at review (A06, RV-33): a Private DICT
 /// that many Font DICTs name is parsed once, a DICT may be at most 64 KB, and Private DICTs, Local Subr INDEXes, and
-/// item variation data that overlap are corrupt; a variation store works out each delta once for given coordinates.
+/// item variation data that overlap (region indexes or delta rows) are corrupt; a variation store works out each delta
+/// once for given coordinates.
 /// </summary>
 public class CffTableLimitTests
 {
@@ -133,6 +134,30 @@ public class CffTableLimitTests
         for (int i = 0; i < runValues; i++) w.U16(value);
         w.U16(1).U16(value + 1);
         for (int r = 0; r <= value; r++) w.U16(0).U16(0).U16(0);
+        var store = w.ToArray();
+
+        var error = Assert.Throws<PdfFontException>(() => ItemVariationStore.Read(new FontBytes(store), 0, store.Length, 1));
+
+        Assert.Contains("item variation data that overlap", error.Message);
+    }
+
+    [Fact]
+    public void Item_variation_data_whose_delta_rows_overlap_is_corrupt()
+    {
+        // RV-34: each of 50 ItemVariationData (100 items over 100 regions) starts where the previous one's delta rows
+        // start, so their region indexes never overlap but their rows do; every distinct (outer, inner) a glyph names
+        // then costs a row read of its own (about 90 times the store's bytes with large regions).
+        const int count = 50, items = 100, regionIndexes = 100, block = 6 + 2 * regionIndexes;
+        int data = 8 + 4 * count, regions = data + count * block + items * regionIndexes;
+        var w = new BigEndianWriter().U16(1).U32((uint)regions).U16(count);
+        for (int i = 0; i < count; i++) w.U32((uint)(data + i * block));
+        for (int i = 0; i < count; i++)
+        {
+            w.U16(items).U16(0).U16(regionIndexes);
+            for (int r = 0; r < regionIndexes; r++) w.U16(0);
+        }
+        w.Bytes(new byte[items * regionIndexes]);
+        w.U16(1).U16(1).U16(0).U16(16384).U16(16384);
         var store = w.ToArray();
 
         var error = Assert.Throws<PdfFontException>(() => ItemVariationStore.Read(new FontBytes(store), 0, store.Length, 1));
