@@ -6,6 +6,15 @@ namespace UnlimitedPDF.Models.Internal.Rendering;
 /// </summary>
 internal static class SvgText
 {
+    #region Fields and Constants
+
+    /// <summary>
+    /// The largest number written to a drawing: a hundred million points, far beyond any real page.
+    /// </summary>
+    public const double MaxMagnitude = 1e8;
+
+    #endregion
+
     #region Methods
 
     #region Public Methods
@@ -63,11 +72,12 @@ internal static class SvgText
     }
 
     /// <summary>
-    /// Formats a number for SVG with at most four decimals, without exponents.
+    /// Formats a number for SVG with at most four decimals, without exponents. Numbers beyond
+    /// <see cref="MaxMagnitude"/> stop the page, so one number can't make the drawing huge.
     /// </summary>
     public static string Number(double value)
     {
-        if (!double.IsFinite(value)) throw new PageRenderException("The page has a number that is not finite.");
+        if (!double.IsFinite(value) || Math.Abs(value) > MaxMagnitude) throw new PageRenderException("The page has a number out of range.");
         string text = value.ToString("0.####", CultureInfo.InvariantCulture);
         return text == "-0" ? "0" : text;
     }

@@ -10,6 +10,7 @@ internal sealed class ContentReader
     #region Fields and Constants
 
     private readonly PdfLexer _lexer;
+    private readonly int _maxOperands;
     private readonly PdfParser _parser;
     private readonly List<PdfReadValue> _operands = new();
 
@@ -21,8 +22,10 @@ internal sealed class ContentReader
     /// Creates a reader over decoded content bytes.
     /// </summary>
     /// <param name="content">The content stream after its filters are decoded.</param>
-    public ContentReader(byte[] content)
+    /// <param name="maxOperands">The most operands one operator may have.</param>
+    public ContentReader(byte[] content, int maxOperands)
     {
+        _maxOperands = maxOperands;
         _lexer = new PdfLexer(content);
         _parser = new PdfParser(_lexer);
     }
@@ -38,7 +41,8 @@ internal sealed class ContentReader
     /// </summary>
     /// <param name="name">The operator, for example <c>re</c> or <c>Tj</c>.</param>
     /// <returns>False at the end of the content.</returns>
-    /// <exception cref="PageRenderException">The content is not valid PDF syntax, or holds an inline image.</exception>
+    /// <exception cref="PageRenderException">The content is not valid PDF syntax, holds an inline image, or gives an
+    /// operator too many operands.</exception>
     public bool Next(out string name)
     {
         _operands.Clear();
@@ -62,6 +66,7 @@ internal sealed class ContentReader
                     return true;
                 }
 
+                if (_operands.Count >= _maxOperands) throw new PageRenderException("An operator on the page has too many operands.");
                 _lexer.Position = start;
                 _operands.Add(_parser.ParseValue());
             }

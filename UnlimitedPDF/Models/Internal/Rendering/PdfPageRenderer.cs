@@ -22,15 +22,19 @@ internal static class PdfPageRenderer
     /// <param name="limits">The work bounds; <see cref="PageRenderLimits.Default"/> when null.</param>
     /// <returns>The drawn page, or the reason it is not drawn.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageIndex"/> is not a page of the file.</exception>
+    /// <exception cref="ArgumentException"><paramref name="idPrefix"/> holds a character other than ASCII letters,
+    /// digits, hyphens, and underscores.</exception>
     public static PageRenderResult Render(PdfFile file, int pageIndex, string idPrefix, PageRenderLimits? limits = null)
     {
         if (file is null) throw new ArgumentNullException(nameof(file));
         if (pageIndex < 0 || pageIndex >= file.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+        if (idPrefix is null || !idPrefix.All(c => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z') or (>= '0' and <= '9') or '-' or '_'))
+            throw new ArgumentException("The id prefix may hold only ASCII letters, digits, hyphens, and underscores.", nameof(idPrefix));
 
         var page = file.Pages[pageIndex];
         try
         {
-            return new PageInterpreter(file.Source.Objects, limits ?? PageRenderLimits.Default, idPrefix ?? string.Empty)
+            return new PageInterpreter(file.Source.Objects, limits ?? PageRenderLimits.Default, idPrefix)
                 .Draw(page.Dictionary, page.Inherited, pageIndex + 1);
         }
         catch (PageRenderException exception)
@@ -44,6 +48,12 @@ internal static class PdfPageRenderer
         catch (PdfFontException exception)
         {
             return NotDrawn(pageIndex + 1, $"A font on the page can't be read: {exception.Message}");
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            // Any other failure on hostile input still ends in a page that is not drawn, never a crash of the
+            // preview (A10).
+            return NotDrawn(pageIndex + 1, "The page can't be drawn.");
         }
     }
 

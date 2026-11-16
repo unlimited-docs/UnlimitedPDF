@@ -19,6 +19,17 @@ internal sealed partial class PageInterpreter
     private readonly PdfObjectTable _objects;
     private readonly Stack<RenderState> _saved = new();
 
+    // The longest dash pattern drawn; real patterns have a few entries, and each stroke repeats the pattern.
+    private const int MaxDashEntries = 32;
+
+    // Operators allowed while a path is being built: more construction, painting, or clipping. PDF allows nothing else
+    // there, so anything else means the content is damaged.
+    private static readonly HashSet<string> PathOperators = new(StringComparer.Ordinal)
+    {
+        "m", "l", "c", "v", "y", "h", "re", "f", "F", "f*", "S", "s", "B", "B*", "b", "b*", "n", "W", "W*",
+    };
+
+    private int _clipDepth;
     private long _contentBytes;
     private (double X, double Y) _current;
     private (double X, double Y) _subpathStart;
@@ -63,13 +74,20 @@ internal sealed partial class PageInterpreter
     /// <exception cref="PageRenderException">The page holds content the renderer does not draw.</exception>
     public PageRenderResult Draw(PdfReadDictionary page, IReadOnlyDictionary<string, PdfReadValue> inherited, int pageNumber)
     {
-        var box = Box(inherited.TryGetValue("CropBox", out var crop) ? crop : null)
-            ?? Box(inherited.TryGetValue("MediaBox", out var media) ? media : null)
+        var media = Box(inherited.TryGetValue("MediaBox", out var mediaValue) ? mediaValue : null)
             ?? throw new PageRenderException("The page has no media box.");
-        int rotate = inherited.TryGetValue("Rotate", out var rotateValue) && _objects.Resolve(rotateValue) is PdfReadNumber r
-            ? (int)(((r.IntegerValue % 360) + 360) % 360)
-            : 0;
-        if (rotate % 90 != 0) throw new PageRenderException("The page has a rotation that is not a multiple of 90 degrees.");
+
+        // The crop box is the visible part of the media box; viewers clip it to the media box.
+        var box = Box(inherited.TryGetValue("CropBox", out var cropValue) ? cropValue : null) is { } crop
+            ? (X0: Math.Max(crop.X0, media.X0), Y0: Math.Max(crop.Y0, media.Y0), X1: Math.Min(crop.X1, media.X1), Y1: Math.Min(crop.Y1, media.Y1))
+            : media;
+        int rotate = 0;
+        if (inherited.TryGetValue("Rotate", out var rotateValue))
+        {
+            if (_objects.Resolve(rotateValue) is not PdfReadNumber { IsInteger: true } r || r.IntegerValue % 90 != 0)
+                throw new PageRenderException("The page has a rotation that is not a multiple of 90 degrees.");
+            rotate = (int)(((r.IntegerValue % 360) + 360) % 360);
+        }
 
         double width = box.X1 - box.X0, height = box.Y1 - box.Y0;
         if (width <= 0 || height <= 0) throw new PageRenderException("The page has an empty media box.");
@@ -88,7 +106,9 @@ internal sealed partial class PageInterpreter
         double shownHeight = rotate is 90 or 270 ? width : height;
 
         var resources = _objects.Resolve(inherited.TryGetValue("Resources", out var res) ? res : null) as PdfReadDictionary;
-        foreach (var stream in ContentStreams(page)) Run(stream, resources);
+        // The streams of a page's /Contents array are one content stream split in parts, so the graphics state
+        // carries from one part to the next.
+        Run(Concatenate(ContentStreams(page)), resources);
         while (_saved.Count > 0) Restore();
         CloseGroups(_state);
         DrawAnnotations(page, pageNumber);
@@ -126,9 +146,21 @@ internal sealed partial class PageInterpreter
         return values;
     }
 
+    private static byte[] Concatenate(IEnumerable<byte[]> parts)
+    {
+        using var all = new MemoryStream();
+        foreach (var part in parts)
+        {
+            all.Write(part, 0, part.Length);
+            all.WriteByte((byte)'\n');
+        }
+        return all.ToArray();
+    }
+
     private void AddSegment(string command, params double[] points)
     {
         if (++_pathSegments > _limits.MaxPathSegments) throw new PageRenderException("The page has too many path segments.");
+        if (command != "M" && !_pathHasPoints) throw new PageRenderException("A path on the page doesn't start with a move.");
         _path.Append(command);
         for (int i = 0; i < points.Length; i++) _path.Append(i == 0 ? "" : " ").Append(SvgText.Number(points[i]));
         _pathHasPoints = true;
@@ -151,9 +183,15 @@ internal sealed partial class PageInterpreter
         return (Math.Min(n[0], n[2]), Math.Min(n[1], n[3]), Math.Max(n[0], n[2]), Math.Max(n[1], n[3]));
     }
 
+    private void CheckOutput()
+    {
+        if (_body.Length + _defs.Length > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
+    }
+
     private void CloseGroups(RenderState state)
     {
         for (int i = 0; i < state.OpenGroups; i++) _body.Append("</g>");
+        _clipDepth -= state.OpenGroups;
         state.OpenGroups = 0;
     }
 
@@ -179,6 +217,10 @@ internal sealed partial class PageInterpreter
         try
         {
             data = PdfStreamDecoder.Decode(stream, _objects.Resolve, _limits.MaxContentBytes - _contentBytes);
+        }
+        catch (PdfReadException exception) when (exception.Error == PdfReadError.TooLarge)
+        {
+            throw new PageRenderException("The page content is too large.");
         }
         catch (PdfReadException exception)
         {
@@ -225,9 +267,11 @@ internal sealed partial class PageInterpreter
             _defs.Append("/></clipPath>");
             _body.Append("<g clip-path=\"url(#").Append(id).Append(")\">");
             _state.OpenGroups++;
+            if (++_clipDepth > _limits.MaxClipDepth) throw new PageRenderException("The page nests clipping paths too deeply.");
             _paths++;
         }
 
+        CheckOutput();
         _pendingClip = null;
         _path.Clear();
         _pathHasPoints = false;
@@ -268,12 +312,14 @@ internal sealed partial class PageInterpreter
     // Runs one content stream with the given resources.
     private void Run(byte[] content, PdfReadDictionary? resources)
     {
-        var reader = new ContentReader(content);
+        var reader = new ContentReader(content, _limits.MaxOperands);
         int baseDepth = _saved.Count;
         while (reader.Next(out string op))
         {
             if (++_operators > _limits.MaxOperators) throw new PageRenderException("The page has too many drawing operators.");
             var operands = reader.Operands;
+            if (_pathHasPoints && !PathOperators.Contains(op))
+                throw new PageRenderException($"A path on the page is not finished before the operator {Shorten(op)}.");
             switch (op)
             {
                 // Graphics state
@@ -299,7 +345,8 @@ internal sealed partial class PageInterpreter
                 case "j": _state.LineJoin = (int)Numbers(operands, 1)[0]; break; // line join
                 case "M": _state.MiterLimit = Numbers(operands, 1)[0]; break; // miter limit
                 case "d": // dash pattern
-                    if (operands.Count < 2 || operands[^2] is not PdfReadArray dash) throw new PageRenderException("A dash pattern is not valid.");
+                    if (operands.Count < 2 || operands[^2] is not PdfReadArray { Count: <= MaxDashEntries } dash)
+                        throw new PageRenderException("A dash pattern is not valid.");
                     _state.Dash = dash.Items.Select(item => Math.Abs(Number(_objects.Resolve(item)))).ToArray();
                     _state.DashPhase = Number(operands[^1]);
                     break;
@@ -360,15 +407,19 @@ internal sealed partial class PageInterpreter
 
                 default:
                     if (!RunTextOrObject(op, operands, resources))
-                        throw new PageRenderException($"The page uses the operator {op}, which this preview doesn't draw.");
+                        throw new PageRenderException($"The page uses the operator {Shorten(op)}, which this preview doesn't draw.");
                     break;
             }
         }
         while (_saved.Count > baseDepth) Restore();
     }
 
+    // The PDF specification's conversion from DeviceCMYK to DeviceRGB.
     private static (double, double, double) FromCmyk(double[] c) =>
-        ((1 - c[0]) * (1 - c[3]), (1 - c[1]) * (1 - c[3]), (1 - c[2]) * (1 - c[3]));
+        (1 - Math.Min(1, c[0] + c[3]), 1 - Math.Min(1, c[1] + c[3]), 1 - Math.Min(1, c[2] + c[3]));
+
+    // Keeps a reason short when it quotes something from the PDF.
+    private static string Shorten(string text) => text.Length <= 32 ? text : text.Substring(0, 32) + "...";
 
     #endregion
 
