@@ -200,13 +200,13 @@ internal static class PdfTableRenderer
                 // Draw background
                 var bg = cell.BackgroundColor;
                 sb.AppendLine(FormattableString.Invariant($"{bg.R:F3} {bg.G:F3} {bg.B:F3} rg")); // Set fill color
-                sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re f")); // Draw and fill rectangle
+                sb.AppendLine($"{PdfNumber.Format(currentX)} {PdfNumber.Format(currentY - rowHeight)} {PdfNumber.Format(cellWidth)} {PdfNumber.Format(rowHeight)} re f"); // Draw and fill rectangle
 
                 // Draw borders
                 var border = cell.BorderLeft; // Using left as a proxy for all for now
                 sb.AppendLine(FormattableString.Invariant($"{border.Color.R:F3} {border.Color.G:F3} {border.Color.B:F3} RG")); // Set stroke color
-                sb.AppendLine(FormattableString.Invariant($"{border.Width} w")); // Border width
-                sb.AppendLine(FormattableString.Invariant($"{currentX} {currentY - rowHeight} {cellWidth} {rowHeight} re s")); // Stroke rectangle
+                sb.AppendLine($"{PdfNumber.Format(border.Width)} w"); // Border width
+                sb.AppendLine($"{PdfNumber.Format(currentX)} {PdfNumber.Format(currentY - rowHeight)} {PdfNumber.Format(cellWidth)} {PdfNumber.Format(rowHeight)} re s"); // Stroke rectangle
 
                 DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, sink);
 
@@ -240,7 +240,7 @@ internal static class PdfTableRenderer
         double textX = AlignedX(cell, currentX, cellWidth, textWidth);
 
         double textY = currentY - (rowHeight / 2) - 4; // Simple middle alignment
-        sb.AppendLine(FormattableString.Invariant($"1 0 0 1 {textX} {textY} Tm")); // Set text matrix for absolute position
+        sb.AppendLine($"1 0 0 1 {PdfNumber.Format(textX)} {PdfNumber.Format(textY)} Tm"); // Set text matrix for absolute position
         sb.AppendLine($"({literal}) Tj"); // Show text
         sb.AppendLine("ET"); // End text
     }
