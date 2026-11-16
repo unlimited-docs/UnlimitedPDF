@@ -26,6 +26,9 @@ internal sealed partial class PageInterpreter
 
     // Characters in finished text lines, counted with the drawing against the output bound.
     private long _textCharacters;
+
+    // Every /ActualText character read on the page, never reset, so repeated spans can't add up unbounded work.
+    private long _actualTextCharacters;
     private int _links;
     private RenderMatrix _lineMatrix = RenderMatrix.Identity;
     private RenderMatrix _textMatrix = RenderMatrix.Identity;
@@ -52,6 +55,8 @@ internal sealed partial class PageInterpreter
             {
                 if (text.Bytes.Length > 2 * MaxActualTextLength + 2) throw new PageRenderException("The page has an /ActualText that is too long.");
                 actual = XmlSafe(PdfTextString.Decode(text.Bytes));
+                _actualTextCharacters += actual.Length;
+                if (_actualTextCharacters > _limits.MaxOutputCharacters) throw new PageRenderException("The page has too much /ActualText.");
             }
         }
 
@@ -187,6 +192,9 @@ internal sealed partial class PageInterpreter
 
         void ShowBytes(byte[] bytes)
         {
+            // A string holds at least as many bytes as glyphs, so the glyph bound is checked before any glyph is made.
+            if (_glyphs + (long)bytes.Length / (font is EmbeddedRenderFont ? 2 : 1) > _limits.MaxGlyphs)
+                throw new PageRenderException("The page shows too many glyphs.");
             foreach (var glyph in font.Glyphs(bytes))
             {
                 if (++_glyphs > _limits.MaxGlyphs) throw new PageRenderException("The page shows too many glyphs.");
@@ -358,18 +366,19 @@ internal sealed partial class PageInterpreter
             _body.Append("\" stroke-width=\"").Append(SvgText.Number(_state.LineWidth / scale)).Append('"');
     }
 
-    // Drops characters XML can't hold (control codes, unpaired surrogates), so the drawn text, its positions, and
-    // the text layer stay in step.
+    // Drops characters XML can't hold (control codes, unpaired surrogates) and turns tabs and line breaks into spaces,
+    // so the drawn text, its positions, and the text layer stay in step and each text object stays one line.
     private static string XmlSafe(string text)
     {
         bool safe = true;
-        for (int i = 0; i < text.Length && safe; i++) safe = IsXmlCharacter(text, i);
+        for (int i = 0; i < text.Length && safe; i++) safe = IsXmlCharacter(text, i) && text[i] is not ('\t' or '\n' or '\r');
         if (safe) return text;
         var kept = new StringBuilder(text.Length);
         for (int i = 0; i < text.Length; i++)
         {
             if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])) { kept.Append(text[i]).Append(text[++i]); continue; }
-            if (IsXmlCharacter(text, i)) kept.Append(text[i]);
+            if (text[i] is '\t' or '\n' or '\r') kept.Append(' ');
+            else if (IsXmlCharacter(text, i)) kept.Append(text[i]);
         }
         return kept.ToString();
     }

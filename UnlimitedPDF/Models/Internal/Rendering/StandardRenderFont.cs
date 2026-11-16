@@ -35,8 +35,7 @@ internal sealed class StandardRenderFont : RenderFont
         ["Courier-BoldOblique"] = StandardFont.CourierBoldOblique,
     };
 
-    // Standard-encoding widths of the two ASCII codes whose glyphs differ from WinAnsi: quoteright (0x27) and
-    // quoteleft (0x60), in 1/1000 em, for Helvetica, Times, and Courier faces.
+    // Whether the font has no /Encoding and so uses its built-in standard encoding.
     private readonly bool _standardEncoding;
     private readonly StandardFont _font;
     private readonly int _firstChar;
@@ -101,6 +100,7 @@ internal sealed class StandardRenderFont : RenderFont
             byte code = bytes[i];
             if (_standardEncoding && code is < 0x20 or > 0x7E)
                 throw new PageRenderException("The page shows a character code its font's built-in encoding doesn't define here.");
+            if (code < 0x20) throw new PageRenderException("The page shows a control code, which its font doesn't define.");
             double width = _widths is not null && code >= _firstChar && code - _firstChar < _widths.Length
                 ? _widths[code - _firstChar]
                 : _standardEncoding && code is 0x27 or 0x60 ? QuoteWidth : StandardFontMetrics.Width(_font, code);
@@ -116,7 +116,8 @@ internal sealed class StandardRenderFont : RenderFont
 
     #region Properties, Indexers
 
-    // A font without /Encoding uses its built-in standard encoding, where 0x27 and 0x60 are the curly quotes.
+    // A font without /Encoding uses its built-in standard encoding, where 0x27 and 0x60 are the curly quotes
+    // (quoteright and quoteleft), in 1/1000 em, for Helvetica, Times, and Courier faces.
     private double QuoteWidth => _font switch
     {
         StandardFont.Courier or StandardFont.CourierBold or StandardFont.CourierOblique or StandardFont.CourierBoldOblique => 600,

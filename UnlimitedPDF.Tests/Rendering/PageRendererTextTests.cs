@@ -172,22 +172,24 @@ public class PageRendererTextTests
     }
 
     [Fact]
-    public void Control_codes_are_dropped_with_their_positions()
+    public void Control_codes_are_refused_and_layout_characters_in_actual_text_become_spaces()
     {
         var page = Render("BT /F2 10 Tf (A\\001B) Tj ET", "<< /Font << /F2 5 0 R >> >>",
             (5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"));
+        Assert.Contains("control code", page.Reason);
 
-        Assert.Contains("x=\"0 12.23\" y=\"0\" fill=\"#000000\">AB</text>", page.Svg);
-        Assert.Equal(new[] { "AB" }, page.TextLines);
+        // An /ActualText with a tab, a line break, and a control code stays one line of text.
+        var spans = Render("BT /F1 10 Tf /Span << /ActualText <FEFF0041000900420001000A0043> >> BDC (z) Tj EMC ET");
+        Assert.Equal(new[] { "A B C" }, spans.TextLines);
     }
 
     [Fact]
     public void The_double_quote_operator_sets_word_then_character_spacing()
     {
-        var page = Render("BT /F1 10 Tf 12 TL 0 100 Td 5 1 ( a) \" ET");
+        var page = Render("BT /F1 10 Tf 12 TL 0 100 Td 5 1 ( ab) \" ET");
 
-        // Space: 2.78 + 1 (Tc) + 5 (Tw) = 8.78 before the a.
-        Assert.Contains("x=\"0 8.78\"", page.Svg);
+        // Space: 2.78 + 1 (Tc) + 5 (Tw) = 8.78 before the a; a: 5.56 + 1 (Tc only) = 6.56 before the b.
+        Assert.Contains("x=\"0 8.78 15.34\"", page.Svg);
     }
 
     [Fact]
@@ -241,8 +243,8 @@ public class PageRendererTextTests
 
         string actual = "FEFF" + string.Concat(Enumerable.Repeat("0041", 1000));
         string spans = string.Concat(Enumerable.Repeat("/Span /P1 BDC EMC ", 10));
-        var page = Render(spans, $"<< /Properties << /P1 << /ActualText <{actual}> >> >> >>", limits: tight);
-        Assert.Contains("too large", page.Reason);
+        var page = Render(spans, $"<< /Properties << /P1 << /ActualText <{actual}> >> >> >>", tight);
+        Assert.Matches("too large|too much /ActualText", page.Reason);
 
         string tooLong = "FEFF" + string.Concat(Enumerable.Repeat("0041", 5000));
         Assert.Contains("too long", Render($"/Span << /ActualText <{tooLong}> >> BDC EMC").Reason);
@@ -260,6 +262,51 @@ public class PageRendererTextTests
     public void Stray_text_operators_and_unknown_modes_are_refused(string content, string reason)
     {
         Assert.Contains(reason, Render(content).Reason);
+    }
+
+    [Fact]
+    public void The_glyph_bound_refuses_a_huge_string_before_reading_it()
+    {
+        var limits = PageRenderLimits.Default with { MaxGlyphs = 100 };
+
+        Assert.Contains("too many glyphs", Render("BT /F1 10 Tf (" + new string('a', 101) + ") Tj ET", null, limits).Reason);
+        Assert.True(Render("BT /F1 10 Tf (" + new string('a', 100) + ") Tj ET", null, limits).IsDrawn);
+    }
+
+    [Fact]
+    public void Finished_lines_count_toward_the_output_bound()
+    {
+        var limits = PageRenderLimits.Default with { MaxOutputCharacters = 40_000 };
+        string lines = string.Concat(Enumerable.Repeat("BT /F1 10 Tf 3 Tr (" + new string('a', 1000) + ") Tj ET ", 30));
+
+        Assert.Contains("too large", Render(lines, null, limits).Reason);
+    }
+
+    [Fact]
+    public void Actual_text_across_the_page_is_bounded_even_when_it_is_cleared()
+    {
+        var limits = PageRenderLimits.Default with { MaxOutputCharacters = 50_000 };
+        string actual = "FEFF" + string.Concat(Enumerable.Repeat("0041", 1000));
+        string repeats = string.Concat(Enumerable.Repeat("/Span /P1 BDC EMC BT ET ", 60));
+
+        var page = Render(repeats, $"<< /Properties << /P1 << /ActualText <{actual}> >> >> >>", limits);
+
+        Assert.Contains("too much /ActualText", page.Reason);
+    }
+
+    [Fact]
+    public void A_tj_number_that_is_not_finite_has_its_own_reason()
+    {
+        Assert.Contains("isn't finite", Render("BT /F1 10 Tf [(a) 1" + new string('0', 400) + "] TJ ET").Reason);
+    }
+
+    [Fact]
+    public void Bold_fonts_without_an_encoding_use_their_own_quote_width()
+    {
+        var page = Render("BT /F2 10 Tf ('a) Tj ET", "<< /Font << /F2 5 0 R >> >>",
+            (5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>"));
+
+        Assert.Contains("x=\"0 2.78\"", page.Svg);
     }
 
     #endregion
