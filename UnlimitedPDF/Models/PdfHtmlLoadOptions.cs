@@ -31,6 +31,23 @@ public sealed class PdfHtmlLoadOptions
     public bool FailOnWarning { get; set; }
 
     /// <summary>
+    /// Gets the caller fonts HTML can use, by CSS family name (WR-039). Text is drawn with the first font in its
+    /// <c>font-family</c> list that has each character: a registered family, or a built-in family name such as
+    /// <c>serif</c>; then <see cref="PdfDocument.FontFallback"/> (or <see cref="PdfHtmlConvertOptions.FontFallback"/>);
+    /// then the built-in font for Western European (WinAnsi) characters; any other character is drawn as '?' with a
+    /// <see cref="PdfHtmlWarningKind.MissingCharacter"/> warning. The faces are read when the HTML is loaded.
+    /// </summary>
+    public PdfHtmlFontCollection Fonts { get; } = new();
+
+    /// <summary>
+    /// Gets or sets whether bold or italic text in a registered family that has no bold or italic face is drawn with a
+    /// synthesized style (D-012): bold as the outline stroked as well as filled, one thirtieth of the font size wide;
+    /// italic slanted by 12 degrees. Without it, the nearest registered face is used and a
+    /// <see cref="PdfHtmlWarningKind.MissingFontFace"/> warning is added. The default is false.
+    /// </summary>
+    public bool SynthesizeMissingStyles { get; set; }
+
+    /// <summary>
     /// Gets or sets the largest HTML input in bytes, or null for <see cref="PdfHtml.DefaultMaxInputSize"/>.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>

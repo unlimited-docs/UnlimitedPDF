@@ -414,6 +414,7 @@ public static class PdfOperations
             MarginLeft = options.MarginLeft,
             MarginRight = options.MarginRight
         };
+        foreach (var font in options.FontFallback) document.FontFallback.Add(font);
         document.Body.AddHtml(html, headingBookmarks: options.HeadingBookmarks);
         return document;
     }

@@ -676,6 +676,20 @@ summary:focus-visible,
     cursor: pointer;
 }
 
+/* Fonts and languages: one slot per script; a slot the chosen invoice needs is outlined. */
+.font-slots { display: grid; gap: 0.6rem; }
+.font-slot { border: 1px solid var(--app-line); border-radius: 12px; padding: 0.6rem 0.7rem; display: grid; gap: 0.4rem; }
+.font-slot.is-needed { border-color: var(--cap-languages); background: var(--cap-languages-soft); }
+.font-slot-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem; }
+.font-slot-needed { font-size: 0.7rem; font-weight: 600; color: var(--cap-languages); border: 1px solid var(--cap-languages); border-radius: 6px; padding: 0 0.35rem; }
+.font-slot-link { margin-left: auto; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.2rem; }
+.font-slot-file { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; min-width: 0; }
+.font-slot-file .icon { color: var(--cap-languages); flex: none; }
+.font-slot-file span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.font-slot .dropzone { padding: 0.5rem; font-size: 0.8rem; }
+.segmented.wrap { flex-wrap: wrap; }
+.missing-note { font-size: 0.8rem; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 9px; padding: 0.45rem 0.6rem; margin: 0; }
+
 .upload-card {
     display: grid;
     grid-template-columns: 64px 1fr auto;
@@ -795,12 +809,15 @@ summary:focus-visible,
     --cap-split-soft: #fff0d4;
     --cap-html: #7339cc;
     --cap-html-soft: #f0e8fd;
+    --cap-languages: #15803d;
+    --cap-languages-soft: #e3f5e9;
 }
 
 .tone-blue { --tone: var(--cap-create); --tone-soft: var(--cap-create-soft); }
 .tone-teal { --tone: var(--cap-merge); --tone-soft: var(--cap-merge-soft); }
 .tone-amber { --tone: var(--cap-split); --tone-soft: var(--cap-split-soft); }
 .tone-purple { --tone: var(--cap-html); --tone-soft: var(--cap-html-soft); }
+.tone-green { --tone: var(--cap-languages); --tone-soft: var(--cap-languages-soft); }
 
 /* A jump keeps the section's heading below the sticky top bar. */
 .cap-row, .home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }

@@ -15,6 +15,8 @@ public class PdfDocument
     private readonly List<RemainingQuery> _queries = new();
     private readonly List<PdfPageSettings> _rules = new();
     private readonly Dictionary<StandardFont, int> _standardFontObjects = new();
+    private readonly EmbeddedFonts _embeddedFonts = new();
+    private readonly FontList _fontFallback = new();
     private double _bodyMarginBottom;
     private double _bodyMarginTop;
     private PageEntry? _flowRoot;
@@ -38,6 +40,7 @@ public class PdfDocument
         _fileHeader = new PdfHeader();
         _objects = new PdfBody();
         _pages = new PdfPages();
+        _embeddedFonts.Fallback = _fontFallback;
         Header = new PdfPageSection(LayoutChanged);
         Footer = new PdfPageSection(LayoutChanged);
         Body = new PdfBodyFlow(this);
@@ -47,7 +50,7 @@ public class PdfDocument
         var pagesObject = new PdfObject (objectNumber: 2, content: _pages.ToString());
 
         // Define a font resource
-        var font = new PdfObject(objectNumber: 3, content: new PdfFont().ToString());
+        var font = new PdfObject(objectNumber: 3, content: new HelveticaFontObject().ToString());
 
         // Add all objects to the document body
         _objects.AddObject(catalog);
@@ -171,6 +174,34 @@ public class PdfDocument
     {
         PrepareDocumentForSave();
         WriteToStream(stream);
+    }
+
+    /// <summary>
+    /// Returns the characters of <paramref name="text"/> that no font can draw and that would be drawn as '?': not
+    /// in <paramref name="font"/>, not in any <see cref="FontFallback"/> font, and not a Western European (WinAnsi)
+    /// character the built-in font draws (D-015). Each is one text element (an emoji, for example, is one entry),
+    /// listed once, in order of first appearance.
+    /// </summary>
+    /// <param name="text">The text to check.</param>
+    /// <param name="font">The font the text would be drawn with, or null for text added without a font.</param>
+    /// <returns>The missing characters; empty when every character can be drawn.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Returns the characters of a text that no font can draw.")]
+    public IReadOnlyList<string> FindMissingCharacters(string text, PdfFont? font = null)
+    {
+        if (text is null) throw new ArgumentNullException(nameof(text));
+        var candidates = (font is null ? Array.Empty<PdfFont>() : new[] { font }).Concat(_fontFallback).ToList();
+        var missing = new List<string>();
+        var elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            string element = elements.GetTextElement();
+            if (missing.Contains(element) || !StandardText.IsMissing(element)) continue;
+            if (candidates.Any(f => CodePoints(element).All(f.Draws))) continue;
+            missing.Add(element);
+        }
+        return missing;
     }
 
     /// <summary>
@@ -423,7 +454,7 @@ public class PdfDocument
     // pages with HTML text also map their standard fonts (WR-038). A page must name each font its content uses: viewers
     // built on Apple's PDF engine (every browser on iPhone and iPad) skip text whose font isn't in the page's resources,
     // where desktop viewers quietly fall back to a default font (QF-26111305).
-    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images, IReadOnlyCollection<StandardFont> fonts)
+    private PdfDictionary CreateResources(IReadOnlyList<PdfImageData> images, IReadOnlyCollection<StandardFont> fonts, IReadOnlyList<EmbeddedFace> faces)
     {
         var resources = new PdfDictionary();
         if (images.Count > 0)
@@ -433,7 +464,8 @@ public class PdfDocument
         }
 
         var fontEntries = new[] { $"/F1 {new PdfIndirectReference(objectNumber: 3)}" }
-            .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"));
+            .Concat(fonts.Select(font => $"/{StandardFontObject.ResourceName(font)} {new PdfIndirectReference(_standardFontObjects[font])}"))
+            .Concat(faces.Select(face => $"/{face.ResourceName} {new PdfIndirectReference(face.Objects![0])}"));
         resources.AddEntry("Font", $"<< {string.Join(" ", fontEntries)} >>");
         return resources;
     }
@@ -441,51 +473,50 @@ public class PdfDocument
     // Draws a page's body flow content, then its header and footer bands (WR-031, WR-033).
     private static void DrawLayout(StringBuilder sb, PageDrawSink sink, PlannedPage page, BandContent? header, BandContent? footer, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
-        var imageName = sink.ImageName;
         foreach (var placement in page.Flow)
         {
             if (placement.Html is { } fragment)
                 HtmlPainter.Draw(sb, sink, fragment, placement.Left, ((FlowHtml)placement.Item).HeadingBookmarks);
             else
-                DrawFlow(sb, imageName, placement, plans);
+                DrawFlow(sb, sink, placement, plans);
         }
 
         var g = page.Geometry;
-        if (header is not null) DrawSection(sb, imageName, header, g, g.HeaderTop, g.HeaderHeight);
-        if (footer is not null) DrawSection(sb, imageName, footer, g, g.FooterTop, g.FooterHeight);
+        if (header is not null) DrawSection(sb, sink, header, g, g.HeaderTop, g.HeaderHeight);
+        if (footer is not null) DrawSection(sb, sink, footer, g, g.FooterTop, g.FooterHeight);
     }
 
-    private static void DrawFlow(StringBuilder sb, Func<PdfImageData, string> imageName, FlowPlacement placement, IReadOnlyDictionary<PdfTable, TablePlan> plans)
+    private static void DrawFlow(StringBuilder sb, PageDrawSink sink, FlowPlacement placement, IReadOnlyDictionary<PdfTable, TablePlan> plans)
     {
         if (placement.Part is TablePart part)
         {
             var table = ((FlowTable)placement.Item).Table;
-            sb.Append(PdfTableRenderer.RenderPart(table, plans[table], part, imageName));
+            sb.Append(PdfTableRenderer.RenderPart(table, plans[table], part, sink));
             return;
         }
 
-        DrawItem(sb, imageName, placement.Item, placement.Left, placement.Right, placement.Top);
+        DrawItem(sb, sink, placement.Item, placement.Left, placement.Right, placement.Top);
     }
 
     // Draws one flow or block item with its top edge at top, inside the area between left and right.
-    private static void DrawItem(StringBuilder sb, Func<PdfImageData, string> imageName, FlowItem item, double left, double right, double top)
+    private static void DrawItem(StringBuilder sb, PageDrawSink sink, FlowItem item, double left, double right, double top)
     {
         switch (item)
         {
             case FlowText text:
-                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top));
+                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink, text.Font));
                 break;
             case FlowImage image:
                 var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
                 var element = new PdfImageElement(image.Image.Data, left + image.X + box.OffsetX, top - box.BoxHeight + box.OffsetY, box.DrawWidth, box.DrawHeight);
-                sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                sb.AppendLine(element.ToContent(sink.ImageName(image.Image.Data)));
                 break;
             case FlowRectangle rectangle:
                 sb.AppendLine(LayoutDrawing.Rectangle(left + rectangle.X, top - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
                 break;
             case FlowTable table:
                 var layout = PdfTableRenderer.Layout(table.Table, 0, table.Index + 1);
-                sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, left + table.X, top, imageName));
+                sb.Append(PdfTableRenderer.RenderAt(table.Table, layout, left + table.X, top, sink));
                 break;
             case FlowBlock block:
                 double y = top;
@@ -493,7 +524,7 @@ public class PdfDocument
                 {
                     var child = block.Children[i];
                     if (i > 0) y -= child.Spacing;
-                    DrawItem(sb, imageName, child, left + block.X, right, y);
+                    DrawItem(sb, sink, child, left + block.X, right, y);
                     y -= PagePlanner.MeasureSimple(child);
                 }
                 break;
@@ -523,7 +554,7 @@ public class PdfDocument
     }
 
     // Draws a band's prepared content clipped to the band (WR-031).
-    private static void DrawSection(StringBuilder sb, Func<PdfImageData, string> imageName, BandContent band, PageGeometry g, double top, double height)
+    private static void DrawSection(StringBuilder sb, PageDrawSink sink, BandContent band, PageGeometry g, double top, double height)
     {
         sb.AppendLine("q"); // Save graphics state
         sb.AppendLine($"{PdfNumber.Format(g.Left)} {PdfNumber.Format(top - height)} {PdfNumber.Format(g.ContentWidth)} {PdfNumber.Format(height)} re W n"); // Clip to the band
@@ -533,15 +564,15 @@ public class PdfDocument
             switch (band.Items[i])
             {
                 case SectionText text:
-                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y));
+                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink, text.Font));
                     break;
                 case SectionImage image:
                     var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
                     var element = new PdfImageElement(image.Image.Data, g.Left + image.X + box.OffsetX, top - image.Y - box.BoxHeight + box.OffsetY, box.DrawWidth, box.DrawHeight);
-                    sb.AppendLine(element.ToContent(imageName(image.Image.Data)));
+                    sb.AppendLine(element.ToContent(sink.ImageName(image.Image.Data)));
                     break;
                 case SectionTable table:
-                    sb.Append(PdfTableRenderer.RenderAt(table.Table, band.Layouts[i]!, g.Left + table.Table.X, top - table.Table.Y, imageName));
+                    sb.Append(PdfTableRenderer.RenderAt(table.Table, band.Layouts[i]!, g.Left + table.Table.X, top - table.Table.Y, sink));
                     break;
                 case SectionRectangle rectangle:
                     sb.AppendLine(LayoutDrawing.Rectangle(g.Left + rectangle.X, top - rectangle.Y - rectangle.Height, rectangle.Width, rectangle.Height, rectangle.Color));
@@ -661,10 +692,11 @@ public class PdfDocument
             var header = headers[i];
             var footer = footers[i];
             int index = i;
-            Action<StringBuilder, Func<PdfImageData, string>>? after = drawLayout
-                ? (sb, name) => DrawLayout(sb, sinks[index] = new PageDrawSink(name), page, header, footer, plans)
+            Action<StringBuilder, PageDrawSink>? after = drawLayout
+                ? (sb, sink) => DrawLayout(sb, sink, page, header, footer, plans)
                 : null;
-            contents[i] = builder.BuildContent(plans, page.Carried, after);
+            contents[i] = builder.BuildContent(plans, page.Carried, after, _embeddedFonts);
+            sinks[i] = contents[i]!.Sink;
         }
 
         // Store each distinct image once per document, and each standard font HTML text uses (WR-038). Objects added by
@@ -684,6 +716,20 @@ public class PdfDocument
             }
         }
 
+        // With FailOnMissingCharacters, a character drawn as '?' stops the save here, before anything is written
+        // (D-015).
+        if (FailOnMissingCharacters)
+        {
+            for (int i = 0; i < visible.Count; i++)
+            {
+                if (sinks[i] is { MissingCharacters.Count: > 0 } sink)
+                    throw new PdfTextException(sink.MissingCharacters[0].Character, sink.MissingCharacters[0].Text, i + 1);
+            }
+        }
+
+        // Caller fonts: one set of objects per face, holding the glyphs every page of this save draws (WR-039).
+        RegisterEmbeddedFonts(sinks);
+
         // Where each element id first appears, for links that jump to it (WR-038).
         var targets = new Dictionary<string, (int PageObject, double X, double Y)>(StringComparer.Ordinal);
         for (int i = 0; i < visible.Count; i++)
@@ -700,7 +746,7 @@ public class PdfDocument
             var entry = visible[i];
             if (entry.Builder is null || contents[i] is not { } content) continue;
             entry.Builder.CommitContent(content.Data);
-            entry.Page!.Resources = CreateResources(content.Images, sinks[i]?.Fonts ?? Array.Empty<StandardFont>());
+            entry.Page!.Resources = CreateResources(content.Images, sinks[i]?.Fonts ?? Array.Empty<StandardFont>(), sinks[i]?.Faces ?? Array.Empty<EmbeddedFace>());
             entry.Page.Annots = sinks[i] is { Links.Count: > 0 } sink
                 ? LinkAnnotations.Syntax(sink.Links, id => targets.TryGetValue(id, out var target) ? target : null)
                 : null;
@@ -780,6 +826,53 @@ public class PdfDocument
                 .Select(file => (file.Source, (IReadOnlyDictionary<int, int>)_importedObjects[file])));
         }
         _objects.Objects.First(o => o.ObjectNumber == 1).Content = catalog.ToString();
+    }
+
+    private static IEnumerable<int> CodePoints(string text)
+    {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+            yield return char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
+    }
+
+    // Writes each caller font the save draws with: its glyphs from every page (the first text recorded for a glyph is
+    // kept), and its five objects, appended after every existing object at the first save that uses the face and
+    // rewritten by later saves (WR-039, WR-002).
+    private void RegisterEmbeddedFonts(IReadOnlyList<PageDrawSink?> sinks)
+    {
+        foreach (var face in _embeddedFonts.Faces)
+        {
+            var used = new SortedDictionary<int, string>();
+            foreach (var sink in sinks)
+            {
+                if (sink is null || !sink.Faces.Contains(face)) continue;
+                foreach (var (glyph, text) in sink.GlyphsOf(face))
+                    if (!used.ContainsKey(glyph)) used[glyph] = text;
+            }
+            if (used.Count == 0) continue;
+
+            if (face.Objects is null)
+            {
+                int first = _objects.Objects.Max(o => o.ObjectNumber) + 1;
+                face.Objects = Enumerable.Range(first, 5).ToArray();
+                _objects.AddObject(new PdfObject(first, string.Empty));
+                _objects.AddObject(new PdfObject(first + 1, string.Empty));
+                _objects.AddObject(new PdfObject(first + 2, string.Empty));
+                _objects.AddObject(new PdfRawObject(first + 3, Array.Empty<byte>(), Array.Empty<byte>()));
+                _objects.AddObject(new PdfRawObject(first + 4, Array.Empty<byte>(), Array.Empty<byte>()));
+            }
+
+            var written = EmbeddedFonts.Write(face, used);
+            var objects = _objects.Objects;
+            objects.First(o => o.ObjectNumber == face.Objects[0]).Content = written.Type0;
+            objects.First(o => o.ObjectNumber == face.Objects[1]).Content = written.CidFont;
+            objects.First(o => o.ObjectNumber == face.Objects[2]).Content = written.Descriptor;
+            var program = (PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[3]);
+            program.Body = written.ProgramBody;
+            program.StreamData = written.ProgramData;
+            var toUnicode = (PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[4]);
+            toUnicode.Body = written.ToUnicodeBody;
+            toUnicode.StreamData = written.ToUnicodeData;
+        }
     }
 
     // Appends a standard font's dictionary as a new object numbered after every existing object, once per document.
@@ -1114,6 +1207,23 @@ public class PdfDocument
     /// Gets the footer band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
     /// </summary>
     public PdfPageSection Footer { get; }
+
+    /// <summary>
+    /// Gets or sets whether saving fails with <see cref="PdfTextException"/>, before anything is written, when text
+    /// added through <see cref="PdfPage.AddText(string, double, double, double)"/>, headers, footers, the body flow,
+    /// or table cells holds a character no font can draw, instead of drawing it as '?' (D-015). The default is false.
+    /// </summary>
+    public bool FailOnMissingCharacters { get; set; }
+
+    /// <summary>
+    /// Gets the fonts that draw characters the font of a text call lacks, tried in order for each character (WR-039).
+    /// Text added without a font uses this list too. A character no listed font has is drawn with the built-in
+    /// Helvetica when it is a Western European (WinAnsi) character, else as '?'. Null entries are rejected.
+    /// </summary>
+    public IList<PdfFont> FontFallback => _fontFallback;
+
+    // The same list, read-only, for layout.
+    internal IReadOnlyList<PdfFont> FallbackFonts => _fontFallback;
 
     /// <summary>
     /// Gets the header band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).

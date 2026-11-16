@@ -59,6 +59,14 @@ public static class SampleCatalog
             Tone: "purple",
             Snippet: "html"),
         new SampleCategory(
+            "Languages",
+            "Draw Hindi, Telugu, Tamil, French, and mixed text with your own fonts, shaped by each font's rules. Try your own fonts.",
+            [FontsAndLanguages],
+            Id: "languages",
+            Icon: "language",
+            Tone: "green",
+            Snippet: "languages"),
+        new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
             [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory],
@@ -173,6 +181,18 @@ public static class SampleCatalog
         "headers-and-footers.pdf",
         "layout",
         PageTitle: "PDF headers, footers, and page numbers in C#");
+
+    /// <summary>
+    /// Gets the Fonts and languages demo: an invoice in a chosen language, drawn with fonts the visitor uploads.
+    /// </summary>
+    public static SampleDemo FontsAndLanguages { get; } = new(
+        "Fonts and languages",
+        "Upload your own fonts and make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML. Fonts stay in your browser.",
+        "playground/languages/fonts-and-languages",
+        "FontsAndLanguagesSample.cs",
+        "fonts-and-languages.pdf",
+        "language",
+        PageTitle: "Multilingual PDFs with your own fonts in C#");
 
     /// <summary>
     /// Gets the HTML to PDF demo.

@@ -336,6 +336,7 @@ internal sealed class ComputedStyle
                 var names = value.Split(',').Select(n => n.Trim().Trim('"', '\'')).Where(n => n.Length > 0).ToList();
                 if (names.Count == 0) return false;
                 FontFamily = StandardFonts.Family(names);
+                FontFamilies = names.Select(PdfHtmlFontCollection.Normalize).ToList();
                 return true;
             case "font-weight":
                 int weight = lower switch
@@ -551,7 +552,7 @@ internal sealed class ComputedStyle
         {
             case "color": Color = copy.Color; break;
             case "background-color": BackgroundColor = copy.BackgroundColor; break;
-            case "font-family": FontFamily = copy.FontFamily; break;
+            case "font-family": FontFamily = copy.FontFamily; FontFamilies = copy.FontFamilies; break;
             case "font-weight": FontWeight = copy.FontWeight; break;
             case "font-style": Italic = copy.Italic; break;
             case "text-align": TextAlign = copy.TextAlign; break;
@@ -583,6 +584,7 @@ internal sealed class ComputedStyle
     {
         Color = Color,
         FontFamily = FontFamily,
+        FontFamilies = FontFamilies,
         FontSize = FontSize,
         FontWeight = FontWeight,
         Italic = Italic,
@@ -635,6 +637,9 @@ internal sealed class ComputedStyle
     public PdfColor Color { get; private set; } = PdfColor.Black;
 
     public CssDisplay Display { get; private set; } = CssDisplay.Inline;
+
+    // The font-family names in order, normalized for matching caller fonts (WR-039); empty for the initial value.
+    public IReadOnlyList<string> FontFamilies { get; private set; } = Array.Empty<string>();
 
     public StandardFontFamily FontFamily { get; private set; } = StandardFontFamily.Times;
 

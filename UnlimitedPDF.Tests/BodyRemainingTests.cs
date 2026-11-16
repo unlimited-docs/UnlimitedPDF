@@ -7,6 +7,7 @@ namespace UnlimitedPDF.Tests;
 /// <c>Body.RemainingHeight</c> and <c>Body.MaxPages</c> (WR-033): the remaining height is exact at save or saving fails
 /// naming what changed, and a page limit makes saving fail naming the content that does not fit.
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class BodyRemainingTests
 {
     #region Fields and Constants
@@ -385,4 +386,13 @@ public class BodyRemainingTests
     #endregion
 
     #endregion
+}
+
+/// <summary>
+/// Tests that compare elapsed times run apart from the parallel tests, so CPU load from other tests cannot change
+/// their ratios.
+/// </summary>
+[CollectionDefinition(nameof(TimingTestsCollection), DisableParallelization = true)]
+public class TimingTestsCollection
+{
 }

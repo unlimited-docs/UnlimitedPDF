@@ -153,8 +153,11 @@ public class DemoUsabilityTests
         Assert.Contains("@onclick=\"OpenInNewTabAsync\"", markup, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"() => DownloadAsync(_fileName)\"", markup, StringComparison.Ordinal);
 
-        // Every caller names the file, so the card shows it and its Download saves under it.
-        Assert.Contains("_preview.ShowAsync(pdfBytes, Demo.FileName)", Read("Components/SamplePage.razor.cs"), StringComparison.Ordinal);
+        // Every caller names the file, so the card shows it and its Download saves under it. A demo may name its own
+        // file per choice (Fonts and languages names the language); otherwise the demo's file name is used.
+        var frame = Read("Components/SamplePage.razor.cs");
+        Assert.Contains("_preview.ShowAsync(pdfBytes, ShownFileName)", frame, StringComparison.Ordinal);
+        Assert.Contains("private string ShownFileName => FileName ?? Demo.FileName;", frame, StringComparison.Ordinal);
         Assert.Contains("_preview.ShowAsync(parts[0].Bytes, parts[0].Part.FileName)", Read("Components/SplitPartsPage.razor.cs"), StringComparison.Ordinal);
 
         // The output toolbar fits a 375 px phone instead of cutting off Download.

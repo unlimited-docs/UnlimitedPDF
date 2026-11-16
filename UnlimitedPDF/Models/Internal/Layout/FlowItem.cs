@@ -66,12 +66,13 @@ internal sealed class FlowText : FlowItem
     /// <summary>
     /// Creates the item.
     /// </summary>
-    public FlowText(string text, double fontSize, PdfTextAlignment alignment, double spacing, double x, bool keepWithNext)
+    public FlowText(string text, double fontSize, PdfTextAlignment alignment, double spacing, double x, bool keepWithNext, PdfFont? font = null)
         : base(spacing, x, keepWithNext)
     {
         Text = text;
         FontSize = fontSize;
         Alignment = alignment;
+        Font = font;
     }
 
     #endregion
@@ -82,6 +83,11 @@ internal sealed class FlowText : FlowItem
     /// Gets the alignment across the area width.
     /// </summary>
     public PdfTextAlignment Alignment { get; }
+
+    /// <summary>
+    /// Gets the caller font, or null for the built-in font.
+    /// </summary>
+    public PdfFont? Font { get; }
 
     /// <summary>
     /// Gets the font size in points.
@@ -298,6 +304,7 @@ internal sealed class FlowHtml : FlowItem
 
     private double? _measuredHeight;
     private double _measuredWidth = double.NaN;
+    private PdfFont[] _measuredFallback = Array.Empty<PdfFont>();
 
     #endregion
 
@@ -306,11 +313,12 @@ internal sealed class FlowHtml : FlowItem
     /// <summary>
     /// Creates the item.
     /// </summary>
-    public FlowHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext)
+    public FlowHtml(PdfHtml html, double spacing, bool headingBookmarks, bool keepWithNext, IReadOnlyList<PdfFont> fontFallback)
         : base(spacing, 0, keepWithNext)
     {
         Html = html;
         HeadingBookmarks = headingBookmarks;
+        FontFallback = fontFallback;
     }
 
     #endregion
@@ -326,9 +334,10 @@ internal sealed class FlowHtml : FlowItem
     public double MeasuredHeight()
     {
         double width = LayoutWidth ?? 0;
-        if (_measuredHeight is null || _measuredWidth != width)
+        if (_measuredHeight is null || _measuredWidth != width || !_measuredFallback.SequenceEqual(FontFallback))
         {
-            _measuredHeight = width > 0 ? HtmlLayoutEngine.MeasureHeight(Html.Model, new BoxTreeBuilder(Html.Model).Build(), width) : 0;
+            _measuredFallback = FontFallback.ToArray();
+            _measuredHeight = width > 0 ? HtmlLayoutEngine.MeasureHeight(Html.Model, new BoxTreeBuilder(Html.Model).Build(), width, _measuredFallback) : 0;
             _measuredWidth = width;
         }
         return _measuredHeight.Value;
@@ -339,6 +348,11 @@ internal sealed class FlowHtml : FlowItem
     #endregion
 
     #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the document's fallback fonts (a live view), for HTML text its own fonts lack (WR-039).
+    /// </summary>
+    public IReadOnlyList<PdfFont> FontFallback { get; }
 
     /// <summary>
     /// Gets whether h1 to h6 headings become bookmarks.

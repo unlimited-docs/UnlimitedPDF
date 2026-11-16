@@ -607,7 +607,7 @@ internal sealed class PagePlanner
         IReadOnlyList<HtmlPageFragment> fragments;
         try
         {
-            fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings, lastOffset).Layout();
+            fragments = new HtmlLayoutEngine(item.Html.Model, width, Room, warnings, lastOffset, item.FontFallback.ToArray()).Layout();
         }
         catch (HtmlLayoutEngine.HtmlPageLimitException)
         {

@@ -13,7 +13,7 @@ public class HomePageTests
 {
     #region Fields and Constants
 
-    private static readonly string[] Capabilities = ["Create", "Merge", "Split", "HTML to PDF"];
+    private static readonly string[] Capabilities = ["Create", "Merge", "Split", "HTML to PDF", "Languages"];
 
     #endregion
 
@@ -28,8 +28,8 @@ public class HomePageTests
         var capabilities = categories.Where(c => Capabilities.Contains(c.Title)).ToList();
 
         Assert.Equal(Capabilities, capabilities.Select(c => c.Title));
-        Assert.Equal(new[] { "create", "merge", "split", "html-to-pdf" }, capabilities.Select(c => c.Id));
-        Assert.Equal(new[] { "blue", "teal", "amber", "purple" }, capabilities.Select(c => c.Tone));
+        Assert.Equal(new[] { "create", "merge", "split", "html-to-pdf", "languages" }, capabilities.Select(c => c.Id));
+        Assert.Equal(new[] { "blue", "teal", "amber", "purple", "green" }, capabilities.Select(c => c.Tone));
         Assert.All(capabilities, c => Assert.False(string.IsNullOrEmpty(c.Icon)));
         Assert.All(capabilities, c => Assert.False(string.IsNullOrEmpty(c.Snippet)));
         Assert.Equal("documents", categories.Single(c => c.Title == "Real-life documents").Id);
@@ -56,7 +56,7 @@ public class HomePageTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(15, capabilityDemos.Count);
+        Assert.Equal(16, capabilityDemos.Count);
         Assert.Equal(capabilityDemos.Count, capabilityDemos.Select(d => d.Icon).Distinct(StringComparer.Ordinal).Count());
         Assert.All(SampleCatalog.Categories.SelectMany(c => c.Demos), d => Assert.Contains(d.Icon, drawn));
         Assert.All(SampleCatalog.Categories.Where(c => c.Icon is not null), c => Assert.Contains(c.Icon!, drawn));

@@ -136,7 +136,9 @@ public class TableContentModelTests
 
         Assert.All(members, member =>
         {
-            Assert.Equal("1.0.0", member.GetCustomAttribute<AddedVersionAttribute>()?.Version);
+            // The caller-font constructor arrived with 1.1.0 (WR-039).
+            string expected = member.GetParameters().Any(p => p.ParameterType == typeof(PdfFont)) ? "1.1.0" : "1.0.0";
+            Assert.Equal(expected, member.GetCustomAttribute<AddedVersionAttribute>()?.Version);
             Assert.False(string.IsNullOrWhiteSpace(member.GetCustomAttribute<DescriptionAttribute>()?.Description));
         });
     }

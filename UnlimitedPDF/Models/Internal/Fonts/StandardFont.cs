@@ -96,6 +96,13 @@ internal static class StandardFonts
     }
 
     /// <summary>
+    /// Returns whether a CSS family name (lowercase, trimmed) names one of the standard families.
+    /// </summary>
+    /// <param name="name">The family name.</param>
+    /// <returns>True for a name such as <c>serif</c> or <c>arial</c>.</returns>
+    public static bool IsKnown(string name) => KnownFamilies.ContainsKey(name);
+
+    /// <summary>
     /// Returns the font for a family, a CSS weight, and whether the style is italic or oblique.
     /// </summary>
     /// <param name="family">The family.</param>

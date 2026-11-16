@@ -10,3 +10,4 @@ global using UnlimitedPDF.Models.Internal.Imaging;
 global using UnlimitedPDF.Models.Internal.Importing;
 global using UnlimitedPDF.Models.Internal.Layout;
 global using UnlimitedPDF.Models.Internal.Reading;
+global using UnlimitedPDF.Models.Internal.Text;

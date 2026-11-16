@@ -153,8 +153,9 @@ internal static class CssParser
                     if (AppliesToPrint(prelude.Substring(6))) rules.AddRange(inner);
                     continue;
                 }
+                // The rule is skipped whole: its src URLs are never resolved or read (D-011, A01).
                 if (name == "font-face")
-                    warnings.Add(PdfHtmlWarningKind.UnsupportedProperty, "@font-face", "@font-face is not supported; text uses the standard fonts.", line);
+                    warnings.Add(PdfHtmlWarningKind.FontFaceIgnored, "@font-face", "@font-face is ignored and its font files are not read; register fonts with PdfHtmlLoadOptions.Fonts.", line);
                 i = Math.Min(text.Length, FindClose(text, i) + 1);
                 continue;
             }

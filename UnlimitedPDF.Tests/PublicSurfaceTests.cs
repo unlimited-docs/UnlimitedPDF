@@ -21,12 +21,31 @@ public class PublicSurfaceTests
     #region Public Methods
 
     [Fact]
-    public void AddText_on_a_page_has_one_double_overload_without_a_font_name()
+    public void AddText_on_a_page_has_a_double_overload_and_a_caller_font_overload_but_no_font_name()
     {
-        var method = Assert.Single(typeof(PdfPage).GetMethods(), m => m.Name == nameof(PdfPage.AddText));
+        var methods = typeof(PdfPage).GetMethods().Where(m => m.Name == nameof(PdfPage.AddText)).OrderBy(m => m.GetParameters().Length).ToList();
 
-        Assert.Equal(new[] { typeof(string), typeof(double), typeof(double), typeof(double) }, method.GetParameters().Select(p => p.ParameterType));
-        Assert.Equal("text,x,y,fontSize", ParameterNames(method));
+        Assert.Equal(2, methods.Count);
+        Assert.Equal(new[] { typeof(string), typeof(double), typeof(double), typeof(double) }, methods[0].GetParameters().Select(p => p.ParameterType));
+        Assert.Equal("text,x,y,fontSize", ParameterNames(methods[0]));
+        Assert.Equal(new[] { typeof(string), typeof(PdfFont), typeof(double), typeof(double), typeof(double) }, methods[1].GetParameters().Select(p => p.ParameterType));
+        Assert.Equal("text,font,x,y,fontSize", ParameterNames(methods[1]));
+    }
+
+    [Theory]
+    [InlineData(typeof(PdfPage), nameof(PdfPage.AddText), "text,font,x,y,fontSize")]
+    [InlineData(typeof(PdfSectionContent), nameof(PdfSectionContent.AddText), "text,font,x,y,fontSize,alignment")]
+    [InlineData(typeof(PdfBodyFlow), nameof(PdfBodyFlow.AddText), "text,font,spacing,fontSize,alignment,x,keepWithNext")]
+    [InlineData(typeof(PdfFlowBlock), nameof(PdfFlowBlock.AddText), "text,font,spacing,fontSize,alignment,x")]
+    [InlineData(typeof(PdfTable), nameof(PdfTable.SetText), "row,column,text,font")]
+    public void Font_overloads_take_the_font_after_the_text(Type type, string name, string parameters)
+    {
+        // The font is part of the content, so the PR-016 order of position, size, spacing, and x after it is kept.
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && TakesFont(m));
+
+        Assert.Equal(parameters, ParameterNames(method));
+        Assert.Equal("1.1.0", VersionOf(method));
+        Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
     }
 
     [Theory]
@@ -41,7 +60,7 @@ public class PublicSurfaceTests
     [InlineData(typeof(PdfTable), nameof(PdfTable.SetText), "0.0.3")]
     public void Edited_shipped_methods_record_their_first_version_and_a_description(Type type, string name, string version)
     {
-        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name);
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && !TakesFont(m));
 
         Assert.Equal(version, VersionOf(method));
         Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
@@ -84,7 +103,8 @@ public class PublicSurfaceTests
     [InlineData(typeof(PdfPageSizeExtensions), nameof(PdfPageSizeExtensions.ToDimensions), "pageSize")]
     public void Methods_have_their_1_0_0_parameter_order(Type type, string name, string parameters)
     {
-        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name);
+        // The 1.1.0 caller-font overloads are checked by Font_overloads_take_the_font_after_the_text.
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && !TakesFont(m));
         Assert.Equal(parameters, ParameterNames(method));
     }
 
@@ -263,7 +283,8 @@ public class PublicSurfaceTests
         Assert.Equal("1.0.0", VersionOf(typeof(PdfPageSection).GetMethod(nameof(PdfPageSection.SetPageContent))!));
         Assert.Equal("1.0.0", VersionOf(typeof(PdfColor).GetMethod(nameof(PdfColor.FromHex))!));
         Assert.Equal("0.0.3", VersionOf(typeof(PdfTable).GetMethod(nameof(PdfTable.GetCell))!));
-        Assert.Equal("0.0.2", VersionOf(typeof(PdfPage).GetMethod(nameof(PdfPage.AddText))!));
+        Assert.Equal("0.0.2", VersionOf(typeof(PdfPage).GetMethod(nameof(PdfPage.AddText), new[] { typeof(string), typeof(double), typeof(double), typeof(double) })!));
+        Assert.Equal("1.1.0", VersionOf(typeof(PdfFont).GetMethod(nameof(PdfFont.FromFile))!));
     }
 
     [Fact]
@@ -279,6 +300,9 @@ public class PublicSurfaceTests
     #endregion
 
     #region Private Methods
+
+    // True for the 1.1.0 overloads that take a caller font (WR-039).
+    private static bool TakesFont(MethodBase method) => method.GetParameters().Any(p => p.ParameterType == typeof(PdfFont));
 
     private static string ParameterNames(MethodBase method) => string.Join(",", method.GetParameters().Select(p => p.Name));
 

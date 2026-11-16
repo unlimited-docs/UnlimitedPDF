@@ -45,7 +45,7 @@ public partial class SamplePage
     }
 
     /// <inheritdoc />
-    protected override void OnParametersSet() => _source = SampleSource.Read(Demo.SourceFile);
+    protected override void OnParametersSet() => _source = SampleSource.Read(ShownSourceFile);
 
     #endregion
 
@@ -88,7 +88,7 @@ public partial class SamplePage
     {
         if (_preview is not null)
         {
-            await _preview.DownloadAsync(Demo.FileName);
+            await _preview.DownloadAsync(ShownFileName);
         }
     }
 
@@ -118,7 +118,7 @@ public partial class SamplePage
                 pdfBytes = stream.ToArray();
             }
 
-            await _preview.ShowAsync(pdfBytes, Demo.FileName);
+            await _preview.ShowAsync(pdfBytes, ShownFileName);
             stopwatch.Stop();
 
             int pageCount = PageCount ?? CountPages(pdfBytes);
@@ -199,6 +199,11 @@ public partial class SamplePage
     private bool HasPdf => _preview?.HasPdf == true;
 
     /// <summary>
+    /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).
+    /// </summary>
+    [Parameter] public string? FileName { get; set; }
+
+    /// <summary>
     /// Gets or sets the demo's option fields.
     /// </summary>
     [Parameter] public RenderFragment? Inputs { get; set; }
@@ -218,6 +223,16 @@ public partial class SamplePage
     /// the generated PDF (for demos whose page count depends on the content, such as a flowing table).
     /// </summary>
     [Parameter] public int? PageCount { get; set; } = 1;
+
+    private string ShownFileName => FileName ?? Demo.FileName;
+
+    private string ShownSourceFile => SourceFile ?? Demo.SourceFile;
+
+    /// <summary>
+    /// Gets or sets the sample file the C# code card shows, or null for the demo's own (<see cref="SampleDemo.SourceFile"/>).
+    /// A demo with more than one way of building its PDF sets the file of the way currently chosen.
+    /// </summary>
+    [Parameter] public string? SourceFile { get; set; }
 
     #endregion
 

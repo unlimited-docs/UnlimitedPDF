@@ -117,6 +117,32 @@ public class PdfSectionContent
         _items.Add(new SectionText(text, x, y, fontSize, alignment));
     }
 
+    /// <summary>
+    /// Adds a line of text to the band at the given offsets from its top-left corner, drawn with a caller font:
+    /// characters the font lacks use the document's <see cref="PdfDocument.FontFallback"/> fonts, then the built-in
+    /// font (WR-039). The text may contain <c>{page}</c> and <c>{pages}</c>.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="font">The font to draw with.</param>
+    /// <param name="x">The offset: from the band's left edge for left alignment, before its right edge for right
+    /// alignment, or from its middle for center alignment, in points.</param>
+    /// <param name="y">The offset of the line's top edge below the band's top edge, in points.</param>
+    /// <param name="fontSize">The font size in points. The default is 12.</param>
+    /// <param name="alignment">The alignment across the band width. The default is left.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="font"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the font size is zero, negative, or not finite.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Adds a line of text to the band at the given offsets, drawn with a caller font.")]
+    public void AddText(string text, PdfFont font, double x, double y, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left)
+    {
+        if (text is null) throw new ArgumentNullException(nameof(text));
+        if (font is null) throw new ArgumentNullException(nameof(font));
+        Guard.Finite(x, nameof(x));
+        Guard.Finite(y, nameof(y));
+        Guard.Positive(fontSize, nameof(fontSize));
+        _items.Add(new SectionText(text, x, y, fontSize, alignment, font));
+    }
+
     #endregion
 
     #endregion

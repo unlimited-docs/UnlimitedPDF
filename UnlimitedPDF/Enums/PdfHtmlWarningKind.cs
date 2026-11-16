@@ -57,5 +57,25 @@ public enum PdfHtmlWarningKind
     /// <summary>
     /// Content still wider than the page body after narrowing, clipped at the body edge.
     /// </summary>
-    ContentClipped
+    ContentClipped,
+
+    /// <summary>
+    /// A character that no font can draw: not in the text's <c>font-family</c> fonts, not in the fallback fonts, and
+    /// not a Western European (WinAnsi) character the built-in fonts have. It is drawn as '?'.
+    /// </summary>
+    MissingCharacter,
+
+    /// <summary>
+    /// Bold or italic text (or regular text) in a registered font family that has no face of that weight and style.
+    /// The nearest registered face is used: the nearest weight, then the matching style. With
+    /// <see cref="PdfHtmlLoadOptions.SynthesizeMissingStyles"/> set, a missing bold or italic face is drawn as a
+    /// thickened or slanted regular face instead, without this warning.
+    /// </summary>
+    MissingFontFace,
+
+    /// <summary>
+    /// An <c>@font-face</c> rule. It is ignored and its font files are never read; register fonts through
+    /// <see cref="PdfHtmlLoadOptions.Fonts"/> instead.
+    /// </summary>
+    FontFaceIgnored
 }

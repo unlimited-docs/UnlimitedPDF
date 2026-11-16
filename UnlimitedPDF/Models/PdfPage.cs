@@ -132,6 +132,37 @@ public class PdfPage
         });
     }
 
+    /// <summary>
+    /// Adds text at a page position, drawn with a caller font: characters the font lacks use the document's
+    /// <see cref="PdfDocument.FontFallback"/> fonts, then the built-in font (WR-039).
+    /// </summary>
+    /// <param name="text">The text to add. Cannot be null.</param>
+    /// <param name="font">The font to draw with. Cannot be null.</param>
+    /// <param name="x">The x-coordinate of the text's start, in points from the page's left edge.</param>
+    /// <param name="y">The y-coordinate of the text's baseline, in points from the page's bottom edge.</param>
+    /// <param name="fontSize">The font size, in points. The default is 12.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="font"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or the font size is zero, negative, or not finite.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Adds text at a page position, drawn with a caller font.")]
+    public void AddText(string text, PdfFont font, double x, double y, double fontSize = 12)
+    {
+        if (text is null) throw new ArgumentNullException(nameof(text));
+        if (font is null) throw new ArgumentNullException(nameof(font));
+        Guard.Finite(x, nameof(x));
+        Guard.Finite(y, nameof(y));
+        Guard.Positive(fontSize, nameof(fontSize));
+
+        _contentElements.Add(new PdfTextElement
+        {
+            Text = text,
+            Font = font,
+            X = x,
+            Y = y,
+            FontSize = fontSize
+        });
+    }
+
     #endregion
 
     #region Internal Methods
@@ -141,6 +172,13 @@ public class PdfPage
     /// on this page. Layout errors are thrown here, before the document commits anything.
     /// </summary>
     /// <returns>The compiled content and the distinct images it draws, in resource-name order.</returns>
+    /// <summary>
+    /// Adds glyphs of a caller font at a page position, each with the text it stands for (the drawing step of WR-039;
+    /// the text pipeline chooses the glyphs).
+    /// </summary>
+    internal void AddGlyphs(PdfFont font, IReadOnlyList<(int Glyph, string Text)> glyphs, double x, double y, double fontSize = 12) =>
+        _contentElements.Add(new PdfGlyphRunElement(font, glyphs, x, y, fontSize));
+
     internal PdfPageContent BuildContent() => BuildContent(plans: null, carriedParts: Array.Empty<(PdfTable, TablePart)>(), after: null);
 
     /// <summary>
@@ -156,7 +194,8 @@ public class PdfPage
     internal PdfPageContent BuildContent(
         IReadOnlyDictionary<PdfTable, TablePlan>? plans,
         IReadOnlyList<(PdfTable Table, TablePart Part)> carriedParts,
-        Action<StringBuilder, Func<PdfImageData, string>>? after)
+        Action<StringBuilder, PageDrawSink>? after,
+        EmbeddedFonts? fonts = null)
     {
         var sb = new StringBuilder();
         var images = new List<PdfImageData>();
@@ -174,9 +213,10 @@ public class PdfPage
             return name;
         }
 
+        var sink = new PageDrawSink(NameFor, fonts);
         foreach (var (carriedTable, part) in carriedParts)
         {
-            sb.Append(PdfTableRenderer.RenderPart(carriedTable, plans![carriedTable], part, NameFor));
+            sb.Append(PdfTableRenderer.RenderPart(carriedTable, plans![carriedTable], part, sink));
         }
 
         int tableNumber = 0;
@@ -186,25 +226,33 @@ public class PdfPage
             {
                 if (plans is null)
                 {
-                    sb.Append(PdfTableRenderer.Render(table, _pageNumber, ++tableNumber, NameFor));
+                    sb.Append(PdfTableRenderer.Render(table, _pageNumber, ++tableNumber, sink));
                 }
                 else
                 {
                     var plan = plans[table];
-                    sb.Append(PdfTableRenderer.RenderPart(table, plan, plan.Parts[0], NameFor));
+                    sb.Append(PdfTableRenderer.RenderPart(table, plan, plan.Parts[0], sink));
                 }
             }
             else if (element is PdfImageElement image)
             {
                 sb.AppendLine(image.ToContent(NameFor(image.Image)));
             }
+            else if (element is PdfTextElement text)
+            {
+                sb.AppendLine(text.ToContent(sink));
+            }
+            else if (element is PdfGlyphRunElement run)
+            {
+                sb.AppendLine(run.ToContent(sink));
+            }
             else
             {
                 sb.AppendLine(element.ToString());
             }
         }
-        after?.Invoke(sb, NameFor);
-        return new PdfPageContent(Encoding.ASCII.GetBytes(sb.ToString().Trim()), images);
+        after?.Invoke(sb, sink);
+        return new PdfPageContent(Encoding.ASCII.GetBytes(sb.ToString().Trim()), images, sink);
     }
 
     /// <summary>

@@ -303,6 +303,12 @@ public class HtmlScenarioTests
         string text = string.Join(" ", result.Runs[0].Select(r => r.Text));
         Assert.Contains("Café Müller, Señora Ñúñez, Øresund: 25,00 € – “quoted”", text);
         Assert.Contains("??????, ??, ?", text);
+
+        // The outcome names registered fonts and the shaped scripts, and still says what is drawn as ? (CR-001, D-019).
+        var scenario = HtmlScenarios.Find("non-latin-characters")!;
+        Assert.True(scenario.IsLimitation);
+        foreach (string term in new[] { "standard fonts", "Devanagari, Telugu, and Tamil", "PdfHtmlLoadOptions.Fonts", "drawn as ?", "reported" })
+            Assert.Contains(term, scenario.Outcome, StringComparison.Ordinal);
     }
 
     [Fact]

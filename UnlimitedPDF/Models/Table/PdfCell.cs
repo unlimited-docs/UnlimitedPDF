@@ -196,15 +196,17 @@ public class PdfCell
     public string Text
     {
         get => _content.OfType<PdfCellText>().FirstOrDefault()?.Text ?? string.Empty;
-        set
-        {
-            var item = new PdfCellText(value ?? string.Empty);
-            int index = _content.FindIndex(content => content is PdfCellText);
-            if (index >= 0)
-                _content[index] = item;
-            else
-                _content.Add(item);
-        }
+        set => SetText(new PdfCellText(value ?? string.Empty));
+    }
+
+    // Replaces the first text item, or appends one when there is none.
+    internal void SetText(PdfCellText item)
+    {
+        int index = _content.FindIndex(content => content is PdfCellText);
+        if (index >= 0)
+            _content[index] = item;
+        else
+            _content.Add(item);
     }
 
     /// <summary>

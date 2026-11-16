@@ -34,6 +34,12 @@ public sealed class PdfHtmlConvertOptions
     #region Properties, Indexers
 
     /// <summary>
+    /// Gets the fonts that draw characters the HTML's fonts lack, tried in order for each character (WR-039); the
+    /// converted document's <see cref="PdfDocument.FontFallback"/>. Null entries are rejected.
+    /// </summary>
+    public IList<PdfFont> FontFallback { get; } = new FontList();
+
+    /// <summary>
     /// Gets or sets whether h1 to h6 headings become bookmarks at their heading levels. The default is false.
     /// </summary>
     public bool HeadingBookmarks { get; set; }

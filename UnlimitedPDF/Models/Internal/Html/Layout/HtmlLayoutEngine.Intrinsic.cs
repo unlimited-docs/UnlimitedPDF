@@ -32,13 +32,14 @@ internal sealed partial class HtmlLayoutEngine
         return result;
     }
 
-    // The widest single character of a word, the narrowest a word can be broken to.
-    private static double WidestCharacter(Token token)
+    // The widest single text element of a word, the narrowest a word can be broken to (a word splits only between
+    // text elements, WR-039).
+    private double WidestCharacter(Token token)
     {
         var style = token.Item.Style;
-        var font = Font(style);
         double widest = 0;
-        foreach (char c in token.Text) widest = Math.Max(widest, StandardFontMetrics.Measure(font, c.ToString(), style.FontSize) + style.LetterSpacing);
+        var elements = StringInfo.GetTextElementEnumerator(token.Text);
+        while (elements.MoveNext()) widest = Math.Max(widest, ElementWidth(elements.GetTextElement(), style));
         return widest;
     }
 
