@@ -51,9 +51,10 @@ internal static class Type2Charstring
     /// <returns>The charstring without subroutine calls.</returns>
     public static byte[] Flatten(ReadOnlySpan<byte> charstring, CffIndex? localSubrs, CffIndex globalSubrs, CharstringWork? work = null)
     {
-        var state = new State(localSubrs, globalSubrs, work ?? new CharstringWork(1));
+        var state = new State(localSubrs, globalSubrs, work ?? new CharstringWork(1, 0));
         bool ended = Run(charstring, state, depth: 0);
         if (!ended) throw FontBytes.Corrupt("has a CFF glyph that does not end with endchar");
+        state.Work.Output((int)state.Output.Length);
         return state.Output.ToArray();
     }
 
@@ -110,6 +111,9 @@ internal static class Type2Charstring
                     Emit(state, b0);
                     int maskBytes = (state.Stems + 7) / 8;
                     if (p + maskBytes > code.Length) throw FontBytes.Corrupt("has a truncated CFF hint mask");
+                    state.Steps += maskBytes; // a mask grows with the stems so far, so each byte costs a step (A06)
+                    if (state.Steps > MaxSteps) throw FontBytes.Corrupt("has a CFF glyph that runs too long through subroutines");
+                    state.Work.Step(maskBytes);
                     state.Write(code.Slice(p, maskBytes));
                     p += maskBytes;
                     break;

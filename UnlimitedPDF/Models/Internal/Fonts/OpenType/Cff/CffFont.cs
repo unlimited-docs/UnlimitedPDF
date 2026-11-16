@@ -95,7 +95,7 @@ internal sealed class CffFont
         if (top.Has(OpCharset)) CheckCharset(data, table, limit, top.Int(OpCharset), glyphCount);
 
         var font = new CffFont(charStrings, globalSubrs, localSubrs, fontOfGlyph, cidKeyed, Encoding.ASCII.GetString(names.Bytes(0)));
-        var work = new CharstringWork(glyphCount);
+        var work = new CharstringWork(glyphCount, length);
         for (int g = 0; g < glyphCount; g++) font.Flatten(g, work);
         return font;
     }

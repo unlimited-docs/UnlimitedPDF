@@ -38,10 +38,11 @@ internal static class Cff2Charstring
 
     public static byte[] Instance(ReadOnlySpan<byte> charstring, CffIndex? localSubrs, CffIndex globalSubrs, ItemVariationStore? store, int vsIndex, double[] coordinates, CharstringWork? work = null)
     {
-        var state = new State(localSubrs, globalSubrs, store, vsIndex, coordinates, work ?? new CharstringWork(1));
+        var state = new State(localSubrs, globalSubrs, store, vsIndex, coordinates, work ?? new CharstringWork(1, 0));
         Run(charstring, state, depth: 0);
         if (state.Stack.Count > 0) throw FontBytes.Corrupt("has a CFF2 glyph that ends with unused operands");
         state.Output.WriteByte(EndChar);
+        state.Work.Output((int)state.Output.Length);
         return state.Output.ToArray();
     }
 
@@ -99,6 +100,9 @@ internal static class Cff2Charstring
                     Emit(state, b0);
                     int maskBytes = (state.Stems + 7) / 8;
                     if (p + maskBytes > code.Length) throw FontBytes.Corrupt("has a truncated CFF2 hint mask");
+                    state.Steps += maskBytes; // a mask grows with the stems so far, so each byte costs a step (A06)
+                    if (state.Steps > Type2Charstring.MaxSteps) throw FontBytes.Corrupt("has a CFF2 glyph that runs too long through subroutines");
+                    state.Work.Step(maskBytes);
                     state.Output.Write(code.Slice(p, maskBytes));
                     p += maskBytes;
                     break;

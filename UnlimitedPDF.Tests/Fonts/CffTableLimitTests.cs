@@ -282,6 +282,57 @@ public class CffTableLimitTests
         Assert.Equal(EndChar, result[^1]);
     }
 
+    [Fact]
+    public void Cff_glyphs_that_each_write_many_large_hint_masks_are_corrupt()
+    {
+        // RV-43: one subroutine declares 480 stems and writes 500 hint masks of 60 bytes; 4,000 glyphs of three bytes
+        // each call it, so a 65 KB table flattens to 126 MB, which an instance keeps (2.5 GB for 65,535 such glyphs).
+        var subroutine = Enumerable.Range(0, 20).SelectMany(_ => Enumerable.Repeat((byte)139, 48).Append((byte)18)) // hstemhm
+            .Concat(Enumerable.Range(0, 500).SelectMany(_ => new byte[] { 19 }.Concat(Enumerable.Repeat((byte)0xFF, 60))))
+            .Append(Return).ToArray();
+        var table = CidCff(4_000, new[] { (6, 0) }, DictInt(6).Append((byte)19).Concat(Index(new[] { subroutine })).ToArray());
+
+        var error = Assert.Throws<PdfFontException>(() => CffFont.Read(new FontBytes(table), 0, table.Length, 4_000));
+
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+    }
+
+    [Fact]
+    public void Cff2_glyphs_that_each_write_many_large_hint_masks_are_corrupt()
+    {
+        // RV-43, CFF2: 480 stems and 1,000 hint masks of 60 bytes per glyph, sharing one budget for a 1 KB table.
+        var charstring = Enumerable.Range(0, 2).SelectMany(_ => Enumerable.Repeat((byte)139, 480).Append((byte)1)) // hstem
+            .Concat(Enumerable.Range(0, 1_000).SelectMany(_ => new byte[] { 19 }.Concat(Enumerable.Repeat((byte)0xFF, 60))))
+            .ToArray();
+        var globalSubrs = CffIndex.Read(new FontBytes(new byte[4]), 0, 4, "Global Subr INDEX", wideCount: true);
+        var work = new CharstringWork(2_000, 1_024);
+
+        var error = Assert.Throws<PdfFontException>(() =>
+        {
+            for (int glyph = 0; glyph < 2_000; glyph++) Cff2Charstring.Instance(charstring, null, globalSubrs, null, 0, Array.Empty<double>(), work);
+        });
+
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+    }
+
+    [Fact]
+    public void Flattened_glyphs_that_together_outgrow_the_table_are_corrupt()
+    {
+        // RV-43: the output budget is 32 MB plus 8 bytes per table byte (40 MB for a 1 MB table); glyphs of 5-byte
+        // operands write about 5 bytes per step, so the step budget alone would allow about 340 MB.
+        var charstring = Enumerable.Range(0, 250).SelectMany(_ => Enumerable.Range(0, 48).SelectMany(_ => new byte[] { 255, 0, 1, 0, 0 }).Append((byte)5))
+            .Append(EndChar).ToArray();
+        var globalSubrs = CffIndex.Read(new FontBytes(new byte[2]), 0, 2, "Global Subr INDEX");
+        var work = new CharstringWork(65_535, 1_000_000);
+
+        var error = Assert.Throws<PdfFontException>(() =>
+        {
+            for (int glyph = 0; glyph < 1_000; glyph++) Type2Charstring.Flatten(charstring, null, globalSubrs, work);
+        });
+
+        Assert.Contains("expand too far", error.Message);
+    }
+
     #endregion
 
     #region Private Methods
