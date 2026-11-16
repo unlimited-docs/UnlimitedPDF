@@ -203,6 +203,84 @@ public class PageRendererBoundsTests
         Assert.Throws<ArgumentException>(() => PdfPageRenderer.Render(file, 0, prefix));
     }
 
+    [Fact]
+    public void Small_scale_terms_keep_their_value()
+    {
+        var page = RenderTestFiles.RenderFirst(RenderTestFiles.OnePage("0.00005 0 0 0.333333 0 0 cm 0 0 m 1000000 1000 l S"));
+
+        Assert.Contains("transform=\"matrix(0.00005 0 0 -0.333333 0 842)\"", page.Svg);
+    }
+
+    [Fact]
+    public void One_huge_path_stops_at_the_output_bound_while_it_is_built()
+    {
+        string rectangles = string.Concat(Enumerable.Repeat("0 0 1 1 re ", 20_000)) + "f";
+        var watch = Stopwatch.StartNew();
+
+        var page = RenderTestFiles.RenderFirst(RenderTestFiles.OnePage(rectangles), PageRenderLimits.Default with { MaxOutputCharacters = 1000 });
+
+        Assert.Contains("drawing is too large", page.Reason);
+        Assert.True(watch.ElapsedMilliseconds < 2000, $"Took {watch.ElapsedMilliseconds} ms.");
+    }
+
+    [Fact]
+    public void Clips_released_by_restores_do_not_count_toward_the_clip_depth()
+    {
+        var page = RenderTestFiles.RenderFirst(RenderTestFiles.OnePage(string.Concat(Enumerable.Repeat("q 0 0 1 1 re W n Q ", 300))));
+
+        Assert.True(page.IsDrawn, page.Reason);
+    }
+
+    [Fact]
+    public void A_compressed_content_stream_that_inflates_past_the_bound_is_too_large()
+    {
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, "<< /Type /Catalog /Pages 2 0 R >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+            .AddObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>")
+            .AddStream(4, "/Filter /FlateDecode", Deflate(Encoding.ASCII.GetBytes(string.Concat(Enumerable.Repeat("0 0 1 1 re f ", 100)))))
+            .ToBytes();
+
+        var page = RenderTestFiles.RenderFirst(pdf, PageRenderLimits.Default with { MaxContentBytes = 200 });
+
+        Assert.Contains("content is too large", page.Reason);
+    }
+
+    [Fact]
+    public void A_clip_without_a_path_is_damaged()
+    {
+        Assert.Contains("clips without a path", RenderTestFiles.RenderFirst(RenderTestFiles.OnePage("W q 0 0 1 1 re f Q")).Reason);
+    }
+
+    [Fact]
+    public void Reasons_that_quote_the_pdf_are_kept_short()
+    {
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, "<< /Type /Catalog /Pages 2 0 R >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+            .AddObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>")
+            .AddStream(4, "/Filter /" + new string('X', 5000), new byte[] { 1 })
+            .ToBytes();
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.False(page.IsDrawn);
+        Assert.True(page.Reason!.Length <= 203, $"Reason is {page.Reason.Length} characters.");
+    }
+
+    [Fact]
+    public void An_empty_compressed_stream_with_a_predictor_is_an_empty_page()
+    {
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, "<< /Type /Catalog /Pages 2 0 R >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+            .AddObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>")
+            .AddStream(4, "/Filter /FlateDecode /DecodeParms << /Predictor 12 /Columns 4 >>", Deflate(Array.Empty<byte>()))
+            .ToBytes();
+
+        Assert.True(RenderTestFiles.RenderFirst(pdf).IsDrawn);
+    }
+
     #endregion
 
     #region Private Methods

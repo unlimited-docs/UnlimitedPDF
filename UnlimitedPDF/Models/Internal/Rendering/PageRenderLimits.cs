@@ -36,7 +36,7 @@ internal sealed record PageRenderLimits(
         MaxStateDepth: 128,
         MaxFormDepth: 12,
         MaxContentBytes: 16L * 1024 * 1024,
-        MaxImagePixels: 64L * 1024 * 1024,
+        MaxImagePixels: 16L * 1024 * 1024,
         MaxOutputCharacters: 64 * 1024 * 1024,
         MaxOperands: 4096,
         MaxClipDepth: 256);

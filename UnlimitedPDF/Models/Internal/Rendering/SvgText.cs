@@ -72,13 +72,14 @@ internal static class SvgText
     }
 
     /// <summary>
-    /// Formats a number for SVG with at most four decimals, without exponents. Numbers beyond
+    /// Formats a number for SVG with up to ten decimals, without exponents: enough that scale terms as small as a
+    /// hundred-thousandth keep their value, so a drawing is never collapsed or resized by rounding. Numbers beyond
     /// <see cref="MaxMagnitude"/> stop the page, so one number can't make the drawing huge.
     /// </summary>
     public static string Number(double value)
     {
         if (!double.IsFinite(value) || Math.Abs(value) > MaxMagnitude) throw new PageRenderException("The page has a number out of range.");
-        string text = value.ToString("0.####", CultureInfo.InvariantCulture);
+        string text = value.ToString("0.##########", CultureInfo.InvariantCulture);
         return text == "-0" ? "0" : text;
     }
 

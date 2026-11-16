@@ -68,7 +68,7 @@ internal static class PdfStreamDecoder
     private static byte[] Unpredict(byte[] data, PdfReadDictionary parameters, Func<PdfReadValue?, PdfReadValue> resolve)
     {
         int predictor = IntegerOr(parameters, "Predictor", 1, resolve);
-        if (predictor <= 1) return data;
+        if (predictor <= 1 || data.Length == 0) return data;
 
         int colors = IntegerOr(parameters, "Colors", 1, resolve);
         int bits = IntegerOr(parameters, "BitsPerComponent", 8, resolve);
@@ -95,7 +95,8 @@ internal static class PdfStreamDecoder
 
         if (predictor < 10) throw PdfReadException.Damaged($"Predictor {predictor} is not supported.");
 
-        var result = new List<byte>(data.Length);
+        var result = new byte[(data.Length + rowLength) / (rowLength + 1) * (long)rowLength];
+        int written = 0;
         var previous = new byte[rowLength];
         var current = new byte[rowLength];
         for (int offset = 0; offset < data.Length; offset += rowLength + 1)
@@ -119,10 +120,12 @@ internal static class PdfStreamDecoder
                     _ => throw PdfReadException.Damaged($"PNG predictor row type {type} is not valid."),
                 };
             }
-            result.AddRange(current.Take(Math.Max(0, available)));
+            int kept = Math.Max(0, available);
+            Array.Copy(current, 0, result, written, kept);
+            written += kept;
             (previous, current) = (current, previous);
         }
-        return result.ToArray();
+        return written == result.Length ? result : result.AsSpan(0, written).ToArray();
     }
 
     #endregion

@@ -9,6 +9,12 @@ namespace UnlimitedPDF.Models.Internal.Rendering;
 /// </summary>
 internal static class PdfPageRenderer
 {
+    #region Fields and Constants
+
+    private const int MaxReasonLength = 200;
+
+    #endregion
+
     #region Methods
 
     #region Public Methods
@@ -61,8 +67,10 @@ internal static class PdfPageRenderer
 
     #region Private Methods
 
+    // Reasons can quote the PDF (names, tokens), so they are kept short.
     private static PageRenderResult NotDrawn(int pageNumber, string reason) =>
-        new(pageNumber, 0, 0, null, reason, Array.Empty<string>(), PageRenderCounts.None);
+        new(pageNumber, 0, 0, null, reason.Length <= MaxReasonLength ? reason : reason.Substring(0, MaxReasonLength) + "...",
+            Array.Empty<string>(), PageRenderCounts.None);
 
     #endregion
 

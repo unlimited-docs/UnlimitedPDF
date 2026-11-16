@@ -161,6 +161,7 @@ internal sealed partial class PageInterpreter
     {
         if (++_pathSegments > _limits.MaxPathSegments) throw new PageRenderException("The page has too many path segments.");
         if (command != "M" && !_pathHasPoints) throw new PageRenderException("A path on the page doesn't start with a move.");
+        if (_path.Length + _body.Length + _defs.Length > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
         _path.Append(command);
         for (int i = 0; i < points.Length; i++) _path.Append(i == 0 ? "" : " ").Append(SvgText.Number(points[i]));
         _pathHasPoints = true;
@@ -398,7 +399,10 @@ internal sealed partial class PageInterpreter
                 case "b": AddSegment("Z"); Paint(true, true, false); break; // close, fill, and stroke
                 case "b*": AddSegment("Z"); Paint(true, true, true); break;
                 case "n": Paint(false, false, false); break; // end path (applies a pending clip)
-                case "W": case "W*": _pendingClip = op; break; // clip with the next painted path
+                case "W": case "W*": // clip with the path being built, once it is painted
+                    if (!_pathHasPoints) throw new PageRenderException("The page clips without a path.");
+                    _pendingClip = op;
+                    break;
 
                 // Marked content does not change the drawing
                 case "BMC": BeginMarkedContent(null, resources); break;
