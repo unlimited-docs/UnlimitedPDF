@@ -15,8 +15,14 @@ internal sealed class EmbeddedRenderFont : RenderFont
     #region Fields and Constants
 
     // CFF Top DICT operators.
+    private const int OpCharset = 15;
     private const int OpCharStrings = 17;
+    private const int OpFdArray = 1236;
     private const int OpFontMatrix = 1207;
+    private const int OpRos = 1230;
+
+    // The most width entries written from /W, counting overwrites.
+    private const int MaxWidthWrites = 2 * 65_536;
 
     private readonly CffFont? _cff;
     private readonly double _defaultWidth;
@@ -106,19 +112,20 @@ internal sealed class EmbeddedRenderFont : RenderFont
     /// Returns the outline of a glyph as SVG path data in font units, y up; empty for a glyph without outlines.
     /// </summary>
     /// <param name="glyph">The glyph ID.</param>
+    /// <param name="maxLength">The longest path allowed; a longer one stops the page.</param>
     /// <returns>The path data.</returns>
-    /// <exception cref="PageRenderException">The glyph is not in the font, or its outline is damaged.</exception>
-    public string Outline(int glyph)
+    /// <exception cref="PageRenderException">The glyph is not in the font, or its outline is damaged or too large.</exception>
+    public string Outline(int glyph, int maxLength)
     {
         if (_paths.TryGetValue(glyph, out var path)) return path;
         if (_trueType is not null)
         {
-            path = GlyphOutlines.TrueType(_trueType, glyph);
+            path = GlyphOutlines.TrueType(_trueType, glyph, maxLength);
         }
         else
         {
             if (glyph < 0 || glyph >= _cff!.CharStrings.Count) throw new PageRenderException("The page shows a glyph its font doesn't have.");
-            path = GlyphOutlines.Type2(_cff.Flatten(glyph));
+            path = GlyphOutlines.Type2(_cff.Flatten(glyph), maxLength);
         }
         _paths[glyph] = path;
         return path;
@@ -141,6 +148,25 @@ internal sealed class EmbeddedRenderFont : RenderFont
         var (topOffset, topLength) = topDicts.Entry(0);
         var top = CffDict.Read(data, topOffset, topLength);
         int glyphCount = CffIndex.Read(data, top.Int(OpCharStrings), program.Length, "CharStrings INDEX").Count;
+
+        // Codes are CIDs; they are glyph IDs only in a CID-keyed font whose charset maps each glyph to its own number,
+        // and the glyphs keep the Top DICT's units only when no font dictionary has a matrix of its own.
+        if (!top.Has(OpRos)) throw new PageRenderException("A CFF font on the page isn't CID-keyed, which this preview doesn't draw.");
+        if (!IdentityCharset(data, program.Length, top.Has(OpCharset) ? top.Int(OpCharset) : 0, glyphCount))
+            throw new PageRenderException("A CFF font on the page maps its glyphs in an order this preview doesn't draw.");
+        if (top.Has(OpFdArray))
+        {
+            var fdArray = CffIndex.Read(data, top.Int(OpFdArray), program.Length, "FDArray");
+            for (int fd = 0; fd < fdArray.Count; fd++)
+            {
+                var (fdOffset, fdLength) = fdArray.Entry(fd);
+                var fontDict = CffDict.Read(data, fdOffset, fdLength);
+                if (fontDict.Has(OpFontMatrix) && !(fontDict.Number(OpFontMatrix, 0) == 1 && fontDict.Number(OpFontMatrix, 1) == 0
+                    && fontDict.Number(OpFontMatrix, 2) == 0 && fontDict.Number(OpFontMatrix, 3) == 1
+                    && fontDict.Number(OpFontMatrix, 4) == 0 && fontDict.Number(OpFontMatrix, 5) == 0))
+                    throw new PageRenderException("A CFF font on the page scales glyphs per font dictionary, which this preview doesn't draw.");
+            }
+        }
         double scale = top.Has(OpFontMatrix) ? top.Number(OpFontMatrix, 0) : 0.001;
         if (!double.IsFinite(scale) || scale <= 0 || scale > 1) throw FontBytes.Corrupt("has a CFF FontMatrix this preview doesn't draw");
         if (top.Has(OpFontMatrix) && (top.Number(OpFontMatrix, 1) != 0 || top.Number(OpFontMatrix, 2) != 0 || top.Number(OpFontMatrix, 3) != scale))
@@ -148,11 +174,49 @@ internal sealed class EmbeddedRenderFont : RenderFont
         return (CffFont.Read(data, 0, program.Length, glyphCount), scale);
     }
 
+    // Whether a CID-keyed CFF charset maps glyph i to CID i for every glyph: the predefined charset 0, or a
+    // format 0, 1, or 2 charset whose CIDs run 1, 2, 3, ... from glyph 1.
+    private static bool IdentityCharset(FontBytes data, int limit, int offset, int glyphCount)
+    {
+        if (offset == 0) return true;
+        if (offset <= 2 || offset >= limit) return false;
+        int format = data.U8(offset);
+        int p = offset + 1, expected = 1;
+        while (expected < glyphCount)
+        {
+            if (format == 0)
+            {
+                if (p + 2 > limit || data.U16(p) != expected) return false;
+                p += 2;
+                expected++;
+            }
+            else if (format is 1 or 2)
+            {
+                int rangeLength = format == 1 ? 3 : 4;
+                if (p + rangeLength > limit || data.U16(p) != expected) return false;
+                int left = format == 1 ? data.U8(p + 2) : data.U16(p + 2);
+                expected += left + 1;
+                p += rangeLength;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return expected == glyphCount;
+    }
+
     // /W: [c [w1 w2 ...]] gives widths from c on; [c1 c2 w] gives one width to a range.
     private static Dictionary<int, double> Widths(PdfReadValue value, Func<PdfReadValue?, PdfReadValue> resolve)
     {
         var widths = new Dictionary<int, double>();
         if (value is not PdfReadArray array) return widths;
+        int writes = 0;
+        void Set(int code, double width)
+        {
+            if (++writes > MaxWidthWrites) throw new PageRenderException("A font's widths are too many.");
+            widths[code] = width;
+        }
         var items = array.Items.Select(item => resolve(item)).ToList();
         for (int i = 0; i < items.Count;)
         {
@@ -162,14 +226,14 @@ internal sealed class EmbeddedRenderFont : RenderFont
             {
                 for (int k = 0; k < list.Count && start + k <= 0xFFFF; k++)
                 {
-                    if (resolve(list[k]) is PdfReadNumber w && double.IsFinite(w.Value)) widths[start + k] = w.Value;
+                    if (resolve(list[k]) is PdfReadNumber w && double.IsFinite(w.Value)) Set(start + k, w.Value);
                 }
                 i += 2;
             }
             else if (i + 2 < items.Count && items[i + 1] is PdfReadNumber last && items[i + 2] is PdfReadNumber w && double.IsFinite(w.Value))
             {
                 int end = (int)Math.Clamp(last.IntegerValue, start, 0xFFFF);
-                for (int code = start; code <= end; code++) widths[code] = w.Value;
+                for (int code = start; code <= end; code++) Set(code, w.Value);
                 i += 3;
             }
             else

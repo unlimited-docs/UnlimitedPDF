@@ -35,8 +35,8 @@ public class PageRendererLinksAndFormsTests
     {
         var page = Merged()[0];
 
-        Assert.Contains("<a href=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\"><title>https://example.com</title>", page.Svg);
-        Assert.Contains("data-pdf-page=\"3\"><title>Go to page 3</title>", page.Svg);
+        Assert.Contains("<a href=\"https://example.com\" aria-label=\"https://example.com\" target=\"_blank\" rel=\"noopener noreferrer\"><title>https://example.com</title>", page.Svg);
+        Assert.Contains("aria-label=\"Go to page 3\" data-pdf-page=\"3\"><title>Go to page 3</title>", page.Svg);
     }
 
     [Theory]
@@ -47,6 +47,8 @@ public class PageRendererLinksAndFormsTests
     [InlineData("(https://ex ample.com)")]
     [InlineData("(/relative/path)")]
     [InlineData("<68747470733A2F2F610A2E636F6D>")]
+    [InlineData("(mailto:)")]
+    [InlineData("(mailto:?bcc=x@y.com)")]
     public void Unsafe_link_targets_are_dropped(string uri)
     {
         var pdf = RenderTestFiles.OnePage("0 0 1 1 re f", pageEntries: $"/Annots [<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /A << /S /URI /URI {uri} >> >>]");
@@ -130,6 +132,118 @@ public class PageRendererLinksAndFormsTests
         RenderTestFiles.RenderAll(pdf);
 
         Assert.Equal(before, SHA256.HashData(pdf));
+    }
+
+    [Theory]
+    [InlineData("/Dest /chapter3", "/Dests << /chapter3 [5 0 R /Fit] >>")]
+    [InlineData("/Dest (chapter3)", "/Names << /Dests << /Kids [6 0 R] >> >>")]
+    [InlineData("/A << /S /GoTo /D (chapter3) >>", "/Names << /Dests << /Kids [6 0 R] >> >>")]
+    [InlineData("/Dest /chapter3", "/Dests << /chapter3 << /D [5 0 R /Fit] >> >>")]
+    public void Named_destinations_in_an_unmerged_file_reach_their_page(string link, string catalog)
+    {
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, $"<< /Type /Catalog /Pages 2 0 R {catalog} >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>")
+            .AddObject(3, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Annots [<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] {link} >>] >>")
+            .AddStream(4, string.Empty, Encoding.ASCII.GetBytes("0 0 1 1 re f"))
+            .AddObject(5, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R >>")
+            .AddObject(6, "<< /Names [(chapter2) [3 0 R /Fit] (chapter3) [5 0 R /Fit]] >>")
+            .ToBytes();
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.Contains("href=\"#t-page-2\"", page.Svg);
+    }
+
+    [Fact]
+    public void A_name_tree_that_lists_itself_is_read_once_within_its_bound()
+    {
+        string kids = string.Join(" ", Enumerable.Repeat("6 0 R", 2000));
+        string links = string.Join(" ", Enumerable.Repeat("<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /Dest (missing) >>", 200));
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, "<< /Type /Catalog /Pages 2 0 R /Names << /Dests 6 0 R >> >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+            .AddObject(3, $"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Annots [{links}] >>")
+            .AddStream(4, string.Empty, Encoding.ASCII.GetBytes("0 0 1 1 re f"))
+            .AddObject(5, $"<< /Kids [{kids}] >>")
+            .ToBytes();
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Equal(0, page.Counts.Links);
+        Assert.True(watch.ElapsedMilliseconds < 1000, $"Took {watch.ElapsedMilliseconds} ms.");
+    }
+
+    [Fact]
+    public void Link_rectangles_follow_the_page_rotation()
+    {
+        var pdf = RenderTestFiles.OnePage("0 0 1 1 re f", pageEntries: "/Rotate 90 /Annots [<< /Type /Annot /Subtype /Link /Rect [10 20 30 40] /A << /S /URI /URI (https://a.com) >> >>]");
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.Contains("<path d=\"M10 20h20v20h-20Z\" transform=\"matrix(0 1 1 0 0 0)\"", page.Svg);
+    }
+
+    [Fact]
+    public void Hidden_links_widgets_and_overlong_uris_are_not_links()
+    {
+        string longUri = "(https://a.com/" + new string('x', 2100) + ")";
+        var pdf = RenderTestFiles.OnePage("0 0 1 1 re f", pageEntries:
+            "/Annots [<< /Type /Annot /Subtype /Link /F 2 /Rect [0 0 10 10] /A << /S /URI /URI (https://a.com) >> >> " +
+            "<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /A << /S /URI /URI (https://b.com) >> >> " +
+            $"<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /A << /S /URI /URI {longUri} >> >>]");
+
+        Assert.Equal(0, RenderTestFiles.RenderFirst(pdf).Counts.Links);
+    }
+
+    [Fact]
+    public void A_form_without_resources_uses_the_page_resources()
+    {
+        var pdf = RenderTestFiles.OnePage("/Fm1 Do", "<< /XObject << /Fm1 5 0 R >> /Font << /F1 6 0 R >> >>",
+            new[]
+            {
+                (5, "/Type /XObject /Subtype /Form /BBox [0 0 100 100]", (byte[]?)Encoding.ASCII.GetBytes("BT /F1 10 Tf (in form) Tj ET")),
+                (6, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", (byte[]?)null),
+            });
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Equal(new[] { "in form" }, page.TextLines);
+    }
+
+    [Theory]
+    [InlineData("BT /Fm1 Do ET", "0 0 1 1 re f", "inside a text object")]
+    [InlineData("/Fm1 Do S", "0 0 m 100 100 l", "leaves a path unfinished")]
+    [InlineData("0 0 m 1 1 l", "", "leaves a path unfinished")]
+    public void Forms_and_pages_that_leave_state_open_are_refused(string page, string form, string reason)
+    {
+        var pdf = RenderTestFiles.OnePage(page, "<< /XObject << /Fm1 5 0 R >> >>",
+            new[] { (5, "/Type /XObject /Subtype /Form /BBox [0 0 1 1]", (byte[]?)Encoding.ASCII.GetBytes(form)) });
+
+        Assert.Contains(reason, RenderTestFiles.RenderFirst(pdf).Reason);
+    }
+
+    [Fact]
+    public void Forms_that_fan_out_stop_at_the_draw_bound_quickly()
+    {
+        // Form n draws form n+1 four times: 4^9 draws at the bottom level without a bound.
+        var objects = new List<(int, string, byte[]?)>();
+        for (int level = 0; level < 9; level++)
+        {
+            string content = level < 8 ? "/Fm Do /Fm Do /Fm Do /Fm Do" : "0 0 1 1 re f";
+            objects.Add((5 + level, $"/Type /XObject /Subtype /Form /BBox [0 0 1 1] /Resources << /XObject << /Fm {6 + level} 0 R >> >>", Encoding.ASCII.GetBytes(content)));
+        }
+        var pdf = RenderTestFiles.OnePage("/Fm Do", "<< /XObject << /Fm 5 0 R >> >>", objects);
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.False(page.IsDrawn);
+        Assert.Contains("too many form XObjects", page.Reason);
+        Assert.True(watch.ElapsedMilliseconds < 2000, $"Took {watch.ElapsedMilliseconds} ms.");
     }
 
     #endregion

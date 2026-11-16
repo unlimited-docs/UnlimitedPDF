@@ -10,10 +10,16 @@ internal sealed class ToUnicodeMap
 {
     #region Fields and Constants
 
-    // The most code mappings read; a CMap for 2-byte codes needs at most 65,536.
+    // The most code mappings read; a CMap for 2-byte codes needs at most 65,536. Writes count across every section,
+    // overwrites included, so repeated ranges can't add up unbounded work.
     private const int MaxEntries = 65_536;
+    private const int MaxWrites = 2 * MaxEntries;
+
+    // The longest destination string, in bytes, that a CMap may give one code.
+    private const int MaxDestinationBytes = 512;
 
     private readonly Dictionary<int, string> _map = new();
+    private int _writes;
 
     #endregion
 
@@ -75,6 +81,7 @@ internal sealed class ToUnicodeMap
 
     private static string Utf16(byte[] bytes)
     {
+        if (bytes.Length > MaxDestinationBytes) throw new PageRenderException("A font's text map gives a code too long a text.");
         var text = new StringBuilder(bytes.Length / 2);
         for (int i = 0; i + 1 < bytes.Length; i += 2) text.Append((char)((bytes[i] << 8) | bytes[i + 1]));
         return text.ToString();
@@ -82,6 +89,7 @@ internal sealed class ToUnicodeMap
 
     private void Add(int code, string text)
     {
+        if (++_writes > MaxWrites) throw new PageRenderException("A font's text map is too large.");
         if (_map.Count >= MaxEntries && !_map.ContainsKey(code)) throw new PageRenderException("A font's text map is too large.");
         _map[code] = text;
     }

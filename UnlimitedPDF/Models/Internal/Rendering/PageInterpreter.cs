@@ -119,6 +119,7 @@ internal sealed partial class PageInterpreter
         // The streams of a page's /Contents array are one content stream split in parts, so the graphics state
         // carries from one part to the next.
         Run(Concatenate(ContentStreams(page)), resources);
+        if (_pathHasPoints) throw new PageRenderException("The page leaves a path unfinished.");
         while (_saved.Count > 0) Restore();
         CloseGroups(_state);
         DrawAnnotations(page);

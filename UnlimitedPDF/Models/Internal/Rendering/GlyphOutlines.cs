@@ -11,6 +11,12 @@ internal static class GlyphOutlines
     #region Fields and Constants
 
     private const int MaxComponentDepth = 16;
+
+    // The most components expanded for one glyph, counting repeats: shared components can't multiply without bound.
+    private const int MaxComponents = 1000;
+
+    // TrueType component flag: offsets are scaled with the component, which this renderer doesn't draw.
+    private const ushort ScaledComponentOffset = 0x0800;
     private const int MaxStack = 48;
 
     #endregion
@@ -24,11 +30,27 @@ internal static class GlyphOutlines
     /// </summary>
     /// <param name="font">The font.</param>
     /// <param name="glyph">The glyph ID.</param>
+    /// <param name="maxLength">The longest path allowed; a longer one stops the page.</param>
     /// <returns>The SVG path data; empty for a glyph without outlines.</returns>
-    public static string TrueType(OpenTypeFont font, int glyph)
+    public static string TrueType(OpenTypeFont font, int glyph, int maxLength)
     {
         var path = new StringBuilder();
-        AppendTrueType(font, glyph, RenderMatrix.Identity, path, 0);
+        int components = 0;
+        AppendTrueType(font, glyph, RenderMatrix.Identity, path, 0, ref components, maxLength);
+        return path.ToString();
+    }
+
+    /// <summary>
+    /// Returns the path of one closed quadratic contour of on-curve and off-curve points.
+    /// </summary>
+    /// <param name="x">The points' x coordinates.</param>
+    /// <param name="y">The points' y coordinates.</param>
+    /// <param name="onCurve">Whether each point is on the curve.</param>
+    /// <returns>The SVG path data.</returns>
+    public static string Contour(double[] x, double[] y, bool[] onCurve)
+    {
+        var path = new StringBuilder();
+        AppendContour(path, x.Length, i => (x[i], y[i]), i => onCurve[i]);
         return path.ToString();
     }
 
@@ -36,8 +58,9 @@ internal static class GlyphOutlines
     /// Returns the path of a flattened Type 2 charstring (no subroutine calls).
     /// </summary>
     /// <param name="charstring">The charstring.</param>
+    /// <param name="maxLength">The longest path allowed; a longer one stops the page.</param>
     /// <returns>The SVG path data; empty for a glyph without outlines.</returns>
-    public static string Type2(byte[] charstring)
+    public static string Type2(byte[] charstring, int maxLength = int.MaxValue)
     {
         var path = new StringBuilder();
         var stack = new List<double>();
@@ -91,6 +114,7 @@ internal static class GlyphOutlines
                 continue;
             }
 
+            if (path.Length > maxLength) throw new PageRenderException("A font glyph's outline is too large.");
             int op = b0;
             i++;
             if (op == 12) { Need(charstring, i - 1, 2); op = 1200 + charstring[i++]; }
@@ -239,9 +263,10 @@ internal static class GlyphOutlines
 
     #region Private Methods
 
-    private static void AppendTrueType(OpenTypeFont font, int glyph, RenderMatrix transform, StringBuilder path, int depth)
+    private static void AppendTrueType(OpenTypeFont font, int glyph, RenderMatrix transform, StringBuilder path, int depth, ref int components, int maxLength)
     {
         if (depth > MaxComponentDepth) throw new PageRenderException("A font glyph nests components too deeply.");
+        if (path.Length > maxLength) throw new PageRenderException("A font glyph's outline is too large.");
         if (glyph < 0 || glyph >= font.GlyphCount) throw new PageRenderException("A font glyph refers to a glyph the font doesn't have.");
 
         var decoded = TrueTypeGlyph.Decode(font, glyph);
@@ -249,14 +274,17 @@ internal static class GlyphOutlines
         {
             foreach (var component in decoded.Components)
             {
+                if (++components > MaxComponents) throw new PageRenderException("A font glyph has too many components.");
                 if (!component.HasOffsets) throw new PageRenderException("A font glyph places a component by points, which this preview doesn't draw.");
+                if ((component.Flags & ScaledComponentOffset) != 0)
+                    throw new PageRenderException("A font glyph scales its component offsets, which this preview doesn't draw.");
                 var t = component.Transform;
                 double a = 1, b = 0, c = 0, d = 1;
                 if (t.Length == 2) a = d = F2Dot14(t, 0);
                 else if (t.Length == 4) { a = F2Dot14(t, 0); d = F2Dot14(t, 2); }
                 else if (t.Length == 8) { a = F2Dot14(t, 0); b = F2Dot14(t, 2); c = F2Dot14(t, 4); d = F2Dot14(t, 6); }
                 var local = new RenderMatrix(a, b, c, d, component.Argument1, component.Argument2);
-                AppendTrueType(font, component.Glyph, local.Then(transform), path, depth + 1);
+                AppendTrueType(font, component.Glyph, local.Then(transform), path, depth + 1, ref components, maxLength);
             }
             return;
         }
@@ -264,50 +292,50 @@ internal static class GlyphOutlines
         int start = 0;
         foreach (int end in decoded.ContourEnds)
         {
-            AppendContour(decoded, start, end, transform, path);
+            int first = start;
+            AppendContour(path, end - start + 1, i => Map(transform, decoded.X[first + i], decoded.Y[first + i]), i => decoded.OnCurvePoints[first + i]);
             start = end + 1;
+            if (path.Length > maxLength) throw new PageRenderException("A font glyph's outline is too large.");
         }
     }
 
-    // One closed quadratic contour. A contour may start off-curve; then it starts at the midpoint of its first two
-    // points, or at its last point when that one is on-curve.
-    private static void AppendContour(TrueTypeGlyph glyph, int start, int end, RenderMatrix t, StringBuilder path)
+    // One closed quadratic contour of count points. It starts at its first on-curve point: point 0, else the last
+    // point; when both are off-curve, at the midpoint between them. Two off-curve points in a row imply an on-curve
+    // point midway between them.
+    private static void AppendContour(StringBuilder path, int count, Func<int, (double X, double Y)> point, Func<int, bool> on)
     {
-        int count = end - start + 1;
         if (count <= 0) return;
-        (double X, double Y) Point(int i) => Map(t, glyph.X[start + (i % count)], glyph.Y[start + (i % count)]);
-        bool On(int i) => glyph.OnCurvePoints[start + (i % count)];
-
-        (double X, double Y) first;
-        int offset;
-        if (On(0)) { first = Point(0); offset = 1; }
-        else if (On(count - 1)) { first = Point(count - 1); offset = 0; count--; }
-        else { var p0 = Point(0); var p1 = Point(1); first = ((p0.X + p1.X) / 2, (p0.Y + p1.Y) / 2); offset = 1; }
-
-        path.Append('M').Append(SvgText.Number(first.X)).Append(' ').Append(SvgText.Number(first.Y));
-        (double X, double Y)? control = null;
-        for (int k = offset; k <= count; k++)
+        (double X, double Y) start;
+        int from, to;
+        if (on(0)) { start = point(0); from = 1; to = count - 1; }
+        else if (on(count - 1)) { start = point(count - 1); from = 0; to = count - 2; }
+        else
         {
-            var p = k == count ? first : Point(k);
-            bool on = k == count || On(k);
-            if (on)
+            var last = point(count - 1);
+            var first = point(0);
+            start = ((last.X + first.X) / 2, (last.Y + first.Y) / 2);
+            from = 0;
+            to = count - 1;
+        }
+
+        path.Append('M').Append(SvgText.Number(start.X)).Append(' ').Append(SvgText.Number(start.Y));
+        (double X, double Y)? control = null;
+        for (int k = from; k <= to; k++)
+        {
+            var p = point(k);
+            if (on(k))
             {
                 if (control is { } q) AppendQuad(path, q, p);
-                else if (k < count) path.Append('L').Append(SvgText.Number(p.X)).Append(' ').Append(SvgText.Number(p.Y)); // Z closes back to the start
+                else path.Append('L').Append(SvgText.Number(p.X)).Append(' ').Append(SvgText.Number(p.Y));
                 control = null;
-            }
-            else if (control is { } q)
-            {
-                var mid = ((q.X + p.X) / 2, (q.Y + p.Y) / 2);
-                AppendQuad(path, q, mid);
-                control = p;
             }
             else
             {
+                if (control is { } q) AppendQuad(path, q, ((q.X + p.X) / 2, (q.Y + p.Y) / 2));
                 control = p;
             }
         }
-        if (control is { } last) AppendQuad(path, last, first);
+        if (control is { } c) AppendQuad(path, c, start);
         path.Append('Z');
     }
 

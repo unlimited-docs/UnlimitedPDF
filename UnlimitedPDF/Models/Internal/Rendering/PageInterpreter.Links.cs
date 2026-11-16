@@ -6,9 +6,19 @@ internal sealed partial class PageInterpreter
 {
     #region Fields and Constants
 
-    // The most annotations read on a page, and the most nodes visited in the named-destination tree.
+    // The most annotations read on a page; the most entries and nodes read from the named-destination tree, once
+    // per page; and the most form XObjects drawn on a page.
     private const int MaxAnnotations = 10_000;
-    private const int MaxNameTreeNodes = 10_000;
+    private const int MaxNameTreeEntries = 100_000;
+    private const int MaxFormDraws = 10_000;
+
+    // Annotation flags that hide an annotation: Hidden (2) and NoView (32).
+    private const long HiddenFlags = 2 | 32;
+
+    // Decoded form XObject content, so a form drawn many times is decoded once.
+    private readonly Dictionary<PdfReadStream, byte[]> _formContent = new(ReferenceEqualityComparer.Instance);
+    private Dictionary<string, PdfReadValue>? _namedDestinations;
+    private int _formDraws;
 
     private static readonly string[] AllowedSchemes = { "http", "https", "mailto" };
 
@@ -28,6 +38,7 @@ internal sealed partial class PageInterpreter
         {
             if (_objects.Resolve(item) is not PdfReadDictionary annotation) continue;
             if (_objects.Resolve(annotation["Subtype"]) is not PdfReadName { Value: "Link" }) continue;
+            if (_objects.Resolve(annotation["F"]) is PdfReadNumber flags && (flags.IntegerValue & HiddenFlags) != 0) continue;
             if (_objects.Resolve(annotation["Rect"]) is not PdfReadArray { Count: 4 } rect) continue;
             var r = rect.Items.Select(v => _objects.Resolve(v) is PdfReadNumber n ? n.Value : double.NaN).ToArray();
             if (r.Any(v => !double.IsFinite(v) || Math.Abs(v) > SvgText.MaxMagnitude)) continue;
@@ -58,6 +69,8 @@ internal sealed partial class PageInterpreter
             double width = Math.Abs(r[2] - r[0]), height = Math.Abs(r[3] - r[1]);
             _body.Append("<a href=\"");
             SvgText.AppendEscaped(_body, href);
+            _body.Append("\" aria-label=\"");
+            SvgText.AppendEscaped(_body, label!);
             _body.Append('"');
             if (!href.StartsWith("#", StringComparison.Ordinal)) _body.Append(" target=\"_blank\" rel=\"noopener noreferrer\"");
             else _body.Append(" data-pdf-page=\"").Append(href.Substring(href.LastIndexOf('-') + 1)).Append('"');
@@ -77,7 +90,9 @@ internal sealed partial class PageInterpreter
     private void DrawForm(PdfReadStream form)
     {
         var dictionary = form.Dictionary;
+        if (_inText) throw new PageRenderException("The page draws a form XObject inside a text object, which PDF doesn't allow.");
         if (_formDepth >= _limits.MaxFormDepth) throw new PageRenderException("The page nests form XObjects too deeply.");
+        if (++_formDraws > MaxFormDraws) throw new PageRenderException("The page draws too many form XObjects.");
         if (dictionary.ContainsKey("Group") || dictionary.ContainsKey("OC"))
             throw new PageRenderException("The page draws a form XObject with a transparency group or optional content, which this preview doesn't draw.");
         if (_objects.Resolve(dictionary["BBox"]) is not PdfReadArray { Count: 4 } boxArray)
@@ -108,18 +123,23 @@ internal sealed partial class PageInterpreter
 
         var resources = _objects.Resolve(dictionary["Resources"]) as PdfReadDictionary ?? _currentResources;
         var outer = _currentResources;
+        if (!_formContent.TryGetValue(form, out var content))
+        {
+            content = Decode(form);
+            _formContent[form] = content;
+        }
         _formDepth++;
-        bool wasInText = _inText;
         try
         {
-            Run(Decode(form), resources);
+            Run(content, resources);
         }
         finally
         {
             _formDepth--;
             _currentResources = outer;
         }
-        if (_inText != wasInText) throw new PageRenderException("A form XObject on the page leaves a text object open.");
+        if (_inText) throw new PageRenderException("A form XObject on the page leaves a text object open.");
+        if (_pathHasPoints) throw new PageRenderException("A form XObject on the page leaves a path unfinished.");
         Restore();
     }
 
@@ -144,30 +164,43 @@ internal sealed partial class PageInterpreter
     private PdfReadValue? NamedDestination(string name)
     {
         if (_objects.Resolve(_catalog["Dests"]) is PdfReadDictionary dests && dests[name] is { } direct) return direct;
-        if (_objects.Resolve(_catalog["Names"]) is not PdfReadDictionary names || _objects.Resolve(names["Dests"]) is not PdfReadDictionary root) return null;
+        _namedDestinations ??= ReadNameTree();
+        return _namedDestinations.TryGetValue(name, out var target) ? target : null;
+    }
 
+    // Reads the /Names /Dests name tree once: each node at most once, and a bounded number of entries and kids in all,
+    // so a tree that lists itself or is huge costs no more than the bound (A06).
+    private Dictionary<string, PdfReadValue> ReadNameTree()
+    {
+        var map = new Dictionary<string, PdfReadValue>(StringComparer.Ordinal);
+        if (_objects.Resolve(_catalog["Names"]) is not PdfReadDictionary names || _objects.Resolve(names["Dests"]) is not PdfReadDictionary root) return map;
+
+        var visited = new HashSet<PdfReadDictionary>(ReferenceEqualityComparer.Instance);
         var pending = new Stack<PdfReadDictionary>();
         pending.Push(root);
-        int visited = 0;
-        while (pending.Count > 0 && visited++ < MaxNameTreeNodes)
+        int read = 0;
+        while (pending.Count > 0)
         {
             var node = pending.Pop();
+            if (!visited.Add(node)) continue;
             if (_objects.Resolve(node["Names"]) is PdfReadArray pairs)
             {
                 for (int i = 0; i + 1 < pairs.Count; i += 2)
                 {
-                    if (_objects.Resolve(pairs[i]) is PdfReadString key && Encoding.Latin1.GetString(key.Bytes) == name) return pairs[i + 1];
+                    if (++read > MaxNameTreeEntries) return map;
+                    if (_objects.Resolve(pairs[i]) is PdfReadString key) map.TryAdd(Encoding.Latin1.GetString(key.Bytes), pairs[i + 1]);
                 }
             }
             if (_objects.Resolve(node["Kids"]) is PdfReadArray kids)
             {
                 foreach (var kid in kids.Items)
                 {
-                    if (_objects.Resolve(kid) is PdfReadDictionary child) pending.Push(child);
+                    if (++read > MaxNameTreeEntries) return map;
+                    if (_objects.Resolve(kid) is PdfReadDictionary child && !visited.Contains(child)) pending.Push(child);
                 }
             }
         }
-        return null;
+        return map;
     }
 
     // The URI as text when it is an absolute http, https, or mailto URI without control characters or spaces.
@@ -176,7 +209,11 @@ internal sealed partial class PageInterpreter
         if (bytes.Length == 0 || bytes.Length > 2048 || bytes.Any(b => b <= 0x20 || b >= 0x7F)) return null;
         string text = Encoding.ASCII.GetString(bytes);
         if (!Uri.TryCreate(text, UriKind.Absolute, out var uri)) return null;
-        return AllowedSchemes.Contains(uri.Scheme, StringComparer.OrdinalIgnoreCase) ? text : null;
+        if (!AllowedSchemes.Contains(uri.Scheme, StringComparer.OrdinalIgnoreCase)) return null;
+
+        // A mail link needs an address.
+        if (uri.Scheme.Equals("mailto", StringComparison.OrdinalIgnoreCase) && !text.Substring("mailto:".Length).Split('?')[0].Contains('@')) return null;
+        return text;
     }
 
     #endregion

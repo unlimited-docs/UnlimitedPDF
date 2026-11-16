@@ -187,7 +187,8 @@ internal sealed partial class PageInterpreter
         var placed = new List<(int Glyph, double X)>();
         double x = 0;
         double sign = size < 0 ? -1 : 1;
-        var actualSpan = _spans.FirstOrDefault(span => span.ActualText is not null);
+        // The outermost span with /ActualText gives the text (PDF: an enclosing span's text replaces what it holds).
+        var actualSpan = _spans.LastOrDefault(span => span.ActualText is not null);
         bool layer = actualSpan is null;
 
         void ShowBytes(byte[] bytes)
@@ -308,13 +309,16 @@ internal sealed partial class PageInterpreter
             double userScale = Math.Sqrt(Math.Abs(textToUser.A * textToUser.D - textToUser.B * textToUser.C)) * Math.Abs(scale);
             _body.Append(" stroke=\"");
             SvgText.AppendColor(_body, _state.Stroke.Red, _state.Stroke.Green, _state.Stroke.Blue);
-            _body.Append("\" stroke-width=\"").Append(SvgText.Number(userScale > 0 ? _state.LineWidth / userScale : 0)).Append('"');
+            if (_state.LineWidth <= 0 || userScale <= 0)
+                _body.Append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\""); // the thinnest line, as for paths
+            else
+                _body.Append("\" stroke-width=\"").Append(SvgText.Number(_state.LineWidth / userScale)).Append('"');
         }
         _body.Append('>');
 
         foreach (var (glyph, x) in placed)
         {
-            string outline = font.Outline(glyph);
+            string outline = font.Outline(glyph, Math.Max(0, _limits.MaxOutputCharacters - _body.Length - _defs.Length));
             if (outline.Length == 0) continue;
             string id = $"{_idPrefix}f{number}g{glyph}";
             if (_glyphDefinitions.Add((number, glyph)))
@@ -325,6 +329,7 @@ internal sealed partial class PageInterpreter
             _body.Append("<use href=\"#").Append(id).Append("\" transform=\"");
             SvgText.AppendMatrix(_body, new RenderMatrix(scale, 0, 0, scale, x, 0).Then(frame));
             _body.Append("\"/>");
+            CheckOutput();
         }
         _body.Append("</g>");
     }
