@@ -9,7 +9,7 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// Limits on the parts of a CFF or CFF2 table that Font DICTs share, found at review (A06, RV-33): a Private DICT
 /// that many Font DICTs name is parsed once, a DICT may be at most 64 KB, and Private DICTs, Local Subr INDEXes, and
 /// item variation data that overlap (region indexes or delta rows) are corrupt; a variation store works out each delta
-/// once for given coordinates.
+/// once for given coordinates, shared by every outer index that names the same data.
 /// </summary>
 public class CffTableLimitTests
 {
@@ -222,12 +222,65 @@ public class CffTableLimitTests
         Assert.Equal(regionCount, delta);
     }
 
+    [Fact]
+    public void Outer_indexes_that_share_one_variation_data_share_its_results()
+    {
+        // RV-38: an HVAR map can send each glyph to another outer index, all naming one ItemVariationData of 65,535
+        // region indexes; each outer used to build its own scalars and read its own row (about 1 GB kept here, and
+        // about 32 GB from a 460 KB store with 65,535 outers).
+        const int outers = 2_048, regionIndexes = 65_535;
+        var bytes = SharedDataStore(outers, regionIndexes, items: 1);
+        var fontBytes = new FontBytes(bytes);
+        var store = ItemVariationStore.Read(fontBytes, 0, bytes.Length, 1);
+        var coordinates = new[] { 0.5 };
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        double total = 0;
+        for (int outer = 0; outer < outers; outer++) total += store.Delta(fontBytes, outer, 0, coordinates);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < 16 * 1024 * 1024, $"{allocated / (1024 * 1024)} MB allocated");
+        Assert.Equal(outers * regionIndexes * 0.5, total);
+    }
+
+    [Fact]
+    public void Cff2_blends_over_outer_indexes_that_share_one_variation_data_share_its_scalars()
+    {
+        // RV-38: vsindex o, then an empty blend, for 4,000 outer indexes naming one ItemVariationData of 16,000 region
+        // indexes; each vsindex used to build its own scalars (about 500 MB).
+        const int outers = 4_000, regionIndexes = 16_000;
+        var bytes = SharedDataStore(outers, regionIndexes, items: 0);
+        var store = ItemVariationStore.Read(new FontBytes(bytes), 0, bytes.Length, 1);
+        var charstring = Enumerable.Range(0, outers).SelectMany(o => new byte[] { 28, (byte)(o >> 8), (byte)o, 15, 139, 16 }).ToArray();
+        var globalSubrs = CffIndex.Read(new FontBytes(new byte[4]), 0, 4, "Global Subr INDEX", wideCount: true);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Cff2Charstring.Instance(charstring, null, globalSubrs, store, 0, new[] { 0.5 });
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.True(allocated < 16 * 1024 * 1024, $"{allocated / (1024 * 1024)} MB allocated");
+    }
+
     #endregion
 
     #region Private Methods
 
     // Private DICT filler: BlueValues with one operand, repeated; read from any byte it still parses.
     private static byte[] Filler(int length) => Enumerable.Range(0, length).Select(i => (byte)(i % 2 == 0 ? 139 : 1)).ToArray();
+
+    // An item variation store with one axis and one region (0 to 1, peak 1) whose `outers` entries all name one
+    // ItemVariationData of `regionIndexes` indexes to that region and `items` rows of deltas of 1.
+    private static byte[] SharedDataStore(int outers, int regionIndexes, int items)
+    {
+        int regions = 8 + 4 * outers, data = regions + 4 + 6;
+        var w = new BigEndianWriter().U16(1).U32((uint)regions).U16((ushort)outers);
+        for (int i = 0; i < outers; i++) w.U32((uint)data);
+        w.U16(1).U16(1).U16(0).U16(16384).U16(16384);
+        w.U16((ushort)items).U16(0).U16((ushort)regionIndexes);
+        w.Bytes(new byte[2 * regionIndexes]);
+        w.Bytes(Enumerable.Repeat((byte)1, items * regionIndexes).ToArray());
+        return w.ToArray();
+    }
 
     private static byte[] DictInt(int v) => new byte[] { 29, (byte)(v >> 24), (byte)(v >> 16), (byte)(v >> 8), (byte)v };
 

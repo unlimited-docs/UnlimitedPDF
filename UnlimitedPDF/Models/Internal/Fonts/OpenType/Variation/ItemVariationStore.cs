@@ -5,8 +5,9 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 /// sets addressed by (outer, inner) indexes (D-013). Every count and offset is checked when it is read (A06). Each
 /// ItemVariationData is read once however many entries name it, and distinct ones, with their region indexes and delta
 /// rows, cannot hold more bytes than the store, so every delta lookup together reads its bytes at most once. For given
-/// coordinates each region's scalar, each delta set's scalars, and each delta are worked out once, since every glyph
-/// may name the same delta set and every region index the same region (A06). A store serves one font instance on one
+/// coordinates each region's scalar, each ItemVariationData's scalars, and each delta are worked out once, however many
+/// outer indexes name that data, since every glyph may name the same delta set and every region index the same region
+/// (A06). A store serves one font instance on one
 /// thread: its results are kept for the coordinates array last passed, which must not change.
 /// </summary>
 internal sealed class ItemVariationStore
@@ -17,8 +18,8 @@ internal sealed class ItemVariationStore
 
     private readonly double[][][] _regions; // [region][axis] = (start, peak, end) as three entries
     private readonly DeltaData[] _data;
-    private readonly Dictionary<int, double[]> _scalars = new();
-    private readonly Dictionary<(int Outer, int Inner), double> _deltas = new();
+    private readonly Dictionary<int, double[]> _scalars = new(); // by DeltaData.Id
+    private readonly Dictionary<(int Data, int Inner), double> _deltas = new();
     private double[]? _regionScalars; // per region; NaN until worked out
     private double[]? _cachedFor;
 
@@ -95,7 +96,7 @@ internal sealed class ItemVariationStore
                 regionIndexes[r] = data.U16(s + 6 + 2 * r);
                 if (regionIndexes[r] >= regionCount) throw FontBytes.Corrupt("uses a variation region that does not exist");
             }
-            known[s] = deltaData[i] = new DeltaData(items, regionIndexes, wordCount, longWords, rows, rowSize);
+            known[s] = deltaData[i] = new DeltaData(known.Count, items, regionIndexes, wordCount, longWords, rows, rowSize);
         }
         return new ItemVariationStore(regions, deltaData);
     }
@@ -110,18 +111,7 @@ internal sealed class ItemVariationStore
     {
         if (outer < 0 || outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
         Use(coordinates);
-        if (_scalars.TryGetValue(outer, out var scalars)) return scalars;
-
-        var indexes = _data[outer].RegionIndexes;
-        var regionScalars = _regionScalars ??= NewRegionScalars();
-        scalars = new double[indexes.Length];
-        for (int i = 0; i < indexes.Length; i++)
-        {
-            int r = indexes[i];
-            if (double.IsNaN(regionScalars[r])) regionScalars[r] = RegionScalar(_regions[r], coordinates);
-            scalars[i] = regionScalars[r];
-        }
-        return _scalars[outer] = scalars;
+        return ScalarsOf(_data[outer], coordinates);
     }
 
     /// <summary>
@@ -139,8 +129,8 @@ internal sealed class ItemVariationStore
         var d = _data[outer];
         if (inner < 0 || inner >= d.Items) throw FontBytes.Corrupt("uses a variation delta that does not exist");
         Use(coordinates);
-        if (_deltas.TryGetValue((outer, inner), out double known)) return known;
-        var scalars = Scalars(outer, coordinates);
+        if (_deltas.TryGetValue((d.Id, inner), out double known)) return known;
+        var scalars = ScalarsOf(d, coordinates);
         int p = d.Rows + inner * d.RowSize;
         double total = 0;
         for (int r = 0; r < d.RegionIndexes.Length; r++)
@@ -158,7 +148,7 @@ internal sealed class ItemVariationStore
             }
             total += scalars[r] * delta;
         }
-        return _deltas[(outer, inner)] = total;
+        return _deltas[(d.Id, inner)] = total;
     }
 
     /// <summary>
@@ -192,6 +182,21 @@ internal sealed class ItemVariationStore
         _cachedFor = coordinates;
     }
 
+    // The scalars of one data, kept for every outer index that names it.
+    private double[] ScalarsOf(DeltaData d, double[] coordinates)
+    {
+        if (_scalars.TryGetValue(d.Id, out var scalars)) return scalars;
+        var regionScalars = _regionScalars ??= NewRegionScalars();
+        scalars = new double[d.RegionIndexes.Length];
+        for (int i = 0; i < scalars.Length; i++)
+        {
+            int r = d.RegionIndexes[i];
+            if (double.IsNaN(regionScalars[r])) regionScalars[r] = RegionScalar(_regions[r], coordinates);
+            scalars[i] = regionScalars[r];
+        }
+        return _scalars[d.Id] = scalars;
+    }
+
     private double[] NewRegionScalars()
     {
         var scalars = new double[_regions.Length];
@@ -205,7 +210,8 @@ internal sealed class ItemVariationStore
 
     #region Nested Types
 
-    private sealed record DeltaData(int Items, int[] RegionIndexes, int WordCount, bool LongWords, int Rows, int RowSize);
+    // Id numbers the distinct data of the store, so outer indexes that name one data share its kept results.
+    private sealed record DeltaData(int Id, int Items, int[] RegionIndexes, int WordCount, bool LongWords, int Rows, int RowSize);
 
     #endregion
 }
