@@ -4,9 +4,10 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 /// An OpenType ItemVariationStore (used by <c>HVAR</c>, <c>MVAR</c>, and <c>CFF2</c>): variation regions plus delta
 /// sets addressed by (outer, inner) indexes (D-013). Every count and offset is checked when it is read (A06). Each
 /// ItemVariationData is read once however many entries name it, and distinct ones, with their region indexes and delta
-/// rows, cannot hold more bytes than the store, so every delta lookup together reads its bytes at most once;
-/// <see cref="Delta"/> works out each region scalar and each delta once for given coordinates, since every glyph may
-/// name the same delta set (A06).
+/// rows, cannot hold more bytes than the store, so every delta lookup together reads its bytes at most once. For given
+/// coordinates each region's scalar, each delta set's scalars, and each delta are worked out once, since every glyph
+/// may name the same delta set and every region index the same region (A06). A store serves one font instance on one
+/// thread: its results are kept for the coordinates array last passed, which must not change.
 /// </summary>
 internal sealed class ItemVariationStore
 {
@@ -18,6 +19,7 @@ internal sealed class ItemVariationStore
     private readonly DeltaData[] _data;
     private readonly Dictionary<int, double[]> _scalars = new();
     private readonly Dictionary<(int Outer, int Inner), double> _deltas = new();
+    private double[]? _regionScalars; // per region; NaN until worked out
     private double[]? _cachedFor;
 
     #endregion
@@ -103,11 +105,23 @@ internal sealed class ItemVariationStore
     /// </summary>
     /// <param name="outer">The ItemVariationData index.</param>
     /// <param name="coordinates">The normalized coordinates.</param>
-    /// <returns>One scalar per region of that data, in its region order.</returns>
+    /// <returns>One scalar per region of that data, in its region order; kept, so callers must not change it.</returns>
     public double[] Scalars(int outer, double[] coordinates)
     {
         if (outer < 0 || outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
-        return _data[outer].RegionIndexes.Select(r => RegionScalar(_regions[r], coordinates)).ToArray();
+        Use(coordinates);
+        if (_scalars.TryGetValue(outer, out var scalars)) return scalars;
+
+        var indexes = _data[outer].RegionIndexes;
+        var regionScalars = _regionScalars ??= NewRegionScalars();
+        scalars = new double[indexes.Length];
+        for (int i = 0; i < indexes.Length; i++)
+        {
+            int r = indexes[i];
+            if (double.IsNaN(regionScalars[r])) regionScalars[r] = RegionScalar(_regions[r], coordinates);
+            scalars[i] = regionScalars[r];
+        }
+        return _scalars[outer] = scalars;
     }
 
     /// <summary>
@@ -124,14 +138,9 @@ internal sealed class ItemVariationStore
         if (outer < 0 || outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
         var d = _data[outer];
         if (inner < 0 || inner >= d.Items) throw FontBytes.Corrupt("uses a variation delta that does not exist");
-        if (!ReferenceEquals(coordinates, _cachedFor))
-        {
-            _scalars.Clear();
-            _deltas.Clear();
-            _cachedFor = coordinates;
-        }
+        Use(coordinates);
         if (_deltas.TryGetValue((outer, inner), out double known)) return known;
-        if (!_scalars.TryGetValue(outer, out var scalars)) _scalars[outer] = scalars = Scalars(outer, coordinates);
+        var scalars = Scalars(outer, coordinates);
         int p = d.Rows + inner * d.RowSize;
         double total = 0;
         for (int r = 0; r < d.RegionIndexes.Length; r++)
@@ -167,6 +176,27 @@ internal sealed class ItemVariationStore
             scalar *= v < peak ? (v - start) / (peak - start) : (end - v) / (end - peak);
         }
         return scalar;
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    // Starts over when the coordinates differ from the ones the kept results were worked out for.
+    private void Use(double[] coordinates)
+    {
+        if (ReferenceEquals(coordinates, _cachedFor)) return;
+        _scalars.Clear();
+        _deltas.Clear();
+        if (_regionScalars is not null) Array.Fill(_regionScalars, double.NaN);
+        _cachedFor = coordinates;
+    }
+
+    private double[] NewRegionScalars()
+    {
+        var scalars = new double[_regions.Length];
+        Array.Fill(scalars, double.NaN);
+        return scalars;
     }
 
     #endregion

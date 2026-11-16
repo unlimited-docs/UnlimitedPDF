@@ -157,7 +157,7 @@ internal static class Cff2Charstring
         int n = (int)nValue;
         int k = state.Store.RegionCount(state.VsIndex);
         if (nValue != n || n < 0 || state.Stack.Count < (long)n * (k + 1)) throw FontBytes.Corrupt("has a CFF2 blend without enough operands");
-        var scalars = state.Work.Scalars(state.Store, state.VsIndex, state.Coordinates);
+        var scalars = state.Store.Scalars(state.VsIndex, state.Coordinates); // worked out once per vsindex (A06)
         int baseIndex = state.Stack.Count - n * (k + 1);
         for (int i = 0; i < n; i++)
         {

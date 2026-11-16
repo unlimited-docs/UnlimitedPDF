@@ -166,6 +166,37 @@ public class CffTableLimitTests
     }
 
     [Fact]
+    public void Region_scalars_are_worked_out_once_per_region()
+    {
+        // RV-36: 85 delta sets of 65,535 region indexes all name one region over 64 axes; each index used to weigh the
+        // region over every axis again (356 million axis steps, about 3 s, from this 16.7 MB store).
+        const int sets = 85, regionIndexes = 65_535, axes = 64;
+        int block = 6 + 2 * regionIndexes + regionIndexes, data = 8 + 4 * sets, regions = data + sets * block;
+        var w = new BigEndianWriter().U16(1).U32((uint)regions).U16(sets);
+        for (int i = 0; i < sets; i++) w.U32((uint)(data + i * block));
+        var row = Enumerable.Repeat((byte)1, regionIndexes).ToArray();
+        for (int i = 0; i < sets; i++)
+        {
+            w.U16(1).U16(0).U16(regionIndexes);
+            w.Bytes(new byte[2 * regionIndexes]);
+            w.Bytes(row);
+        }
+        w.U16(axes).U16(1);
+        for (int a = 0; a < axes; a++) w.U16(0).U16(16384).U16(16384);
+        var bytes = w.ToArray();
+        var fontBytes = new FontBytes(bytes);
+        var store = ItemVariationStore.Read(fontBytes, 0, bytes.Length, axes);
+        var coordinates = Enumerable.Repeat(0.5, axes).ToArray();
+        var clock = Stopwatch.StartNew();
+
+        double total = 0;
+        for (int outer = 0; outer < sets; outer++) total += store.Delta(fontBytes, outer, 0, coordinates);
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), clock.Elapsed.ToString());
+        Assert.Equal(sets * regionIndexes * Math.Pow(0.5, axes), total, 1e-20);
+    }
+
+    [Fact]
     public void A_delta_set_that_every_glyph_names_is_worked_out_once()
     {
         // Glyphs past the end of an HVAR map all use its last entry: 65,535 glyphs naming one delta set over 30,000

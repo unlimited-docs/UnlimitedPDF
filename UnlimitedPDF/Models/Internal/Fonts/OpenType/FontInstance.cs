@@ -59,7 +59,7 @@ internal sealed class FontInstance
         {
             var (offset, length) = font.TableRange("CFF2");
             var cff2 = Cff2Font.Read(font.Data, offset, length, font.GlyphCount, axisCount);
-            // One shared budget and scalar cache for every glyph of the instance (A06).
+            // One shared budget for every glyph of the instance (A06).
             var work = new CharstringWork(font.GlyphCount);
             charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => cff2.Instance(g, coordinates, work)).ToArray();
         }
