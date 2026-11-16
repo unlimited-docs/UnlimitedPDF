@@ -3,8 +3,8 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 /// <summary>
 /// The parsed <c>CFF </c> table of an OpenType font with CFF outlines (D-010): the Top DICT, the glyph charstrings,
 /// the charset, the global subroutines, and per-glyph local subroutines (one Private DICT for a name-keyed font, one
-/// per Font DICT for a CID-keyed font). Every glyph is flattened once at load, so damaged or hostile charstrings fail
-/// here (A06).
+/// per Font DICT for a CID-keyed font, each read once however many Font DICTs share it). Every glyph is flattened once
+/// at load, so damaged or hostile charstrings fail here (A06).
 /// </summary>
 internal sealed class CffFont
 {
@@ -14,7 +14,6 @@ internal sealed class CffFont
     private const int OpCharset = 15;
     private const int OpCharStrings = 17;
     private const int OpPrivate = 18;
-    private const int OpSubrs = 19;
     private const int OpCharstringType = 1206;
     private const int OpRos = 1230;
     private const int OpFdArray = 1236;
@@ -80,17 +79,17 @@ internal sealed class CffFont
             var fdArray = CffIndex.Read(data, table + top.Int(OpFdArray), limit, "FDArray");
             if (fdArray.Count is 0 or > 256) throw FontBytes.Corrupt("has an invalid CFF FDArray");
             localSubrs = new CffIndex?[fdArray.Count];
-            var subrsAt = new Dictionary<int, CffIndex>(); // Font DICTs that name one Local Subr INDEX share it (A06)
+            var privateDicts = new CffPrivateDicts(data, table, limit, wideCount: false);
             for (int fd = 0; fd < fdArray.Count; fd++)
             {
                 var (fdOffset, fdLength) = fdArray.Entry(fd);
-                localSubrs[fd] = ReadPrivateSubrs(data, table, limit, CffDict.Read(data, fdOffset, fdLength), subrsAt);
+                localSubrs[fd] = ReadPrivateSubrs(CffDict.Read(data, fdOffset, fdLength), privateDicts);
             }
             ReadFdSelect(data, table + top.Int(OpFdSelect), limit, glyphCount, fdArray.Count, fontOfGlyph);
         }
         else
         {
-            localSubrs = new[] { ReadPrivateSubrs(data, table, limit, top) };
+            localSubrs = new[] { ReadPrivateSubrs(top, new CffPrivateDicts(data, table, limit, wideCount: false)) };
         }
 
         if (top.Has(OpCharset)) CheckCharset(data, table, limit, top.Int(OpCharset), glyphCount);
@@ -114,22 +113,9 @@ internal sealed class CffFont
 
     #region Private Methods
 
-    // Reads a Private DICT named by a Top DICT or Font DICT and returns its local subroutines, if any. The Subrs
-    // offset is relative to the Private DICT's start. An INDEX already read at the same offset is reused, so Font
-    // DICTs that share one keep one copy of its offsets.
-    private static CffIndex? ReadPrivateSubrs(FontBytes data, int table, int limit, CffDict dict, Dictionary<int, CffIndex>? known = null)
-    {
-        if (!dict.Has(OpPrivate)) return null;
-        int size = dict.Int(OpPrivate, 0), offset = dict.Int(OpPrivate, 1);
-        if (size < 0 || offset < 0 || (long)table + offset + size > limit) throw FontBytes.Corrupt("has a CFF Private DICT outside the CFF table");
-        var privateDict = CffDict.Read(data, table + offset, size);
-        if (!privateDict.Has(OpSubrs)) return null;
-        int at = table + offset + privateDict.Int(OpSubrs);
-        if (known is not null && known.TryGetValue(at, out var index)) return index;
-        index = CffIndex.Read(data, at, limit, "Local Subr INDEX");
-        if (known is not null) known[at] = index;
-        return index;
-    }
+    // Returns the local subroutines of the Private DICT that a Top DICT or Font DICT names, if any.
+    private static CffIndex? ReadPrivateSubrs(CffDict dict, CffPrivateDicts privateDicts) =>
+        dict.Has(OpPrivate) ? privateDicts.Read(dict.Int(OpPrivate, 0), dict.Int(OpPrivate, 1)).Subrs : null;
 
     private static void ReadFdSelect(FontBytes data, int offset, int limit, int glyphCount, int fontCount, byte[] fontOfGlyph)
     {

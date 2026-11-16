@@ -2,7 +2,10 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 
 /// <summary>
 /// An OpenType ItemVariationStore (used by <c>HVAR</c>, <c>MVAR</c>, and <c>CFF2</c>): variation regions plus delta
-/// sets addressed by (outer, inner) indexes (D-013). Every count and offset is checked when it is read (A06).
+/// sets addressed by (outer, inner) indexes (D-013). Every count and offset is checked when it is read (A06). Each
+/// ItemVariationData is read once however many entries name it, and distinct ones cannot hold more region indexes
+/// than fit in the store's bytes; <see cref="Delta"/> works out each region scalar and each delta once for given
+/// coordinates, since every glyph may name the same delta set (A06).
 /// </summary>
 internal sealed class ItemVariationStore
 {
@@ -12,6 +15,9 @@ internal sealed class ItemVariationStore
 
     private readonly double[][][] _regions; // [region][axis] = (start, peak, end) as three entries
     private readonly DeltaData[] _data;
+    private readonly Dictionary<int, double[]> _scalars = new();
+    private readonly Dictionary<(int Outer, int Inner), double> _deltas = new();
+    private double[]? _cachedFor;
 
     #endregion
 
@@ -56,11 +62,18 @@ internal sealed class ItemVariationStore
         }
 
         var deltaData = new DeltaData[dataCount];
+        var known = new Dictionary<int, DeltaData>();
+        long regionIndexesLeft = (limit - offset) / 2; // each region index of distinct data takes two bytes of the store
         for (int i = 0; i < dataCount; i++)
         {
             long subtable = offset + (long)data.U32(offset + 8 + 4 * i);
             if (subtable + 6 > limit) throw FontBytes.Corrupt("has a truncated item variation data");
             int s = (int)subtable;
+            if (known.TryGetValue(s, out var shared))
+            {
+                deltaData[i] = shared;
+                continue;
+            }
             int items = data.U16(s);
             int wordField = data.U16(s + 2);
             int regionIndexCount = data.U16(s + 4);
@@ -68,6 +81,7 @@ internal sealed class ItemVariationStore
             int wordCount = wordField & 0x7FFF;
             if (wordCount > regionIndexCount) throw FontBytes.Corrupt("has an invalid item variation data");
             if (s + 6L + 2L * regionIndexCount > limit) throw FontBytes.Corrupt("has a truncated item variation data");
+            if ((regionIndexesLeft -= regionIndexCount) < 0) throw FontBytes.Corrupt("has item variation data that overlap");
             var regionIndexes = new int[regionIndexCount];
             for (int r = 0; r < regionIndexCount; r++)
             {
@@ -78,7 +92,7 @@ internal sealed class ItemVariationStore
             int rowSize = wordCount * wordSize + (regionIndexCount - wordCount) * smallSize;
             int rows = s + 6 + 2 * regionIndexCount;
             if (rows + (long)rowSize * items > limit) throw FontBytes.Corrupt("has truncated variation deltas");
-            deltaData[i] = new DeltaData(items, regionIndexes, wordCount, longWords, rows, rowSize);
+            known[s] = deltaData[i] = new DeltaData(items, regionIndexes, wordCount, longWords, rows, rowSize);
         }
         return new ItemVariationStore(regions, deltaData);
     }
@@ -109,7 +123,14 @@ internal sealed class ItemVariationStore
         if (outer < 0 || outer >= _data.Length) throw FontBytes.Corrupt("uses item variation data that does not exist");
         var d = _data[outer];
         if (inner < 0 || inner >= d.Items) throw FontBytes.Corrupt("uses a variation delta that does not exist");
-        var scalars = Scalars(outer, coordinates);
+        if (!ReferenceEquals(coordinates, _cachedFor))
+        {
+            _scalars.Clear();
+            _deltas.Clear();
+            _cachedFor = coordinates;
+        }
+        if (_deltas.TryGetValue((outer, inner), out double known)) return known;
+        if (!_scalars.TryGetValue(outer, out var scalars)) _scalars[outer] = scalars = Scalars(outer, coordinates);
         int p = d.Rows + inner * d.RowSize;
         double total = 0;
         for (int r = 0; r < d.RegionIndexes.Length; r++)
@@ -127,7 +148,7 @@ internal sealed class ItemVariationStore
             }
             total += scalars[r] * delta;
         }
-        return total;
+        return _deltas[(outer, inner)] = total;
     }
 
     /// <summary>

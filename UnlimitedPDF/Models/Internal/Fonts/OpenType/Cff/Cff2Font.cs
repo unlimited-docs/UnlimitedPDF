@@ -4,7 +4,8 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 
 /// <summary>
 /// The parsed <c>CFF2</c> table of a variable font with CFF outlines (D-013): the Top DICT, glyph charstrings, global
-/// subroutines, Font DICTs with their local subroutines and default <c>vsindex</c>, FDSelect, and the variation store.
+/// subroutines, Font DICTs with their local subroutines and default <c>vsindex</c> (each Private DICT read once however
+/// many Font DICTs share it), FDSelect, and the variation store.
 /// <see cref="Instance"/> evaluates every <c>blend</c> at given coordinates and returns a CFF version 1 charstring.
 /// </summary>
 internal sealed class Cff2Font
@@ -13,7 +14,6 @@ internal sealed class Cff2Font
 
     private const int OpCharStrings = 17;
     private const int OpPrivate = 18;
-    private const int OpSubrs = 19;
     private const int OpVsIndex = 22;
     private const int OpVariationStore = 24;
     private const int OpFdArray = 1236;
@@ -70,19 +70,14 @@ internal sealed class Cff2Font
         if (fdArray.Count is 0 or > 256) throw FontBytes.Corrupt("has an invalid CFF2 FDArray");
         var localSubrs = new CffIndex?[fdArray.Count];
         var vsIndex = new int[fdArray.Count];
-        var subrsAt = new Dictionary<int, CffIndex>(); // Font DICTs that name one Local Subr INDEX share it (A06)
+        var privateDicts = new CffPrivateDicts(data, table, limit, wideCount: true);
         for (int fd = 0; fd < fdArray.Count; fd++)
         {
             var (offset, size) = fdArray.Entry(fd);
             var fontDict = CffDict.Read(data, offset, size);
             if (!fontDict.Has(OpPrivate)) continue;
-            int privateSize = fontDict.Int(OpPrivate, 0), privateOffset = fontDict.Int(OpPrivate, 1);
-            if (privateSize < 0 || privateOffset < 0 || (long)table + privateOffset + privateSize > limit) throw FontBytes.Corrupt("has a CFF2 Private DICT outside the table");
-            var privateDict = CffDict.Read(data, table + privateOffset, privateSize);
+            var (privateDict, subrs) = privateDicts.Read(fontDict.Int(OpPrivate, 0), fontDict.Int(OpPrivate, 1));
             vsIndex[fd] = privateDict.Int(OpVsIndex);
-            if (!privateDict.Has(OpSubrs)) continue;
-            int at = table + privateOffset + privateDict.Int(OpSubrs);
-            if (!subrsAt.TryGetValue(at, out var subrs)) subrsAt[at] = subrs = CffIndex.Read(data, at, limit, "Local Subr INDEX", wideCount: true);
             localSubrs[fd] = subrs;
         }
 

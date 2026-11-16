@@ -1,7 +1,9 @@
 namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 
 /// <summary>
-/// A parsed CFF DICT: operators (12 x is stored as 1200 + x) mapped to their operands.
+/// A parsed CFF DICT: operators (12 x is stored as 1200 + x) mapped to their operands. Every operand is kept in one
+/// list, so parsing allocates nothing per operator, and a DICT may be at most <see cref="MaxLength"/> bytes (A06: real
+/// ones are well under 1 KB).
 /// </summary>
 internal sealed class CffDict
 {
@@ -10,7 +12,13 @@ internal sealed class CffDict
     // A DICT entry has a handful of operands; the CFF2 operand stack limit is the most any can need.
     private const int MaxOperands = 513;
 
-    private readonly Dictionary<int, double[]> _entries = new();
+    /// <summary>
+    /// The most bytes a DICT may have.
+    /// </summary>
+    public const int MaxLength = 65_536;
+
+    private readonly Dictionary<int, (int Start, int Count)> _entries = new();
+    private readonly List<double> _operands = new();
 
     #endregion
 
@@ -28,9 +36,10 @@ internal sealed class CffDict
     public static CffDict Read(FontBytes data, int offset, int length)
     {
         data.Require(offset, length, "a CFF DICT");
+        if (length > MaxLength) throw FontBytes.Corrupt("has an implausibly large CFF DICT");
         var dict = new CffDict();
-        var operands = new List<double>();
-        int p = offset, end = offset + length;
+        var operands = dict._operands;
+        int first = 0, p = offset, end = offset + length;
         while (p < end)
         {
             int b0 = data.U8(p);
@@ -43,12 +52,12 @@ internal sealed class CffDict
                     if (p >= end) throw FontBytes.Corrupt("has a truncated CFF DICT operator");
                     op = 1200 + data.U8(p++);
                 }
-                dict._entries[op] = operands.ToArray();
-                operands.Clear();
+                dict._entries[op] = (first, operands.Count - first);
+                first = operands.Count;
                 continue;
             }
 
-            if (operands.Count >= MaxOperands) throw FontBytes.Corrupt("has a CFF DICT with too many operands");
+            if (operands.Count - first >= MaxOperands) throw FontBytes.Corrupt("has a CFF DICT with too many operands");
             if (b0 == 28)
             {
                 if (p + 3 > end) throw Truncated();
@@ -99,15 +108,15 @@ internal sealed class CffDict
     /// </summary>
     public int Int(int op, int index = 0, int fallback = 0)
     {
-        if (!_entries.TryGetValue(op, out var operands)) return fallback;
-        if (index >= operands.Length) throw FontBytes.Corrupt("has a CFF DICT operator without its operands");
-        double value = operands[index];
+        if (!_entries.TryGetValue(op, out var entry)) return fallback;
+        if (index >= entry.Count) throw FontBytes.Corrupt("has a CFF DICT operator without its operands");
+        double value = _operands[entry.Start + index];
         if (value < int.MinValue || value > int.MaxValue || double.IsNaN(value)) throw FontBytes.Corrupt("has an out-of-range CFF DICT value");
         return (int)value;
     }
 
     public double Number(int op, int index = 0, double fallback = 0) =>
-        _entries.TryGetValue(op, out var operands) && index < operands.Length ? operands[index] : fallback;
+        _entries.TryGetValue(op, out var entry) && index < entry.Count ? _operands[entry.Start + index] : fallback;
 
     #endregion
 
@@ -124,8 +133,9 @@ internal sealed class CffDict
         {
             if (p >= end || text.Length > 64) throw FontBytes.Corrupt("has an invalid real number in a CFF DICT");
             int b = data.U8(p++);
-            foreach (int nibble in new[] { b >> 4, b & 0xF })
+            for (int half = 0; half < 2; half++)
             {
+                int nibble = half == 0 ? b >> 4 : b & 0xF;
                 switch (nibble)
                 {
                     case <= 9: text.Append((char)('0' + nibble)); break;
