@@ -23,9 +23,10 @@ internal sealed class FontInstance
 
     #region Constructors and Finalizers
 
-    private FontInstance(OpenTypeFont font, double[] coordinates, int[] advances, byte[]?[]? glyphData, byte[][]? charstrings, (int, int, int, int) metrics)
+    private FontInstance(OpenTypeFont font, double[] coordinates, int[] advances, byte[]?[]? glyphData, byte[][]? charstrings, (int, int, int, int) metrics, CharstringWork? work)
     {
         _font = font;
+        BudgetUsed = work is null ? 0 : Math.Max(work.StepsUsed, work.OutputUsed);
         Coordinates = coordinates;
         _advances = advances;
         _glyphData = glyphData;
@@ -55,21 +56,22 @@ internal sealed class FontInstance
         var metrics = (Ascender: (int)font.Ascender, Descender: (int)font.Descender, CapHeight: capHeight, XHeight: (int)font.XHeight);
 
         byte[][]? charstrings = null;
+        CharstringWork? work = null;
         if (font.Outlines == FontOutlines.Cff2)
         {
             var (offset, length) = font.TableRange("CFF2");
             var cff2 = Cff2Font.Read(font.Data, offset, length, font.GlyphCount, axisCount);
             // One shared step and output budget for every glyph of the instance, tied to the table's size (A06).
-            var work = new CharstringWork(font.GlyphCount, length);
+            work = new CharstringWork(font.GlyphCount, length);
             charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => cff2.Instance(g, coordinates, work)).ToArray();
         }
         else if (font.Outlines == FontOutlines.Cff)
         {
-            var work = new CharstringWork(font.GlyphCount, font.TableRange("CFF ").Length);
+            work = new CharstringWork(font.GlyphCount, font.TableRange("CFF ").Length);
             charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => font.Cff!.Flatten(g, work)).ToArray();
         }
 
-        if (atDefault || axes is null) return new FontInstance(font, coordinates, advances, null, charstrings, metrics);
+        if (atDefault || axes is null) return new FontInstance(font, coordinates, advances, null, charstrings, metrics, work);
 
         var metricVariations = MetricsVariations.Read(font, axisCount);
         byte[]?[]? glyphData = null;
@@ -98,7 +100,7 @@ internal sealed class FontInstance
             (int)Math.Round(metrics.Descender + metricVariations.MetricDelta("hdsc", coordinates)),
             (int)Math.Round(metrics.CapHeight + metricVariations.MetricDelta("cpht", coordinates)),
             (int)Math.Round(metrics.XHeight + metricVariations.MetricDelta("xhgt", coordinates)));
-        return new FontInstance(font, coordinates, advances, glyphData, charstrings, metrics);
+        return new FontInstance(font, coordinates, advances, glyphData, charstrings, metrics, work);
     }
 
     /// <summary>
@@ -169,6 +171,12 @@ internal sealed class FontInstance
     #region Properties, Indexers
 
     public int Ascender { get; }
+
+    /// <summary>
+    /// Gets the larger share of its CFF step and output budgets that building this instance used, from 0 to 1 (0 for
+    /// TrueType outlines).
+    /// </summary>
+    public double BudgetUsed { get; }
 
     public int CapHeight { get; }
 

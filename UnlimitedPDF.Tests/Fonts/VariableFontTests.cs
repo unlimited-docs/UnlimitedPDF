@@ -198,6 +198,24 @@ public class VariableFontTests
         }
     }
 
+    [Fact]
+    public void A_variable_font_keeps_at_most_eight_weights_and_gives_others_the_nearest()
+    {
+        // RV-46: HTML may ask for any weight from 1 to 1000, and each weight used to build and keep its own instance.
+        var builder = Axis(new TestFontBuilder { Cff2 = true });
+        int glyph = builder.AddGlyph(600, TestFontBuilder.Box(40, 0, 560, 700));
+        builder.Map('A', glyph);
+        builder.AddWeightDeltas(glyph, new (short, short)[] { (0, 0), (0, 0), (100, 0), (100, 0) });
+        var font = PdfFont.FromBytes(builder.Build());
+
+        var faces = Enumerable.Range(100, 801).Select(font.AtWeight).ToList();
+
+        Assert.Equal(8, faces.Distinct().Count()); // 400, then 100 to 106
+        Assert.Equal(106, font.AtWeight(107).Weight);
+        Assert.Same(font, font.AtWeight(900));
+        Assert.Same(font.AtWeight(103), font.AtWeight(103));
+    }
+
     #endregion
 
     #region Private Methods

@@ -9,7 +9,8 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// Limits on the parts of a CFF or CFF2 table that Font DICTs share, found at review (A06, RV-33): a Private DICT
 /// that many Font DICTs name is parsed once, a DICT may be at most 64 KB, and Private DICTs, Local Subr INDEXes, and
 /// item variation data that overlap (region indexes or delta rows) are corrupt; a variation store works out each delta
-/// once for given coordinates, shared by every outer index that names the same data.
+/// once for given coordinates, shared by every outer index that names the same data; and flattening is bounded by the
+/// table's size, with each hint mask byte costing a step (RV-43, RV-45).
 /// </summary>
 public class CffTableLimitTests
 {
@@ -286,7 +287,8 @@ public class CffTableLimitTests
     public void Cff_glyphs_that_each_write_many_large_hint_masks_are_corrupt()
     {
         // RV-43: one subroutine declares 480 stems and writes 500 hint masks of 60 bytes; 4,000 glyphs of three bytes
-        // each call it, so a 65 KB table flattens to 126 MB, which an instance keeps (2.5 GB for 65,535 such glyphs).
+        // each call it, so a 65 KB table flattens to 126 MB, which an instance keeps (about 2 GB for 65,535 such
+        // glyphs). The mask bytes' steps stop it before the output budget would (RV-45).
         var subroutine = Enumerable.Range(0, 20).SelectMany(_ => Enumerable.Repeat((byte)139, 48).Append((byte)18)) // hstemhm
             .Concat(Enumerable.Range(0, 500).SelectMany(_ => new byte[] { 19 }.Concat(Enumerable.Repeat((byte)0xFF, 60))))
             .Append(Return).ToArray();
@@ -295,6 +297,7 @@ public class CffTableLimitTests
         var error = Assert.Throws<PdfFontException>(() => CffFont.Read(new FontBytes(table), 0, table.Length, 4_000));
 
         Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("run too long", error.Message);
     }
 
     [Fact]
@@ -313,6 +316,25 @@ public class CffTableLimitTests
         });
 
         Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("run too long", error.Message); // the mask bytes' steps, before the output budget (RV-45)
+    }
+
+    [Fact]
+    public void Glyphs_of_empty_subroutine_calls_are_bounded_by_the_table_size()
+    {
+        // RV-45: 65,535 glyphs of a 1 KB table may share 4,000,000 steps plus 64 per table byte, not 2,000 per glyph
+        // (135 million); each glyph here calls an empty subroutine 300,000 times and writes nothing.
+        var charstring = Enumerable.Range(0, 300_000).SelectMany(_ => new byte[] { 32, 29 }).Append(EndChar).ToArray(); // -107 callgsubr
+        var subrs = Index(new[] { new[] { Return } });
+        var globalSubrs = CffIndex.Read(new FontBytes(subrs), 0, subrs.Length, "Global Subr INDEX");
+        var work = new CharstringWork(65_535, 1_024);
+
+        var error = Assert.Throws<PdfFontException>(() =>
+        {
+            for (int glyph = 0; glyph < 10; glyph++) Type2Charstring.Flatten(charstring, null, globalSubrs, work);
+        });
+
+        Assert.Contains("run too long", error.Message);
     }
 
     [Fact]

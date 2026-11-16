@@ -19,6 +19,8 @@ internal sealed class CharstringWork
     public const long BaseOutput = 32L * 1024 * 1024;
     public const int OutputPerTableByte = 8;
 
+    private readonly long _stepLimit;
+    private readonly long _outputLimit;
     private long _remaining;
     private long _outputLeft;
 
@@ -33,8 +35,8 @@ internal sealed class CharstringWork
     public CharstringWork(int glyphCount, int tableLength)
     {
         long table = Math.Max(0, tableLength);
-        _remaining = BaseSteps + Math.Min((long)StepsPerGlyph * Math.Max(1, glyphCount), StepsPerTableByte * table);
-        _outputLeft = BaseOutput + OutputPerTableByte * table;
+        _remaining = _stepLimit = BaseSteps + Math.Min((long)StepsPerGlyph * Math.Max(1, glyphCount), StepsPerTableByte * table);
+        _outputLeft = _outputLimit = BaseOutput + OutputPerTableByte * table;
     }
 
     #endregion
@@ -60,6 +62,20 @@ internal sealed class CharstringWork
     }
 
     #endregion
+
+    #endregion
+
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the share of the step budget used so far, from 0 to 1.
+    /// </summary>
+    public double StepsUsed => (double)(_stepLimit - _remaining) / _stepLimit;
+
+    /// <summary>
+    /// Gets the share of the output budget used so far, from 0 to 1.
+    /// </summary>
+    public double OutputUsed => (double)(_outputLimit - _outputLeft) / _outputLimit;
 
     #endregion
 }
