@@ -37,7 +37,7 @@ public class PageRendererTextTests
 
         // A is 667/1000 em in Helvetica: 8.004 at 12 points.
         Assert.Contains("<text xml:space=\"preserve\" transform=\"matrix(1 0 0 1 100 142)\" font-family=\"Helvetica, Arial, &#39;Liberation Sans&#39;, sans-serif\"", page.Svg!.Replace("'", "&#39;"));
-        Assert.Contains("font-size=\"12\" x=\"0 8.004\" y=\"0\" fill=\"#000000\">AB</text>", page.Svg);
+        Assert.Contains("font-size=\"12\" font-variant=\"no-common-ligatures no-discretionary-ligatures\" x=\"0 8.004\" y=\"0\" fill=\"#000000\">AB</text>", page.Svg);
         Assert.Equal(new[] { "AB" }, page.TextLines);
         Assert.Equal(2, page.Counts.Glyphs);
     }
@@ -100,7 +100,8 @@ public class PageRendererTextTests
     [Fact]
     public void WinAnsi_codes_become_their_unicode_characters()
     {
-        var page = Render("BT /F1 10 Tf (\\200\\226\\351) Tj ET");
+        var page = Render("BT /F2 10 Tf (\\200\\226\\351) Tj ET", "<< /Font << /F2 5 0 R >> >>",
+            (5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"));
 
         Assert.Equal(new[] { "€–é" }, page.TextLines);
         Assert.Contains(">€–é</text>", page.Svg);
@@ -148,11 +149,127 @@ public class PageRendererTextTests
         Assert.Contains("kind of font", page.Reason);
     }
 
+    [Fact]
+    public void A_font_without_an_encoding_uses_its_standard_encoding()
+    {
+        var page = Render("BT /F1 10 Tf (it's `x') Tj ET");
+
+        // Quoteright and quoteleft replace the ASCII quotes, with their own widths (222 in Helvetica).
+        Assert.Equal(new[] { "it\u2019s \u2018x\u2019" }, page.TextLines);
+        Assert.Contains("x=\"0 2.22 5 7.22 12.22 15 17.22 22.22\"", page.Svg);
+        Assert.Contains("doesn't define", Render("BT /F1 10 Tf (\\341) Tj ET").Reason);
+    }
+
+    [Fact]
+    public void A_negative_font_size_turns_the_text_but_keeps_its_advance()
+    {
+        var page = Render("BT /F1 -10 Tf 100 700 Td (AB) Tj (C) Tj ET");
+
+        // The frame mirrors the text; positions in it are unsigned, so B sits 6.67 to the left of A after the turn.
+        Assert.Contains("transform=\"matrix(-1 0 0 -1 100 142)\"", page.Svg);
+        Assert.Contains("x=\"0 6.67\"", page.Svg);
+        Assert.Contains("transform=\"matrix(-1 0 0 -1 86.66 142)\"", page.Svg); // C after -6.67 - 6.67
+    }
+
+    [Fact]
+    public void Control_codes_are_dropped_with_their_positions()
+    {
+        var page = Render("BT /F2 10 Tf (A\\001B) Tj ET", "<< /Font << /F2 5 0 R >> >>",
+            (5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"));
+
+        Assert.Contains("x=\"0 12.23\" y=\"0\" fill=\"#000000\">AB</text>", page.Svg);
+        Assert.Equal(new[] { "AB" }, page.TextLines);
+    }
+
+    [Fact]
+    public void The_double_quote_operator_sets_word_then_character_spacing()
+    {
+        var page = Render("BT /F1 10 Tf 12 TL 0 100 Td 5 1 ( a) \" ET");
+
+        // Space: 2.78 + 1 (Tc) + 5 (Tw) = 8.78 before the a.
+        Assert.Contains("x=\"0 8.78\"", page.Svg);
+    }
+
+    [Fact]
+    public void TD_sets_the_leading_that_T_star_uses()
+    {
+        var page = Render("BT /F1 10 Tf 0 100 Td 0 -20 TD T* (a) Tj ET");
+
+        Assert.Contains("matrix(1 0 0 1 0 782)", page.Svg); // 100 - 20 - 20 = 60 from the bottom
+    }
+
+    [Fact]
+    public void Each_text_object_starts_at_the_origin()
+    {
+        var page = Render("BT /F1 10 Tf 50 50 Td ET BT (a) Tj ET");
+
+        Assert.Contains("matrix(1 0 0 1 0 842)", page.Svg);
+    }
+
+    [Fact]
+    public void Actual_text_named_in_the_page_properties_reaches_the_layer()
+    {
+        var page = Render("BT /F1 10 Tf /Span /P1 BDC (zz) Tj EMC ET",
+            "<< /Font << /F1 5 0 R >> /Properties << /P1 << /ActualText <FEFF0058> >> >> >>",
+            (5, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"));
+
+        Assert.Equal(new[] { "X" }, page.TextLines);
+    }
+
+    [Fact]
+    public void The_text_layer_follows_the_text_objects_like_the_pdf_text()
+    {
+        Assert.Equal(new[] { "", "a" }, Render("BT /F1 10 Tf ET /Span << /ActualText <FEFF0058> >> BDC EMC BT /F1 10 Tf (a) Tj ET").TextLines);
+        Assert.Equal(new[] { "a", "X" }, Render("BT /F1 10 Tf (a) Tj ET /Span << /ActualText <FEFF0058> >> BDC EMC").TextLines);
+        Assert.Equal(new[] { "open" }, Render("BT /F1 10 Tf (open) Tj").TextLines);
+    }
+
+    [Fact]
+    public void Text_strokes_scale_with_the_text_matrix_and_keep_a_hairline_for_zero_width()
+    {
+        Assert.Contains("stroke-width=\"0.5\"", Render("BT /F1 10 Tf 1 Tr 2 0 0 2 0 0 Tm (a) Tj ET").Svg);
+        Assert.Contains("stroke-width=\"1\" vector-effect=\"non-scaling-stroke\"", Render("BT /F1 10 Tf 1 Tr 0 w (a) Tj ET").Svg);
+        Assert.Contains("stroke-width=\"1\" vector-effect=\"non-scaling-stroke\"", Render("BT /F1 10 Tf 2 Tr -2 w (a) Tj ET").Svg);
+    }
+
+    [Fact]
+    public void Text_and_actual_text_count_toward_the_output_bound()
+    {
+        var tight = PageRenderLimits.Default with { MaxOutputCharacters = 5000 };
+        string big = new('a', 6000);
+        Assert.Contains("too large", Render($"BT /F1 10 Tf ({big}) Tj ET", null, tight).Reason);
+
+        string actual = "FEFF" + string.Concat(Enumerable.Repeat("0041", 1000));
+        string spans = string.Concat(Enumerable.Repeat("/Span /P1 BDC EMC ", 10));
+        var page = Render(spans, $"<< /Properties << /P1 << /ActualText <{actual}> >> >> >>", limits: tight);
+        Assert.Contains("too large", page.Reason);
+
+        string tooLong = "FEFF" + string.Concat(Enumerable.Repeat("0041", 5000));
+        Assert.Contains("too long", Render($"/Span << /ActualText <{tooLong}> >> BDC EMC").Reason);
+    }
+
+    [Fact]
+    public void Marked_content_nesting_is_bounded()
+    {
+        Assert.Contains("marked content too deeply", Render(string.Concat(Enumerable.Repeat("/P BMC ", 200))).Reason);
+    }
+
+    [Theory]
+    [InlineData("ET", "outside a text object")]
+    [InlineData("BT /F1 10 Tf 9 Tr ET", "doesn't exist")]
+    public void Stray_text_operators_and_unknown_modes_are_refused(string content, string reason)
+    {
+        Assert.Contains(reason, Render(content).Reason);
+    }
+
     #endregion
 
     #region Private Methods
 
-    private static PageRenderResult Render(string content, string? resources = null, params (int Number, string Dictionary)[] objects)
+    private static PageRenderResult Render(string content, string? resources = null, params (int Number, string Dictionary)[] objects) =>
+        Render(content, resources, null, objects);
+
+    private static PageRenderResult Render(string content, string? resources, PageRenderLimits? limits, params (int Number, string Dictionary)[] objects)
     {
         var extra = objects.Select(o => (o.Number, o.Dictionary.Trim().TrimStart('<').TrimEnd('>').Trim(), (byte[]?)null)).ToList();
         if (resources is null)
@@ -161,7 +278,7 @@ public class PageRendererTextTests
             extra.Add((5, "/Type /Font /Subtype /Type1 /BaseFont /Helvetica", null));
         }
         var pdf = RenderTestFiles.OnePage(content, resources, extra.Select(e => (e.Item1, e.Item2.Length == 0 ? "<< >>" : $"<< {e.Item2} >>", e.Item3)));
-        return RenderTestFiles.RenderFirst(pdf);
+        return RenderTestFiles.RenderFirst(pdf, limits);
     }
 
     #endregion

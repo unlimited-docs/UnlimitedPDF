@@ -13,6 +13,7 @@ namespace UnlimitedPDF.Models.Internal.Rendering;
 /// <param name="MaxOutputCharacters">The longest drawing produced for a page.</param>
 /// <param name="MaxOperands">The most operands one operator may have.</param>
 /// <param name="MaxClipDepth">The deepest nesting of clipping paths.</param>
+/// <param name="MaxGlyphs">The most glyphs shown on a page.</param>
 internal sealed record PageRenderLimits(
     int MaxOperators,
     int MaxPathSegments,
@@ -22,7 +23,8 @@ internal sealed record PageRenderLimits(
     long MaxImagePixels,
     int MaxOutputCharacters,
     int MaxOperands,
-    int MaxClipDepth)
+    int MaxClipDepth,
+    int MaxGlyphs)
 {
     #region Properties, Indexers
 
@@ -39,7 +41,8 @@ internal sealed record PageRenderLimits(
         MaxImagePixels: 16L * 1024 * 1024,
         MaxOutputCharacters: 64 * 1024 * 1024,
         MaxOperands: 4096,
-        MaxClipDepth: 256);
+        MaxClipDepth: 256,
+        MaxGlyphs: 1_000_000);
 
     #endregion
 }

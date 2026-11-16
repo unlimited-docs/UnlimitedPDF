@@ -18,8 +18,14 @@ internal sealed partial class PageInterpreter
     private readonly Stack<MarkedSpan> _spans = new();
     private readonly List<string> _textLines = new();
 
+    // The longest /ActualText read; real spans hold a syllable or a word.
+    private const int MaxActualTextLength = 4096;
+
     private int _glyphs;
     private bool _inText;
+
+    // Characters in finished text lines, counted with the drawing against the output bound.
+    private long _textCharacters;
     private int _links = 0;
     private RenderMatrix _lineMatrix = RenderMatrix.Identity;
     private RenderMatrix _textMatrix = RenderMatrix.Identity;
@@ -42,12 +48,20 @@ internal sealed partial class PageInterpreter
                 PdfReadName name => _objects.Resolve((_objects.Resolve(resources?["Properties"]) as PdfReadDictionary)?[name.Value]) as PdfReadDictionary,
                 _ => null,
             };
-            if (_objects.Resolve(properties?["ActualText"]) is PdfReadString text) actual = PdfTextString.Decode(text.Bytes);
+            if (_objects.Resolve(properties?["ActualText"]) is PdfReadString text)
+            {
+                if (text.Bytes.Length > 2 * MaxActualTextLength + 2) throw new PageRenderException("The page has an /ActualText that is too long.");
+                actual = XmlSafe(PdfTextString.Decode(text.Bytes));
+            }
         }
 
         if (_spans.Count >= _limits.MaxStateDepth) throw new PageRenderException("The page nests marked content too deeply.");
         _spans.Push(new MarkedSpan(actual));
-        if (actual is not null) _line.Append(actual);
+        if (actual is not null)
+        {
+            _line.Append(actual);
+            CheckOutput();
+        }
     }
 
     private void DrawAnnotations(PdfReadDictionary page, int pageNumber)
@@ -92,11 +106,13 @@ internal sealed partial class PageInterpreter
                 if (_inText) throw new PageRenderException("A text object on the page starts inside another.");
                 _inText = true;
                 _textMatrix = _lineMatrix = RenderMatrix.Identity;
+                _line.Clear(); // as the text oracle does: only text inside BT ... ET makes a line
                 return true;
             case "ET": // end text
                 RequireText(op);
                 _inText = false;
                 _textLines.Add(_line.ToString());
+                _textCharacters += _line.Length;
                 _line.Clear();
                 return true;
 
@@ -113,7 +129,8 @@ internal sealed partial class PageInterpreter
             case "Ts": _state.Rise = Numbers(operands, 1)[0]; return true; // rise
             case "Tr": // rendering mode
                 _state.RenderMode = (int)Numbers(operands, 1)[0];
-                if (_state.RenderMode is < 0 or > 3) throw new PageRenderException("The page clips with text, which this preview doesn't draw.");
+                if (_state.RenderMode is >= 4 and <= 7) throw new PageRenderException("The page clips with text, which this preview doesn't draw.");
+                if (_state.RenderMode is < 0 or > 7) throw new PageRenderException("The page has a text rendering mode that doesn't exist.");
                 return true;
 
             // Text position
@@ -172,6 +189,7 @@ internal sealed partial class PageInterpreter
         var characters = new StringBuilder();
         var placed = new List<(int Glyph, double X)>();
         double x = 0;
+        double sign = size < 0 ? -1 : 1;
         var actualSpan = _spans.FirstOrDefault(span => span.ActualText is not null);
         bool layer = actualSpan is null;
 
@@ -179,28 +197,33 @@ internal sealed partial class PageInterpreter
         {
             foreach (var glyph in font.Glyphs(bytes))
             {
+                if (++_glyphs > _limits.MaxGlyphs) throw new PageRenderException("The page shows too many glyphs.");
+                string glyphText = XmlSafe(glyph.Text);
                 if (font is EmbeddedRenderFont)
                 {
                     placed.Add((glyph.Code, x));
                     if (layer)
                     {
-                        characters.Append(glyph.Text);
-                        _line.Append(glyph.Text);
+                        characters.Append(glyphText);
+                        _line.Append(glyphText);
                     }
                 }
-                else if (glyph.Text.Length > 0)
+                else if (glyphText.Length > 0)
                 {
-                    foreach (char c in glyph.Text)
+                    foreach (char c in glyphText)
                     {
                         if (char.IsLowSurrogate(c)) { characters.Append(c); continue; }
                         if (positions.Length > 0) positions.Append(' ');
-                        positions.Append(SvgText.Number(x));
+
+                        // The text element's frame already carries the size's sign, so the position is unsigned.
+                        positions.Append(SvgText.Number(x * sign));
                         characters.Append(c);
                     }
-                    if (layer) _line.Append(glyph.Text);
+                    if (layer) _line.Append(glyphText);
                 }
                 x += glyph.Width / 1000 * size + _state.CharacterSpacing + (glyph.IsWordSpace ? _state.WordSpacing : 0);
-                _glyphs++;
+                if (_body.Length + _defs.Length + positions.Length + characters.Length + _line.Length + _textCharacters > _limits.MaxOutputCharacters)
+                    throw new PageRenderException("The page drawing is too large.");
             }
         }
 
@@ -213,7 +236,7 @@ internal sealed partial class PageInterpreter
             foreach (var part in parts!.Items)
             {
                 if (part is PdfReadString s) ShowBytes(s.Bytes);
-                else if (part is PdfReadNumber n && double.IsFinite(n.Value)) x -= n.Value / 1000 * size;
+                else if (part is PdfReadNumber n) x -= (double.IsFinite(n.Value) ? n.Value : throw new PageRenderException("A TJ array holds a number that isn't finite.")) / 1000 * size;
                 else throw new PageRenderException("A TJ array holds something other than strings and numbers.");
             }
         }
@@ -252,7 +275,7 @@ internal sealed partial class PageInterpreter
         _body.Append("\" font-family=\"").Append(font.Family).Append("\" font-size=\"").Append(SvgText.Number(Math.Abs(size))).Append('"');
         if (font.IsBold) _body.Append(" font-weight=\"bold\"");
         if (font.IsItalic) _body.Append(" font-style=\"italic\"");
-        _body.Append(" x=\"").Append(positions).Append("\" y=\"0\"");
+        _body.Append(" font-variant=\"no-common-ligatures no-discretionary-ligatures\" x=\"").Append(positions).Append("\" y=\"0\"");
 
         switch (_state.RenderMode)
         {
@@ -335,10 +358,36 @@ internal sealed partial class PageInterpreter
     {
         var textToUser = new RenderMatrix(_state.HorizontalScale, 0, 0, 1, 0, 0).Then(_textMatrix);
         double scale = Math.Sqrt(Math.Abs(textToUser.A * textToUser.D - textToUser.B * textToUser.C));
-        double width = scale > 0 ? _state.LineWidth / scale : _state.LineWidth;
         _body.Append(" stroke=\"");
         SvgText.AppendColor(_body, _state.Stroke.Red, _state.Stroke.Green, _state.Stroke.Blue);
-        _body.Append("\" stroke-width=\"").Append(SvgText.Number(width)).Append('"');
+        if (_state.LineWidth <= 0 || scale <= 0)
+            _body.Append("\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\""); // the thinnest line, as for paths
+        else
+            _body.Append("\" stroke-width=\"").Append(SvgText.Number(_state.LineWidth / scale)).Append('"');
+    }
+
+    // Drops characters XML can't hold (control codes, unpaired surrogates), so the drawn text, its positions, and
+    // the text layer stay in step.
+    private static string XmlSafe(string text)
+    {
+        bool safe = true;
+        for (int i = 0; i < text.Length && safe; i++) safe = IsXmlCharacter(text, i);
+        if (safe) return text;
+        var kept = new StringBuilder(text.Length);
+        for (int i = 0; i < text.Length; i++)
+        {
+            if (char.IsHighSurrogate(text[i]) && i + 1 < text.Length && char.IsLowSurrogate(text[i + 1])) { kept.Append(text[i]).Append(text[++i]); continue; }
+            if (IsXmlCharacter(text, i)) kept.Append(text[i]);
+        }
+        return kept.ToString();
+    }
+
+    private static bool IsXmlCharacter(string text, int i)
+    {
+        char c = text[i];
+        if (char.IsHighSurrogate(c)) return i + 1 < text.Length && char.IsLowSurrogate(text[i + 1]);
+        if (char.IsLowSurrogate(c)) return i > 0 && char.IsHighSurrogate(text[i - 1]);
+        return c is '\t' or '\n' or '\r' || (c >= 0x20 && c <= 0xFFFD && c is not ('\uFFFE' or '\uFFFF'));
     }
 
     private static byte[] StringOperand(IReadOnlyList<PdfReadValue> operands, int fromEnd) =>
@@ -371,8 +420,9 @@ internal sealed partial class PageInterpreter
         get
         {
             // A text object left open at the end of the page still contributes its line.
+            // Text left after the last ET (an open text object, or an /ActualText outside one) still makes a line.
             var lines = new List<string>(_textLines);
-            if (_inText && _line.Length > 0) lines.Add(_line.ToString());
+            if (_line.Length > 0) lines.Add(_line.ToString());
             return lines;
         }
     }

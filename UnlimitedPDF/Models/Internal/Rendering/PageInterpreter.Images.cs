@@ -91,7 +91,7 @@ internal sealed partial class PageInterpreter
         // Every buffer below is sized by the image, so the image must fit the drawing before anything is allocated.
         if ((long)width * height * 4 > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
 
-        int bits = IntegerEntry(dictionary, "BitsPerComponent");
+        int bits = SampleBits(dictionary);
         byte[] samples = DecodeImageData(image, EncodedSize(width, height, ColorComponents(dictionary), bits));
         var (channels, rgb) = ImageSamples(dictionary, samples, width, height);
         byte[]? alpha = Alpha(dictionary, samples, channels, width, height);
@@ -160,6 +160,10 @@ internal sealed partial class PageInterpreter
         var expected = frame.DictionaryEntries;
         string space = (_objects.Resolve(dictionary["ColorSpace"]) as PdfReadName)?.Value ?? string.Empty;
         bool decodeExpected = expected.Contains(InvertedCmykDecode);
+
+        // Browsers read every CMYK JPEG as Adobe-inverted, so one without the Adobe marker would show inverted.
+        if (expected.Contains("/ColorSpace /DeviceCMYK") && !decodeExpected)
+            throw new PageRenderException("The page has a CMYK JPEG image without an Adobe marker, which this preview doesn't draw.");
         bool decodeGiven = _objects.Resolve(dictionary["Decode"]) is PdfReadArray decode
             && decode.Count == 8
             && decode.Items.Select((item, i) => _objects.Resolve(item) is PdfReadNumber n && n.Value == (i % 2 == 0 ? 1 : 0)).All(ok => ok);
@@ -179,15 +183,30 @@ internal sealed partial class PageInterpreter
         using var output = new MemoryStream(jpeg.Length);
         output.Write(jpeg, 0, 2);
         int p = 2;
-        while (p + 4 <= jpeg.Length && jpeg[p] == 0xFF)
+        while (p + 1 < jpeg.Length && jpeg[p] == 0xFF)
         {
-            byte marker = jpeg[p + 1];
-            if (marker == 0xDA) break; // start of scan: the rest is image data
-            int length = (jpeg[p + 2] << 8) | jpeg[p + 3];
-            bool exif = marker == 0xE1 && length >= 8 && p + 10 <= jpeg.Length
-                && jpeg[p + 4] == (byte)'E' && jpeg[p + 5] == (byte)'x' && jpeg[p + 6] == (byte)'i' && jpeg[p + 7] == (byte)'f';
-            if (!exif) output.Write(jpeg, p, Math.Min(length + 2, jpeg.Length - p));
-            p += length + 2;
+            // A marker may follow any number of 0xFF fill bytes; those are dropped.
+            int markerAt = p;
+            while (markerAt + 1 < jpeg.Length && jpeg[markerAt + 1] == 0xFF) markerAt++;
+            if (markerAt + 1 >= jpeg.Length) break;
+            byte marker = jpeg[markerAt + 1];
+            if (marker == 0xDA) { p = markerAt; break; } // start of scan: the rest is image data
+
+            // Standalone markers (TEM, RST0-RST7) carry no segment.
+            if (marker == 0x01 || (marker >= 0xD0 && marker <= 0xD7))
+            {
+                output.WriteByte(0xFF);
+                output.WriteByte(marker);
+                p = markerAt + 2;
+                continue;
+            }
+
+            if (markerAt + 4 > jpeg.Length) { p = markerAt; break; }
+            int length = (jpeg[markerAt + 2] << 8) | jpeg[markerAt + 3];
+            bool exif = marker == 0xE1 && length >= 8 && markerAt + 8 <= jpeg.Length
+                && jpeg[markerAt + 4] == (byte)'E' && jpeg[markerAt + 5] == (byte)'x' && jpeg[markerAt + 6] == (byte)'i' && jpeg[markerAt + 7] == (byte)'f';
+            if (!exif) output.Write(jpeg, markerAt, Math.Min(length + 2, jpeg.Length - markerAt));
+            p = markerAt + length + 2;
         }
         if (p < jpeg.Length) output.Write(jpeg, p, jpeg.Length - p);
         return output.ToArray();
@@ -238,7 +257,7 @@ internal sealed partial class PageInterpreter
                 throw new PageRenderException("The page has a soft mask with entries this preview doesn't draw.");
             _imagePixels += (long)width * height;
             if (_imagePixels > _limits.MaxImagePixels) throw new PageRenderException("The page has too many image pixels.");
-            int maskBits = IntegerEntry(maskDictionary, "BitsPerComponent");
+            int maskBits = SampleBits(maskDictionary);
             return Unpack(DecodeImageData(mask, EncodedSize(width, height, 1, maskBits)), width, height, 1, maskBits, scale: true);
         }
 
@@ -280,6 +299,13 @@ internal sealed partial class PageInterpreter
         {
             throw new PageRenderException($"An image on the page can't be read: {exception.Message}");
         }
+    }
+
+    // The sample size, checked before it sizes any buffer.
+    private int SampleBits(PdfReadDictionary dictionary)
+    {
+        int bits = IntegerEntry(dictionary, "BitsPerComponent");
+        return bits is 1 or 2 or 4 or 8 or 16 ? bits : throw new PageRenderException("The page has an image with an unusual sample size.");
     }
 
     private bool IsIndexed(PdfReadDictionary dictionary) =>

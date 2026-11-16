@@ -281,6 +281,29 @@ public class PageRendererBoundsTests
         Assert.True(RenderTestFiles.RenderFirst(pdf).IsDrawn);
     }
 
+    [Fact]
+    public void A_predictor_stream_whose_last_row_is_partial_keeps_every_byte()
+    {
+        // Rows of 4 bytes with a filter byte each: one full row (type 0) and a last row of 2 bytes (type 1, "sub").
+        byte[] encoded = { 0, 1, 2, 3, 4, 1, 5, 6 };
+        var stream = new PdfReadStream(Dictionary("Filter", new PdfReadName("FlateDecode"), "DecodeParms",
+            ParseDictionary("<< /Predictor 12 /Columns 4 >>")), Deflate(encoded));
+
+        byte[] decoded = PdfStreamDecoder.Decode(stream, v => v ?? PdfReadNull.Instance, 1000);
+
+        Assert.Equal(new byte[] { 1, 2, 3, 4, 5, 11 }, decoded);
+    }
+
+    [Fact]
+    public void A_huge_path_that_is_never_painted_still_stops_at_the_output_bound()
+    {
+        string rectangles = string.Concat(Enumerable.Repeat("0 0 1 1 re ", 20_000));
+
+        var page = RenderTestFiles.RenderFirst(RenderTestFiles.OnePage(rectangles), PageRenderLimits.Default with { MaxOutputCharacters = 1000 });
+
+        Assert.Contains("drawing is too large", page.Reason);
+    }
+
     #endregion
 
     #region Private Methods

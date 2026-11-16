@@ -186,7 +186,8 @@ internal sealed partial class PageInterpreter
 
     private void CheckOutput()
     {
-        if (_body.Length + _defs.Length > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
+        if (_body.Length + _defs.Length + _line.Length + _textCharacters > _limits.MaxOutputCharacters)
+            throw new PageRenderException("The page drawing is too large.");
     }
 
     private void CloseGroups(RenderState state)

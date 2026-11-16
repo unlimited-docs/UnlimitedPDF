@@ -165,6 +165,71 @@ public class PageRendererImageBoundsTests
         Assert.Contains("behind another filter", page.Reason);
     }
 
+    [Theory]
+    [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 2147483647 /Filter /FlateDecode")]
+    [InlineData("/Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /SMask 6 0 R")]
+    public void A_hostile_sample_size_is_refused_before_it_sizes_a_decode(string entries)
+    {
+        var watch = Stopwatch.StartNew();
+        var page = DrawRawImage(entries, Deflate(new byte[10_000_000]),
+            extra: (6, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 2147483647 /Filter /FlateDecode", Deflate(new byte[10_000_000])));
+
+        Assert.False(page.IsDrawn);
+        Assert.True(watch.ElapsedMilliseconds < 1000, $"Took {watch.ElapsedMilliseconds} ms.");
+    }
+
+    [Fact]
+    public void Exif_after_fill_bytes_is_still_removed()
+    {
+        byte[] jpeg = File.ReadAllBytes(Fixtures.Jpeg("exif-orientation-6.jpg"));
+        var filled = jpeg.Take(2).Append((byte)0xFF).Concat(jpeg.Skip(2)).ToArray(); // one fill byte before the first marker
+        var image = PdfImage.FromBytes(jpeg, new PdfImageLoadOptions { ApplyExifOrientation = false });
+
+        var page = DrawRawImage($"/Width {image.PixelWidth} /Height {image.PixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode", filled);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        byte[] drawn = Convert.FromBase64String(Regex.Match(page.Svg!, "data:image/jpeg;base64,([^\"]+)").Groups[1].Value);
+        Assert.DoesNotContain("Exif", Encoding.Latin1.GetString(drawn));
+    }
+
+    [Fact]
+    public void A_jpeg_with_another_sample_size_is_refused()
+    {
+        byte[] jpeg = File.ReadAllBytes(Fixtures.Jpeg("rgb-baseline.jpg"));
+        var image = PdfImage.FromBytes(jpeg);
+
+        var page = DrawRawImage($"/Width {image.PixelWidth} /Height {image.PixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 4 /Filter /DCTDecode", jpeg);
+
+        Assert.Contains("doesn't match", page.Reason);
+    }
+
+    [Fact]
+    public void A_jpeg_first_in_a_filter_chain_is_refused()
+    {
+        var page = DrawRawImage("/Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter [/DCTDecode /FlateDecode]", new byte[] { 1 });
+
+        Assert.Contains("behind another filter", page.Reason);
+    }
+
+    [Fact]
+    public void Indexes_past_hival_use_the_last_entry()
+    {
+        var page = DrawRawImage("/Width 2 /Height 1 /ColorSpace [/Indexed /DeviceRGB 1 <FF0000 00FF00 0000FF>] /BitsPerComponent 8",
+            new byte[] { 0, 2 });
+
+        // hival 1: index 2 clamps to entry 1 (green), not the table's third entry (blue).
+        Assert.Equal(new byte[] { 255, 0, 0, 0, 255, 0 }, PngPixels(page.Svg!));
+    }
+
+    [Fact]
+    public void A_lookup_stream_larger_than_any_palette_is_refused()
+    {
+        var page = DrawRawImage("/Width 1 /Height 1 /ColorSpace [/Indexed /DeviceRGB 255 6 0 R] /BitsPerComponent 8", new byte[] { 0 },
+            extra: (6, "/Filter /FlateDecode", Deflate(new byte[100_000])));
+
+        Assert.Contains("can't be read", page.Reason);
+    }
+
     #endregion
 
     #region Private Methods

@@ -35,16 +35,26 @@ internal sealed class StandardRenderFont : RenderFont
         ["Courier-BoldOblique"] = StandardFont.CourierBoldOblique,
     };
 
+    // Standard-encoding widths of the two ASCII codes whose glyphs differ from WinAnsi: quoteright (0x27) and
+    // quoteleft (0x60), in 1/1000 em, for Helvetica, Times, and Courier faces.
+    private readonly bool _standardEncoding;
     private readonly StandardFont _font;
     private readonly int _firstChar;
+
+    // The WinAnsi character of each code, made once (an empty string for codes WinAnsi leaves undefined).
+    private static readonly string[] Characters = Enumerable.Range(0, 256)
+        .Select(code => code is >= 0x80 and <= 0x9F ? WinAnsiHigh[code - 0x80] : (char)code)
+        .Select(c => c == '\0' ? string.Empty : c.ToString())
+        .ToArray();
     private readonly double[]? _widths;
 
     #endregion
 
     #region Constructors and Finalizers
 
-    private StandardRenderFont(StandardFont font, int firstChar, double[]? widths)
+    private StandardRenderFont(StandardFont font, int firstChar, double[]? widths, bool standardEncoding)
     {
+        _standardEncoding = standardEncoding;
         _font = font;
         _firstChar = firstChar;
         _widths = widths;
@@ -79,7 +89,7 @@ internal sealed class StandardRenderFont : RenderFont
             firstChar = (int)Math.Clamp(first.IntegerValue, 0, 255);
             widths = widthArray.Items.Take(256).Select(item => resolve(item) is PdfReadNumber n && double.IsFinite(n.Value) ? n.Value : 0).ToArray();
         }
-        return new StandardRenderFont(standard, firstChar, widths);
+        return new StandardRenderFont(standard, firstChar, widths, encoding is PdfReadNull);
     }
 
     /// <inheritdoc />
@@ -89,11 +99,13 @@ internal sealed class StandardRenderFont : RenderFont
         for (int i = 0; i < bytes.Length; i++)
         {
             byte code = bytes[i];
+            if (_standardEncoding && code is < 0x20 or > 0x7E)
+                throw new PageRenderException("The page shows a character code its font's built-in encoding doesn't define here.");
             double width = _widths is not null && code >= _firstChar && code - _firstChar < _widths.Length
                 ? _widths[code - _firstChar]
-                : StandardFontMetrics.Width(_font, code);
-            char c = code is >= 0x80 and <= 0x9F ? WinAnsiHigh[code - 0x80] : (char)code;
-            glyphs[i] = new RenderGlyph(code, width, code == 32, c == '\0' ? string.Empty : c.ToString());
+                : _standardEncoding && code is 0x27 or 0x60 ? QuoteWidth : StandardFontMetrics.Width(_font, code);
+            string text = _standardEncoding && code == 0x27 ? "\u2019" : _standardEncoding && code == 0x60 ? "\u2018" : Characters[code];
+            glyphs[i] = new RenderGlyph(code, width, code == 32, text);
         }
         return glyphs;
     }
@@ -103,6 +115,16 @@ internal sealed class StandardRenderFont : RenderFont
     #endregion
 
     #region Properties, Indexers
+
+    // A font without /Encoding uses its built-in standard encoding, where 0x27 and 0x60 are the curly quotes.
+    private double QuoteWidth => _font switch
+    {
+        StandardFont.Courier or StandardFont.CourierBold or StandardFont.CourierOblique or StandardFont.CourierBoldOblique => 600,
+        StandardFont.TimesRoman or StandardFont.TimesItalic => 333,
+        StandardFont.TimesBold or StandardFont.TimesBoldItalic => 333,
+        StandardFont.HelveticaBold or StandardFont.HelveticaBoldOblique => 278,
+        _ => 222,
+    };
 
     /// <summary>
     /// Gets the CSS font family list for the closest installed fonts.
