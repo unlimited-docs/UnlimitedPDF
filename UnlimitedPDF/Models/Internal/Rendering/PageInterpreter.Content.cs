@@ -26,7 +26,7 @@ internal sealed partial class PageInterpreter
 
     // Characters in finished text lines, counted with the drawing against the output bound.
     private long _textCharacters;
-    private int _links = 0;
+    private int _links;
     private RenderMatrix _lineMatrix = RenderMatrix.Identity;
     private RenderMatrix _textMatrix = RenderMatrix.Identity;
 
@@ -63,14 +63,6 @@ internal sealed partial class PageInterpreter
             CheckOutput();
         }
     }
-
-    private void DrawAnnotations(PdfReadDictionary page, int pageNumber)
-    {
-    }
-
-    // Form XObjects are drawn from T-06 on; until then a page with one is not drawn.
-    private void DrawForm(PdfReadStream form) =>
-        throw new PageRenderException("The page draws a form XObject, which this preview doesn't draw yet.");
 
     private void EndMarkedContent()
     {

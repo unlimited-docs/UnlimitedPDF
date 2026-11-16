@@ -12,11 +12,13 @@ internal sealed partial class PageInterpreter
     #region Fields and Constants
 
     private readonly StringBuilder _body = new();
+    private readonly PdfReadDictionary _catalog;
     private readonly StringBuilder _defs = new();
     private readonly string _idPrefix;
     private readonly PageRenderLimits _limits;
     private readonly StringBuilder _path = new();
     private readonly PdfObjectTable _objects;
+    private readonly List<int> _pageObjects;
     private readonly Stack<RenderState> _saved = new();
 
     // The longest dash pattern drawn; real patterns have a few entries, and each stroke repeats the pattern.
@@ -31,6 +33,11 @@ internal sealed partial class PageInterpreter
 
     private int _clipDepth;
     private long _contentBytes;
+    private PdfReadDictionary? _currentResources;
+    private int _formDepth;
+
+    // Default user space of the page to the SVG page: the flip and the page rotation, before any cm.
+    private RenderMatrix _pageMatrix = RenderMatrix.Identity;
     private (double X, double Y) _current;
     private (double X, double Y) _subpathStart;
     private int _nextId;
@@ -48,12 +55,15 @@ internal sealed partial class PageInterpreter
     /// <summary>
     /// Creates an interpreter for one page.
     /// </summary>
-    /// <param name="objects">The file's objects, to resolve references.</param>
+    /// <param name="file">The file the page belongs to, to resolve references and link destinations.</param>
+    /// <param name="pageObjects">The object numbers of the file's pages, in page order.</param>
     /// <param name="limits">The work bounds.</param>
     /// <param name="idPrefix">A prefix for element ids, unique among the drawings shown together.</param>
-    public PageInterpreter(PdfObjectTable objects, PageRenderLimits limits, string idPrefix)
+    public PageInterpreter(PdfSourceFile file, IEnumerable<int> pageObjects, PageRenderLimits limits, string idPrefix)
     {
-        _objects = objects;
+        _objects = file.Objects;
+        _catalog = file.Catalog;
+        _pageObjects = pageObjects.ToList();
         _limits = limits;
         _idPrefix = idPrefix;
     }
@@ -101,7 +111,7 @@ internal sealed partial class PageInterpreter
             270 => new RenderMatrix(0, -1, 1, 0, 0, width),
             _ => RenderMatrix.Identity,
         };
-        _state.Ctm = flip.Then(turn);
+        _state.Ctm = _pageMatrix = flip.Then(turn);
         double shownWidth = rotate is 90 or 270 ? height : width;
         double shownHeight = rotate is 90 or 270 ? width : height;
 
@@ -111,7 +121,7 @@ internal sealed partial class PageInterpreter
         Run(Concatenate(ContentStreams(page)), resources);
         while (_saved.Count > 0) Restore();
         CloseGroups(_state);
-        DrawAnnotations(page, pageNumber);
+        DrawAnnotations(page);
 
         var svg = new StringBuilder();
         svg.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").Append(SvgText.Number(shownWidth)).Append(' ')
@@ -314,6 +324,7 @@ internal sealed partial class PageInterpreter
     // Runs one content stream with the given resources.
     private void Run(byte[] content, PdfReadDictionary? resources)
     {
+        _currentResources = resources;
         var reader = new ContentReader(content, _limits.MaxOperands);
         int baseDepth = _saved.Count;
         while (reader.Next(out string op))

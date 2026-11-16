@@ -40,7 +40,7 @@ internal static class PdfPageRenderer
         var page = file.Pages[pageIndex];
         try
         {
-            return new PageInterpreter(file.Source.Objects, limits ?? PageRenderLimits.Default, idPrefix)
+            return new PageInterpreter(file.Source, file.Pages.Select(p => p.ObjectNumber), limits ?? PageRenderLimits.Default, idPrefix)
                 .Draw(page.Dictionary, page.Inherited, pageIndex + 1);
         }
         catch (PageRenderException exception)
