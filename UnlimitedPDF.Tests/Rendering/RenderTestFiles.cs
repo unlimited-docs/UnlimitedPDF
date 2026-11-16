@@ -43,6 +43,22 @@ internal static class RenderTestFiles
     }
 
     /// <summary>
+    /// Asserts that every page of <paramref name="pdf"/> is drawn and that its text layer equals the page text the
+    /// PDF's own text mapping gives (26111701 V-04).
+    /// </summary>
+    public static void AssertDrawnWithTheSameText(byte[] pdf)
+    {
+        var expected = PdfInspector.Read(pdf).PageText();
+        var pages = RenderAll(pdf);
+        Assert.Equal(expected.Count, pages.Count);
+        for (int i = 0; i < pages.Count; i++)
+        {
+            Assert.True(pages[i].IsDrawn, $"Page {i + 1}: {pages[i].Reason}");
+            Assert.Equal(expected[i], string.Join("\n", pages[i].TextLines));
+        }
+    }
+
+    /// <summary>
     /// Renders the first page of <paramref name="pdf"/>.
     /// </summary>
     public static PageRenderResult RenderFirst(byte[] pdf, PageRenderLimits? limits = null) =>

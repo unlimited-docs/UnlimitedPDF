@@ -6,12 +6,16 @@ internal sealed partial class PageInterpreter
 {
     #region Fields and Constants
 
-    // Fonts already read, by font dictionary, so a font is read once per page.
+    // Fonts already read, by font dictionary, so a font is read once per page; each gets a number for its glyph ids.
     private readonly Dictionary<PdfReadDictionary, RenderFont> _fonts = new(ReferenceEqualityComparer.Instance);
+    private readonly Dictionary<RenderFont, int> _fontNumbers = new(ReferenceEqualityComparer.Instance);
+
+    // Glyph outlines already written to the definitions, by font number and glyph.
+    private readonly HashSet<(int Font, int Glyph)> _glyphDefinitions = new();
     private readonly StringBuilder _line = new();
 
-    // Open marked-content sequences; each holds its /ActualText, or null.
-    private readonly Stack<string?> _spans = new();
+    // Open marked-content sequences; each holds its /ActualText, or null, and whether that text is in the page yet.
+    private readonly Stack<MarkedSpan> _spans = new();
     private readonly List<string> _textLines = new();
 
     private int _glyphs;
@@ -42,7 +46,7 @@ internal sealed partial class PageInterpreter
         }
 
         if (_spans.Count >= _limits.MaxStateDepth) throw new PageRenderException("The page nests marked content too deeply.");
-        _spans.Push(actual);
+        _spans.Push(new MarkedSpan(actual));
         if (actual is not null) _line.Append(actual);
     }
 
@@ -66,9 +70,11 @@ internal sealed partial class PageInterpreter
             throw new PageRenderException($"The page uses a font it doesn't have ({Shorten(name.Value)}).");
         if (_fonts.TryGetValue(dictionary, out var font)) return font;
 
-        font = StandardRenderFont.From(dictionary, _objects.Resolve)
+        font = (RenderFont?)StandardRenderFont.From(dictionary, _objects.Resolve)
+            ?? EmbeddedRenderFont.From(dictionary, _objects.Resolve, Decode)
             ?? throw new PageRenderException("The page uses a kind of font this preview doesn't draw.");
         _fonts[dictionary] = font;
+        _fontNumbers[font] = _fontNumbers.Count;
         return font;
     }
 
@@ -164,14 +170,25 @@ internal sealed partial class PageInterpreter
         double size = _state.FontSize;
         var positions = new StringBuilder();
         var characters = new StringBuilder();
+        var placed = new List<(int Glyph, double X)>();
         double x = 0;
-        bool layer = !_spans.Any(span => span is not null);
+        var actualSpan = _spans.FirstOrDefault(span => span.ActualText is not null);
+        bool layer = actualSpan is null;
 
         void ShowBytes(byte[] bytes)
         {
             foreach (var glyph in font.Glyphs(bytes))
             {
-                if (glyph.Text.Length > 0)
+                if (font is EmbeddedRenderFont)
+                {
+                    placed.Add((glyph.Code, x));
+                    if (layer)
+                    {
+                        characters.Append(glyph.Text);
+                        _line.Append(glyph.Text);
+                    }
+                }
+                else if (glyph.Text.Length > 0)
                 {
                     foreach (char c in glyph.Text)
                     {
@@ -202,6 +219,20 @@ internal sealed partial class PageInterpreter
         }
 
         if (characters.Length > 0 && font is StandardRenderFont standard) DrawStandardText(standard, positions, characters);
+        if (font is EmbeddedRenderFont embedded)
+        {
+            DrawGlyphs(embedded, placed);
+
+            // The glyphs are outlines, so the characters they stand for go in an invisible, selectable text run of
+            // the same width; inside an /ActualText span, the span's text goes there once.
+            string runText = characters.ToString();
+            if (actualSpan is not null)
+            {
+                runText = actualSpan.Shown ? string.Empty : actualSpan.ActualText!;
+                actualSpan.Shown = true;
+            }
+            if (runText.Length > 0) DrawTextLayer(runText, x);
+        }
         _textMatrix = RenderMatrix.Translation(x * _state.HorizontalScale, 0).Then(_textMatrix);
         CheckOutput();
     }
@@ -236,6 +267,62 @@ internal sealed partial class PageInterpreter
         _body.Append("</text>");
     }
 
+    // Draws glyph outlines: each glyph's path is defined once and placed with its own matrix.
+    private void DrawGlyphs(EmbeddedRenderFont font, List<(int Glyph, double X)> placed)
+    {
+        if (_state.RenderMode == 3 || placed.Count == 0) return; // invisible text draws nothing
+
+        int number = _fontNumbers[font];
+        double size = _state.FontSize;
+        double scale = font.UnitsToEm * size;
+        var frame = new RenderMatrix(_state.HorizontalScale, 0, 0, 1, 0, _state.Rise).Then(_textMatrix).Then(_state.Ctm);
+
+        _body.Append("<g");
+        if (_state.RenderMode == 1) _body.Append(" fill=\"none\""); else AppendFill();
+        if (_state.RenderMode is 1 or 2)
+        {
+            var textToUser = new RenderMatrix(_state.HorizontalScale, 0, 0, 1, 0, 0).Then(_textMatrix);
+            double userScale = Math.Sqrt(Math.Abs(textToUser.A * textToUser.D - textToUser.B * textToUser.C)) * Math.Abs(scale);
+            _body.Append(" stroke=\"");
+            SvgText.AppendColor(_body, _state.Stroke.Red, _state.Stroke.Green, _state.Stroke.Blue);
+            _body.Append("\" stroke-width=\"").Append(SvgText.Number(userScale > 0 ? _state.LineWidth / userScale : 0)).Append('"');
+        }
+        _body.Append('>');
+
+        foreach (var (glyph, x) in placed)
+        {
+            string outline = font.Outline(glyph);
+            if (outline.Length == 0) continue;
+            string id = $"{_idPrefix}f{number}g{glyph}";
+            if (_glyphDefinitions.Add((number, glyph)))
+            {
+                _defs.Append("<path id=\"").Append(id).Append("\" d=\"").Append(outline).Append("\"/>");
+                CheckOutput();
+            }
+            _body.Append("<use href=\"#").Append(id).Append("\" transform=\"");
+            SvgText.AppendMatrix(_body, new RenderMatrix(scale, 0, 0, scale, x, 0).Then(frame));
+            _body.Append("\"/>");
+        }
+        _body.Append("</g>");
+    }
+
+    // An invisible run of real text over glyph outlines, stretched to the run's width, so the page's text can be
+    // selected, found, and read aloud (WCAG 2.2 1.1.1, 1.4.5).
+    private void DrawTextLayer(string text, double width)
+    {
+        double size = _state.FontSize;
+        double sign = size < 0 ? -1 : 1;
+        var frame = new RenderMatrix(_state.HorizontalScale * sign, 0, 0, sign, 0, _state.Rise).Then(_textMatrix).Then(_state.Ctm);
+        _body.Append("<text xml:space=\"preserve\" transform=\"");
+        SvgText.AppendMatrix(_body, new RenderMatrix(1, 0, 0, -1, 0, 0).Then(frame));
+        _body.Append("\" font-family=\"sans-serif\" font-size=\"").Append(SvgText.Number(Math.Abs(size))).Append('"');
+        if (width * sign > 0)
+            _body.Append(" textLength=\"").Append(SvgText.Number(width * sign)).Append("\" lengthAdjust=\"spacingAndGlyphs\"");
+        _body.Append(" fill=\"#000000\" fill-opacity=\"0\">");
+        SvgText.AppendEscaped(_body, text);
+        _body.Append("</text>");
+    }
+
     private void AppendFill()
     {
         _body.Append(" fill=\"");
@@ -260,6 +347,20 @@ internal sealed partial class PageInterpreter
             : throw new PageRenderException("A text operator has no string.");
 
     #endregion
+
+    #endregion
+
+    #region Nested Types
+
+    // A marked-content sequence: its /ActualText, and whether that text has been placed in the page's text yet.
+    private sealed class MarkedSpan
+    {
+        public MarkedSpan(string? actualText) => ActualText = actualText;
+
+        public string? ActualText { get; }
+
+        public bool Shown { get; set; }
+    }
 
     #endregion
 
