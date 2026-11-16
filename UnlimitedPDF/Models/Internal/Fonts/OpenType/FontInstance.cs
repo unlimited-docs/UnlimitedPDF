@@ -8,7 +8,8 @@ namespace UnlimitedPDF.Models.Internal.Fonts.OpenType;
 /// A static font, or a variable font at its default, uses the font's own data. Any other instance is computed
 /// once, at load, for every glyph (TrueType outlines through <c>gvar</c>, advances through <c>HVAR</c> or the phantom
 /// points, metrics through <c>MVAR</c>), so a damaged variation table fails at load. CFF and CFF2 glyphs are kept as
-/// flattened CFF version 1 charstrings, ready for embedding.
+/// flattened CFF version 1 charstrings, ready for embedding. The work and the glyphs kept are charged to a budget
+/// (<see cref="Budget"/>): one instance's at load, and one shared by every other weight of a variable font (A06).
 /// </summary>
 internal sealed class FontInstance
 {
@@ -45,9 +46,11 @@ internal sealed class FontInstance
     /// <param name="font">The font.</param>
     /// <param name="axes">The font's axes, or null for a static font.</param>
     /// <param name="coordinates">Normalized coordinates, one per axis (empty for a static font).</param>
+    /// <param name="work">The budget to charge, or null for one instance's own (<see cref="Budget"/>).</param>
     /// <returns>The instance.</returns>
-    public static FontInstance Create(OpenTypeFont font, VariationAxes? axes, double[] coordinates)
+    public static FontInstance Create(OpenTypeFont font, VariationAxes? axes, double[] coordinates, CharstringWork? work = null)
     {
+        work ??= Budget(font, 1);
         bool atDefault = coordinates.All(c => c == 0);
         int axisCount = axes?.Axes.Length ?? 0;
         var advances = Enumerable.Range(0, font.GlyphCount).Select(font.Advance).ToArray();
@@ -59,13 +62,10 @@ internal sealed class FontInstance
         {
             var (offset, length) = font.TableRange("CFF2");
             var cff2 = Cff2Font.Read(font.Data, offset, length, font.GlyphCount, axisCount);
-            // One shared step and output budget for every glyph of the instance, tied to the table's size (A06).
-            var work = new CharstringWork(font.GlyphCount, length);
             charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => cff2.Instance(g, coordinates, work)).ToArray();
         }
         else if (font.Outlines == FontOutlines.Cff)
         {
-            var work = new CharstringWork(font.GlyphCount, font.TableRange("CFF ").Length);
             charstrings = Enumerable.Range(0, font.GlyphCount).Select(g => font.Cff!.Flatten(g, work)).ToArray();
         }
 
@@ -76,9 +76,7 @@ internal sealed class FontInstance
         var gvar = font.Outlines == FontOutlines.TrueType ? GlyphVariations.Read(font, axisCount) : null;
         if (gvar is not null)
         {
-            // Only gvar moves TrueType points; the points instanced and the glyphs written share one budget tied to
-            // the glyf table (A06).
-            var work = CharstringWork.ForTrueType(font.GlyphCount, font.TableRange("glyf").Length);
+            // Only gvar moves TrueType points.
             glyphData = new byte[]?[font.GlyphCount];
             for (int g = 0; g < font.GlyphCount; g++)
             {
@@ -103,6 +101,18 @@ internal sealed class FontInstance
             (int)Math.Round(metrics.XHeight + metricVariations.MetricDelta("xhgt", coordinates)));
         return new FontInstance(font, coordinates, advances, glyphData, charstrings, metrics);
     }
+
+    /// <summary>
+    /// Returns the budget for <paramref name="instances"/> instances' worth of the font's outlines, tied to the size
+    /// of the tables that drive the work: <c>CFF2</c> or <c>CFF </c>, or <c>glyf</c> and <c>gvar</c> (A06).
+    /// </summary>
+    public static CharstringWork Budget(OpenTypeFont font, int instances) => font.Outlines switch
+    {
+        FontOutlines.Cff2 => new CharstringWork(font.GlyphCount, font.TableRange("CFF2").Length, instances),
+        FontOutlines.Cff => new CharstringWork(font.GlyphCount, font.TableRange("CFF ").Length, instances),
+        _ => CharstringWork.ForTrueType(font.GlyphCount, font.TableRange("glyf").Length,
+            font.HasTable("gvar") ? font.TableRange("gvar").Length : 0, instances),
+    };
 
     /// <summary>
     /// Returns a glyph's advance width in font units.
@@ -149,7 +159,7 @@ internal sealed class FontInstance
         x[outlinePoints] = left;
         x[outlinePoints + 1] = left + advance;
 
-        var (dx, dy) = gvar.Deltas(glyph, x, y, composite ? Array.Empty<int>() : decoded.ContourEnds, coordinates);
+        var (dx, dy) = gvar.Deltas(glyph, x, y, composite ? Array.Empty<int>() : decoded.ContourEnds, coordinates, work);
         if (composite)
         {
             decoded.Components = decoded.Components

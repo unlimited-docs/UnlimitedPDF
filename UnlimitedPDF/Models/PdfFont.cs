@@ -1,5 +1,6 @@
 using UnlimitedPDF.Models.Internal.Fonts;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
+using UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 using UnlimitedPDF.Models.Internal.Text;
 
@@ -25,16 +26,21 @@ public sealed class PdfFont
 
     private static long _defaultMaxFileSize = BuiltInDefaultMaxFileSize;
 
-    private readonly Dictionary<int, PdfFont> _weights; // shared by every weight of one font
+    // The instances' worth of outlines that every other weight of one font shares (A06): a real font's instance uses
+    // at most about a third of one instance's budget, so all eleven other CSS weights fit, while a hostile font keeps
+    // at most four instances' worth whatever HTML asks.
+    private const int SharedInstances = 4;
+
+    private readonly Weights _weights; // shared by every weight of one font
     private FontLayout? _layout;
 
     #endregion
 
     #region Constructors and Finalizers
 
-    private PdfFont(OpenTypeFont font, FontInstance instance, int weight, VariationAxis? weightAxis, Dictionary<int, PdfFont>? weights = null)
+    private PdfFont(OpenTypeFont font, FontInstance instance, int weight, VariationAxis? weightAxis, Weights? weights = null)
     {
-        _weights = weights ?? new Dictionary<int, PdfFont>();
+        _weights = weights ?? new Weights();
         Font = font;
         Instance = instance;
         Weight = weight;
@@ -42,7 +48,7 @@ public sealed class PdfFont
         IsVariable = weightAxis is not null;
         MinimumWeight = weightAxis is null ? weight : (int)Math.Round(weightAxis.Minimum);
         MaximumWeight = weightAxis is null ? weight : (int)Math.Round(weightAxis.Maximum);
-        _weights[weight] = this;
+        _weights.Faces[weight] = this;
     }
 
     #endregion
@@ -160,7 +166,8 @@ public sealed class PdfFont
     // The same variable font at a weight HTML asks for: rounded to the nearest hundred on the same side of bold (a
     // weight under 600 to at most 500, one of 600 or more to at least 600), then clamped to the weight axis. Each
     // weight is one object and one embedded face, shared by every weight of the font, so one font builds at most a
-    // dozen instances whatever the documents ask (A06). A font with one weight returns itself.
+    // dozen instances whatever the documents ask, and the weights other than the one loaded share one budget, so
+    // together they cost a hostile font at most a few instances (A06). A font with one weight returns itself.
     internal PdfFont AtWeight(int weight)
     {
         if (!IsVariable) return this;
@@ -170,9 +177,10 @@ public sealed class PdfFont
         if (clamped == Weight) return this;
         lock (_weights)
         {
-            if (_weights.TryGetValue(clamped, out var known)) return known;
+            if (_weights.Faces.TryGetValue(clamped, out var known)) return known;
             var axes = VariationAxes.Read(Font)!;
-            var instance = FontInstance.Create(Font, axes, axes.Normalize(clamped));
+            _weights.Work ??= FontInstance.Budget(Font, SharedInstances);
+            var instance = FontInstance.Create(Font, axes, axes.Normalize(clamped), _weights.Work);
             return new PdfFont(Font, instance, clamped, axes.WeightAxis, _weights) { _layout = _layout };
         }
     }
@@ -337,6 +345,13 @@ public sealed class PdfFont
 
     private sealed record LoadSettings(long MaxFileSize, bool IgnoreEmbeddingRestrictions, int? Weight);
 
+    // The weights built for one font, and the budget the weights other than the one loaded share.
+    private sealed class Weights
+    {
+        public Dictionary<int, PdfFont> Faces { get; } = new();
+
+        public CharstringWork? Work { get; set; }
+    }
 
     #endregion
 }

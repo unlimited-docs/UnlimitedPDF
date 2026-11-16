@@ -1,3 +1,5 @@
+using UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
+
 namespace UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 
 /// <summary>
@@ -85,8 +87,9 @@ internal sealed class GlyphVariations
     /// <param name="y">The points' original y coordinates (phantom points included).</param>
     /// <param name="contourEnds">The last point of each contour; empty for a composite glyph (no interpolation).</param>
     /// <param name="coordinates">The normalized coordinates.</param>
+    /// <param name="work">The budget charged every point for each tuple that applies (A06).</param>
     /// <returns>The x and y deltas, one per point.</returns>
-    public (double[] X, double[] Y) Deltas(int glyph, double[] x, double[] y, int[] contourEnds, double[] coordinates)
+    public (double[] X, double[] Y) Deltas(int glyph, double[] x, double[] y, int[] contourEnds, double[] coordinates, CharstringWork work)
     {
         int pointCount = x.Length;
         var dx = new double[pointCount];
@@ -104,6 +107,10 @@ internal sealed class GlyphVariations
         int q = (int)serialized;
         int[]? sharedPoints = null;
         if ((countField & SharedPointNumbers) != 0) sharedPoints = ReadPoints(ref q, (int)end, pointCount, glyph);
+        // Scratch space for tuples with their own points, made on first use and cleared for each such tuple.
+        double[] tx = Array.Empty<double>(), ty = Array.Empty<double>();
+        bool[] touched = Array.Empty<bool>();
+        int[] contourPoints = Array.Empty<int>();
 
         for (int t = 0; t < tupleCount; t++)
         {
@@ -137,6 +144,7 @@ internal sealed class GlyphVariations
 
             double scalar = Scalar(peak, startTuple, endTuple, coordinates);
             if (scalar == 0) continue;
+            work.Vary(pointCount); // a tuple of a few bytes moves or interpolates every point (A06)
 
             int r = tupleData;
             int[]? points = (index & PrivatePointNumbers) != 0 ? ReadPoints(ref r, tupleEnd, pointCount, glyph) : sharedPoints;
@@ -150,17 +158,16 @@ internal sealed class GlyphVariations
                 continue;
             }
 
-            var tx = new double[pointCount];
-            var ty = new double[pointCount];
-            var touched = new bool[pointCount];
+            if (tx.Length == 0) { tx = new double[pointCount]; ty = new double[pointCount]; touched = new bool[pointCount]; contourPoints = new int[pointCount]; }
+            else { Array.Clear(tx, 0, pointCount); Array.Clear(ty, 0, pointCount); Array.Clear(touched, 0, pointCount); }
             for (int i = 0; i < points.Length; i++)
             {
                 tx[points[i]] += xs[i];
                 ty[points[i]] += ys[i];
                 touched[points[i]] = true;
             }
-            Interpolate(contourEnds, x, tx, touched);
-            Interpolate(contourEnds, y, ty, touched);
+            Interpolate(contourEnds, x, tx, touched, contourPoints);
+            Interpolate(contourEnds, y, ty, touched, contourPoints);
             for (int i = 0; i < pointCount; i++) { dx[i] += scalar * tx[i]; dy[i] += scalar * ty[i]; }
         }
         return (dx, dy);
@@ -263,21 +270,23 @@ internal sealed class GlyphVariations
     // Interpolation of untouched points (IUP), one coordinate at a time, contour by contour. A contour with no
     // touched point gets no deltas; with one, every point gets its delta; otherwise each untouched point takes the
     // delta of its touched neighbors, interpolated by position between them, or the nearer neighbor's delta outside.
-    private static void Interpolate(int[] contourEnds, double[] original, double[] deltas, bool[] touched)
+    // touchedPoints is scratch space of at least one entry per point.
+    private static void Interpolate(int[] contourEnds, double[] original, double[] deltas, bool[] touched, int[] touchedPoints)
     {
         int first = 0;
         foreach (int last in contourEnds)
         {
-            var touchedPoints = Enumerable.Range(first, last - first + 1).Where(i => touched[i]).ToList();
-            if (touchedPoints.Count == 1)
+            int count = 0;
+            for (int i = first; i <= last; i++) if (touched[i]) touchedPoints[count++] = i;
+            if (count == 1)
             {
                 for (int i = first; i <= last; i++) if (!touched[i]) deltas[i] = deltas[touchedPoints[0]];
             }
-            else if (touchedPoints.Count > 1)
+            else if (count > 1)
             {
-                for (int k = 0; k < touchedPoints.Count; k++)
+                for (int k = 0; k < count; k++)
                 {
-                    int a = touchedPoints[k], b = touchedPoints[(k + 1) % touchedPoints.Count];
+                    int a = touchedPoints[k], b = touchedPoints[(k + 1) % count];
                     for (int i = a + 1; ; i++)
                     {
                         if (i > last) i = first;

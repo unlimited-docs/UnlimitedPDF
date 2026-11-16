@@ -228,9 +228,7 @@ public class VariableFontTests
         // RV-50: about 528 bytes of flags may declare 65,535 points that instancing writes at 5 bytes each; 300 such
         // glyphs in a 160 KB font kept 98.6 MB for one other weight (about 21.5 GB for a 34 MB font).
         var builder = Box();
-        var glyph = new BigEndianWriter().I16(1).I16(0).I16(0).I16(0).I16(0).U16(65534).U16(0);
-        for (int i = 0; i < 256; i++) glyph.U8(0x39).U8((byte)(i < 255 ? 255 : 254)); // on curve, same x and y, repeated
-        var raw = glyph.ToArray();
+        var raw = ManyPoints();
         for (int i = 0; i < 300; i++) builder.AddRawGlyph(600, raw);
         var font = PdfFont.FromBytes(builder.Build());
 
@@ -240,9 +238,58 @@ public class VariableFontTests
         Assert.Contains("TrueType glyphs", error.Message); // the output budget stops it first
     }
 
+    [Fact]
+    public void TrueType_glyphs_whose_variations_repeat_many_small_tuples_are_corrupt_when_varied()
+    {
+        // RV-57: a tuple of 16 bytes that moves one of a glyph's 65,535 points makes the reader interpolate every point
+        // again; 4,095 such tuples in about 65 KB took 9 seconds and allocated 4.6 GB for one other weight.
+        var builder = Box();
+        int glyph = builder.AddRawGlyph(600, ManyPoints());
+        for (int t = 0; t < 4_095; t++) builder.AddWeightDeltas(glyph, new (short, short)[] { (1, 1) }, new[] { 0 });
+        var bytes = builder.Build();
+
+        var error = Assert.Throws<PdfFontException>(() => PdfFont.FromBytes(bytes).AtWeight(900));
+        var loaded = Assert.Throws<PdfFontException>(() => PdfFont.FromBytes(bytes, new PdfFontLoadOptions { Weight = 900 }));
+
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("variations that together take too long", error.Message);
+        Assert.Contains("variations that together take too long", loaded.Message);
+    }
+
+    [Fact]
+    public void The_other_weights_of_a_variable_font_share_one_budget()
+    {
+        // RV-58: each weight used to get its own budget, so the dozen weights HTML may ask for could keep a dozen
+        // instances' worth of a hostile font's glyphs. Here one weight keeps 5.2 MB of an 8.4 MB instance budget, and
+        // the weights share four budgets, so the seventh other weight is stopped.
+        var builder = Box();
+        var raw = ManyPoints();
+        for (int i = 0; i < 16; i++) builder.AddRawGlyph(600, raw);
+        var bytes = builder.Build();
+        var font = PdfFont.FromBytes(bytes);
+
+        Assert.Equal(700, PdfFont.FromBytes(bytes).AtWeight(700).Weight);
+        var error = Assert.Throws<PdfFontException>(() =>
+        {
+            foreach (int weight in new[] { 100, 200, 300, 500, 600, 700, 800, 900 }) font.AtWeight(weight);
+        });
+
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("grow too large when varied", error.Message);
+    }
+
     #endregion
 
     #region Private Methods
+
+    // A glyph of about 528 bytes that declares 65,535 points on one contour: flags on curve, with the same x and y,
+    // repeated.
+    private static byte[] ManyPoints()
+    {
+        var glyph = new BigEndianWriter().I16(1).I16(0).I16(0).I16(0).I16(0).U16(65534).U16(0);
+        for (int i = 0; i < 256; i++) glyph.U8(0x39).U8((byte)(i < 255 ? 255 : 254));
+        return glyph.ToArray();
+    }
 
     private static TestFontBuilder Axis(TestFontBuilder builder)
     {
