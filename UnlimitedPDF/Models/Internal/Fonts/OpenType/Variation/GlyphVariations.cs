@@ -105,9 +105,13 @@ internal sealed class GlyphVariations
         p += 4;
 
         int q = (int)serialized;
-        int[]? sharedPoints = null;
-        if ((countField & SharedPointNumbers) != 0) sharedPoints = ReadPoints(ref q, (int)end, pointCount, glyph);
-        // Scratch space for tuples with their own points, made on first use and cleared for each such tuple.
+        int[] sharedPoints = Array.Empty<int>();
+        int sharedCount = 0; // 0: every point
+        if ((countField & SharedPointNumbers) != 0) sharedCount = ReadPoints(ref q, (int)end, pointCount, glyph, ref sharedPoints);
+        // Scratch space made once per glyph on first use, so no tuple allocates (A06): the decoded deltas and private
+        // points of every tuple that applies, and, for tuples with a point list, the deltas spread over the points
+        // (cleared for each such tuple).
+        int[] xs = Array.Empty<int>(), ys = Array.Empty<int>(), privatePoints = Array.Empty<int>();
         double[] tx = Array.Empty<double>(), ty = Array.Empty<double>();
         bool[] touched = Array.Empty<bool>();
         int[] contourPoints = Array.Empty<int>();
@@ -147,12 +151,20 @@ internal sealed class GlyphVariations
             work.Vary(pointCount); // a tuple of a few bytes moves or interpolates every point (A06)
 
             int r = tupleData;
-            int[]? points = (index & PrivatePointNumbers) != 0 ? ReadPoints(ref r, tupleEnd, pointCount, glyph) : sharedPoints;
-            int count = points?.Length ?? pointCount;
-            var xs = ReadDeltas(ref r, tupleEnd, count, glyph);
-            var ys = ReadDeltas(ref r, tupleEnd, count, glyph);
+            int[] points = sharedPoints;
+            int count = sharedCount;
+            if ((index & PrivatePointNumbers) != 0)
+            {
+                count = ReadPoints(ref r, tupleEnd, pointCount, glyph, ref privatePoints);
+                points = privatePoints;
+            }
+            bool everyPoint = count == 0;
+            if (everyPoint) count = pointCount;
+            if (xs.Length == 0) { xs = new int[pointCount]; ys = new int[pointCount]; }
+            ReadDeltas(ref r, tupleEnd, count, glyph, xs);
+            ReadDeltas(ref r, tupleEnd, count, glyph, ys);
 
-            if (points is null)
+            if (everyPoint)
             {
                 for (int i = 0; i < pointCount; i++) { dx[i] += scalar * xs[i]; dy[i] += scalar * ys[i]; }
                 continue;
@@ -160,7 +172,7 @@ internal sealed class GlyphVariations
 
             if (tx.Length == 0) { tx = new double[pointCount]; ty = new double[pointCount]; touched = new bool[pointCount]; contourPoints = new int[pointCount]; }
             else { Array.Clear(tx, 0, pointCount); Array.Clear(ty, 0, pointCount); Array.Clear(touched, 0, pointCount); }
-            for (int i = 0; i < points.Length; i++)
+            for (int i = 0; i < count; i++)
             {
                 tx[points[i]] += xs[i];
                 ty[points[i]] += ys[i];
@@ -207,8 +219,9 @@ internal sealed class GlyphVariations
         return scalar;
     }
 
-    // Packed point numbers: a count (0 means every point), then runs of byte or word deltas.
-    private int[]? ReadPoints(ref int p, int end, int pointCount, int glyph)
+    // Packed point numbers: a count (0 means every point), then runs of byte or word deltas. Returns the count and
+    // reads the points into the front of `into`, made one entry per point when it is too small.
+    private int ReadPoints(ref int p, int end, int pointCount, int glyph, ref int[] into)
     {
         if (p >= end) throw Damaged(glyph);
         int count = _data.U8(p++);
@@ -217,10 +230,11 @@ internal sealed class GlyphVariations
             if (p >= end) throw Damaged(glyph);
             count = ((count & 0x7F) << 8) | _data.U8(p++);
         }
-        if (count == 0) return null;
+        if (count == 0) return 0;
         if (count > pointCount) throw Damaged(glyph);
 
-        var points = new int[count];
+        if (into.Length < count) into = new int[pointCount];
+        var points = into;
         int read = 0, value = 0;
         while (read < count)
         {
@@ -237,13 +251,12 @@ internal sealed class GlyphVariations
                 points[read++] = value;
             }
         }
-        return points;
+        return count;
     }
 
-    // Packed deltas: runs of zero, byte, or word values.
-    private int[] ReadDeltas(ref int p, int end, int count, int glyph)
+    // Packed deltas: runs of zero, byte, or word values, read into the front of `deltas`.
+    private void ReadDeltas(ref int p, int end, int count, int glyph, int[] deltas)
     {
-        var deltas = new int[count];
         int read = 0;
         while (read < count)
         {
@@ -253,7 +266,8 @@ internal sealed class GlyphVariations
             if (read + run > count) throw Damaged(glyph);
             if ((control & 0x80) != 0)
             {
-                read += run; // zeros
+                Array.Clear(deltas, read, run); // zeros
+                read += run;
                 continue;
             }
             bool words = (control & 0x40) != 0;
@@ -264,7 +278,6 @@ internal sealed class GlyphVariations
                 p += words ? 2 : 1;
             }
         }
-        return deltas;
     }
 
     // Interpolation of untouched points (IUP), one coordinate at a time, contour by contour. A contour with no

@@ -106,12 +106,14 @@ internal sealed partial class TestFontBuilder
         return w.ToArray();
     }
 
+    // Runs of up to 64 deltas: a run of zeros takes one byte, any other run 16-bit words.
     private static byte[] PackedDeltas(int[] values)
     {
         var w = new BigEndianWriter();
         for (int i = 0; i < values.Length; i += 64)
         {
             int run = Math.Min(64, values.Length - i);
+            if (values.Skip(i).Take(run).All(v => v == 0)) { w.U8((byte)(0x80 | (run - 1))); continue; }
             w.U8((byte)(0x40 | (run - 1)));
             for (int j = i; j < i + run; j++) w.I16((short)values[j]);
         }

@@ -18,15 +18,18 @@ internal sealed class CharstringWork
 
     // Real CFF glyphs execute a few hundred steps each in tens to hundreds of table bytes, and flattening a real font's
     // subroutines takes a few times its table; real TrueType glyphs have a few hundred points, each at least a byte of
-    // the table, and instancing writes them at most about two and a half times larger; real gvar data moves under one
-    // point per byte of glyf and gvar together (0.3 to 0.4 in six installed fonts). The fixed parts leave room for
-    // small fonts with complex glyphs.
+    // the table, and instancing writes them at most about two and a half times larger; the gvar tuples that apply at
+    // one weight move at most about a fifth of a point per byte of glyf and gvar together (0.03 to 0.2 in seven
+    // installed fonts), so two points per byte leaves ten times that. The fixed parts leave room for small fonts with
+    // complex glyphs.
     public const long BaseSteps = 4_000_000;
     public const int StepsPerGlyph = 2_000;
     public const int StepsPerTableByte = 16;
     public const long BaseOutput = 8L * 1024 * 1024;
     public const int OutputPerTableByte = 8;
     public const int TrueTypeOutputPerTableByte = 4;
+    public const long BaseVariation = 4_000_000;
+    public const int VariationPerTableByte = 2;
 
     private readonly string _tooLong;
     private readonly string _tooLarge;
@@ -54,7 +57,7 @@ internal sealed class CharstringWork
         long table = Math.Max(0, tableLength);
         _remaining = instances * (BaseSteps + Math.Min((long)StepsPerGlyph * Math.Max(1, glyphCount), StepsPerTableByte * table));
         _outputLeft = instances * (BaseOutput + outputPerTableByte * table);
-        _variedLeft = instances * (BaseSteps + StepsPerTableByte * (table + Math.Max(0, variationLength)));
+        _variedLeft = instances * (BaseVariation + VariationPerTableByte * (table + Math.Max(0, variationLength)));
         _tooLong = tooLong;
         _tooLarge = tooLarge;
     }

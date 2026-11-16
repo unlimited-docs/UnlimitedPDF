@@ -278,6 +278,78 @@ public class VariableFontTests
         Assert.Contains("grow too large when varied", error.Message);
     }
 
+    [Fact]
+    public void TrueType_variations_that_move_far_more_points_per_byte_than_real_fonts_are_corrupt()
+    {
+        // RV-64: the variation budget allowed 16 points per byte of glyf and gvar, where the tuples real fonts apply at
+        // one weight move at most about 0.2, so a hostile font near the size limit took about 7 seconds per weight.
+        // Here 3 MB of tuples that move every point of a 1,000-point glyph (0.25 points per byte) let 250 one-point
+        // tuples on a glyph of 65,535 points move 16.4 million points per weight: within 16 per byte, not within 2.
+        var builder = Box();
+        int ballast = builder.AddGlyph(600, Enumerable.Range(0, 1_000).Select(i => ((short)i, (short)(i % 2 * 100))).ToArray());
+        var moves = Enumerable.Repeat(((short)300, (short)300), 1_004).ToArray();
+        for (int t = 0; t < 750; t++) builder.AddWeightDeltas(ballast, moves);
+        int glyph = builder.AddRawGlyph(600, ManyPoints());
+        for (int t = 0; t < 250; t++) builder.AddWeightDeltas(glyph, new (short, short)[] { (1, 1) }, new[] { 0 });
+        var bytes = builder.Build();
+        var font = PdfFont.FromBytes(bytes);
+
+        var loaded = Assert.Throws<PdfFontException>(() => PdfFont.FromBytes(bytes, new PdfFontLoadOptions { Weight = 900 }));
+        var error = Assert.Throws<PdfFontException>(() =>
+        {
+            foreach (int weight in new[] { 500, 600, 700, 800, 900 }) font.AtWeight(weight);
+        });
+
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("variations that together take too long", loaded.Message);
+        Assert.Contains("variations that together take too long", error.Message);
+    }
+
+    [Fact]
+    public void TrueType_variations_decode_their_deltas_without_allocating_per_tuple()
+    {
+        // RV-65: each tuple that applies read its deltas into two new arrays of its point count, so tuples of a few
+        // bytes over every point of a 65,535-point glyph allocated about 512 KB each (6.3 GB per weight near the size
+        // limit). Thirty such tuples must cost about what one does.
+        long Allocated(int tuples)
+        {
+            var builder = Box();
+            int glyph = builder.AddRawGlyph(600, ManyPoints());
+            var zeros = new (short, short)[65_539];
+            for (int t = 0; t < tuples; t++) builder.AddWeightDeltas(glyph, zeros);
+            var bytes = builder.Build();
+            PdfFont.FromBytes(bytes, new PdfFontLoadOptions { Weight = 900 }); // warm up
+            long before = GC.GetAllocatedBytesForCurrentThread();
+            PdfFont.FromBytes(bytes, new PdfFontLoadOptions { Weight = 900 });
+            return GC.GetAllocatedBytesForCurrentThread() - before;
+        }
+
+        long one = Allocated(1), thirty = Allocated(30);
+
+        Assert.True(thirty - one < 2L * 1024 * 1024, $"Thirty tuples allocated {thirty - one:N0} bytes more than one.");
+    }
+
+    [Fact]
+    public void Every_tuple_that_applies_reads_its_own_deltas()
+    {
+        // The scratch arrays a glyph's tuples reuse are cleared for each tuple, so a tuple of zeros after one that moves
+        // points adds nothing: over every point (zero runs) and over a point list (interpolated).
+        var everyPoint = Box();
+        everyPoint.AddWeightDeltas(1, new (short, short)[8]);
+        var pointList = Axis(new TestFontBuilder());
+        int glyph = pointList.AddGlyph(600, TestFontBuilder.Box(40, 0, 560, 700));
+        pointList.Map('A', glyph);
+        pointList.AddWeightDeltas(glyph, new (short, short)[] { (0, 0), (100, 50) }, new[] { 0, 2 });
+        pointList.AddWeightDeltas(glyph, new (short, short)[] { (0, 0), (0, 0) }, new[] { 0, 2 });
+
+        var first = PdfFont.FromBytes(everyPoint.Build(), new PdfFontLoadOptions { Weight = 900 });
+        var second = PdfFont.FromBytes(pointList.Build(), new PdfFontLoadOptions { Weight = 900 });
+
+        Assert.Equal(700, first.Instance.Advance(1));
+        Assert.Equal(new[] { (40, 0), (40, 700), (660, 700), (660, 0) }, Points(first.Instance.GlyphData(1)));
+        Assert.Equal(new[] { (40, 0), (40, 750), (660, 750), (660, 0) }, Points(second.Instance.GlyphData(glyph)));
+    }
+
     #endregion
 
     #region Private Methods
