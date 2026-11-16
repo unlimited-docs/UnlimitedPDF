@@ -19,10 +19,10 @@ internal sealed partial class TestFontBuilder
     #region Public Methods
 
     /// <summary>
-    /// Adds deltas for one glyph at the axis maximum. With <paramref name="points"/> null, the deltas cover every
-    /// point: the outline points (or one per component) and then the four phantom points, whose second one moves the
-    /// advance width. Otherwise they cover only the listed points (a private point list), and the reader interpolates
-    /// the rest.
+    /// Adds deltas for one glyph at the axis maximum. With <paramref name="points"/> null, the deltas cover the
+    /// glyph's shared points when it has them (<see cref="SharedPoints"/>), or else every point: the outline points (or
+    /// one per component) and then the four phantom points, whose second one moves the advance width. Otherwise they
+    /// cover only the listed points (a private point list). The reader interpolates the points a list leaves out.
     /// </summary>
     public TestFontBuilder AddWeightDeltas(int glyph, (short Dx, short Dy)[] deltas, int[]? points = null)
     {
@@ -58,7 +58,8 @@ internal sealed partial class TestFontBuilder
 
     private static short F2Dot14(double value) => (short)Math.Round(value * 16384);
 
-    // gvar with one tuple per delta set, each with an embedded peak tuple (wght = 1) and, when given, private points.
+    // gvar with one tuple per delta set, each with an embedded peak tuple (wght = 1) and, when given, private points;
+    // a glyph's shared points, when given, come first in its serialized data.
     private byte[] BuildGvar()
     {
         var glyphData = new List<byte[]>();
@@ -67,6 +68,8 @@ internal sealed partial class TestFontBuilder
             if (!_weightDeltas.TryGetValue(g, out var sets)) { glyphData.Add(Array.Empty<byte>()); continue; }
             var headers = new BigEndianWriter();
             var serialized = new BigEndianWriter();
+            bool shared = SharedPoints.TryGetValue(g, out var sharedPoints);
+            if (shared) serialized.Bytes(PackedPoints(sharedPoints!));
             foreach (var (points, deltas) in sets)
             {
                 var tuple = new BigEndianWriter();
@@ -77,7 +80,7 @@ internal sealed partial class TestFontBuilder
                 headers.U16((ushort)bytes.Length).U16((ushort)(0x8000 | (points is not null ? 0x2000 : 0))).I16(F2Dot14(1));
                 serialized.Bytes(bytes);
             }
-            var data = new BigEndianWriter().U16((ushort)sets.Count).U16((ushort)(4 + headers.Length)).Bytes(headers.ToArray()).Bytes(serialized.ToArray());
+            var data = new BigEndianWriter().U16((ushort)((shared ? 0x8000 : 0) | sets.Count)).U16((ushort)(4 + headers.Length)).Bytes(headers.ToArray()).Bytes(serialized.ToArray());
             glyphData.Add(data.Align(2).ToArray());
         }
 
@@ -106,16 +109,24 @@ internal sealed partial class TestFontBuilder
         return w.ToArray();
     }
 
-    // Runs of up to 64 deltas: a run of zeros takes one byte, any other run 16-bit words.
+    // Runs of up to 64 deltas: a run of zeros takes one byte, a run that fits in signed bytes one byte per delta,
+    // and any other run 16-bit words.
     private static byte[] PackedDeltas(int[] values)
     {
         var w = new BigEndianWriter();
         for (int i = 0; i < values.Length; i += 64)
         {
             int run = Math.Min(64, values.Length - i);
-            if (values.Skip(i).Take(run).All(v => v == 0)) { w.U8((byte)(0x80 | (run - 1))); continue; }
+            var part = values.Skip(i).Take(run).ToArray();
+            if (part.All(v => v == 0)) { w.U8((byte)(0x80 | (run - 1))); continue; }
+            if (part.All(v => v is >= sbyte.MinValue and <= sbyte.MaxValue))
+            {
+                w.U8((byte)(run - 1));
+                foreach (int v in part) w.U8(unchecked((byte)(sbyte)v));
+                continue;
+            }
             w.U8((byte)(0x40 | (run - 1)));
-            for (int j = i; j < i + run; j++) w.I16((short)values[j]);
+            foreach (int v in part) w.I16((short)v);
         }
         return w.ToArray();
     }
@@ -236,6 +247,11 @@ internal sealed partial class TestFontBuilder
     /// Gets metric deltas at the axis maximum by <c>MVAR</c> tag (for example <c>cpht</c>).
     /// </summary>
     public Dictionary<string, int> MvarDeltas { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Gets each glyph's shared point numbers in <c>gvar</c>, used by its delta sets added without points of their own.
+    /// </summary>
+    public Dictionary<int, int[]> SharedPoints { get; } = new();
 
     /// <summary>
     /// Gets or sets the weight axis (<c>fvar</c>), or null for a static font.

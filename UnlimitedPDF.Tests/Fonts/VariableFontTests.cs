@@ -350,6 +350,27 @@ public class VariableFontTests
         Assert.Equal(new[] { (40, 0), (40, 750), (660, 750), (660, 0) }, Points(second.Instance.GlyphData(glyph)));
     }
 
+    [Fact]
+    public void Shared_and_private_point_lists_and_byte_deltas_combine()
+    {
+        // RV-70: real fonts give most glyphs shared point numbers and write small deltas as signed bytes. The shared
+        // list moves the right edge and the advance; a private list that leaves out point 0 shifts the box by (-20,
+        // +10), since both its points have the same deltas; a shorter private list of one point shifts it by -30 in y.
+        // Each tuple reads only its own entries from the arrays the tuples reuse.
+        var builder = Axis(new TestFontBuilder());
+        int glyph = builder.AddGlyph(600, TestFontBuilder.Box(40, 0, 560, 700));
+        builder.Map('A', glyph);
+        builder.SharedPoints[glyph] = new[] { 0, 1, 2, 3, 5 };
+        builder.AddWeightDeltas(glyph, new (short, short)[] { (0, 0), (0, 0), (100, 0), (100, 0), (100, 0) });
+        builder.AddWeightDeltas(glyph, new (short, short)[] { (-20, 10), (-20, 10) }, new[] { 1, 2 });
+        builder.AddWeightDeltas(glyph, new (short, short)[] { (0, -30) }, new[] { 3 });
+
+        var font = PdfFont.FromBytes(builder.Build(), new PdfFontLoadOptions { Weight = 900 });
+
+        Assert.Equal(new[] { (20, -20), (20, 680), (640, 680), (640, -20) }, Points(font.Instance.GlyphData(glyph)));
+        Assert.Equal(700, font.Instance.Advance(glyph));
+    }
+
     #endregion
 
     #region Private Methods
