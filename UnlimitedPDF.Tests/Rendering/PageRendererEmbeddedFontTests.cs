@@ -201,6 +201,10 @@ public class PageRendererEmbeddedFontTests
     [InlineData(new object[] { 0, 0, RMoveTo, 10, 20, 30, 40, 5, (byte)30, EndChar }, "M0 0C0 10 20 40 60 45Z")]
     [InlineData(new object[] { 0, 0, RMoveTo, 10, 0, 10, 0, 10, 0, 10, 0, 10, 0, 10, 0, 50, (byte)12, (byte)35, EndChar }, "M0 0C10 0 20 0 30 0C40 0 50 0 60 0Z")]
     [InlineData(new object[] { 0, 0, RMoveTo, 10, 20, 0, 30, 40, 0, 5, 5, (byte)24, EndChar }, "M0 0C10 20 10 50 50 50L55 55Z")]
+    [InlineData(new object[] { 0, 0, RMoveTo, 10, 0, 0, 10, 1, 2, 3, 4, 5, 6, (byte)25, EndChar }, "M0 0L10 0L10 10C11 12 14 16 19 22Z")]
+    [InlineData(new object[] { 0, 0, RMoveTo, 10, 20, 30, 40, 50, 60, 70, (byte)12, (byte)34, EndChar }, "M0 0C10 0 30 30 70 30C120 30 180 0 250 0Z")]
+    [InlineData(new object[] { 500, 10, 20, RMoveTo, EndChar }, "M10 20Z")]
+    [InlineData(new object[] { 500, EndChar }, "")]
     public void Type2_operators_build_their_paths(object[] parts, string expected)
     {
         Assert.Equal(expected, GlyphOutlines.Type2(Code(parts)));
@@ -255,6 +259,58 @@ public class PageRendererEmbeddedFontTests
         var page = RenderTestFiles.RenderFirst(EditContent(Save(BoxFont(), "A", 100, 700, 10), content => content.Replace("BT", "BT 50 Tz 3 Ts")));
 
         Assert.Contains("<use href=\"#t-f0g1\" transform=\"matrix(0.005 0 0 -0.01 100 138.89)\"/>", page.Svg);
+    }
+
+    [Fact]
+    public void Fixed_point_numbers_are_read_as_sixteen_dot_sixteen()
+    {
+        byte[] charstring = { 255, 0, 1, 128, 0, 139, RMoveTo, EndChar }; // 1.5, 0 rmoveto
+
+        Assert.Equal("M1.5 0Z", GlyphOutlines.Type2(charstring));
+    }
+
+    [Fact]
+    public void Invisible_glyph_text_draws_no_glyphs_but_keeps_its_text()
+    {
+        var page = RenderTestFiles.RenderFirst(EditContent(Save(BoxFont(), "A", 0, 0, 10), content => content.Replace("BT", "BT 3 Tr")));
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.DoesNotContain("<use ", page.Svg);
+        Assert.Contains("fill-opacity=\"0\">A</text>", page.Svg);
+    }
+
+    [Fact]
+    public void The_outermost_actual_text_gives_the_text_of_nested_spans()
+    {
+        byte[] pdf = EditContent(Save(BoxFont(), "A", 0, 0, 10), content =>
+            Regex.Replace(content, @"(<[0-9A-Fa-f]+> Tj)", "/Span << /ActualText <FEFF0058> >> BDC /Span << /ActualText <FEFF0059> >> BDC $1 EMC EMC"));
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.Single(Regex.Matches(page.Svg!, "fill-opacity=\"0\">X</text>"));
+        Assert.DoesNotContain(">Y</text>", page.Svg);
+    }
+
+    [Fact]
+    public void A_page_may_use_only_so_many_fonts()
+    {
+        var fonts = string.Join(" ", Enumerable.Range(0, 33).Select(i => $"/F{i} << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"));
+        string content = "BT " + string.Concat(Enumerable.Range(0, 33).Select(i => $"/F{i} 10 Tf (a) Tj ")) + "ET";
+
+        var page = RenderTestFiles.RenderFirst(RenderTestFiles.OnePage(content, $"<< /Font << {fonts} >> >>"));
+
+        Assert.Contains("too many fonts", page.Reason);
+    }
+
+    [Fact]
+    public void A_text_map_may_hold_only_so_many_characters()
+    {
+        // 65,536 codes of 20 characters each: 1.3 million characters from 100 bytes.
+        string cmap = "1 beginbfrange <0000> <FFFF> <" + string.Concat(Enumerable.Repeat("0041", 20)) + "> endbfrange";
+
+        var exception = Assert.Throws<PageRenderException>(() => ToUnicodeMap.Read(Encoding.ASCII.GetBytes(cmap)));
+
+        Assert.Contains("too large", exception.Message);
     }
 
     #endregion

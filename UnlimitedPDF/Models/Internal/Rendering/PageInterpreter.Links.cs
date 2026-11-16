@@ -10,6 +10,11 @@ internal sealed partial class PageInterpreter
     // per page; and the most form XObjects drawn on a page.
     private const int MaxAnnotations = 10_000;
     private const int MaxNameTreeEntries = 100_000;
+
+    // Names longer than this are skipped, and the name tree's keys together may hold at most MaxNameTreeBytes: a key
+    // repeated by reference would otherwise be decoded again for every entry.
+    private const int MaxNameLength = 4096;
+    private const long MaxNameTreeBytes = 16L * 1024 * 1024;
     private const int MaxFormDraws = 10_000;
 
     // Annotation flags that hide an annotation: Hidden (2) and NoView (32).
@@ -179,6 +184,7 @@ internal sealed partial class PageInterpreter
         var pending = new Stack<PdfReadDictionary>();
         pending.Push(root);
         int read = 0;
+        long keyBytes = 0;
         while (pending.Count > 0)
         {
             var node = pending.Pop();
@@ -188,7 +194,9 @@ internal sealed partial class PageInterpreter
                 for (int i = 0; i + 1 < pairs.Count; i += 2)
                 {
                     if (++read > MaxNameTreeEntries) return map;
-                    if (_objects.Resolve(pairs[i]) is PdfReadString key) map.TryAdd(Encoding.Latin1.GetString(key.Bytes), pairs[i + 1]);
+                    if (_objects.Resolve(pairs[i]) is not PdfReadString key || key.Bytes.Length > MaxNameLength) continue;
+                    if ((keyBytes += key.Bytes.Length) > MaxNameTreeBytes) return map;
+                    map.TryAdd(Encoding.Latin1.GetString(key.Bytes), pairs[i + 1]);
                 }
             }
             if (_objects.Resolve(node["Kids"]) is PdfReadArray kids)

@@ -31,12 +31,16 @@ internal static class GlyphOutlines
     /// <param name="font">The font.</param>
     /// <param name="glyph">The glyph ID.</param>
     /// <param name="maxLength">The longest path allowed; a longer one stops the page.</param>
+    /// <param name="pageComponents">The components expanded on the page so far; grows with this glyph's.</param>
+    /// <param name="maxPageComponents">The most components the page may expand.</param>
     /// <returns>The SVG path data; empty for a glyph without outlines.</returns>
-    public static string TrueType(OpenTypeFont font, int glyph, int maxLength)
+    public static string TrueType(OpenTypeFont font, int glyph, int maxLength, ref int pageComponents, int maxPageComponents)
     {
         var path = new StringBuilder();
         int components = 0;
         AppendTrueType(font, glyph, RenderMatrix.Identity, path, 0, ref components, maxLength);
+        pageComponents += components;
+        if (pageComponents > maxPageComponents) throw new PageRenderException("The page's glyphs have too many components.");
         return path.ToString();
     }
 

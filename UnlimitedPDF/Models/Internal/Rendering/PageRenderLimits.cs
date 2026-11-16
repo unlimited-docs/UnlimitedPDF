@@ -14,6 +14,9 @@ namespace UnlimitedPDF.Models.Internal.Rendering;
 /// <param name="MaxOperands">The most operands one operator may have.</param>
 /// <param name="MaxClipDepth">The deepest nesting of clipping paths.</param>
 /// <param name="MaxGlyphs">The most glyphs shown on a page.</param>
+/// <param name="MaxFonts">The most fonts read on a page.</param>
+/// <param name="MaxFontTextCharacters">The most characters the fonts' text maps on a page may hold together.</param>
+/// <param name="MaxGlyphComponents">The most composite glyph components expanded on a page.</param>
 internal sealed record PageRenderLimits(
     int MaxOperators,
     int MaxPathSegments,
@@ -24,7 +27,10 @@ internal sealed record PageRenderLimits(
     int MaxOutputCharacters,
     int MaxOperands,
     int MaxClipDepth,
-    int MaxGlyphs)
+    int MaxGlyphs,
+    int MaxFonts,
+    int MaxFontTextCharacters,
+    int MaxGlyphComponents)
 {
     #region Properties, Indexers
 
@@ -42,7 +48,10 @@ internal sealed record PageRenderLimits(
         MaxOutputCharacters: 64 * 1024 * 1024,
         MaxOperands: 4096,
         MaxClipDepth: 256,
-        MaxGlyphs: 1_000_000);
+        MaxGlyphs: 1_000_000,
+        MaxFonts: 32,
+        MaxFontTextCharacters: 4_000_000,
+        MaxGlyphComponents: 100_000);
 
     #endregion
 }

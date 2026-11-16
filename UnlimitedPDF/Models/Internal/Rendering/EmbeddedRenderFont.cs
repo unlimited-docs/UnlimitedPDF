@@ -113,14 +113,16 @@ internal sealed class EmbeddedRenderFont : RenderFont
     /// </summary>
     /// <param name="glyph">The glyph ID.</param>
     /// <param name="maxLength">The longest path allowed; a longer one stops the page.</param>
+    /// <param name="pageComponents">The composite components expanded on the page so far.</param>
+    /// <param name="maxPageComponents">The most components the page may expand.</param>
     /// <returns>The path data.</returns>
     /// <exception cref="PageRenderException">The glyph is not in the font, or its outline is damaged or too large.</exception>
-    public string Outline(int glyph, int maxLength)
+    public string Outline(int glyph, int maxLength, ref int pageComponents, int maxPageComponents)
     {
         if (_paths.TryGetValue(glyph, out var path)) return path;
         if (_trueType is not null)
         {
-            path = GlyphOutlines.TrueType(_trueType, glyph, maxLength);
+            path = GlyphOutlines.TrueType(_trueType, glyph, maxLength, ref pageComponents, maxPageComponents);
         }
         else
         {
@@ -169,7 +171,8 @@ internal sealed class EmbeddedRenderFont : RenderFont
         }
         double scale = top.Has(OpFontMatrix) ? top.Number(OpFontMatrix, 0) : 0.001;
         if (!double.IsFinite(scale) || scale <= 0 || scale > 1) throw FontBytes.Corrupt("has a CFF FontMatrix this preview doesn't draw");
-        if (top.Has(OpFontMatrix) && (top.Number(OpFontMatrix, 1) != 0 || top.Number(OpFontMatrix, 2) != 0 || top.Number(OpFontMatrix, 3) != scale))
+        if (top.Has(OpFontMatrix) && (top.Number(OpFontMatrix, 1) != 0 || top.Number(OpFontMatrix, 2) != 0 || top.Number(OpFontMatrix, 3) != scale
+            || top.Number(OpFontMatrix, 4) != 0 || top.Number(OpFontMatrix, 5) != 0))
             throw FontBytes.Corrupt("has a CFF FontMatrix this preview doesn't draw");
         return (CffFont.Read(data, 0, program.Length, glyphCount), scale);
     }
@@ -249,6 +252,11 @@ internal sealed class EmbeddedRenderFont : RenderFont
     #endregion
 
     #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the number of characters the font's text map holds.
+    /// </summary>
+    public long TextCharacters => _toUnicode?.Characters ?? 0;
 
     /// <summary>
     /// Gets the scale from font units to the em (1/unitsPerEm, or the CFF FontMatrix scale).

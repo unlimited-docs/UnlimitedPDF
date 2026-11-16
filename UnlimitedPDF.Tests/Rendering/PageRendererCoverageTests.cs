@@ -1,4 +1,3 @@
-using System.ComponentModel;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
@@ -7,8 +6,9 @@ using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
 namespace UnlimitedPDF.Tests.Rendering;
 
 /// <summary>
-/// The renderer draws every page of every demo's output completely, with the same text as the PDF, and the library's
-/// public surface is unchanged by it (26111701 AC-08, AC-12, V-02, V-08).
+/// The renderer draws every page of every demo's output completely, with the same text as the PDF, for every demo the
+/// catalog lists and each of its variants; and the library's public surface is unchanged by it (26111701 AC-08,
+/// AC-12, V-02, V-08).
 /// </summary>
 public class PageRendererCoverageTests
 {
@@ -16,13 +16,24 @@ public class PageRendererCoverageTests
 
     #region Public Methods
 
+    [Fact]
+    public void Every_demo_in_the_catalog_has_a_builder_here()
+    {
+        // A new demo can't be skipped quietly: it must be added to Outputs below.
+        var covered = Outputs().Select(o => o.Demo).ToHashSet(StringComparer.Ordinal);
+        var missing = SampleCatalog.Categories.SelectMany(c => c.Demos).Concat(SampleCatalog.InvoiceTypes)
+            .Select(d => d.Title).Where(title => !covered.Contains(title)).ToList();
+
+        Assert.Empty(missing);
+    }
+
     [Theory]
     [MemberData(nameof(DemoOutputs))]
-    public void Every_page_of_every_demo_output_is_drawn_with_its_text(string demo)
+    public async Task Every_page_of_every_demo_output_is_drawn_with_its_text(string demo, string variant)
     {
-        byte[] pdf = Build(demo);
+        var output = Outputs().Single(o => o.Demo == demo && o.Variant == variant);
 
-        RenderTestFiles.AssertDrawnWithTheSameText(pdf);
+        foreach (byte[] pdf in await output.Build()) RenderTestFiles.AssertDrawnWithTheSameText(pdf);
     }
 
     [Fact]
@@ -40,46 +51,19 @@ public class PageRendererCoverageTests
         // The renderer is internal (AC-08): any change here is a deliberate public API change, recorded with it.
         string expected = File.ReadAllText(SurfaceFile()).Replace("\r\n", "\n").TrimEnd();
 
-        Assert.Equal(expected, PublicSurface());
+        Assert.Equal(expected, PublicSurface.Describe(typeof(PdfDocument).Assembly));
     }
 
     #endregion
 
     #region Private Methods
 
-    private static byte[] Build(string demo)
-    {
-        var images = Images();
-        PdfDocument document = demo switch
-        {
-            "invoice" => InvoiceSample.Build(new InvoiceInput(), images),
-            "quotation" => QuotationSample.Build(new QuotationInput(), images),
-            "purchase-order" => PurchaseOrderSample.Build(new PurchaseOrderInput(), images),
-            "delivery-note" => DeliveryNoteSample.Build(new DeliveryNoteInput(), images),
-            "account-statement" => AccountStatementSample.Build(new AccountStatementInput(), images),
-            "payslip" => PayslipSample.Build(new PayslipInput(), images),
-            "medical-report" => MedicalReportSample.Build(new MedicalReportInput(), images),
-            "receipt" => ReceiptSample.Build(new ReceiptInput(), images),
-            "headers-and-footers" => HeadersFootersSample.Build(new HeadersFootersInput()),
-            "bookmarks-and-numbers" => BookmarksAndNumbers(),
-            _ when demo.StartsWith("language-", StringComparison.Ordinal) => Language(demo.Substring("language-".Length)),
-            _ when demo == "split-part" => null!,
-            _ => throw new ArgumentOutOfRangeException(nameof(demo)),
-        };
-        if (demo == "split-part")
-        {
-            var parts = SplitEveryNSample.Build(new SplitInput { File = new MergeFileInput("report.pdf", PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(3))), PagesPerPart = 2 });
-            return parts[0].Bytes;
-        }
-        return PdfPageReader.SaveBytes(document);
-    }
+    private static PdfFile Generated(int pages) => PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(pages));
 
-    private static PdfDocument BookmarksAndNumbers()
+    private static async Task<IEnumerable<byte[]>> Html(string html)
     {
-        var input = new BookmarksAndNumbersInput { FooterText = "Page {page} of {pages}" };
-        input.Files.Add(new MergeFileInput("a.pdf", PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(2))));
-        input.Files.Add(new MergeFileInput("b.pdf", PdfFile.FromBytes(ReaderFixtureBuilder.DocumentBytes(1))));
-        return BookmarksAndNumbersSample.Build(input);
+        var (document, _) = await HtmlToPdfSample.BuildAsync(html, (reference, _) => Task.FromResult(UnlimitedPDF.Tests.Html.HtmlGoldenTests.Images(reference)));
+        return new[] { PdfPageReader.SaveBytes(document) };
     }
 
     // Every image a demo names, as a small generated JPEG (PR-011).
@@ -94,25 +78,86 @@ public class PageRendererCoverageTests
         return new SampleImages(names.ToDictionary(name => name, _ => image));
     }
 
-    private static PdfDocument Language(string id)
+    private static FontsAndLanguagesInput LanguageInput(string id)
     {
         var input = new FontsAndLanguagesInput();
         input.Apply(LanguageInvoices.Find(id));
-        var fonts = Fonts.DemoFonts.For(input);
-        return FontsAndLanguagesSample.Build(input, fonts, fonts);
+        return input;
     }
 
-    // Every public type with its public members, one per line, in a stable order.
-    private static string PublicSurface()
+    private static Func<Task<IEnumerable<byte[]>>> One(Func<PdfDocument> build) =>
+        () => Task.FromResult<IEnumerable<byte[]>>(new[] { PdfPageReader.SaveBytes(build()) });
+
+    // The default output of each demo, and of each of its variants, as its page builds it.
+    private static IEnumerable<(string Demo, string Variant, Func<Task<IEnumerable<byte[]>>> Build)> Outputs()
     {
-        const BindingFlags Flags = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly;
-        var lines = new List<string>();
-        foreach (var type in typeof(PdfDocument).Assembly.GetExportedTypes().OrderBy(t => t.FullName, StringComparer.Ordinal))
+        var images = Images();
+        yield return ("Text and pages", "", One(() => TextBasicsSample.Build(new TextBasicsInput())));
+        yield return ("Tables", "", One(() => TablesSample.Build(new TablesInput())));
+        yield return ("Images", "", One(() => ImagesSample.Build(new ImagesInput(), images["dock.jpg"])));
+        yield return ("Headers and footers", "", One(() => HeadersFootersSample.Build(new HeadersFootersInput())));
+        yield return ("Join files", "", One(() =>
         {
-            lines.Add(type.FullName!);
-            foreach (var member in type.GetMembers(Flags).Select(m => "  " + m).OrderBy(m => m, StringComparer.Ordinal)) lines.Add(member);
+            var input = new JoinFilesInput();
+            input.Files.Add(new MergeFileInput("a.pdf", Generated(2)));
+            input.Files.Add(new MergeFileInput("b.pdf", Generated(1)));
+            return JoinFilesSample.Build(input);
+        }));
+        yield return ("Cover + ranges", "", One(() =>
+        {
+            var input = new CoverAndRangesInput();
+            input.Files.Add(new MergeFileInput("a.pdf", Generated(3)) { FirstPage = 2, LastPage = 3 });
+            return CoverAndRangesSample.Build(input);
+        }));
+        yield return ("Pick pages", "", One(() => PickPagesSample.Build(new PickPagesInput { File = new MergeFileInput("Report", Generated(3)) })));
+        yield return ("Bookmarks & numbers", "", One(() =>
+        {
+            var input = new BookmarksAndNumbersInput { FooterText = "Page {page} of {pages}" };
+            input.Files.Add(new MergeFileInput("a.pdf", Generated(2)));
+            input.Files.Add(new MergeFileInput("b.pdf", Generated(1)));
+            return BookmarksAndNumbersSample.Build(input);
+        }));
+        foreach (var (domain, documents) in new[] { ("finance", new[] { "Invoice", "Receipt" }), ("hr", new[] { "Payslip" }), ("healthcare", new[] { "Medical report" }) })
+        {
+            yield return ("Document packs", domain, One(() =>
+            {
+                var input = new MergePackInput("Pack", documents);
+                foreach (var document in input.Documents) document.File = Generated(1);
+                return MergePackSample.Build(input);
+            }));
         }
-        return string.Join("\n", lines);
+        yield return ("Every N pages", "", () => Task.FromResult(SplitEveryNSample.Build(new SplitInput { File = new MergeFileInput("report.pdf", Generated(5)), PagesPerPart = 2 }).Select(p => p.Bytes)));
+        yield return ("Page ranges", "", () => Task.FromResult(SplitRangesSample.Build(new SplitInput { File = new MergeFileInput("report.pdf", Generated(5)) }).Select(p => p.Bytes)));
+        foreach (var (name, html) in new[] { ("invoice", HtmlTemplates.Invoice), ("newsletter", HtmlTemplates.Newsletter), ("letter", HtmlTemplates.Letter), ("report", HtmlTemplates.Report), ("resume", HtmlTemplates.Resume), ("statement", HtmlTemplates.Statement()) })
+        {
+            yield return ("HTML to PDF", name, () => Html(html));
+        }
+        foreach (var scenario in HtmlScenarios.All)
+        {
+            yield return ("Common problems", scenario.Id, () => Html(scenario.Html));
+        }
+        foreach (var language in LanguageInvoices.All)
+        {
+            yield return ("Fonts and languages", language.Id, One(() =>
+            {
+                var input = LanguageInput(language.Id);
+                var fonts = Fonts.DemoFonts.For(input);
+                return FontsAndLanguagesSample.Build(input, fonts, fonts);
+            }));
+            yield return ("Fonts and languages", language.Id + "-html", One(() =>
+            {
+                var input = LanguageInput(language.Id);
+                return FontsAndLanguagesHtmlSample.Build(input, Fonts.DemoFonts.Slots(input), out _);
+            }));
+        }
+        yield return ("Invoice", "", One(() => InvoiceSample.Build(new InvoiceInput(), images)));
+        yield return ("Quotation", "", One(() => QuotationSample.Build(new QuotationInput(), images)));
+        yield return ("Purchase order", "", One(() => PurchaseOrderSample.Build(new PurchaseOrderInput(), images)));
+        yield return ("Delivery note", "", One(() => DeliveryNoteSample.Build(new DeliveryNoteInput(), images)));
+        yield return ("Receipt", "", One(() => ReceiptSample.Build(new ReceiptInput(), images)));
+        yield return ("Account statement", "", One(() => AccountStatementSample.Build(new AccountStatementInput(), images)));
+        yield return ("Payslip", "", One(() => PayslipSample.Build(new PayslipInput(), images)));
+        yield return ("Medical report", "", One(() => MedicalReportSample.Build(new MedicalReportInput(), images)));
     }
 
     private static string SurfaceFile([CallerFilePath] string source = "") =>
@@ -124,16 +169,12 @@ public class PageRendererCoverageTests
 
     #region Properties, Indexers
 
-    public static TheoryData<string> DemoOutputs
+    public static TheoryData<string, string> DemoOutputs
     {
         get
         {
-            var data = new TheoryData<string>
-            {
-                "invoice", "quotation", "purchase-order", "delivery-note", "account-statement", "payslip", "medical-report",
-                "receipt", "headers-and-footers", "bookmarks-and-numbers", "split-part",
-            };
-            foreach (var language in LanguageInvoices.All) data.Add("language-" + language.Id);
+            var data = new TheoryData<string, string>();
+            foreach (var (demo, variant, _) in Outputs()) data.Add(demo, variant);
             return data;
         }
     }

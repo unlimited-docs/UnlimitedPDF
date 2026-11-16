@@ -21,6 +21,8 @@ internal sealed partial class PageInterpreter
     // The longest /ActualText read; real spans hold a syllable or a word.
     private const int MaxActualTextLength = 4096;
 
+    private long _fontTextCharacters;
+    private int _glyphComponents;
     private int _glyphs;
     private bool _inText;
 
@@ -80,10 +82,13 @@ internal sealed partial class PageInterpreter
         if (_objects.Resolve(fonts?[name.Value]) is not PdfReadDictionary dictionary)
             throw new PageRenderException($"The page uses a font it doesn't have ({Shorten(name.Value)}).");
         if (_fonts.TryGetValue(dictionary, out var font)) return font;
+        if (_fonts.Count >= _limits.MaxFonts) throw new PageRenderException("The page uses too many fonts.");
 
         font = (RenderFont?)StandardRenderFont.From(dictionary, _objects.Resolve)
             ?? EmbeddedRenderFont.From(dictionary, _objects.Resolve, Decode)
             ?? throw new PageRenderException("The page uses a kind of font this preview doesn't draw.");
+        if (font is EmbeddedRenderFont embedded && (_fontTextCharacters += embedded.TextCharacters) > _limits.MaxFontTextCharacters)
+            throw new PageRenderException("The page's fonts map too much text.");
         _fonts[dictionary] = font;
         _fontNumbers[font] = _fontNumbers.Count;
         return font;
@@ -318,7 +323,7 @@ internal sealed partial class PageInterpreter
 
         foreach (var (glyph, x) in placed)
         {
-            string outline = font.Outline(glyph, Math.Max(0, _limits.MaxOutputCharacters - _body.Length - _defs.Length));
+            string outline = font.Outline(glyph, Math.Max(0, _limits.MaxOutputCharacters - _body.Length - _defs.Length), ref _glyphComponents, _limits.MaxGlyphComponents);
             if (outline.Length == 0) continue;
             string id = $"{_idPrefix}f{number}g{glyph}";
             if (_glyphDefinitions.Add((number, glyph)))

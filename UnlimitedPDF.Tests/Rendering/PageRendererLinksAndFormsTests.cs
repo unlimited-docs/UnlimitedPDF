@@ -177,6 +177,29 @@ public class PageRendererLinksAndFormsTests
     }
 
     [Fact]
+    public void A_huge_name_repeated_by_reference_is_read_within_its_bound_when_drawn_and_when_merged()
+    {
+        // One 1 MB key referenced 2,000 times: decoding it each time would allocate gigabytes.
+        string pairs = string.Join(" ", Enumerable.Repeat("5 0 R [3 0 R /Fit]", 2000));
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, "<< /Type /Catalog /Pages 2 0 R /Names << /Dests << /Names [" + pairs + "] >> >> >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+            .AddObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Annots [<< /Type /Annot /Subtype /Link /Rect [0 0 10 10] /Dest (x) >>] >>")
+            .AddStream(4, string.Empty, Encoding.ASCII.GetBytes("0 0 1 1 re f"))
+            .AddObject(5, "(" + new string('k', 1_000_000) + ")")
+            .ToBytes();
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        var page = RenderTestFiles.RenderFirst(pdf);
+        var document = new PdfDocument();
+        document.AddPages(PdfFile.FromBytes(pdf));
+        PdfPageReader.SaveBytes(document);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.True(watch.ElapsedMilliseconds < 3000, $"Took {watch.ElapsedMilliseconds} ms.");
+    }
+
+    [Fact]
     public void Link_rectangles_follow_the_page_rotation()
     {
         var pdf = RenderTestFiles.OnePage("0 0 1 1 re f", pageEntries: "/Rotate 90 /Annots [<< /Type /Annot /Subtype /Link /Rect [10 20 30 40] /A << /S /URI /URI (https://a.com) >> >>]");
@@ -217,13 +240,21 @@ public class PageRendererLinksAndFormsTests
     [Theory]
     [InlineData("BT /Fm1 Do ET", "0 0 1 1 re f", "inside a text object")]
     [InlineData("/Fm1 Do S", "0 0 m 100 100 l", "leaves a path unfinished")]
-    [InlineData("0 0 m 1 1 l", "", "leaves a path unfinished")]
     public void Forms_and_pages_that_leave_state_open_are_refused(string page, string form, string reason)
     {
         var pdf = RenderTestFiles.OnePage(page, "<< /XObject << /Fm1 5 0 R >> >>",
             new[] { (5, "/Type /XObject /Subtype /Form /BBox [0 0 1 1]", (byte[]?)Encoding.ASCII.GetBytes(form)) });
 
         Assert.Contains(reason, RenderTestFiles.RenderFirst(pdf).Reason);
+    }
+
+    [Fact]
+    public void A_path_left_unpainted_at_the_end_of_the_page_draws_nothing()
+    {
+        var page = RenderTestFiles.RenderFirst(RenderTestFiles.OnePage("0 0 1 1 re f 0 0 m 1 1 l"));
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Equal(1, page.Counts.Paths);
     }
 
     [Fact]

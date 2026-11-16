@@ -18,8 +18,16 @@ internal sealed class ToUnicodeMap
     // The longest destination string, in bytes, that a CMap may give one code.
     private const int MaxDestinationBytes = 512;
 
+    // The most characters one map may hold in all, so one font's map can't take a page's memory.
+    private const long MaxCharacters = 1_000_000;
+
     private readonly Dictionary<int, string> _map = new();
     private int _writes;
+
+    /// <summary>
+    /// Gets the number of characters the map holds, counting each write.
+    /// </summary>
+    public long Characters { get; private set; }
 
     #endregion
 
@@ -91,6 +99,8 @@ internal sealed class ToUnicodeMap
     {
         if (++_writes > MaxWrites) throw new PageRenderException("A font's text map is too large.");
         if (_map.Count >= MaxEntries && !_map.ContainsKey(code)) throw new PageRenderException("A font's text map is too large.");
+        Characters += text.Length;
+        if (Characters > MaxCharacters) throw new PageRenderException("A font's text map is too large.");
         _map[code] = text;
     }
 

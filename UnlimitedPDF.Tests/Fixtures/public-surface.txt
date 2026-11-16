@@ -1,630 +1,403 @@
-UnlimitedPDF.PdfBodyFlow
-  Double RemainingHeight
-  Double get_RemainingHeight()
-  System.Nullable`1[System.Int32] MaxPages
-  System.Nullable`1[System.Int32] get_MaxPages()
-  UnlimitedPDF.PdfFlowBlock AddBlock(Double, Boolean)
-  UnlimitedPDF.PdfTable AddTable(Double, Double, Double, Boolean)
-  Void AddHtml(UnlimitedPDF.PdfHtml, Double, Boolean, Boolean)
-  Void AddImage(UnlimitedPDF.PdfImage, System.Nullable`1[System.Double], System.Nullable`1[System.Double], Double, Double, UnlimitedPDF.PdfImagePlacementOptions, Boolean)
-  Void AddRectangle(Double, Double, UnlimitedPDF.PdfColor, Double, Double, Boolean)
-  Void AddText(System.String, Double, Double, UnlimitedPDF.PdfTextAlignment, Double, Boolean)
-  Void AddText(System.String, UnlimitedPDF.PdfFont, Double, Double, UnlimitedPDF.PdfTextAlignment, Double, Boolean)
-  Void PageBreak()
-  Void set_MaxPages(System.Nullable`1[System.Int32])
-UnlimitedPDF.PdfBorder
-  Double Width
-  Double get_Width()
-  UnlimitedPDF.PdfBorderStyle Style
-  UnlimitedPDF.PdfBorderStyle get_Style()
-  UnlimitedPDF.PdfColor Color
-  UnlimitedPDF.PdfColor get_Color()
-  Void .ctor()
-  Void set_Color(UnlimitedPDF.PdfColor)
-  Void set_Style(UnlimitedPDF.PdfBorderStyle)
-  Void set_Width(Double)
-UnlimitedPDF.PdfBorderStyle
-  Int32 value__
-  UnlimitedPDF.PdfBorderStyle Dashed
-  UnlimitedPDF.PdfBorderStyle Double
-  UnlimitedPDF.PdfBorderStyle None
-  UnlimitedPDF.PdfBorderStyle Solid
-UnlimitedPDF.PdfCell
-  Double LineHeightFactor
-  Double Padding
-  Double get_LineHeightFactor()
-  Double get_Padding()
-  Int32 ColumnSpan
-  Int32 RowSpan
-  Int32 get_ColumnSpan()
-  Int32 get_RowSpan()
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfCellContent] Content
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfCellContent] get_Content()
-  System.String Text
-  System.String get_Text()
-  UnlimitedPDF.PdfBorder BorderBottom
-  UnlimitedPDF.PdfBorder BorderLeft
-  UnlimitedPDF.PdfBorder BorderRight
-  UnlimitedPDF.PdfBorder BorderTop
-  UnlimitedPDF.PdfBorder get_BorderBottom()
-  UnlimitedPDF.PdfBorder get_BorderLeft()
-  UnlimitedPDF.PdfBorder get_BorderRight()
-  UnlimitedPDF.PdfBorder get_BorderTop()
-  UnlimitedPDF.PdfCellHorizontalAlignment HorizontalAlignment
-  UnlimitedPDF.PdfCellHorizontalAlignment get_HorizontalAlignment()
-  UnlimitedPDF.PdfCellVerticalAlignment VerticalAlignment
-  UnlimitedPDF.PdfCellVerticalAlignment get_VerticalAlignment()
-  UnlimitedPDF.PdfColor BackgroundColor
-  UnlimitedPDF.PdfColor get_BackgroundColor()
-  Void .ctor()
-  Void AddContent(UnlimitedPDF.PdfCellContent)
-  Void ClearContent()
-  Void InsertContent(Int32, UnlimitedPDF.PdfCellContent)
-  Void RemoveContent(Int32)
-  Void SetContent(System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfCellContent])
-  Void SetContent(UnlimitedPDF.PdfCellContent[])
-  Void set_BackgroundColor(UnlimitedPDF.PdfColor)
-  Void set_ColumnSpan(Int32)
-  Void set_HorizontalAlignment(UnlimitedPDF.PdfCellHorizontalAlignment)
-  Void set_LineHeightFactor(Double)
-  Void set_Padding(Double)
-  Void set_RowSpan(Int32)
-  Void set_Text(System.String)
-  Void set_VerticalAlignment(UnlimitedPDF.PdfCellVerticalAlignment)
-UnlimitedPDF.PdfCellContent
-  UnlimitedPDF.PdfCellContent op_Implicit(System.String)
-  UnlimitedPDF.PdfCellContent op_Implicit(UnlimitedPDF.PdfImage)
-UnlimitedPDF.PdfCellHorizontalAlignment
-  Int32 value__
-  UnlimitedPDF.PdfCellHorizontalAlignment Center
-  UnlimitedPDF.PdfCellHorizontalAlignment Left
-  UnlimitedPDF.PdfCellHorizontalAlignment Right
-UnlimitedPDF.PdfCellImage
-  UnlimitedPDF.PdfImage Image
-  UnlimitedPDF.PdfImage get_Image()
-  Void .ctor(UnlimitedPDF.PdfImage)
-UnlimitedPDF.PdfCellText
-  System.String Text
-  System.String get_Text()
-  UnlimitedPDF.PdfFont Font
-  UnlimitedPDF.PdfFont get_Font()
-  Void .ctor(System.String)
-  Void .ctor(System.String, UnlimitedPDF.PdfFont)
-UnlimitedPDF.PdfCellVerticalAlignment
-  Int32 value__
-  UnlimitedPDF.PdfCellVerticalAlignment Bottom
-  UnlimitedPDF.PdfCellVerticalAlignment Middle
-  UnlimitedPDF.PdfCellVerticalAlignment Top
-UnlimitedPDF.PdfCmykInversion
-  Int32 value__
-  UnlimitedPDF.PdfCmykInversion Auto
-  UnlimitedPDF.PdfCmykInversion Inverted
-  UnlimitedPDF.PdfCmykInversion NotInverted
-UnlimitedPDF.PdfColor
-  Boolean Equals(System.Object)
-  Boolean Equals(UnlimitedPDF.PdfColor)
-  Boolean op_Equality(UnlimitedPDF.PdfColor, UnlimitedPDF.PdfColor)
-  Boolean op_Inequality(UnlimitedPDF.PdfColor, UnlimitedPDF.PdfColor)
-  Double B
-  Double G
-  Double R
-  Double get_B()
-  Double get_G()
-  Double get_R()
-  Int32 GetHashCode()
-  System.String ToString()
-  UnlimitedPDF.PdfColor <Clone>$()
-  UnlimitedPDF.PdfColor Black
-  UnlimitedPDF.PdfColor FromHex(System.String)
-  UnlimitedPDF.PdfColor FromRgb(Byte, Byte, Byte)
-  UnlimitedPDF.PdfColor LightGray
-  UnlimitedPDF.PdfColor White
-  UnlimitedPDF.PdfColor get_Black()
-  UnlimitedPDF.PdfColor get_LightGray()
-  UnlimitedPDF.PdfColor get_White()
-  Void .ctor(Double, Double, Double)
-  Void Deconstruct(Double ByRef, Double ByRef, Double ByRef)
-  Void set_B(Double)
-  Void set_G(Double)
-  Void set_R(Double)
-UnlimitedPDF.PdfColumn
-  Int32 Index
-  Int32 get_Index()
-  System.Nullable`1[System.Double] Width
-  System.Nullable`1[System.Double] get_Width()
-  Void .ctor(Int32)
-  Void set_Width(System.Nullable`1[System.Double])
-UnlimitedPDF.PdfDocument
-  Boolean FailOnMissingCharacters
-  Boolean get_FailOnMissingCharacters()
-  Double BodyMarginBottom
-  Double BodyMarginTop
-  Double MarginBottom
-  Double MarginLeft
-  Double MarginRight
-  Double MarginTop
-  Double get_BodyMarginBottom()
-  Double get_BodyMarginTop()
-  Double get_MarginBottom()
-  Double get_MarginLeft()
-  Double get_MarginRight()
-  Double get_MarginTop()
-  System.Collections.Generic.IList`1[UnlimitedPDF.PdfFont] FontFallback
-  System.Collections.Generic.IList`1[UnlimitedPDF.PdfFont] get_FontFallback()
-  System.Collections.Generic.IReadOnlyList`1[System.String] FindMissingCharacters(System.String, UnlimitedPDF.PdfFont)
-  System.Threading.Tasks.Task SaveAsync(System.IO.Stream, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task SaveAsync(System.String, System.Threading.CancellationToken)
-  UnlimitedPDF.PdfBodyFlow Body
-  UnlimitedPDF.PdfBodyFlow get_Body()
-  UnlimitedPDF.PdfPage AddPage()
-  UnlimitedPDF.PdfPageSection Footer
-  UnlimitedPDF.PdfPageSection Header
-  UnlimitedPDF.PdfPageSection get_Footer()
-  UnlimitedPDF.PdfPageSection get_Header()
-  UnlimitedPDF.PdfPageSettings AddPageSettings(Int32)
-  UnlimitedPDF.PdfPageSettings AddPageSettings(UnlimitedPDF.PdfPageTarget)
-  UnlimitedPDF.PdfPageSize PageSize
-  UnlimitedPDF.PdfPageSize get_PageSize()
-  Void .ctor(UnlimitedPDF.PdfPageSize)
-  Void AddPages(UnlimitedPDF.PdfFile, System.Nullable`1[System.Int32], System.Nullable`1[System.Int32], System.String)
-  Void Save(System.IO.Stream)
-  Void Save(System.String)
-  Void set_BodyMarginBottom(Double)
-  Void set_BodyMarginTop(Double)
-  Void set_FailOnMissingCharacters(Boolean)
-  Void set_MarginBottom(Double)
-  Void set_MarginLeft(Double)
-  Void set_MarginRight(Double)
-  Void set_MarginTop(Double)
-  Void set_PageSize(UnlimitedPDF.PdfPageSize)
-UnlimitedPDF.PdfFile
-  Int32 DefaultMaxObjectCount
-  Int32 PageCount
-  Int32 get_DefaultMaxObjectCount()
-  Int32 get_PageCount()
-  Int64 DefaultMaxFileSize
-  Int64 DefaultMaxStreamSize
-  Int64 get_DefaultMaxFileSize()
-  Int64 get_DefaultMaxStreamSize()
-  System.String Title
-  System.String get_Title()
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfFile] FromFileAsync(System.String, UnlimitedPDF.PdfFileLoadOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfFile] FromStreamAsync(System.IO.Stream, UnlimitedPDF.PdfFileLoadOptions, System.Threading.CancellationToken)
-  UnlimitedPDF.PdfFile FromBytes(Byte[], UnlimitedPDF.PdfFileLoadOptions)
-  UnlimitedPDF.PdfFile FromFile(System.String, UnlimitedPDF.PdfFileLoadOptions)
-  UnlimitedPDF.PdfFile FromStream(System.IO.Stream, UnlimitedPDF.PdfFileLoadOptions)
-  Void set_DefaultMaxFileSize(Int64)
-  Void set_DefaultMaxObjectCount(Int32)
-  Void set_DefaultMaxStreamSize(Int64)
-UnlimitedPDF.PdfFileErrorReason
-  Int32 value__
-  UnlimitedPDF.PdfFileErrorReason Damaged
-  UnlimitedPDF.PdfFileErrorReason Empty
-  UnlimitedPDF.PdfFileErrorReason Encrypted
-  UnlimitedPDF.PdfFileErrorReason TooLarge
-UnlimitedPDF.PdfFileException
-  UnlimitedPDF.PdfFileErrorReason Reason
-  UnlimitedPDF.PdfFileErrorReason get_Reason()
-  Void .ctor(UnlimitedPDF.PdfFileErrorReason, System.String)
-  Void .ctor(UnlimitedPDF.PdfFileErrorReason, System.String, System.Exception)
-UnlimitedPDF.PdfFileLoadOptions
-  System.Nullable`1[System.Int32] MaxObjectCount
-  System.Nullable`1[System.Int32] get_MaxObjectCount()
-  System.Nullable`1[System.Int64] MaxFileSize
-  System.Nullable`1[System.Int64] MaxStreamSize
-  System.Nullable`1[System.Int64] get_MaxFileSize()
-  System.Nullable`1[System.Int64] get_MaxStreamSize()
-  Void .ctor()
-  Void set_MaxFileSize(System.Nullable`1[System.Int64])
-  Void set_MaxObjectCount(System.Nullable`1[System.Int32])
-  Void set_MaxStreamSize(System.Nullable`1[System.Int64])
-UnlimitedPDF.PdfFlowBlock
-  UnlimitedPDF.PdfTable AddTable(Double, Double, Double)
-  Void AddImage(UnlimitedPDF.PdfImage, System.Nullable`1[System.Double], System.Nullable`1[System.Double], Double, Double, UnlimitedPDF.PdfImagePlacementOptions)
-  Void AddRectangle(Double, Double, UnlimitedPDF.PdfColor, Double, Double)
-  Void AddText(System.String, Double, Double, UnlimitedPDF.PdfTextAlignment, Double)
-  Void AddText(System.String, UnlimitedPDF.PdfFont, Double, Double, UnlimitedPDF.PdfTextAlignment, Double)
-UnlimitedPDF.PdfFont
-  Boolean IsItalic
-  Boolean IsVariable
-  Boolean get_IsItalic()
-  Boolean get_IsVariable()
-  Int32 MaximumWeight
-  Int32 MinimumWeight
-  Int32 Weight
-  Int32 get_MaximumWeight()
-  Int32 get_MinimumWeight()
-  Int32 get_Weight()
-  Int64 DefaultMaxFileSize
-  Int64 get_DefaultMaxFileSize()
-  System.String FamilyName
-  System.String get_FamilyName()
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfFont] FromFileAsync(System.String, UnlimitedPDF.PdfFontLoadOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfFont] FromStreamAsync(System.IO.Stream, UnlimitedPDF.PdfFontLoadOptions, System.Threading.CancellationToken)
-  UnlimitedPDF.PdfFont FromBytes(Byte[], UnlimitedPDF.PdfFontLoadOptions)
-  UnlimitedPDF.PdfFont FromFile(System.String, UnlimitedPDF.PdfFontLoadOptions)
-  UnlimitedPDF.PdfFont FromStream(System.IO.Stream, UnlimitedPDF.PdfFontLoadOptions)
-  Void set_DefaultMaxFileSize(Int64)
-UnlimitedPDF.PdfFontErrorReason
-  Int32 value__
-  UnlimitedPDF.PdfFontErrorReason CorruptData
-  UnlimitedPDF.PdfFontErrorReason EmbeddingRestricted
-  UnlimitedPDF.PdfFontErrorReason TooLarge
-  UnlimitedPDF.PdfFontErrorReason UnsupportedFormat
-  UnlimitedPDF.PdfFontErrorReason WeightNotAvailable
-UnlimitedPDF.PdfFontException
-  UnlimitedPDF.PdfFontErrorReason Reason
-  UnlimitedPDF.PdfFontErrorReason get_Reason()
-  Void .ctor(UnlimitedPDF.PdfFontErrorReason, System.String)
-  Void .ctor(UnlimitedPDF.PdfFontErrorReason, System.String, System.Exception)
-UnlimitedPDF.PdfFontLoadOptions
-  Boolean IgnoreEmbeddingRestrictions
-  Boolean get_IgnoreEmbeddingRestrictions()
-  System.Nullable`1[System.Int32] Weight
-  System.Nullable`1[System.Int32] get_Weight()
-  System.Nullable`1[System.Int64] MaxFileSize
-  System.Nullable`1[System.Int64] get_MaxFileSize()
-  Void .ctor()
-  Void set_IgnoreEmbeddingRestrictions(Boolean)
-  Void set_MaxFileSize(System.Nullable`1[System.Int64])
-  Void set_Weight(System.Nullable`1[System.Int32])
-UnlimitedPDF.PdfHtml
-  Int32 DefaultMaxNestingDepth
-  Int32 get_DefaultMaxNestingDepth()
-  Int64 DefaultMaxInputSize
-  Int64 DefaultMaxResourceSize
-  Int64 DefaultMaxTotalResourceSize
-  Int64 get_DefaultMaxInputSize()
-  Int64 get_DefaultMaxResourceSize()
-  Int64 get_DefaultMaxTotalResourceSize()
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfHtmlWarning] Warnings
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfHtmlWarning] get_Warnings()
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfHtml] FromFileAsync(System.String, UnlimitedPDF.PdfHtmlLoadOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfHtml] FromStreamAsync(System.IO.Stream, UnlimitedPDF.PdfHtmlLoadOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfHtml] FromStringAsync(System.String, UnlimitedPDF.PdfHtmlLoadOptions, System.Threading.CancellationToken)
-  UnlimitedPDF.PdfHtml FromFile(System.String, UnlimitedPDF.PdfHtmlLoadOptions)
-  UnlimitedPDF.PdfHtml FromStream(System.IO.Stream, UnlimitedPDF.PdfHtmlLoadOptions)
-  UnlimitedPDF.PdfHtml FromString(System.String, UnlimitedPDF.PdfHtmlLoadOptions)
-  Void set_DefaultMaxInputSize(Int64)
-  Void set_DefaultMaxNestingDepth(Int32)
-  Void set_DefaultMaxResourceSize(Int64)
-  Void set_DefaultMaxTotalResourceSize(Int64)
-UnlimitedPDF.PdfHtmlConvertOptions
-  Boolean HeadingBookmarks
-  Boolean get_HeadingBookmarks()
-  Double MarginBottom
-  Double MarginLeft
-  Double MarginRight
-  Double MarginTop
-  Double get_MarginBottom()
-  Double get_MarginLeft()
-  Double get_MarginRight()
-  Double get_MarginTop()
-  System.Collections.Generic.IList`1[UnlimitedPDF.PdfFont] FontFallback
-  System.Collections.Generic.IList`1[UnlimitedPDF.PdfFont] get_FontFallback()
-  UnlimitedPDF.PdfPageSize PageSize
-  UnlimitedPDF.PdfPageSize get_PageSize()
-  Void .ctor()
-  Void set_HeadingBookmarks(Boolean)
-  Void set_MarginBottom(Double)
-  Void set_MarginLeft(Double)
-  Void set_MarginRight(Double)
-  Void set_MarginTop(Double)
-  Void set_PageSize(UnlimitedPDF.PdfPageSize)
-UnlimitedPDF.PdfHtmlErrorReason
-  Int32 value__
-  UnlimitedPDF.PdfHtmlErrorReason InputTooLarge
-  UnlimitedPDF.PdfHtmlErrorReason NestingTooDeep
-  UnlimitedPDF.PdfHtmlErrorReason ResourceTooLarge
-  UnlimitedPDF.PdfHtmlErrorReason ResourcesTooLarge
-  UnlimitedPDF.PdfHtmlErrorReason Warning
-UnlimitedPDF.PdfHtmlException
-  UnlimitedPDF.PdfHtmlErrorReason Reason
-  UnlimitedPDF.PdfHtmlErrorReason get_Reason()
-  UnlimitedPDF.PdfHtmlWarning Warning
-  UnlimitedPDF.PdfHtmlWarning get_Warning()
-  Void .ctor(UnlimitedPDF.PdfHtmlErrorReason, System.String)
-  Void .ctor(UnlimitedPDF.PdfHtmlWarning)
-UnlimitedPDF.PdfHtmlFontCollection
-  Int32 Count
-  Int32 get_Count()
-  System.Collections.Generic.IEnumerator`1[System.Collections.Generic.KeyValuePair`2[System.String,UnlimitedPDF.PdfFont]] GetEnumerator()
-  Void .ctor()
-  Void Add(System.String, UnlimitedPDF.PdfFont)
-UnlimitedPDF.PdfHtmlLoadOptions
-  Boolean FailOnWarning
-  Boolean SynthesizeMissingStyles
-  Boolean get_FailOnWarning()
-  Boolean get_SynthesizeMissingStyles()
-  System.Func`2[System.String,System.IO.Stream] ResourceResolver
-  System.Func`2[System.String,System.IO.Stream] get_ResourceResolver()
-  System.Func`3[System.String,System.Threading.CancellationToken,System.Threading.Tasks.Task`1[System.IO.Stream]] ResourceResolverAsync
-  System.Func`3[System.String,System.Threading.CancellationToken,System.Threading.Tasks.Task`1[System.IO.Stream]] get_ResourceResolverAsync()
-  System.Nullable`1[System.Int32] MaxNestingDepth
-  System.Nullable`1[System.Int32] get_MaxNestingDepth()
-  System.Nullable`1[System.Int64] MaxInputSize
-  System.Nullable`1[System.Int64] MaxResourceSize
-  System.Nullable`1[System.Int64] MaxTotalResourceSize
-  System.Nullable`1[System.Int64] get_MaxInputSize()
-  System.Nullable`1[System.Int64] get_MaxResourceSize()
-  System.Nullable`1[System.Int64] get_MaxTotalResourceSize()
-  System.String BaseFolder
-  System.String get_BaseFolder()
-  UnlimitedPDF.PdfHtmlFontCollection Fonts
-  UnlimitedPDF.PdfHtmlFontCollection get_Fonts()
-  Void .ctor()
-  Void set_BaseFolder(System.String)
-  Void set_FailOnWarning(Boolean)
-  Void set_MaxInputSize(System.Nullable`1[System.Int64])
-  Void set_MaxNestingDepth(System.Nullable`1[System.Int32])
-  Void set_MaxResourceSize(System.Nullable`1[System.Int64])
-  Void set_MaxTotalResourceSize(System.Nullable`1[System.Int64])
-  Void set_ResourceResolver(System.Func`2[System.String,System.IO.Stream])
-  Void set_ResourceResolverAsync(System.Func`3[System.String,System.Threading.CancellationToken,System.Threading.Tasks.Task`1[System.IO.Stream]])
-  Void set_SynthesizeMissingStyles(Boolean)
-UnlimitedPDF.PdfHtmlWarning
-  System.Nullable`1[System.Int32] Line
-  System.Nullable`1[System.Int32] PageNumber
-  System.Nullable`1[System.Int32] get_Line()
-  System.Nullable`1[System.Int32] get_PageNumber()
-  System.String Message
-  System.String Source
-  System.String ToString()
-  System.String get_Message()
-  System.String get_Source()
-  UnlimitedPDF.PdfHtmlWarningKind Kind
-  UnlimitedPDF.PdfHtmlWarningKind get_Kind()
-UnlimitedPDF.PdfHtmlWarningKind
-  Int32 value__
-  UnlimitedPDF.PdfHtmlWarningKind ContentClipped
-  UnlimitedPDF.PdfHtmlWarningKind FontFaceIgnored
-  UnlimitedPDF.PdfHtmlWarningKind InvalidImage
-  UnlimitedPDF.PdfHtmlWarningKind LinkDropped
-  UnlimitedPDF.PdfHtmlWarningKind MissingCharacter
-  UnlimitedPDF.PdfHtmlWarningKind MissingFontFace
-  UnlimitedPDF.PdfHtmlWarningKind ResourceBlocked
-  UnlimitedPDF.PdfHtmlWarningKind ResourceNotFound
-  UnlimitedPDF.PdfHtmlWarningKind ResourceNotResolved
-  UnlimitedPDF.PdfHtmlWarningKind UnsupportedElement
-  UnlimitedPDF.PdfHtmlWarningKind UnsupportedImageFormat
-  UnlimitedPDF.PdfHtmlWarningKind UnsupportedProperty
-  UnlimitedPDF.PdfHtmlWarningKind UnsupportedValue
-UnlimitedPDF.PdfImage
-  Int32 PixelHeight
-  Int32 PixelWidth
-  Int32 get_PixelHeight()
-  Int32 get_PixelWidth()
-  Int64 DefaultMaxPixels
-  Int64 get_DefaultMaxPixels()
-  System.Nullable`1[System.Double] DpiX
-  System.Nullable`1[System.Double] DpiY
-  System.Nullable`1[System.Double] get_DpiX()
-  System.Nullable`1[System.Double] get_DpiY()
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfImage] FromFileAsync(System.String, UnlimitedPDF.PdfImageLoadOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[UnlimitedPDF.PdfImage] FromStreamAsync(System.IO.Stream, UnlimitedPDF.PdfImageLoadOptions, System.Threading.CancellationToken)
-  UnlimitedPDF.PdfImage FromBytes(Byte[], UnlimitedPDF.PdfImageLoadOptions)
-  UnlimitedPDF.PdfImage FromFile(System.String, UnlimitedPDF.PdfImageLoadOptions)
-  UnlimitedPDF.PdfImage FromStream(System.IO.Stream, UnlimitedPDF.PdfImageLoadOptions)
-  Void set_DefaultMaxPixels(Int64)
-UnlimitedPDF.PdfImageErrorReason
-  Int32 value__
-  UnlimitedPDF.PdfImageErrorReason CorruptData
-  UnlimitedPDF.PdfImageErrorReason TooLarge
-  UnlimitedPDF.PdfImageErrorReason UnsupportedFormat
-UnlimitedPDF.PdfImageException
-  UnlimitedPDF.PdfImageErrorReason Reason
-  UnlimitedPDF.PdfImageErrorReason get_Reason()
-  Void .ctor(UnlimitedPDF.PdfImageErrorReason, System.String)
-  Void .ctor(UnlimitedPDF.PdfImageErrorReason, System.String, System.Exception)
-UnlimitedPDF.PdfImageFit
-  Int32 value__
-  UnlimitedPDF.PdfImageFit Contain
-  UnlimitedPDF.PdfImageFit Stretch
-UnlimitedPDF.PdfImageLoadOptions
-  Boolean ApplyExifOrientation
-  Boolean get_ApplyExifOrientation()
-  System.Nullable`1[System.Int64] MaxPixels
-  System.Nullable`1[System.Int64] get_MaxPixels()
-  UnlimitedPDF.PdfCmykInversion CmykInversion
-  UnlimitedPDF.PdfCmykInversion get_CmykInversion()
-  Void .ctor()
-  Void set_ApplyExifOrientation(Boolean)
-  Void set_CmykInversion(UnlimitedPDF.PdfCmykInversion)
-  Void set_MaxPixels(System.Nullable`1[System.Int64])
-UnlimitedPDF.PdfImagePlacementOptions
-  UnlimitedPDF.PdfImageFit Fit
-  UnlimitedPDF.PdfImageFit get_Fit()
-  Void .ctor()
-  Void set_Fit(UnlimitedPDF.PdfImageFit)
-UnlimitedPDF.PdfOperations
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart] Split(UnlimitedPDF.PdfFile, Int32, System.Func`2[UnlimitedPDF.PdfSplitPart,System.IO.Stream])
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart] Split(UnlimitedPDF.PdfFile, Int32, System.String)
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart] Split(UnlimitedPDF.PdfFile, System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfPageRange], System.Func`2[UnlimitedPDF.PdfSplitPart,System.IO.Stream])
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart] Split(UnlimitedPDF.PdfFile, System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfPageRange], System.String)
-  System.Threading.Tasks.Task ConvertHtmlAsync(UnlimitedPDF.PdfHtml, System.IO.Stream, UnlimitedPDF.PdfHtmlConvertOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task ConvertHtmlAsync(UnlimitedPDF.PdfHtml, System.String, UnlimitedPDF.PdfHtmlConvertOptions, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task MergeAsync(System.IO.Stream, System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfFile], System.Threading.CancellationToken)
-  System.Threading.Tasks.Task MergeAsync(System.String, System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfFile], System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart]] SplitAsync(UnlimitedPDF.PdfFile, Int32, System.Func`2[UnlimitedPDF.PdfSplitPart,System.IO.Stream], System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart]] SplitAsync(UnlimitedPDF.PdfFile, Int32, System.String, System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart]] SplitAsync(UnlimitedPDF.PdfFile, System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfPageRange], System.Func`2[UnlimitedPDF.PdfSplitPart,System.IO.Stream], System.Threading.CancellationToken)
-  System.Threading.Tasks.Task`1[System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfSplitPart]] SplitAsync(UnlimitedPDF.PdfFile, System.Collections.Generic.IEnumerable`1[UnlimitedPDF.PdfPageRange], System.String, System.Threading.CancellationToken)
-  Void ConvertHtml(UnlimitedPDF.PdfHtml, System.IO.Stream, UnlimitedPDF.PdfHtmlConvertOptions)
-  Void ConvertHtml(UnlimitedPDF.PdfHtml, System.String, UnlimitedPDF.PdfHtmlConvertOptions)
-  Void Merge(System.IO.Stream, UnlimitedPDF.PdfFile[])
-  Void Merge(System.String, UnlimitedPDF.PdfFile[])
-UnlimitedPDF.PdfPage
-  UnlimitedPDF.PdfTable AddTable(Double, Double, Double)
-  Void AddImage(UnlimitedPDF.PdfImage, Double, Double, System.Nullable`1[System.Double], System.Nullable`1[System.Double], UnlimitedPDF.PdfImagePlacementOptions)
-  Void AddRectangle(Double, Double, Double, Double, UnlimitedPDF.PdfColor)
-  Void AddText(System.String, Double, Double, Double)
-  Void AddText(System.String, UnlimitedPDF.PdfFont, Double, Double, Double)
-UnlimitedPDF.PdfPageInfo
-  Boolean IsFirst
-  Boolean IsLast
-  Boolean get_IsFirst()
-  Boolean get_IsLast()
-  Int32 PageCount
-  Int32 PageNumber
-  Int32 get_PageCount()
-  Int32 get_PageNumber()
-UnlimitedPDF.PdfPageRange
-  Int32 FirstPage
-  Int32 LastPage
-  Int32 get_FirstPage()
-  Int32 get_LastPage()
-  System.String ToString()
-  Void .ctor(Int32, Int32)
-UnlimitedPDF.PdfPageSection
-  Boolean IsHidden
-  Boolean get_IsHidden()
-  Double Height
-  Double get_Height()
-  Void SetPageContent(System.Action`2[UnlimitedPDF.PdfSectionContent,UnlimitedPDF.PdfPageInfo])
-  Void set_Height(Double)
-  Void set_IsHidden(Boolean)
-UnlimitedPDF.PdfPageSettings
-  System.Nullable`1[System.Double] BodyMarginBottom
-  System.Nullable`1[System.Double] BodyMarginTop
-  System.Nullable`1[System.Double] MarginLeft
-  System.Nullable`1[System.Double] MarginRight
-  System.Nullable`1[System.Double] get_BodyMarginBottom()
-  System.Nullable`1[System.Double] get_BodyMarginTop()
-  System.Nullable`1[System.Double] get_MarginLeft()
-  System.Nullable`1[System.Double] get_MarginRight()
-  UnlimitedPDF.PdfPageSection Footer
-  UnlimitedPDF.PdfPageSection Header
-  UnlimitedPDF.PdfPageSection get_Footer()
-  UnlimitedPDF.PdfPageSection get_Header()
-  Void set_BodyMarginBottom(System.Nullable`1[System.Double])
-  Void set_BodyMarginTop(System.Nullable`1[System.Double])
-  Void set_MarginLeft(System.Nullable`1[System.Double])
-  Void set_MarginRight(System.Nullable`1[System.Double])
-UnlimitedPDF.PdfPageSize
-  Int32 value__
-  UnlimitedPDF.PdfPageSize A0
-  UnlimitedPDF.PdfPageSize A1
-  UnlimitedPDF.PdfPageSize A2
-  UnlimitedPDF.PdfPageSize A3
-  UnlimitedPDF.PdfPageSize A4
-  UnlimitedPDF.PdfPageSize A5
-  UnlimitedPDF.PdfPageSize A6
-  UnlimitedPDF.PdfPageSize B4
-  UnlimitedPDF.PdfPageSize B5
-  UnlimitedPDF.PdfPageSize Executive
-  UnlimitedPDF.PdfPageSize HalfLetter
-  UnlimitedPDF.PdfPageSize Ledger
-  UnlimitedPDF.PdfPageSize Legal
-  UnlimitedPDF.PdfPageSize Letter
-  UnlimitedPDF.PdfPageSize Statement
-  UnlimitedPDF.PdfPageSize Tabloid
-UnlimitedPDF.PdfPageSizeExtensions
-  System.ValueTuple`2[System.Double,System.Double] ToDimensions(UnlimitedPDF.PdfPageSize)
-UnlimitedPDF.PdfPageTarget
-  Int32 value__
-  UnlimitedPDF.PdfPageTarget Even
-  UnlimitedPDF.PdfPageTarget First
-  UnlimitedPDF.PdfPageTarget Last
-  UnlimitedPDF.PdfPageTarget Odd
-UnlimitedPDF.PdfRow
-  Int32 Index
-  Int32 get_Index()
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfCell] Cells
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfCell] get_Cells()
-  System.Nullable`1[System.Double] Height
-  System.Nullable`1[System.Double] get_Height()
-  System.Nullable`1[UnlimitedPDF.PdfRowHeightMode] HeightMode
-  System.Nullable`1[UnlimitedPDF.PdfRowHeightMode] get_HeightMode()
-  UnlimitedPDF.PdfCell GetCell(Int32)
-  Void .ctor(Int32, Int32)
-  Void SetCell(Int32, UnlimitedPDF.PdfCell)
-  Void set_Height(System.Nullable`1[System.Double])
-  Void set_HeightMode(System.Nullable`1[UnlimitedPDF.PdfRowHeightMode])
-UnlimitedPDF.PdfRowHeightMode
-  Int32 value__
-  UnlimitedPDF.PdfRowHeightMode AtLeast
-  UnlimitedPDF.PdfRowHeightMode Exactly
-UnlimitedPDF.PdfSectionContent
-  UnlimitedPDF.PdfTable AddTable(Double, Double, Double)
-  Void AddImage(UnlimitedPDF.PdfImage, Double, Double, System.Nullable`1[System.Double], System.Nullable`1[System.Double], UnlimitedPDF.PdfImagePlacementOptions)
-  Void AddRectangle(Double, Double, Double, Double, UnlimitedPDF.PdfColor)
-  Void AddText(System.String, Double, Double, Double, UnlimitedPDF.PdfTextAlignment)
-  Void AddText(System.String, UnlimitedPDF.PdfFont, Double, Double, Double, UnlimitedPDF.PdfTextAlignment)
-UnlimitedPDF.PdfSplitException
-  Int32 PartNumber
-  Int32 PartsWritten
-  Int32 get_PartNumber()
-  Int32 get_PartsWritten()
-  Void .ctor(System.String, Int32, Int32, System.Exception)
-UnlimitedPDF.PdfSplitPart
-  Int32 FirstPage
-  Int32 LastPage
-  Int32 Number
-  Int32 get_FirstPage()
-  Int32 get_LastPage()
-  Int32 get_Number()
-  System.String FileName
-  System.String get_FileName()
-UnlimitedPDF.PdfTable
-  Boolean RepeatHeaderRows
-  Boolean get_RepeatHeaderRows()
-  Double RowHeight
-  Double Width
-  Double X
-  Double Y
-  Double get_RowHeight()
-  Double get_Width()
-  Double get_X()
-  Double get_Y()
-  Int32 ColumnCount
-  Int32 HeaderRowCount
-  Int32 RowCount
-  Int32 get_ColumnCount()
-  Int32 get_HeaderRowCount()
-  Int32 get_RowCount()
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfColumn] Columns
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfColumn] get_Columns()
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfRow] Rows
-  System.Collections.Generic.IReadOnlyList`1[UnlimitedPDF.PdfRow] get_Rows()
-  UnlimitedPDF.PdfCell GetCell(Int32, Int32)
-  UnlimitedPDF.PdfCell GetOrCreateCell(Int32, Int32)
-  UnlimitedPDF.PdfColumn AddColumn()
-  UnlimitedPDF.PdfColumn InsertColumn(Int32)
-  UnlimitedPDF.PdfRow AddRow()
-  UnlimitedPDF.PdfRow InsertRow(Int32)
-  UnlimitedPDF.PdfRowHeightMode RowHeightMode
-  UnlimitedPDF.PdfRowHeightMode get_RowHeightMode()
-  Void .ctor()
-  Void EnsureSize(Int32, Int32)
-  Void RemoveColumn(Int32)
-  Void RemoveRow(Int32)
-  Void SetCell(Int32, Int32, UnlimitedPDF.PdfCell)
-  Void SetColumnWidths(Double[])
-  Void SetText(Int32, Int32, System.String)
-  Void SetText(Int32, Int32, System.String, UnlimitedPDF.PdfFont)
-  Void TrimEmptyTrailingRowsAndColumns()
-  Void set_HeaderRowCount(Int32)
-  Void set_RepeatHeaderRows(Boolean)
-  Void set_RowHeight(Double)
-  Void set_RowHeightMode(UnlimitedPDF.PdfRowHeightMode)
-  Void set_Width(Double)
-  Void set_X(Double)
-  Void set_Y(Double)
-UnlimitedPDF.PdfTextAlignment
-  Int32 value__
-  UnlimitedPDF.PdfTextAlignment Center
-  UnlimitedPDF.PdfTextAlignment Left
-  UnlimitedPDF.PdfTextAlignment Right
-UnlimitedPDF.PdfTextException
-  Int32 PageNumber
-  Int32 get_PageNumber()
-  System.String Character
-  System.String Text
-  System.String get_Character()
-  System.String get_Text()
-  Void .ctor(System.String, System.String, Int32)
-UnlimitedPDF.PdfUnits
-  Double FromCentimeters(Double)
-  Double FromInches(Double)
-  Double FromMillimeters(Double)
-  Double FromPixels(Double)
+sealed class UnlimitedPDF.PdfBodyFlow
+  System.Double RemainingHeight { public get }
+  System.Nullable<System.Int32> MaxPages { public get; public set }
+  public System.Void AddHtml(UnlimitedPDF.PdfHtml html, System.Double spacing = 0, System.Boolean headingBookmarks = False, System.Boolean keepWithNext = False)
+  public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, System.Double spacing = 0, System.Double x = 0, UnlimitedPDF.PdfImagePlacementOptions? options = null, System.Boolean keepWithNext = False)
+  public System.Void AddRectangle(System.Double width, System.Double height, UnlimitedPDF.PdfColor color, System.Double spacing = 0, System.Double x = 0, System.Boolean keepWithNext = False)
+  public System.Void AddText(System.String text, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0, System.Boolean keepWithNext = False)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0, System.Boolean keepWithNext = False)
+  public System.Void PageBreak()
+  public UnlimitedPDF.PdfFlowBlock AddBlock(System.Double spacing = 0, System.Boolean keepWithNext = False)
+  public UnlimitedPDF.PdfTable AddTable(System.Double width, System.Double spacing = 0, System.Double x = 0, System.Boolean keepWithNext = False)
+class UnlimitedPDF.PdfBorder
+  System.Double Width { public get; public set }
+  UnlimitedPDF.PdfBorderStyle Style { public get; public set }
+  UnlimitedPDF.PdfColor Color { public get; public set }
+  public .ctor()
+enum UnlimitedPDF.PdfBorderStyle : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Dashed = 2
+  Double = 3
+  None = 0
+  Solid = 1
+class UnlimitedPDF.PdfCell
+  System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfCellContent> Content { public get }
+  System.Double LineHeightFactor { public get; public set }
+  System.Double Padding { public get; public set }
+  System.Int32 ColumnSpan { public get; public set }
+  System.Int32 RowSpan { public get; public set }
+  System.String Text { public get; public set }
+  UnlimitedPDF.PdfBorder BorderBottom { public get }
+  UnlimitedPDF.PdfBorder BorderLeft { public get }
+  UnlimitedPDF.PdfBorder BorderRight { public get }
+  UnlimitedPDF.PdfBorder BorderTop { public get }
+  UnlimitedPDF.PdfCellHorizontalAlignment HorizontalAlignment { public get; public set }
+  UnlimitedPDF.PdfCellVerticalAlignment VerticalAlignment { public get; public set }
+  UnlimitedPDF.PdfColor BackgroundColor { public get; public set }
+  public .ctor()
+  public System.Void AddContent(UnlimitedPDF.PdfCellContent item)
+  public System.Void ClearContent()
+  public System.Void InsertContent(System.Int32 index, UnlimitedPDF.PdfCellContent item)
+  public System.Void RemoveContent(System.Int32 index)
+  public System.Void SetContent(System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfCellContent> items)
+  public System.Void SetContent(params UnlimitedPDF.PdfCellContent[] items)
+abstract class UnlimitedPDF.PdfCellContent
+enum UnlimitedPDF.PdfCellHorizontalAlignment : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Center = 1
+  Left = 0
+  Right = 2
+sealed class UnlimitedPDF.PdfCellImage : UnlimitedPDF.PdfCellContent
+  UnlimitedPDF.PdfImage Image { public get }
+  public .ctor(UnlimitedPDF.PdfImage image)
+sealed class UnlimitedPDF.PdfCellText : UnlimitedPDF.PdfCellContent
+  System.String Text { public get }
+  UnlimitedPDF.PdfFont? Font { public get }
+  public .ctor(System.String text)
+  public .ctor(System.String text, UnlimitedPDF.PdfFont font)
+enum UnlimitedPDF.PdfCellVerticalAlignment : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Bottom = 2
+  Middle = 1
+  Top = 0
+enum UnlimitedPDF.PdfCmykInversion : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Auto = 0
+  Inverted = 1
+  NotInverted = 2
+class UnlimitedPDF.PdfColor : System.IEquatable<UnlimitedPDF.PdfColor>
+  System.Double B { public get; public init }
+  System.Double G { public get; public init }
+  System.Double R { public get; public init }
+  protected .ctor(UnlimitedPDF.PdfColor original)
+  protected virtual System.Boolean PrintMembers(System.Text.StringBuilder builder)
+  public .ctor(System.Double R, System.Double G, System.Double B)
+  public System.Void Deconstruct(out System.Double R, out System.Double G, out System.Double B)
+  public override System.Boolean Equals(System.Object? obj)
+  public override System.Int32 GetHashCode()
+  public override System.String ToString()
+  public static UnlimitedPDF.PdfColor FromHex(System.String hex)
+  public static UnlimitedPDF.PdfColor FromRgb(System.Byte r, System.Byte g, System.Byte b)
+  public virtual System.Boolean Equals(UnlimitedPDF.PdfColor? other)
+  public virtual UnlimitedPDF.PdfColor <Clone>$()
+  static UnlimitedPDF.PdfColor Black { public get }
+  static UnlimitedPDF.PdfColor LightGray { public get }
+  static UnlimitedPDF.PdfColor White { public get }
+  virtual System.Type EqualityContract { protected get }
+class UnlimitedPDF.PdfColumn
+  System.Int32 Index { public get }
+  System.Nullable<System.Double> Width { public get; public set }
+  public .ctor(System.Int32 index)
+class UnlimitedPDF.PdfDocument
+  System.Boolean FailOnMissingCharacters { public get; public set }
+  System.Collections.Generic.IList<UnlimitedPDF.PdfFont> FontFallback { public get }
+  System.Double BodyMarginBottom { public get; public set }
+  System.Double BodyMarginTop { public get; public set }
+  System.Double MarginBottom { public get; public set }
+  System.Double MarginLeft { public get; public set }
+  System.Double MarginRight { public get; public set }
+  System.Double MarginTop { public get; public set }
+  UnlimitedPDF.PdfBodyFlow Body { public get }
+  UnlimitedPDF.PdfPageSection Footer { public get }
+  UnlimitedPDF.PdfPageSection Header { public get }
+  UnlimitedPDF.PdfPageSize PageSize { public get; public set }
+  public .ctor(UnlimitedPDF.PdfPageSize pageSize = 4)
+  public System.Collections.Generic.IReadOnlyList<System.String> FindMissingCharacters(System.String text, UnlimitedPDF.PdfFont? font = null)
+  public System.Threading.Tasks.Task SaveAsync(System.IO.Stream stream, System.Threading.CancellationToken cancellationToken = null)
+  public System.Threading.Tasks.Task SaveAsync(System.String path, System.Threading.CancellationToken cancellationToken = null)
+  public System.Void AddPages(UnlimitedPDF.PdfFile file, System.Nullable<System.Int32> firstPage = null, System.Nullable<System.Int32> lastPage = null, System.String? bookmarkTitle = null)
+  public System.Void Save(System.IO.Stream stream)
+  public System.Void Save(System.String path)
+  public UnlimitedPDF.PdfPage AddPage()
+  public UnlimitedPDF.PdfPageSettings AddPageSettings(System.Int32 pageNumber)
+  public UnlimitedPDF.PdfPageSettings AddPageSettings(UnlimitedPDF.PdfPageTarget target)
+sealed class UnlimitedPDF.PdfFile
+  System.Int32 PageCount { public get }
+  System.String? Title { public get }
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfFile> FromFileAsync(System.String path, UnlimitedPDF.PdfFileLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfFile> FromStreamAsync(System.IO.Stream stream, UnlimitedPDF.PdfFileLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static UnlimitedPDF.PdfFile FromBytes(System.Byte[] data, UnlimitedPDF.PdfFileLoadOptions? options = null)
+  public static UnlimitedPDF.PdfFile FromFile(System.String path, UnlimitedPDF.PdfFileLoadOptions? options = null)
+  public static UnlimitedPDF.PdfFile FromStream(System.IO.Stream stream, UnlimitedPDF.PdfFileLoadOptions? options = null)
+  static System.Int32 DefaultMaxObjectCount { public get; public set }
+  static System.Int64 DefaultMaxFileSize { public get; public set }
+  static System.Int64 DefaultMaxStreamSize { public get; public set }
+enum UnlimitedPDF.PdfFileErrorReason : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Damaged = 1
+  Empty = 2
+  Encrypted = 0
+  TooLarge = 3
+class UnlimitedPDF.PdfFileException : System.Exception, System.Runtime.Serialization.ISerializable
+  UnlimitedPDF.PdfFileErrorReason Reason { public get }
+  public .ctor(UnlimitedPDF.PdfFileErrorReason reason, System.String message)
+  public .ctor(UnlimitedPDF.PdfFileErrorReason reason, System.String message, System.Exception innerException)
+sealed class UnlimitedPDF.PdfFileLoadOptions
+  System.Nullable<System.Int32> MaxObjectCount { public get; public set }
+  System.Nullable<System.Int64> MaxFileSize { public get; public set }
+  System.Nullable<System.Int64> MaxStreamSize { public get; public set }
+  public .ctor()
+sealed class UnlimitedPDF.PdfFlowBlock
+  public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, System.Double spacing = 0, System.Double x = 0, UnlimitedPDF.PdfImagePlacementOptions? options = null)
+  public System.Void AddRectangle(System.Double width, System.Double height, UnlimitedPDF.PdfColor color, System.Double spacing = 0, System.Double x = 0)
+  public System.Void AddText(System.String text, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0)
+  public UnlimitedPDF.PdfTable AddTable(System.Double width, System.Double spacing = 0, System.Double x = 0)
+sealed class UnlimitedPDF.PdfFont
+  System.Boolean IsItalic { public get }
+  System.Boolean IsVariable { public get }
+  System.Int32 MaximumWeight { public get }
+  System.Int32 MinimumWeight { public get }
+  System.Int32 Weight { public get }
+  System.String FamilyName { public get }
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfFont> FromFileAsync(System.String path, UnlimitedPDF.PdfFontLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfFont> FromStreamAsync(System.IO.Stream stream, UnlimitedPDF.PdfFontLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static UnlimitedPDF.PdfFont FromBytes(System.Byte[] data, UnlimitedPDF.PdfFontLoadOptions? options = null)
+  public static UnlimitedPDF.PdfFont FromFile(System.String path, UnlimitedPDF.PdfFontLoadOptions? options = null)
+  public static UnlimitedPDF.PdfFont FromStream(System.IO.Stream stream, UnlimitedPDF.PdfFontLoadOptions? options = null)
+  static System.Int64 DefaultMaxFileSize { public get; public set }
+enum UnlimitedPDF.PdfFontErrorReason : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  CorruptData = 1
+  EmbeddingRestricted = 3
+  TooLarge = 2
+  UnsupportedFormat = 0
+  WeightNotAvailable = 4
+class UnlimitedPDF.PdfFontException : System.Exception, System.Runtime.Serialization.ISerializable
+  UnlimitedPDF.PdfFontErrorReason Reason { public get }
+  public .ctor(UnlimitedPDF.PdfFontErrorReason reason, System.String message)
+  public .ctor(UnlimitedPDF.PdfFontErrorReason reason, System.String message, System.Exception innerException)
+sealed class UnlimitedPDF.PdfFontLoadOptions
+  System.Boolean IgnoreEmbeddingRestrictions { public get; public set }
+  System.Nullable<System.Int32> Weight { public get; public set }
+  System.Nullable<System.Int64> MaxFileSize { public get; public set }
+  public .ctor()
+sealed class UnlimitedPDF.PdfHtml
+  System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfHtmlWarning> Warnings { public get }
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfHtml> FromFileAsync(System.String path, UnlimitedPDF.PdfHtmlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfHtml> FromStreamAsync(System.IO.Stream stream, UnlimitedPDF.PdfHtmlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfHtml> FromStringAsync(System.String html, UnlimitedPDF.PdfHtmlLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static UnlimitedPDF.PdfHtml FromFile(System.String path, UnlimitedPDF.PdfHtmlLoadOptions? options = null)
+  public static UnlimitedPDF.PdfHtml FromStream(System.IO.Stream stream, UnlimitedPDF.PdfHtmlLoadOptions? options = null)
+  public static UnlimitedPDF.PdfHtml FromString(System.String html, UnlimitedPDF.PdfHtmlLoadOptions? options = null)
+  static System.Int32 DefaultMaxNestingDepth { public get; public set }
+  static System.Int64 DefaultMaxInputSize { public get; public set }
+  static System.Int64 DefaultMaxResourceSize { public get; public set }
+  static System.Int64 DefaultMaxTotalResourceSize { public get; public set }
+sealed class UnlimitedPDF.PdfHtmlConvertOptions
+  System.Boolean HeadingBookmarks { public get; public set }
+  System.Collections.Generic.IList<UnlimitedPDF.PdfFont> FontFallback { public get }
+  System.Double MarginBottom { public get; public set }
+  System.Double MarginLeft { public get; public set }
+  System.Double MarginRight { public get; public set }
+  System.Double MarginTop { public get; public set }
+  UnlimitedPDF.PdfPageSize PageSize { public get; public set }
+  public .ctor()
+enum UnlimitedPDF.PdfHtmlErrorReason : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  InputTooLarge = 0
+  NestingTooDeep = 1
+  ResourceTooLarge = 2
+  ResourcesTooLarge = 3
+  Warning = 4
+class UnlimitedPDF.PdfHtmlException : System.Exception, System.Runtime.Serialization.ISerializable
+  UnlimitedPDF.PdfHtmlErrorReason Reason { public get }
+  UnlimitedPDF.PdfHtmlWarning? Warning { public get }
+  public .ctor(UnlimitedPDF.PdfHtmlErrorReason reason, System.String message)
+  public .ctor(UnlimitedPDF.PdfHtmlWarning warning)
+sealed class UnlimitedPDF.PdfHtmlFontCollection : System.Collections.Generic.IEnumerable<System.Collections.Generic.KeyValuePair<System.String, UnlimitedPDF.PdfFont>>, System.Collections.IEnumerable
+  System.Int32 Count { public get }
+  public .ctor()
+  public System.Collections.Generic.IEnumerator<System.Collections.Generic.KeyValuePair<System.String, UnlimitedPDF.PdfFont>> GetEnumerator()
+  public System.Void Add(System.String family, UnlimitedPDF.PdfFont font)
+sealed class UnlimitedPDF.PdfHtmlLoadOptions
+  System.Boolean FailOnWarning { public get; public set }
+  System.Boolean SynthesizeMissingStyles { public get; public set }
+  System.Func<System.String, System.IO.Stream?>? ResourceResolver { public get; public set }
+  System.Func<System.String, System.Threading.CancellationToken, System.Threading.Tasks.Task<System.IO.Stream?>>? ResourceResolverAsync { public get; public set }
+  System.Nullable<System.Int32> MaxNestingDepth { public get; public set }
+  System.Nullable<System.Int64> MaxInputSize { public get; public set }
+  System.Nullable<System.Int64> MaxResourceSize { public get; public set }
+  System.Nullable<System.Int64> MaxTotalResourceSize { public get; public set }
+  System.String? BaseFolder { public get; public set }
+  UnlimitedPDF.PdfHtmlFontCollection Fonts { public get }
+  public .ctor()
+sealed class UnlimitedPDF.PdfHtmlWarning
+  System.Nullable<System.Int32> Line { public get }
+  System.Nullable<System.Int32> PageNumber { public get }
+  System.String Message { public get }
+  System.String Source { public get }
+  UnlimitedPDF.PdfHtmlWarningKind Kind { public get }
+  public override System.String ToString()
+enum UnlimitedPDF.PdfHtmlWarningKind : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  ContentClipped = 9
+  FontFaceIgnored = 12
+  InvalidImage = 7
+  LinkDropped = 8
+  MissingCharacter = 10
+  MissingFontFace = 11
+  ResourceBlocked = 4
+  ResourceNotFound = 3
+  ResourceNotResolved = 5
+  UnsupportedElement = 0
+  UnsupportedImageFormat = 6
+  UnsupportedProperty = 1
+  UnsupportedValue = 2
+sealed class UnlimitedPDF.PdfImage
+  System.Int32 PixelHeight { public get }
+  System.Int32 PixelWidth { public get }
+  System.Nullable<System.Double> DpiX { public get }
+  System.Nullable<System.Double> DpiY { public get }
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfImage> FromFileAsync(System.String path, UnlimitedPDF.PdfImageLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<UnlimitedPDF.PdfImage> FromStreamAsync(System.IO.Stream stream, UnlimitedPDF.PdfImageLoadOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static UnlimitedPDF.PdfImage FromBytes(System.Byte[] data, UnlimitedPDF.PdfImageLoadOptions? options = null)
+  public static UnlimitedPDF.PdfImage FromFile(System.String path, UnlimitedPDF.PdfImageLoadOptions? options = null)
+  public static UnlimitedPDF.PdfImage FromStream(System.IO.Stream stream, UnlimitedPDF.PdfImageLoadOptions? options = null)
+  static System.Int64 DefaultMaxPixels { public get; public set }
+enum UnlimitedPDF.PdfImageErrorReason : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  CorruptData = 1
+  TooLarge = 2
+  UnsupportedFormat = 0
+class UnlimitedPDF.PdfImageException : System.Exception, System.Runtime.Serialization.ISerializable
+  UnlimitedPDF.PdfImageErrorReason Reason { public get }
+  public .ctor(UnlimitedPDF.PdfImageErrorReason reason, System.String message)
+  public .ctor(UnlimitedPDF.PdfImageErrorReason reason, System.String message, System.Exception innerException)
+enum UnlimitedPDF.PdfImageFit : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Contain = 1
+  Stretch = 0
+sealed class UnlimitedPDF.PdfImageLoadOptions
+  System.Boolean ApplyExifOrientation { public get; public set }
+  System.Nullable<System.Int64> MaxPixels { public get; public set }
+  UnlimitedPDF.PdfCmykInversion CmykInversion { public get; public set }
+  public .ctor()
+sealed class UnlimitedPDF.PdfImagePlacementOptions
+  UnlimitedPDF.PdfImageFit Fit { public get; public set }
+  public .ctor()
+static class UnlimitedPDF.PdfOperations
+  public static System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart> Split(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.Func<UnlimitedPDF.PdfSplitPart, System.IO.Stream> openPart)
+  public static System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart> Split(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputFolder)
+  public static System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart> Split(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.Func<UnlimitedPDF.PdfSplitPart, System.IO.Stream> openPart)
+  public static System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart> Split(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.String outputFolder)
+  public static System.Threading.Tasks.Task ConvertHtmlAsync(UnlimitedPDF.PdfHtml html, System.IO.Stream output, UnlimitedPDF.PdfHtmlConvertOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task ConvertHtmlAsync(UnlimitedPDF.PdfHtml html, System.String outputPath, UnlimitedPDF.PdfHtmlConvertOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task MergeAsync(System.IO.Stream output, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfFile> inputs, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task MergeAsync(System.String outputPath, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfFile> inputs, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.Func<UnlimitedPDF.PdfSplitPart, System.IO.Stream> openPart, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputFolder, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.Func<UnlimitedPDF.PdfSplitPart, System.IO.Stream> openPart, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.String outputFolder, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Void ConvertHtml(UnlimitedPDF.PdfHtml html, System.IO.Stream output, UnlimitedPDF.PdfHtmlConvertOptions? options = null)
+  public static System.Void ConvertHtml(UnlimitedPDF.PdfHtml html, System.String outputPath, UnlimitedPDF.PdfHtmlConvertOptions? options = null)
+  public static System.Void Merge(System.IO.Stream output, params UnlimitedPDF.PdfFile[] inputs)
+  public static System.Void Merge(System.String outputPath, params UnlimitedPDF.PdfFile[] inputs)
+class UnlimitedPDF.PdfPage
+  public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Double x, System.Double y, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, UnlimitedPDF.PdfImagePlacementOptions? options = null)
+  public System.Void AddRectangle(System.Double x, System.Double y, System.Double width, System.Double height, UnlimitedPDF.PdfColor color)
+  public System.Void AddText(System.String text, System.Double x, System.Double y, System.Double fontSize = 12)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double x, System.Double y, System.Double fontSize = 12)
+  public UnlimitedPDF.PdfTable AddTable(System.Double x, System.Double y, System.Double width)
+sealed class UnlimitedPDF.PdfPageInfo
+  System.Boolean IsFirst { public get }
+  System.Boolean IsLast { public get }
+  System.Int32 PageCount { public get }
+  System.Int32 PageNumber { public get }
+sealed class UnlimitedPDF.PdfPageRange
+  System.Int32 FirstPage { public get }
+  System.Int32 LastPage { public get }
+  public .ctor(System.Int32 firstPage, System.Int32 lastPage)
+  public override System.String ToString()
+sealed class UnlimitedPDF.PdfPageSection : UnlimitedPDF.PdfSectionContent
+  System.Boolean IsHidden { public get; public set }
+  System.Double Height { public get; public set }
+  public System.Void SetPageContent(System.Action<UnlimitedPDF.PdfSectionContent, UnlimitedPDF.PdfPageInfo> build)
+sealed class UnlimitedPDF.PdfPageSettings
+  System.Nullable<System.Double> BodyMarginBottom { public get; public set }
+  System.Nullable<System.Double> BodyMarginTop { public get; public set }
+  System.Nullable<System.Double> MarginLeft { public get; public set }
+  System.Nullable<System.Double> MarginRight { public get; public set }
+  UnlimitedPDF.PdfPageSection Footer { public get }
+  UnlimitedPDF.PdfPageSection Header { public get }
+enum UnlimitedPDF.PdfPageSize : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  A0 = 0
+  A1 = 1
+  A2 = 2
+  A3 = 3
+  A4 = 4
+  A5 = 5
+  A6 = 6
+  B4 = 12
+  B5 = 13
+  Executive = 7
+  HalfLetter = 15
+  Ledger = 8
+  Legal = 9
+  Letter = 10
+  Statement = 14
+  Tabloid = 11
+static class UnlimitedPDF.PdfPageSizeExtensions
+  public static System.ValueTuple<System.Double, System.Double> ToDimensions(UnlimitedPDF.PdfPageSize pageSize)
+enum UnlimitedPDF.PdfPageTarget : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Even = 3
+  First = 0
+  Last = 1
+  Odd = 2
+class UnlimitedPDF.PdfRow
+  System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfCell> Cells { public get }
+  System.Int32 Index { public get }
+  System.Nullable<System.Double> Height { public get; public set }
+  System.Nullable<UnlimitedPDF.PdfRowHeightMode> HeightMode { public get; public set }
+  public .ctor(System.Int32 index, System.Int32 initialColumns)
+  public System.Void SetCell(System.Int32 columnIndex, UnlimitedPDF.PdfCell cell)
+  public UnlimitedPDF.PdfCell GetCell(System.Int32 columnIndex)
+enum UnlimitedPDF.PdfRowHeightMode : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  AtLeast = 1
+  Exactly = 0
+class UnlimitedPDF.PdfSectionContent
+  public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Double x, System.Double y, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, UnlimitedPDF.PdfImagePlacementOptions? options = null)
+  public System.Void AddRectangle(System.Double x, System.Double y, System.Double width, System.Double height, UnlimitedPDF.PdfColor color)
+  public System.Void AddText(System.String text, System.Double x, System.Double y, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double x, System.Double y, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0)
+  public UnlimitedPDF.PdfTable AddTable(System.Double x, System.Double y, System.Double width)
+class UnlimitedPDF.PdfSplitException : System.Exception, System.Runtime.Serialization.ISerializable
+  System.Int32 PartNumber { public get }
+  System.Int32 PartsWritten { public get }
+  public .ctor(System.String message, System.Int32 partNumber, System.Int32 partsWritten, System.Exception innerException)
+sealed class UnlimitedPDF.PdfSplitPart
+  System.Int32 FirstPage { public get }
+  System.Int32 LastPage { public get }
+  System.Int32 Number { public get }
+  System.String FileName { public get }
+class UnlimitedPDF.PdfTable
+  System.Boolean RepeatHeaderRows { public get; public set }
+  System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfColumn> Columns { public get }
+  System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfRow> Rows { public get }
+  System.Double RowHeight { public get; public set }
+  System.Double Width { public get; public set }
+  System.Double X { public get; public set }
+  System.Double Y { public get; public set }
+  System.Int32 ColumnCount { public get }
+  System.Int32 HeaderRowCount { public get; public set }
+  System.Int32 RowCount { public get }
+  UnlimitedPDF.PdfRowHeightMode RowHeightMode { public get; public set }
+  public .ctor()
+  public System.Void EnsureSize(System.Int32 rows, System.Int32 columns)
+  public System.Void RemoveColumn(System.Int32 index)
+  public System.Void RemoveRow(System.Int32 index)
+  public System.Void SetCell(System.Int32 row, System.Int32 column, UnlimitedPDF.PdfCell cell)
+  public System.Void SetColumnWidths(params System.Double[] widths)
+  public System.Void SetText(System.Int32 row, System.Int32 column, System.String text)
+  public System.Void SetText(System.Int32 row, System.Int32 column, System.String text, UnlimitedPDF.PdfFont font)
+  public System.Void TrimEmptyTrailingRowsAndColumns()
+  public UnlimitedPDF.PdfCell GetCell(System.Int32 row, System.Int32 column)
+  public UnlimitedPDF.PdfCell GetOrCreateCell(System.Int32 row, System.Int32 column)
+  public UnlimitedPDF.PdfColumn AddColumn()
+  public UnlimitedPDF.PdfColumn InsertColumn(System.Int32 index)
+  public UnlimitedPDF.PdfRow AddRow()
+  public UnlimitedPDF.PdfRow InsertRow(System.Int32 index)
+enum UnlimitedPDF.PdfTextAlignment : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Center = 1
+  Left = 0
+  Right = 2
+class UnlimitedPDF.PdfTextException : System.Exception, System.Runtime.Serialization.ISerializable
+  System.Int32 PageNumber { public get }
+  System.String Character { public get }
+  System.String Text { public get }
+  public .ctor(System.String character, System.String text, System.Int32 pageNumber)
+static class UnlimitedPDF.PdfUnits
+  public static System.Double FromCentimeters(System.Double centimeters)
+  public static System.Double FromInches(System.Double inches)
+  public static System.Double FromMillimeters(System.Double millimeters)
+  public static System.Double FromPixels(System.Double pixels)
