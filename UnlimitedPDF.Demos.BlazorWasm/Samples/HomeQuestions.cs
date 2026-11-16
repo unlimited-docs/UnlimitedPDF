@@ -19,7 +19,7 @@ public static class HomeQuestions
     /// </summary>
     public static IReadOnlyList<HomeQuestion> Questions => _questions ??=
     [
-        new("Repeat a table header on every page", SampleCatalog.EmployeeDirectory),
+        new("Repeat a table header on every page", SampleCatalog.AccountStatement),
         new("Keep totals together at the end of a table", SampleCatalog.PurchaseOrder),
         new("Give each merged file its own bookmark", SampleCatalog.BookmarksAndNumbers),
         new("Hold a document to one page", SampleCatalog.Payslip),

@@ -106,29 +106,6 @@
       "images": [
         "receipt-logo.png"
       ]
-    },
-    {
-      "picture": "certificate",
-      "capturedOn": "2026-11-11",
-      "sources": [
-        "Samples/CertificateSample.cs",
-        "Samples/Inputs/CertificateInput.cs"
-      ],
-      "sha256": "ba5bf86812330f61cf2c29c9dfa9a1c6db6bfb1369a1f49aa596c5aac651109a",
-      "images": [
-        "certificate-seal.png",
-        "certificate-signature.png"
-      ]
-    },
-    {
-      "picture": "employee-directory",
-      "capturedOn": "2026-11-11",
-      "sources": [
-        "Samples/EmployeeDirectorySample.cs",
-        "Samples/Inputs/EmployeeDirectoryInput.cs"
-      ],
-      "sha256": "71a0b3cc045c95d45604b0ec4dc825a1b9ef8d5592b1063748c5b3727e4bc0d0",
-      "images": []
     }
   ]
 }

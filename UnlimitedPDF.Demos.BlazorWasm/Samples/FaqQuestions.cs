@@ -76,7 +76,7 @@ public static class FaqQuestions
             new("tables-across-pages", "Do tables continue onto the next page?",
             [
                 "Yes. A table made with AddTable continues row by row onto new pages when it reaches the bottom of the page's body. Its rows are never split, and header rows can repeat at the top of each page."
-            ], SampleCatalog.EmployeeDirectory, "repeat-header"),
+            ], SampleCatalog.AccountStatement, "repeat-header"),
             new("page-numbers", "How do I add page numbers?",
             [
                 "Give the document a footer or a header and put {page} and {pages} in its text. Each page's number and the page count are filled in when the document is saved."

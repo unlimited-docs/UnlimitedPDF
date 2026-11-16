@@ -17,6 +17,12 @@ public static class SampleCatalog
     #region Properties, Indexers
 
     /// <summary>
+    /// Gets the document types the Invoice demo also makes (same shape: parties, line items, totals), in the order its
+    /// choice lists them. They are not demos of their own in the catalog.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> InvoiceTypes => [Quotation, PurchaseOrder, DeliveryNote, Receipt];
+
+    /// <summary>
     /// Gets the demo categories in sidebar order.
     /// </summary>
     public static IReadOnlyList<SampleCategory> Categories => _categories ??=
@@ -32,7 +38,7 @@ public static class SampleCatalog
         new SampleCategory(
             "Merge",
             "Join existing PDFs, pick their pages, and build complete document packs. Try your own files.",
-            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, MonthEndPack, EmployeePack, PatientPack],
+            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, DocumentPacks],
             Id: "merge",
             Icon: "merge",
             Tone: "teal",
@@ -40,7 +46,7 @@ public static class SampleCatalog
             Groups:
             [
                 new SampleGroup("Operations", [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers]),
-                new SampleGroup("Packs", [MonthEndPack, EmployeePack, PatientPack])
+                new SampleGroup("Packs", [DocumentPacks])
             ]),
         new SampleCategory(
             "Split",
@@ -69,7 +75,7 @@ public static class SampleCatalog
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
-            [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory],
+            [Invoice, AccountStatement, Payslip, MedicalReport],
             Id: "documents")
     ];
 
@@ -83,7 +89,10 @@ public static class SampleCatalog
         "AccountStatementSample.cs",
         "account-statement.pdf",
         "table",
-        PageTitle: "Create a PDF bank statement in C#");
+        PageTitle: "Create a PDF bank statement in C#")
+    {
+        Domains = ["Finance"],
+    };
 
     /// <summary>
     /// Gets the Bookmarks and page numbers merge demo.
@@ -96,18 +105,6 @@ public static class SampleCatalog
         "bookmarks-and-numbers.pdf",
         "bookmark",
         PageTitle: "Merged PDF bookmarks and page numbers in C#");
-
-    /// <summary>
-    /// Gets the Certificate demo.
-    /// </summary>
-    public static SampleDemo Certificate { get; } = new(
-        "Certificate",
-        "A certificate of achievement with a seal and a signature image.",
-        "playground/documents/certificate",
-        "CertificateSample.cs",
-        "certificate.pdf",
-        "award",
-        PageTitle: "Create a PDF certificate in C#");
 
     /// <summary>
     /// Gets the Common problems demo: known HTML to PDF problems, each as a small editable document.
@@ -140,35 +137,29 @@ public static class SampleCatalog
     public static SampleDemo DeliveryNote { get; } = new(
         "Delivery note",
         "A delivery note that lists ordered and shipped quantities and keeps the signature block together.",
-        "playground/documents/delivery-note",
+        "playground/documents/invoice?type=delivery-note",
         "DeliveryNoteSample.cs",
         "delivery-note.pdf",
         "receipt",
-        PageTitle: "Create a PDF delivery note in C#");
+        PageTitle: "Create a PDF delivery note in C#")
+    {
+        Domains = ["Logistics"],
+    };
 
     /// <summary>
-    /// Gets the Employee directory demo.
+    /// Gets the Document packs merge demo: a finance, HR, or healthcare pack, generated and merged behind a cover page.
     /// </summary>
-    public static SampleDemo EmployeeDirectory { get; } = new(
-        "Employee directory",
-        "A long table that continues across pages, repeats its header row, and numbers every page.",
-        "playground/documents/employee-directory",
-        "EmployeeDirectorySample.cs",
-        "employee-directory.pdf",
-        "users",
-        PageTitle: "Create a PDF employee directory in C#");
-
-    /// <summary>
-    /// Gets the Employee pack merge demo.
-    /// </summary>
-    public static SampleDemo EmployeePack { get; } = new(
-        "Employee pack",
-        "A payslip and a certificate, generated and merged behind a cover page.",
-        "playground/merge/employee-pack",
+    public static SampleDemo DocumentPacks { get; } = new(
+        "Document packs",
+        "Generate a month-end, employee, or patient pack from the other demos and merge it behind a cover page, with a bookmark per document.",
+        "playground/merge/document-packs",
         "MergePackSample.cs",
-        "employee-pack.pdf",
-        "badge",
-        PageTitle: "Employee PDF pack: generate and merge in C#");
+        "document-pack.pdf",
+        "calendar",
+        PageTitle: "Generate and merge PDF document packs in C#")
+    {
+        Domains = ["Finance", "HR", "Healthcare"],
+    };
 
     /// <summary>
     /// Gets the Headers and footers demo.
@@ -192,7 +183,10 @@ public static class SampleCatalog
         "FontsAndLanguagesSample.cs",
         "fonts-and-languages.pdf",
         "language",
-        PageTitle: "Multilingual PDFs with your own fonts in C#");
+        PageTitle: "Multilingual PDFs with your own fonts in C#")
+    {
+        Domains = ["Finance"],
+    };
 
     /// <summary>
     /// Gets the HTML to PDF demo.
@@ -228,7 +222,10 @@ public static class SampleCatalog
         "InvoiceSample.cs",
         "invoice.pdf",
         "invoice",
-        PageTitle: "Create a PDF invoice in C#");
+        PageTitle: "Create a PDF invoice in C#")
+    {
+        Domains = ["Finance", "Retail"],
+    };
 
 
     /// <summary>
@@ -253,31 +250,10 @@ public static class SampleCatalog
         "MedicalReportSample.cs",
         "medical-report.pdf",
         "pulse",
-        PageTitle: "Create a PDF medical report in C#");
-
-    /// <summary>
-    /// Gets the Month-end pack merge demo.
-    /// </summary>
-    public static SampleDemo MonthEndPack { get; } = new(
-        "Month-end pack",
-        "An invoice, a receipt, and an account statement, generated and merged behind a cover page.",
-        "playground/merge/month-end-pack",
-        "MergePackSample.cs",
-        "month-end-pack.pdf",
-        "calendar",
-        PageTitle: "Month-end PDF pack: generate and merge in C#");
-
-    /// <summary>
-    /// Gets the Patient pack merge demo.
-    /// </summary>
-    public static SampleDemo PatientPack { get; } = new(
-        "Patient pack",
-        "A medical report and a receipt, generated and merged behind a cover page.",
-        "playground/merge/patient-pack",
-        "MergePackSample.cs",
-        "patient-pack.pdf",
-        "heart",
-        PageTitle: "Patient PDF pack: generate and merge in C#");
+        PageTitle: "Create a PDF medical report in C#")
+    {
+        Domains = ["Healthcare"],
+    };
 
     /// <summary>
     /// Gets the Payslip demo.
@@ -289,7 +265,10 @@ public static class SampleCatalog
         "PayslipSample.cs",
         "payslip.pdf",
         "users",
-        PageTitle: "Create a PDF payslip in C#");
+        PageTitle: "Create a PDF payslip in C#")
+    {
+        Domains = ["HR"],
+    };
 
     /// <summary>
     /// Gets the Pick pages merge demo.
@@ -309,11 +288,14 @@ public static class SampleCatalog
     public static SampleDemo PurchaseOrder { get; } = new(
         "Purchase order",
         "A purchase order whose item table runs across pages, with the totals kept together at the end.",
-        "playground/documents/purchase-order",
+        "playground/documents/invoice?type=purchase-order",
         "PurchaseOrderSample.cs",
         "purchase-order.pdf",
         "invoice",
-        PageTitle: "Create a PDF purchase order in C#");
+        PageTitle: "Create a PDF purchase order in C#")
+    {
+        Domains = ["Retail", "Logistics"],
+    };
 
     /// <summary>
     /// Gets the Quotation demo.
@@ -321,11 +303,14 @@ public static class SampleCatalog
     public static SampleDemo Quotation { get; } = new(
         "Quotation",
         "A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.",
-        "playground/documents/quotation",
+        "playground/documents/invoice?type=quotation",
         "QuotationSample.cs",
         "quotation.pdf",
         "invoice",
-        PageTitle: "Create a PDF quotation in C#");
+        PageTitle: "Create a PDF quotation in C#")
+    {
+        Domains = ["Finance", "Retail"],
+    };
 
     /// <summary>
     /// Gets the Receipt demo.
@@ -333,11 +318,14 @@ public static class SampleCatalog
     public static SampleDemo Receipt { get; } = new(
         "Receipt",
         "A compact A6 store receipt with items, tax, and payment details.",
-        "playground/documents/receipt",
+        "playground/documents/invoice?type=receipt",
         "ReceiptSample.cs",
         "receipt.pdf",
         "receipt",
-        PageTitle: "Create a PDF receipt in C#");
+        PageTitle: "Create a PDF receipt in C#")
+    {
+        Domains = ["Retail"],
+    };
 
     /// <summary>
     /// Gets the Every N pages split demo.

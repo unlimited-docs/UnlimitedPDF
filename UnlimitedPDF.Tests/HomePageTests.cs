@@ -56,7 +56,7 @@ public class HomePageTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(16, capabilityDemos.Count);
+        Assert.Equal(14, capabilityDemos.Count);
         Assert.Equal(capabilityDemos.Count, capabilityDemos.Select(d => d.Icon).Distinct(StringComparer.Ordinal).Count());
         Assert.All(SampleCatalog.Categories.SelectMany(c => c.Demos), d => Assert.Contains(d.Icon, drawn));
         Assert.All(SampleCatalog.Categories.Where(c => c.Icon is not null), c => Assert.Contains(c.Icon!, drawn));
@@ -136,12 +136,15 @@ public class HomePageTests
     [Fact]
     public void The_gallery_has_one_tile_per_document_in_catalogue_order()
     {
-        var documents = SampleCatalog.Categories.Single(c => c.Id == "documents").Demos;
+        // The gallery shows every document demo and every type the Invoice demo makes, one tile each.
+        var documents = SampleCatalog.Categories.Single(c => c.Id == "documents").Demos.Concat(SampleCatalog.InvoiceTypes).ToHashSet();
+        var tiles = DocumentGallery.Documents.Select(d => d.Demo).ToList();
 
-        Assert.Equal(documents, DocumentGallery.Documents.Select(d => d.Demo));
+        Assert.Equal(documents, tiles.ToHashSet());
+        Assert.Equal(documents.Count, tiles.Count);
         Assert.Equal(documents.Count, DocumentGallery.Documents.Select(d => d.Picture).Distinct(StringComparer.Ordinal).Count());
         Assert.All(DocumentGallery.Documents, d => Assert.False(string.IsNullOrWhiteSpace(d.Summary)));
-        Assert.All(DocumentGallery.Documents, d => Assert.Equal(d.Picture, d.Demo.Route.Split('/')[^1]));
+        Assert.All(DocumentGallery.Documents, d => Assert.Equal(d.Picture, Path.GetFileNameWithoutExtension(d.Demo.FileName)));
     }
 
     [Fact]
@@ -228,7 +231,7 @@ public class HomePageTests
     [Fact]
     public void There_are_six_to_eight_questions_and_each_opens_a_demo_that_exists()
     {
-        var demos = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
+        var demos = SampleCatalog.Categories.SelectMany(c => c.Demos).Concat(SampleCatalog.InvoiceTypes).ToList();
         var questions = HomeQuestions.Questions;
 
         Assert.InRange(questions.Count, 6, 8);
@@ -245,7 +248,7 @@ public class HomePageTests
     public void The_capability_rows_and_the_gallery_together_hold_every_demo_once()
     {
         var onPage = CapabilityDemos().Concat(DocumentGallery.Documents.Select(d => d.Demo)).ToList();
-        var all = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
+        var all = SampleCatalog.Categories.SelectMany(c => c.Demos).Concat(SampleCatalog.InvoiceTypes).ToList();
 
         Assert.Equal(all.Count, onPage.Count);
         Assert.Equal(all.ToHashSet(), onPage.ToHashSet());
@@ -303,8 +306,6 @@ public class HomePageTests
         "Payslip" => PayslipSample.Build(new PayslipInput(), images),
         "Medical report" => MedicalReportSample.Build(new MedicalReportInput(), images),
         "Receipt" => ReceiptSample.Build(new ReceiptInput(), images),
-        "Certificate" => CertificateSample.Build(new CertificateInput(), images),
-        "Employee directory" => EmployeeDirectorySample.Build(new EmployeeDirectoryInput()),
         _ => throw new ArgumentOutOfRangeException(nameof(demo), demo.Title, "Not a gallery document.")
     };
 

@@ -27,7 +27,6 @@ The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`
 | `invoice-logo.png` | Invoice demo |
 | `medical-report-logo.png` | Medical report demo |
 | `receipt-logo.png` | Receipt demo |
-| `certificate-seal.png`, `certificate-signature.png` | Certificate demo (the signature is fictional) |
 | `purchase-order-logo.png` | Purchase order demo (fictional company) |
 | `quotation-logo.png` | Quotation demo (fictional company) |
 | `account-statement-logo.png` | Account statement demo (fictional company) |
@@ -36,4 +35,4 @@ The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`
 
 ## Document gallery
 
-`gallery/<name>-320.jpg` (the home page tile) and `gallery/<name>-960.jpg` (quick look) for `invoice`, `quotation`, `purchase-order`, `delivery-note`, `account-statement`, `payslip`, `medical-report`, `receipt`, `certificate`, and `employee-directory`. Each shows the first page of the PDF its demo generates with the default input. They are copies made by the same script from captures in [`assets/originals/gallery/`](../../../assets/ARTWORK.md#document-gallery-pictures-added-2026-11-11).
+`gallery/<name>-320.jpg` (the home page tile) and `gallery/<name>-960.jpg` (quick look) for `invoice`, `quotation`, `purchase-order`, `delivery-note`, `account-statement`, `payslip`, `medical-report`, and `receipt`. Each shows the first page of the PDF its demo generates with the default input. They are copies made by the same script from captures in [`assets/originals/gallery/`](../../../assets/ARTWORK.md#document-gallery-pictures-added-2026-11-11).

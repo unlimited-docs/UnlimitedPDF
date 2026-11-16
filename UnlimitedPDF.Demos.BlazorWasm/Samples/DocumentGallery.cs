@@ -37,11 +37,7 @@ public static class DocumentGallery
         new(SampleCatalog.MedicalReport, "Lab results with reference ranges and flags.", 1, PdfPageSize.A4, "medical-report",
             ["medical-report-logo.png"], images => MedicalReportSample.Build(new MedicalReportInput(), images)),
         new(SampleCatalog.Receipt, "Items, tax, and payment on a small page.", 1, PdfPageSize.A6, "receipt",
-            ["receipt-logo.png"], images => ReceiptSample.Build(new ReceiptInput(), images)),
-        new(SampleCatalog.Certificate, "A seal and a signature placed as images.", 1, PdfPageSize.A4, "certificate",
-            ["certificate-seal.png", "certificate-signature.png"], images => CertificateSample.Build(new CertificateInput(), images)),
-        new(SampleCatalog.EmployeeDirectory, "A long table with its header and page numbers on every page.", 4, PdfPageSize.A4, "employee-directory",
-            [], _ => EmployeeDirectorySample.Build(new EmployeeDirectoryInput()))
+            ["receipt-logo.png"], images => ReceiptSample.Build(new ReceiptInput(), images))
     ];
 
     #endregion

@@ -10,6 +10,7 @@
 
     <div class="demo-grid">
         <section class="panel demo-inputs" id="@($"{_id}-options")" tabindex="-1" @ref="_optionsSection" aria-label="Options">
+            @Choice
             <div class="demo-inputs-body" @oninput="OnInputsChanged" @onchange="OnInputsChanged" @onkeydown="OnInputsKeyDownAsync">
                 @Inputs
             </div>

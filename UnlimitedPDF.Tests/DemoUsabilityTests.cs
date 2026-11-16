@@ -49,7 +49,7 @@ public class DemoUsabilityTests
         {
             "Layout/MainLayout.razor", "Layout/MainLayout.razor.cs", "Layout/PlaygroundLayout.razor", "Layout/PlaygroundLayout.razor.cs",
             "Components/SamplePage.razor", "Components/SamplePage.razor.cs", "Components/SplitPartsPage.razor", "Components/SplitPartsPage.razor.cs",
-            "Pages/Playground/Create/HeadersFooters.razor", "Pages/Playground/Documents/EmployeeDirectory.razor",
+            "Pages/Playground/Create/HeadersFooters.razor",
             "Components/FaqQuestionItem.razor", "Components/Icon.razor", "Pages/Playground/Html/CommonProblems.razor",
             "Pages/Playground/Merge/BookmarksAndNumbers.razor", "Pages/Playground/Merge/CoverAndRanges.razor"
         };

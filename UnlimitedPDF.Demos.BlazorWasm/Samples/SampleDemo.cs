@@ -40,5 +40,11 @@ public sealed record SampleDemo(
     /// </summary>
     public string DocumentTitle => $"{PageTitle} · {SiteName}";
 
+    /// <summary>
+    /// Gets the business domains the demo's scenario belongs to, for the gallery's domain filter; "General" for demos
+    /// of a capability rather than a business scenario.
+    /// </summary>
+    public IReadOnlyList<string> Domains { get; init; } = ["General"];
+
     #endregion
 }

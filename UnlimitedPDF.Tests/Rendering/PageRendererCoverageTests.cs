@@ -60,8 +60,6 @@ public class PageRendererCoverageTests
             "payslip" => PayslipSample.Build(new PayslipInput(), images),
             "medical-report" => MedicalReportSample.Build(new MedicalReportInput(), images),
             "receipt" => ReceiptSample.Build(new ReceiptInput(), images),
-            "certificate" => CertificateSample.Build(new CertificateInput(), images),
-            "employee-directory" => EmployeeDirectorySample.Build(new EmployeeDirectoryInput()),
             "headers-and-footers" => HeadersFootersSample.Build(new HeadersFootersInput()),
             "bookmarks-and-numbers" => BookmarksAndNumbers(),
             _ when demo.StartsWith("language-", StringComparison.Ordinal) => Language(demo.Substring("language-".Length)),
@@ -91,8 +89,7 @@ public class PageRendererCoverageTests
         var names = new[]
         {
             "invoice-logo.png", "keyboard.jpg", "dock.jpg", "receipt-logo.png", "medical-report-logo.png", "purchase-order-logo.png",
-            "quotation-logo.png", "account-statement-logo.png", "payslip-logo.png", "delivery-note-logo.png", "certificate-seal.png",
-            "certificate-signature.png",
+            "quotation-logo.png", "account-statement-logo.png", "payslip-logo.png", "delivery-note-logo.png",
         };
         return new SampleImages(names.ToDictionary(name => name, _ => image));
     }
@@ -134,7 +131,7 @@ public class PageRendererCoverageTests
             var data = new TheoryData<string>
             {
                 "invoice", "quotation", "purchase-order", "delivery-note", "account-statement", "payslip", "medical-report",
-                "receipt", "certificate", "employee-directory", "headers-and-footers", "bookmarks-and-numbers", "split-part",
+                "receipt", "headers-and-footers", "bookmarks-and-numbers", "split-part",
             };
             foreach (var language in LanguageInvoices.All) data.Add("language-" + language.Id);
             return data;

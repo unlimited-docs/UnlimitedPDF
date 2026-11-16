@@ -123,18 +123,6 @@ public class DemoPaginationTests
     }
 
     [Fact]
-    public void Employee_directory_numbers_every_page()
-    {
-        var pages = PdfPageReader.Save(EmployeeDirectorySample.Build(new EmployeeDirectoryInput { EmployeeCount = 300 }));
-
-        Assert.True(pages.Count >= 3);
-        AssertNoOverlaps(pages);
-        AssertNumbered(pages);
-        Assert.All(pages, page => Assert.True(page.Shows("Employee directory")));
-        Assert.True(pages[pages.Count - 1].Shows("300"));
-    }
-
-    [Fact]
     public void Headers_and_footers_sample_shows_page_settings_page_numbers_and_a_kept_block()
     {
         var pages = PdfPageReader.Save(HeadersFootersSample.Build(new HeadersFootersInput { SectionCount = 8, RowsPerSection = 20 }));

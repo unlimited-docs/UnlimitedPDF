@@ -37,7 +37,7 @@
     }
 
     // The Employee directory demo's several pages, so the demo works before any upload.
-    private static SplitInput Defaults() => new() { File = new MergeFileInput("Employee directory", MergeDemoFiles.EmployeeDirectory()) };
+    private static SplitInput Defaults() => new() { File = new MergeFileInput("Report", MergeDemoFiles.Report()) };
 
     // A value that is not a whole number becomes 0, which the split rejects with its own message.
     private static int PagesPerPart(object? value) =>

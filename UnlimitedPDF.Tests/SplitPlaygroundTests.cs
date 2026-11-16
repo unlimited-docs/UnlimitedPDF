@@ -77,8 +77,8 @@ public class SplitPlaygroundTests
     [Fact]
     public void Default_inputs_split_the_built_in_sample()
     {
-        var file = PdfFile.FromBytes(ImportedPagesTests.Save(EmployeeDirectorySample.Build(new EmployeeDirectoryInput())));
-        var input = new SplitInput { File = new MergeFileInput("Employee directory", file) };
+        var file = PdfFile.FromBytes(ImportedPagesTests.Save(HeadersFootersSample.Build(HeadersFootersInput.Report())));
+        var input = new SplitInput { File = new MergeFileInput("Report", file) };
 
         var everyTwo = SplitEveryNSample.Build(input);
         var ranges = SplitRangesSample.Build(input);

@@ -1,0 +1,41 @@
+@* One choice among a demo's variants (a document type, a pack's domain), as a labelled group of radio buttons. The
+   choice is part of the page address, so a variant can be linked to and kept on reload. *@
+<fieldset class="demo-choice">
+    <legend>@Legend</legend>
+    <div class="demo-choice-options">
+        @foreach (var option in Options)
+        {
+            <label class="demo-choice-option">
+                <input type="radio" name="@_name" value="@option.Value" checked="@(option.Value == Selected)"
+                       @onchange="() => SelectAsync(option.Value)" />
+                <span>@option.Label</span>
+            </label>
+        }
+    </div>
+</fieldset>
+
+@code {
+    private readonly string _name = $"choice-{Guid.NewGuid():N}";
+
+    /// <summary>
+    /// Gets or sets the group's label.
+    /// </summary>
+    [Parameter, EditorRequired] public string Legend { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the options, each with the value kept in the address and the label shown.
+    /// </summary>
+    [Parameter, EditorRequired] public IReadOnlyList<(string Value, string Label)> Options { get; set; } = Array.Empty<(string, string)>();
+
+    /// <summary>
+    /// Gets or sets the callback run with the chosen value.
+    /// </summary>
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+
+    /// <summary>
+    /// Gets or sets the chosen value.
+    /// </summary>
+    [Parameter] public string Selected { get; set; } = string.Empty;
+
+    private Task SelectAsync(string value) => OnSelect.InvokeAsync(value);
+}

@@ -1,0 +1,52 @@
+@page "/playground/merge/document-packs"
+@inject NavigationManager Navigation
+@inject SampleImageStore ImageStore
+
+@* Document packs for three domains: the domain is chosen here and kept in the address (?domain=hr), and each pack
+   generates its documents with the other demos, then merges them behind a cover page. *@
+<CascadingValue Name="DemoChoice" Value="_choice" IsFixed="false">
+    <MergePackPage @key="_domain" Demo="SampleCatalog.DocumentPacks" CreateInput="CreateInput" Generate="GenerateAsync" />
+</CascadingValue>
+
+@code {
+    private static readonly IReadOnlyList<(string Value, string Label)> Domains =
+    [
+        ("finance", "Finance: month end"),
+        ("hr", "HR: employee"),
+        ("healthcare", "Healthcare: patient"),
+    ];
+
+    private RenderFragment _choice = default!;
+    private string _domain = "finance";
+
+    /// <summary>
+    /// Gets or sets the domain from the address; any other value shows the finance pack.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "domain")] public string? Domain { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        _domain = Domains.Any(d => d.Value == Domain) ? Domain! : "finance";
+        _choice = @<DemoChoice Legend="Pack" Options="Domains" Selected="@_domain" OnSelect="Select" />;
+    }
+
+    private MergePackInput CreateInput() => _domain switch
+    {
+        "hr" => new MergePackInput("Employee pack", "Payslip"),
+        "healthcare" => new MergePackInput("Patient pack", "Medical report", "Receipt"),
+        _ => new MergePackInput("Month-end pack", "Invoice", "Receipt", "Account statement"),
+    };
+
+    private Task<PdfFile> GenerateAsync(string name) => name switch
+    {
+        "Invoice" => MergeDemoFiles.InvoiceAsync(ImageStore),
+        "Receipt" => MergeDemoFiles.ReceiptAsync(ImageStore),
+        "Payslip" => MergeDemoFiles.PayslipAsync(ImageStore),
+        "Medical report" => MergeDemoFiles.MedicalReportAsync(ImageStore),
+        _ => MergeDemoFiles.AccountStatementAsync(ImageStore),
+    };
+
+    private void Select(string value) =>
+        Navigation.NavigateTo(value == "finance" ? "playground/merge/document-packs" : $"playground/merge/document-packs?domain={value}", replace: true);
+}

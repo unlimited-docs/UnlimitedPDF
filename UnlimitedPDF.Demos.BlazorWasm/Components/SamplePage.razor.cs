@@ -204,6 +204,12 @@ public partial class SamplePage
     [Parameter] public string? FileName { get; set; }
 
     /// <summary>
+    /// Gets or sets the choice among the demo's variants that a host page gives, shown above the options (a
+    /// document type, a pack's domain); null when the demo has none.
+    /// </summary>
+    [CascadingParameter(Name = "DemoChoice")] public RenderFragment? Choice { get; set; }
+
+    /// <summary>
     /// Gets or sets the demo's option fields.
     /// </summary>
     [Parameter] public RenderFragment? Inputs { get; set; }
