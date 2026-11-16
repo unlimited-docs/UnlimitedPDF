@@ -351,12 +351,14 @@ public class VariableFontTests
     }
 
     [Fact]
-    public void Shared_and_private_point_lists_and_byte_deltas_combine()
+    public void Shared_and_private_point_lists_and_byte_and_word_deltas_combine()
     {
-        // RV-70: real fonts give most glyphs shared point numbers and write small deltas as signed bytes. The shared
-        // list moves the right edge and the advance; a private list that leaves out point 0 shifts the box by (-20,
-        // +10), since both its points have the same deltas; a shorter private list of one point shifts it by -30 in y.
-        // Each tuple reads only its own entries from the arrays the tuples reuse.
+        // RV-70, RV-74, RV-75: real fonts give most glyphs shared point numbers and write small deltas as signed bytes
+        // and larger ones as words. The shared list moves the right edge and the advance; a private list that leaves
+        // out point 0 shifts the box by (-20, +10), since both its points have the same deltas; a shorter private list
+        // of one point shifts it by -30 in y; the shared list again, after the private ones, moves the left edge by
+        // -300 and the right edge by +200 (signed words) and the box by +5 in y (bytes). Each tuple reads only its own
+        // entries from the arrays the tuples reuse, and private lists leave the shared list intact.
         var builder = Axis(new TestFontBuilder());
         int glyph = builder.AddGlyph(600, TestFontBuilder.Box(40, 0, 560, 700));
         builder.Map('A', glyph);
@@ -364,10 +366,11 @@ public class VariableFontTests
         builder.AddWeightDeltas(glyph, new (short, short)[] { (0, 0), (0, 0), (100, 0), (100, 0), (100, 0) });
         builder.AddWeightDeltas(glyph, new (short, short)[] { (-20, 10), (-20, 10) }, new[] { 1, 2 });
         builder.AddWeightDeltas(glyph, new (short, short)[] { (0, -30) }, new[] { 3 });
+        builder.AddWeightDeltas(glyph, new (short, short)[] { (-300, 5), (-300, 5), (200, 5), (200, 5), (0, 0) });
 
         var font = PdfFont.FromBytes(builder.Build(), new PdfFontLoadOptions { Weight = 900 });
 
-        Assert.Equal(new[] { (20, -20), (20, 680), (640, 680), (640, -20) }, Points(font.Instance.GlyphData(glyph)));
+        Assert.Equal(new[] { (-280, -15), (-280, 685), (840, 685), (840, -15) }, Points(font.Instance.GlyphData(glyph)));
         Assert.Equal(700, font.Instance.Advance(glyph));
     }
 
