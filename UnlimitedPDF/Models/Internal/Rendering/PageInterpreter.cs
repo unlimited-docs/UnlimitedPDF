@@ -401,7 +401,8 @@ internal sealed partial class PageInterpreter
                 case "W": case "W*": _pendingClip = op; break; // clip with the next painted path
 
                 // Marked content does not change the drawing
-                case "BMC": case "MP": case "DP": break;
+                case "BMC": BeginMarkedContent(null, resources); break;
+                case "MP": case "DP": break;
                 case "BDC": BeginMarkedContent(operands, resources); break;
                 case "EMC": EndMarkedContent(); break;
 

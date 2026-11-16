@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using UnlimitedPDF.Models.Internal.Rendering;
 
 namespace UnlimitedPDF.Tests.Rendering;
@@ -102,9 +103,10 @@ public class PageRendererCoreTests
         var file = PdfFile.FromBytes(pdf);
         var page = PdfPageRenderer.Render(file, 0, "x-");
 
-        // Text arrives with the text renderer; until then, a page with text is reported, never drawn wrong.
-        Assert.False(page.IsDrawn);
-        Assert.Contains("BT", page.Reason);
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Equal(2, Regex.Matches(page.Svg!, "<path d=\"M50 ").Count); // the cell's background and its border
+        Assert.Contains("fill=\"none\" stroke=", page.Svg);
+        Assert.Equal(new[] { "A" }, page.TextLines);
     }
 
     [Theory]

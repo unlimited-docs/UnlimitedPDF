@@ -6,9 +6,19 @@ internal sealed partial class PageInterpreter
 {
     #region Fields and Constants
 
+    // Fonts already read, by font dictionary, so a font is read once per page.
+    private readonly Dictionary<PdfReadDictionary, RenderFont> _fonts = new(ReferenceEqualityComparer.Instance);
+    private readonly StringBuilder _line = new();
+
+    // Open marked-content sequences; each holds its /ActualText, or null.
+    private readonly Stack<string?> _spans = new();
     private readonly List<string> _textLines = new();
-    private int _glyphs = 0;
-        private int _links = 0;
+
+    private int _glyphs;
+    private bool _inText;
+    private int _links = 0;
+    private RenderMatrix _lineMatrix = RenderMatrix.Identity;
+    private RenderMatrix _textMatrix = RenderMatrix.Identity;
 
     #endregion
 
@@ -16,21 +26,51 @@ internal sealed partial class PageInterpreter
 
     #region Private Methods
 
-    private void BeginMarkedContent(IReadOnlyList<PdfReadValue> operands, PdfReadDictionary? resources)
+    // BDC or BMC: opens a marked-content sequence. A span with /ActualText gives the text its glyphs stand for.
+    private void BeginMarkedContent(IReadOnlyList<PdfReadValue>? operands, PdfReadDictionary? resources)
     {
+        string? actual = null;
+        if (operands is { Count: >= 2 })
+        {
+            var properties = operands[^1] switch
+            {
+                PdfReadDictionary inline => inline,
+                PdfReadName name => _objects.Resolve((_objects.Resolve(resources?["Properties"]) as PdfReadDictionary)?[name.Value]) as PdfReadDictionary,
+                _ => null,
+            };
+            if (_objects.Resolve(properties?["ActualText"]) is PdfReadString text) actual = PdfTextString.Decode(text.Bytes);
+        }
+
+        if (_spans.Count >= _limits.MaxStateDepth) throw new PageRenderException("The page nests marked content too deeply.");
+        _spans.Push(actual);
+        if (actual is not null) _line.Append(actual);
     }
 
     private void DrawAnnotations(PdfReadDictionary page, int pageNumber)
     {
     }
 
-    private void EndMarkedContent()
-    {
-    }
-
     // Form XObjects are drawn from T-06 on; until then a page with one is not drawn.
     private void DrawForm(PdfReadStream form) =>
         throw new PageRenderException("The page draws a form XObject, which this preview doesn't draw yet.");
+
+    private void EndMarkedContent()
+    {
+        if (_spans.Count > 0) _spans.Pop();
+    }
+
+    private RenderFont FontFor(PdfReadName name, PdfReadDictionary? resources)
+    {
+        var fonts = _objects.Resolve(resources?["Font"]) as PdfReadDictionary;
+        if (_objects.Resolve(fonts?[name.Value]) is not PdfReadDictionary dictionary)
+            throw new PageRenderException($"The page uses a font it doesn't have ({Shorten(name.Value)}).");
+        if (_fonts.TryGetValue(dictionary, out var font)) return font;
+
+        font = StandardRenderFont.From(dictionary, _objects.Resolve)
+            ?? throw new PageRenderException("The page uses a kind of font this preview doesn't draw.");
+        _fonts[dictionary] = font;
+        return font;
+    }
 
     // Runs a text or XObject operator; false when the operator is not one of them.
     private bool RunTextOrObject(string op, IReadOnlyList<PdfReadValue> operands, PdfReadDictionary? resources)
@@ -40,10 +80,184 @@ internal sealed partial class PageInterpreter
             case "Do": // draw an XObject
                 DrawXObject(operands, resources);
                 return true;
+
+            // Text objects
+            case "BT": // begin text
+                if (_inText) throw new PageRenderException("A text object on the page starts inside another.");
+                _inText = true;
+                _textMatrix = _lineMatrix = RenderMatrix.Identity;
+                return true;
+            case "ET": // end text
+                RequireText(op);
+                _inText = false;
+                _textLines.Add(_line.ToString());
+                _line.Clear();
+                return true;
+
+            // Text state
+            case "Tf": // font and size
+                if (operands.Count < 2 || operands[^2] is not PdfReadName fontName) throw new PageRenderException("A font is set wrongly.");
+                _state.Font = FontFor(fontName, resources);
+                _state.FontSize = Numbers(operands, 1)[0];
+                return true;
+            case "Tc": _state.CharacterSpacing = Numbers(operands, 1)[0]; return true; // character spacing
+            case "Tw": _state.WordSpacing = Numbers(operands, 1)[0]; return true; // word spacing
+            case "Tz": _state.HorizontalScale = Numbers(operands, 1)[0] / 100; return true; // horizontal scaling
+            case "TL": _state.Leading = Numbers(operands, 1)[0]; return true; // leading
+            case "Ts": _state.Rise = Numbers(operands, 1)[0]; return true; // rise
+            case "Tr": // rendering mode
+                _state.RenderMode = (int)Numbers(operands, 1)[0];
+                if (_state.RenderMode is < 0 or > 3) throw new PageRenderException("The page clips with text, which this preview doesn't draw.");
+                return true;
+
+            // Text position
+            case "Td": { RequireText(op); var t = Numbers(operands, 2); MoveLine(t[0], t[1]); return true; } // next line, offset
+            case "TD": { RequireText(op); var t = Numbers(operands, 2); _state.Leading = -t[1]; MoveLine(t[0], t[1]); return true; }
+            case "T*": RequireText(op); MoveLine(0, -_state.Leading); return true; // next line
+            case "Tm": // text matrix
+            {
+                RequireText(op);
+                var m = Numbers(operands, 6);
+                _textMatrix = _lineMatrix = new RenderMatrix(m[0], m[1], m[2], m[3], m[4], m[5]);
+                return true;
+            }
+
+            // Text showing
+            case "Tj": RequireText(op); Show(StringOperand(operands, 1), null); return true;
+            case "'": RequireText(op); MoveLine(0, -_state.Leading); Show(StringOperand(operands, 1), null); return true;
+            case "\"": // word and character spacing, next line, show
+            {
+                RequireText(op);
+                var spacing = Numbers(operands.Take(operands.Count - 1).ToList(), 2);
+                _state.WordSpacing = spacing[0];
+                _state.CharacterSpacing = spacing[1];
+                MoveLine(0, -_state.Leading);
+                Show(StringOperand(operands, 1), null);
+                return true;
+            }
+            case "TJ": // show with positions
+                RequireText(op);
+                if (operands.Count < 1 || operands[^1] is not PdfReadArray parts) throw new PageRenderException("A TJ array is not valid.");
+                Show(null, parts);
+                return true;
+
             default:
                 return false;
         }
     }
+
+    private void MoveLine(double x, double y)
+    {
+        _lineMatrix = RenderMatrix.Translation(x, y).Then(_lineMatrix);
+        _textMatrix = _lineMatrix;
+    }
+
+    private void RequireText(string op)
+    {
+        if (!_inText) throw new PageRenderException($"The page uses the text operator {op} outside a text object.");
+    }
+
+    // Shows a string (Tj, ', ") or a TJ array, advancing the text matrix.
+    private void Show(byte[]? text, PdfReadArray? parts)
+    {
+        var font = _state.Font ?? throw new PageRenderException("The page shows text before it sets a font.");
+        double size = _state.FontSize;
+        var positions = new StringBuilder();
+        var characters = new StringBuilder();
+        double x = 0;
+        bool layer = !_spans.Any(span => span is not null);
+
+        void ShowBytes(byte[] bytes)
+        {
+            foreach (var glyph in font.Glyphs(bytes))
+            {
+                if (glyph.Text.Length > 0)
+                {
+                    foreach (char c in glyph.Text)
+                    {
+                        if (char.IsLowSurrogate(c)) { characters.Append(c); continue; }
+                        if (positions.Length > 0) positions.Append(' ');
+                        positions.Append(SvgText.Number(x));
+                        characters.Append(c);
+                    }
+                    if (layer) _line.Append(glyph.Text);
+                }
+                x += glyph.Width / 1000 * size + _state.CharacterSpacing + (glyph.IsWordSpace ? _state.WordSpacing : 0);
+                _glyphs++;
+            }
+        }
+
+        if (text is not null)
+        {
+            ShowBytes(text);
+        }
+        else
+        {
+            foreach (var part in parts!.Items)
+            {
+                if (part is PdfReadString s) ShowBytes(s.Bytes);
+                else if (part is PdfReadNumber n && double.IsFinite(n.Value)) x -= n.Value / 1000 * size;
+                else throw new PageRenderException("A TJ array holds something other than strings and numbers.");
+            }
+        }
+
+        if (characters.Length > 0 && font is StandardRenderFont standard) DrawStandardText(standard, positions, characters);
+        _textMatrix = RenderMatrix.Translation(x * _state.HorizontalScale, 0).Then(_textMatrix);
+        CheckOutput();
+    }
+
+    // Draws text in a standard font as SVG text, each character at the position the PDF's widths give it.
+    private void DrawStandardText(StandardRenderFont font, StringBuilder positions, StringBuilder characters)
+    {
+        double size = _state.FontSize;
+        double sign = size < 0 ? -1 : 1;
+
+        // Text space to the page, then turned so SVG's y-down text stands upright.
+        var frame = new RenderMatrix(_state.HorizontalScale * sign, 0, 0, sign, 0, _state.Rise).Then(_textMatrix).Then(_state.Ctm);
+        var upright = new RenderMatrix(1, 0, 0, -1, 0, 0).Then(frame);
+
+        _body.Append("<text xml:space=\"preserve\" transform=\"");
+        SvgText.AppendMatrix(_body, upright);
+        _body.Append("\" font-family=\"").Append(font.Family).Append("\" font-size=\"").Append(SvgText.Number(Math.Abs(size))).Append('"');
+        if (font.IsBold) _body.Append(" font-weight=\"bold\"");
+        if (font.IsItalic) _body.Append(" font-style=\"italic\"");
+        _body.Append(" x=\"").Append(positions).Append("\" y=\"0\"");
+
+        switch (_state.RenderMode)
+        {
+            case 0: AppendFill(); break;
+            case 1: _body.Append(" fill=\"none\""); AppendTextStroke(); break;
+            case 2: AppendFill(); AppendTextStroke(); break;
+            default: _body.Append(" fill=\"#000000\" fill-opacity=\"0\""); break; // invisible, still selectable
+        }
+
+        _body.Append('>');
+        SvgText.AppendEscaped(_body, characters.ToString());
+        _body.Append("</text>");
+    }
+
+    private void AppendFill()
+    {
+        _body.Append(" fill=\"");
+        SvgText.AppendColor(_body, _state.Fill.Red, _state.Fill.Green, _state.Fill.Blue);
+        _body.Append('"');
+    }
+
+    // The line width is in user space; the text element's units are text space, so it is scaled back.
+    private void AppendTextStroke()
+    {
+        var textToUser = new RenderMatrix(_state.HorizontalScale, 0, 0, 1, 0, 0).Then(_textMatrix);
+        double scale = Math.Sqrt(Math.Abs(textToUser.A * textToUser.D - textToUser.B * textToUser.C));
+        double width = scale > 0 ? _state.LineWidth / scale : _state.LineWidth;
+        _body.Append(" stroke=\"");
+        SvgText.AppendColor(_body, _state.Stroke.Red, _state.Stroke.Green, _state.Stroke.Blue);
+        _body.Append("\" stroke-width=\"").Append(SvgText.Number(width)).Append('"');
+    }
+
+    private static byte[] StringOperand(IReadOnlyList<PdfReadValue> operands, int fromEnd) =>
+        operands.Count >= fromEnd && operands[^fromEnd] is PdfReadString text
+            ? text.Bytes
+            : throw new PageRenderException("A text operator has no string.");
 
     #endregion
 
@@ -51,7 +265,16 @@ internal sealed partial class PageInterpreter
 
     #region Properties, Indexers
 
-    private IReadOnlyList<string> TextLines => _textLines;
+    private IReadOnlyList<string> TextLines
+    {
+        get
+        {
+            // A text object left open at the end of the page still contributes its line.
+            var lines = new List<string>(_textLines);
+            if (_inText && _line.Length > 0) lines.Add(_line.ToString());
+            return lines;
+        }
+    }
 
     #endregion
 }
