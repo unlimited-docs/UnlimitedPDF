@@ -149,7 +149,9 @@ internal static class Cff2Charstring
         }
     }
 
-    // blend: n default values, then n x k deltas (k = regions of the current vsindex), then n; leaves n values.
+    // blend: n default values, then n x k deltas (k = regions of the current vsindex), then n; leaves n values. Its work
+    // is at most twice the n x k deltas it removes, each pushed with a step; with no regions it removes nothing, so it
+    // returns at once rather than pass over its n values again and again (A06).
     private static void DoBlend(State state)
     {
         if (state.Store is null || state.Stack.Count == 0) throw FontBytes.Corrupt("blends without a CFF2 variation store");
@@ -157,7 +159,8 @@ internal static class Cff2Charstring
         int n = (int)nValue;
         int k = state.Store.RegionCount(state.VsIndex);
         if (nValue != n || n < 0 || state.Stack.Count < (long)n * (k + 1)) throw FontBytes.Corrupt("has a CFF2 blend without enough operands");
-        var scalars = state.Store.Scalars(state.VsIndex, state.Coordinates); // worked out once per vsindex (A06)
+        if (k == 0) return; // no regions: the default values are already the result
+        var scalars = state.Store.Scalars(state.VsIndex, state.Coordinates); // worked out once per distinct data (A06)
         int baseIndex = state.Stack.Count - n * (k + 1);
         for (int i = 0; i < n; i++)
         {

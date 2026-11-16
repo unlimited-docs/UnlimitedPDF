@@ -261,6 +261,27 @@ public class CffTableLimitTests
         Assert.True(allocated < 16 * 1024 * 1024, $"{allocated / (1024 * 1024)} MB allocated");
     }
 
+    [Fact]
+    public void Cff2_blends_over_variation_data_without_regions_cost_no_more_than_their_steps()
+    {
+        // RV-40: with no regions a blend of 512 values removes nothing, so "512 blend" can repeat on the same values;
+        // each repeat paid 2 steps but passed over all 512 values (2.8 s for one glyph at the step cap).
+        var bytes = SharedDataStore(outers: 1, regionIndexes: 0, items: 0);
+        var store = ItemVariationStore.Read(new FontBytes(bytes), 0, bytes.Length, 1);
+        byte[] count = { 28, 2, 0 }; // 512
+        var charstring = Enumerable.Repeat((byte)139, 512) // 512 zeros
+            .Concat(Enumerable.Range(0, 400_000).SelectMany(_ => count.Append((byte)16)))
+            .Append((byte)5) // rlineto takes the 512 values
+            .ToArray();
+        var globalSubrs = CffIndex.Read(new FontBytes(new byte[4]), 0, 4, "Global Subr INDEX", wideCount: true);
+        var clock = Stopwatch.StartNew();
+
+        var result = Cff2Charstring.Instance(charstring, null, globalSubrs, store, 0, new[] { 0.5 });
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(1), clock.Elapsed.ToString());
+        Assert.Equal(EndChar, result[^1]);
+    }
+
     #endregion
 
     #region Private Methods
