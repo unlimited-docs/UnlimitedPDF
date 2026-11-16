@@ -8,8 +8,7 @@ internal sealed partial class PageInterpreter
 
     private readonly List<string> _textLines = new();
     private int _glyphs = 0;
-    private int _images = 0;
-    private int _links = 0;
+        private int _links = 0;
 
     #endregion
 
@@ -29,8 +28,22 @@ internal sealed partial class PageInterpreter
     {
     }
 
+    // Form XObjects are drawn from T-06 on; until then a page with one is not drawn.
+    private void DrawForm(PdfReadStream form) =>
+        throw new PageRenderException("The page draws a form XObject, which this preview doesn't draw yet.");
+
     // Runs a text or XObject operator; false when the operator is not one of them.
-    private bool RunTextOrObject(string op, IReadOnlyList<PdfReadValue> operands, PdfReadDictionary? resources) => false;
+    private bool RunTextOrObject(string op, IReadOnlyList<PdfReadValue> operands, PdfReadDictionary? resources)
+    {
+        switch (op)
+        {
+            case "Do": // draw an XObject
+                DrawXObject(operands, resources);
+                return true;
+            default:
+                return false;
+        }
+    }
 
     #endregion
 
