@@ -322,7 +322,7 @@ public class CffTableLimitTests
     [Fact]
     public void Glyphs_of_empty_subroutine_calls_are_bounded_by_the_table_size()
     {
-        // RV-45: 65,535 glyphs of a 1 KB table may share 4,000,000 steps plus 64 per table byte, not 2,000 per glyph
+        // RV-45: 65,535 glyphs of a 1 KB table may share 4,000,000 steps plus 16 per table byte, not 2,000 per glyph
         // (135 million); each glyph here calls an empty subroutine 300,000 times and writes nothing.
         var charstring = Enumerable.Range(0, 300_000).SelectMany(_ => new byte[] { 32, 29 }).Append(EndChar).ToArray(); // -107 callgsubr
         var subrs = Index(new[] { new[] { Return } });
@@ -340,8 +340,8 @@ public class CffTableLimitTests
     [Fact]
     public void Flattened_glyphs_that_together_outgrow_the_table_are_corrupt()
     {
-        // RV-43: the output budget is 32 MB plus 8 bytes per table byte (40 MB for a 1 MB table); glyphs of 5-byte
-        // operands write about 5 bytes per step, so the step budget alone would allow about 340 MB.
+        // RV-43: the output budget is 8 MB plus 8 bytes per table byte (16 MB for a 1 MB table); glyphs of 5-byte
+        // operands write about 5 bytes per step, so the step budget alone would allow about 100 MB.
         var charstring = Enumerable.Range(0, 250).SelectMany(_ => Enumerable.Range(0, 48).SelectMany(_ => new byte[] { 255, 0, 1, 0, 0 }).Append((byte)5))
             .Append(EndChar).ToArray();
         var globalSubrs = CffIndex.Read(new FontBytes(new byte[2]), 0, 2, "Global Subr INDEX");

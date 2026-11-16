@@ -77,10 +77,11 @@ public class FontsAndLanguagesHtmlTests
     public void A_variable_font_draws_the_chosen_body_and_heading_weights()
     {
         // RV-08: the font is registered once and the weights come from the CSS. The test font's glyphs widen by 100
-        // units from weight 400 to 900, so weights 650 and 900 differ by 50 (400 and 700, the old fixed weights, by 60).
+        // units from weight 400 to 900, so weights 500 and 900 differ by 80 (400 and 700, the old fixed weights, by 60).
+        // HTML rounds a variable font's weights to the nearest hundred (RV-51).
         var input = Input("french");
         input.SynthesizeMissingStyles = false;
-        input.BodyWeight = 650;
+        input.BodyWeight = 500;
         input.HeadingWeight = 900;
         var slots = new List<(FontScript, PdfFont)> { (FontScript.Latin, PdfFont.FromBytes(DemoFonts.VariableBytes(input))) };
 
@@ -91,7 +92,7 @@ public class FontsAndLanguagesHtmlTests
         Assert.Equal(2, fonts.Count);
         int glyph = fonts[0].Widths.Keys.Intersect(fonts[1].Widths.Keys).First(g => g != 0);
         var widths = fonts.Select(f => f.Widths[glyph]).Order().ToArray();
-        Assert.Equal(50, widths[1] - widths[0], 1);
+        Assert.Equal(80, widths[1] - widths[0], 1);
         Assert.DoesNotContain(" 2 Tr", Content(pdf), StringComparison.Ordinal);
     }
 

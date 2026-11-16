@@ -124,6 +124,15 @@ internal sealed partial class TestFontBuilder
     }
 
     /// <summary>
+    /// Adds a glyph with raw <c>glyf</c> bytes (TrueType fonts only), for testing glyph limits, and returns its ID.
+    /// </summary>
+    public int AddRawGlyph(ushort advance, byte[] glyf)
+    {
+        _glyphs.Add(new Glyph(advance, Array.Empty<(short, short)[]>(), Array.Empty<(int, short, short)>()) { Glyf = glyf });
+        return _glyphs.Count - 1;
+    }
+
+    /// <summary>
     /// Adds a glyph with a raw Type 2 charstring (CFF fonts only), for testing charstring limits, and returns its ID.
     /// </summary>
     public int AddCharstringGlyph(ushort advance, byte[] charstring)
@@ -343,7 +352,11 @@ internal sealed partial class TestFontBuilder
         {
             loca.U32((uint)glyf.Length);
             var points = glyph.Contours.SelectMany(c => c).ToList();
-            if (glyph.Components.Count > 0)
+            if (glyph.Glyf is { } raw)
+            {
+                glyf.Bytes(raw);
+            }
+            else if (glyph.Components.Count > 0)
             {
                 var b = CompositeBounds(glyph);
                 glyf.I16(-1).I16(b.XMin).I16(b.YMin).I16(b.XMax).I16(b.YMax);
@@ -568,6 +581,8 @@ internal sealed partial class TestFontBuilder
     private sealed record Glyph(ushort Advance, (short X, short Y)[][] Contours, IReadOnlyList<(int Glyph, short Dx, short Dy)> Components)
     {
         public byte[]? Charstring { get; init; }
+
+        public byte[]? Glyf { get; init; }
     }
 
     #endregion

@@ -1,3 +1,4 @@
+using UnlimitedPDF.Models.Internal.Fonts;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType.Variation;
 using UnlimitedPDF.Models.Internal.Text;
@@ -24,21 +25,16 @@ public sealed class PdfFont
 
     private static long _defaultMaxFileSize = BuiltInDefaultMaxFileSize;
 
-    // The most instances, the font's own weight included, that one font keeps (A06): HTML may ask for any weight from 1
-    // to 1000, and each instance holds its own outlines.
-    private const int MaxInstances = 8;
-
-    private readonly Weights _weights;
+    private readonly Dictionary<int, PdfFont> _weights; // shared by every weight of one font
     private FontLayout? _layout;
 
     #endregion
 
     #region Constructors and Finalizers
 
-    private PdfFont(OpenTypeFont font, FontInstance instance, int weight, VariationAxis? weightAxis, Weights? weights = null)
+    private PdfFont(OpenTypeFont font, FontInstance instance, int weight, VariationAxis? weightAxis, Dictionary<int, PdfFont>? weights = null)
     {
-        _weights = weights ?? new Weights();
-        _weights.Add(weight, this, instance.BudgetUsed);
+        _weights = weights ?? new Dictionary<int, PdfFont>();
         Font = font;
         Instance = instance;
         Weight = weight;
@@ -46,6 +42,7 @@ public sealed class PdfFont
         IsVariable = weightAxis is not null;
         MinimumWeight = weightAxis is null ? weight : (int)Math.Round(weightAxis.Minimum);
         MaximumWeight = weightAxis is null ? weight : (int)Math.Round(weightAxis.Maximum);
+        _weights[weight] = this;
     }
 
     #endregion
@@ -160,19 +157,20 @@ public sealed class PdfFont
 
     #region Internal Methods
 
-    // The same variable font at another weight, clamped to the weight axis; one object per weight, so each weight is
-    // one embedded face. A font with one weight returns itself. The weights of one font share their objects; once they
-    // number MaxInstances, or their CFF outlines together have used one instance's whole budget, another weight gets
-    // the nearest weight already built (A06).
+    // The same variable font at a weight HTML asks for: rounded to the nearest hundred on the same side of bold (a
+    // weight under 600 to at most 500, one of 600 or more to at least 600), then clamped to the weight axis. Each
+    // weight is one object and one embedded face, shared by every weight of the font, so one font builds at most a
+    // dozen instances whatever the documents ask (A06). A font with one weight returns itself.
     internal PdfFont AtWeight(int weight)
     {
         if (!IsVariable) return this;
-        int clamped = Math.Max(MinimumWeight, Math.Min(MaximumWeight, weight));
+        int rounded = (Math.Max(0, weight) + 50) / 100 * 100;
+        rounded = weight < StandardFonts.BoldWeight ? Math.Min(rounded, StandardFonts.BoldWeight - 100) : Math.Max(rounded, StandardFonts.BoldWeight);
+        int clamped = Math.Max(MinimumWeight, Math.Min(MaximumWeight, rounded));
         if (clamped == Weight) return this;
         lock (_weights)
         {
-            if (_weights.Find(clamped) is { } known) return known;
-            if (_weights.Full) return _weights.Nearest(clamped);
+            if (_weights.TryGetValue(clamped, out var known)) return known;
             var axes = VariationAxes.Read(Font)!;
             var instance = FontInstance.Create(Font, axes, axes.Normalize(clamped));
             return new PdfFont(Font, instance, clamped, axes.WeightAxis, _weights) { _layout = _layout };
@@ -339,26 +337,6 @@ public sealed class PdfFont
 
     private sealed record LoadSettings(long MaxFileSize, bool IgnoreEmbeddingRestrictions, int? Weight);
 
-    // The weights built for one font and the share of one instance's CFF budget they have used together.
-    private sealed class Weights
-    {
-        private readonly Dictionary<int, PdfFont> _built = new();
-        private double _budgetUsed;
-
-        public bool Full => _built.Count >= MaxInstances || _budgetUsed >= 1;
-
-        public void Add(int weight, PdfFont font, double budgetUsed)
-        {
-            _built[weight] = font;
-            _budgetUsed += budgetUsed;
-        }
-
-        public PdfFont? Find(int weight) => _built.TryGetValue(weight, out var font) ? font : null;
-
-        // The built weight nearest the given one; the lighter of two equally near.
-        public PdfFont Nearest(int weight) =>
-            _built.OrderBy(b => Math.Abs(b.Key - weight)).ThenBy(b => b.Key).First().Value;
-    }
 
     #endregion
 }

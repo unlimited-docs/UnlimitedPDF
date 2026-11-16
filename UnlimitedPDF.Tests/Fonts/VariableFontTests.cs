@@ -199,21 +199,45 @@ public class VariableFontTests
     }
 
     [Fact]
-    public void A_variable_font_keeps_at_most_eight_weights_and_gives_others_the_nearest()
+    public void Html_weights_of_a_variable_font_round_to_the_nearest_hundred_on_the_same_side_of_bold()
     {
-        // RV-46: HTML may ask for any weight from 1 to 1000, and each weight used to build and keep its own instance.
+        // RV-46, RV-51, RV-52: HTML may ask for any weight from 1 to 1000, and each weight used to build and keep its
+        // own instance; rounding bounds the instances whatever was asked before, and bold stays bold.
         var builder = Axis(new TestFontBuilder { Cff2 = true });
         int glyph = builder.AddGlyph(600, TestFontBuilder.Box(40, 0, 560, 700));
         builder.Map('A', glyph);
         builder.AddWeightDeltas(glyph, new (short, short)[] { (0, 0), (0, 0), (100, 0), (100, 0) });
         var font = PdfFont.FromBytes(builder.Build());
 
-        var faces = Enumerable.Range(100, 801).Select(font.AtWeight).ToList();
+        var faces = Enumerable.Range(1, 1000).Select(font.AtWeight).ToList();
 
-        Assert.Equal(8, faces.Distinct().Count()); // 400, then 100 to 106
-        Assert.Equal(106, font.AtWeight(107).Weight);
-        Assert.Same(font, font.AtWeight(900));
-        Assert.Same(font.AtWeight(103), font.AtWeight(103));
+        Assert.Equal(9, faces.Distinct().Count()); // 100 to 900
+        Assert.Equal(100, font.AtWeight(149).Weight);
+        Assert.Equal(200, font.AtWeight(150).Weight);
+        Assert.Equal(500, font.AtWeight(599).Weight); // not bold, so not 600
+        Assert.Equal(600, font.AtWeight(600).Weight);
+        Assert.Equal(700, font.AtWeight(650).Weight);
+        Assert.Equal(900, font.AtWeight(1000).Weight); // clamped to the axis
+        Assert.Same(font, font.AtWeight(420));
+        Assert.Same(font.AtWeight(700), font.AtWeight(700).AtWeight(680)); // every weight shares one set
+    }
+
+    [Fact]
+    public void TrueType_glyphs_that_declare_many_points_in_few_bytes_are_corrupt_when_varied()
+    {
+        // RV-50: about 528 bytes of flags may declare 65,535 points that instancing writes at 5 bytes each; 300 such
+        // glyphs in a 160 KB font kept 98.6 MB for one other weight (about 21.5 GB for a 34 MB font).
+        var builder = Box();
+        var glyph = new BigEndianWriter().I16(1).I16(0).I16(0).I16(0).I16(0).U16(65534).U16(0);
+        for (int i = 0; i < 256; i++) glyph.U8(0x39).U8((byte)(i < 255 ? 255 : 254)); // on curve, same x and y, repeated
+        var raw = glyph.ToArray();
+        for (int i = 0; i < 300; i++) builder.AddRawGlyph(600, raw);
+        var font = PdfFont.FromBytes(builder.Build());
+
+        var error = Assert.Throws<PdfFontException>(() => font.AtWeight(900));
+
+        Assert.Equal(PdfFontErrorReason.CorruptData, error.Reason);
+        Assert.Contains("TrueType glyphs", error.Message); // the output budget stops it first
     }
 
     #endregion
