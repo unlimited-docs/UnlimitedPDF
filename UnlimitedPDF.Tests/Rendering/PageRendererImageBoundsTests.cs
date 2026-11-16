@@ -171,10 +171,13 @@ public class PageRendererImageBoundsTests
     public void A_hostile_sample_size_is_refused_before_it_sizes_a_decode(string entries)
     {
         var watch = Stopwatch.StartNew();
-        var page = DrawRawImage(entries, Deflate(new byte[10_000_000]),
+        // The image itself is valid in the soft-mask case, so only the mask's sample size can refuse it.
+        byte[] data = entries.Contains("SMask", StringComparison.Ordinal) ? new byte[] { 9 } : Deflate(new byte[10_000_000]);
+        var page = DrawRawImage(entries, data,
             extra: (6, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 2147483647 /Filter /FlateDecode", Deflate(new byte[10_000_000])));
 
         Assert.False(page.IsDrawn);
+        Assert.Contains("unusual sample size", page.Reason); // refused by the size check, before any decode
         Assert.True(watch.ElapsedMilliseconds < 1000, $"Took {watch.ElapsedMilliseconds} ms.");
     }
 
@@ -230,6 +233,31 @@ public class PageRendererImageBoundsTests
         Assert.Contains("can't be read", page.Reason);
     }
 
+    [Fact]
+    public void A_cmyk_jpeg_without_an_adobe_marker_is_refused()
+    {
+        byte[] jpeg = WithoutSegment(File.ReadAllBytes(Fixtures.Jpeg("cmyk-baseline.jpg")), 0xEE);
+        var image = PdfImage.FromBytes(jpeg);
+
+        var page = DrawRawImage($"/Width {image.PixelWidth} /Height {image.PixelHeight} /ColorSpace /DeviceCMYK /BitsPerComponent 8 /Filter /DCTDecode", jpeg);
+
+        Assert.Contains("without an Adobe marker", page.Reason);
+    }
+
+    [Fact]
+    public void Exif_after_a_standalone_marker_is_still_removed()
+    {
+        byte[] jpeg = File.ReadAllBytes(Fixtures.Jpeg("exif-orientation-6.jpg"));
+        var marked = jpeg.Take(2).Concat(new byte[] { 0xFF, 0x01 }).Concat(jpeg.Skip(2)).ToArray(); // TEM before APP1
+        var image = PdfImage.FromBytes(jpeg, new PdfImageLoadOptions { ApplyExifOrientation = false });
+
+        var page = DrawRawImage($"/Width {image.PixelWidth} /Height {image.PixelHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode", marked);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        byte[] drawn = Convert.FromBase64String(Regex.Match(page.Svg!, "data:image/jpeg;base64,([^\"]+)").Groups[1].Value);
+        Assert.DoesNotContain("Exif", Encoding.Latin1.GetString(drawn));
+    }
+
     #endregion
 
     #region Private Methods
@@ -267,6 +295,22 @@ public class PageRendererImageBoundsTests
         byte[] rows = inflated.ToArray();
         int stride = width * channels;
         return Enumerable.Range(0, rows.Length / (stride + 1)).SelectMany(r => rows.Skip(r * (stride + 1) + 1).Take(stride)).ToArray();
+    }
+
+    // The JPEG without its segments of one marker type (before the image data).
+    private static byte[] WithoutSegment(byte[] jpeg, byte marker)
+    {
+        using var output = new MemoryStream();
+        output.Write(jpeg, 0, 2);
+        int p = 2;
+        while (p + 4 <= jpeg.Length && jpeg[p] == 0xFF && jpeg[p + 1] != 0xDA)
+        {
+            int length = (jpeg[p + 2] << 8) | jpeg[p + 3];
+            if (jpeg[p + 1] != marker) output.Write(jpeg, p, length + 2);
+            p += length + 2;
+        }
+        output.Write(jpeg, p, jpeg.Length - p);
+        return output.ToArray();
     }
 
     private static byte[] Save(PdfDocument document)
