@@ -799,6 +799,7 @@ input[type="file"] { max-width: 100%; }
 .hero-lead { max-width: 40rem; margin: 0 auto; color: var(--app-muted); font-size: 1.1rem; line-height: 1.6; }
 .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 2rem; }
 .hero-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
+.hero-install { display: flex; justify-content: center; margin: -0.75rem 0 2rem; }
 
 /* The release announcement above the headline (QF-26111209): a filled version pill, then what the release adds. */
 .hero-release {

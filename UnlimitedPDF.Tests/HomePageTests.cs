@@ -254,7 +254,10 @@ public class HomePageTests
         Assert.Equal(2, Regex.Matches(card, "<a class=\"scenario-link\" href=\"@Demo.Route\">").Count);
 
         // The approved order (D-026): hero and illustration, benefits, first PDF, popular, capabilities, How do I, FAQ band.
-        string[] order = ["class=\"hero\"", "class=\"showcase\"", "class=\"benefits\"", "first-pdf", "ScenarioGallery.Popular", "<CapabilityRow ", "id=\"how-do-i\"", "class=\"faq-band\""];
+        // The install command sits under the hero's buttons, above the illustration, and only there (developer choice,
+        // 2026-11-17).
+        Assert.Single(Regex.Matches(home, "<InstallCommand />"));
+        string[] order = ["class=\"hero\"", "class=\"hero-actions\"", "<InstallCommand />", "class=\"showcase\"", "class=\"benefits\"", "first-pdf", "ScenarioGallery.Popular", "<CapabilityRow ", "id=\"how-do-i\"", "class=\"faq-band\""];
         var positions = order.Select(marker => home.IndexOf(marker, StringComparison.Ordinal)).ToList();
         Assert.All(positions, position => Assert.True(position >= 0));
         Assert.Equal(positions.Order(), positions);
