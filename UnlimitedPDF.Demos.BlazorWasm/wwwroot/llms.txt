@@ -58,7 +58,7 @@ pdfDocument.Save("sample.pdf");
 
 ## Languages
 
-- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): Upload your own fonts and make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML. Fonts stay in your browser.
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): Make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with free fonts included for the demo or your own. Your fonts stay in your browser.
 
 ## Complete business documents
 

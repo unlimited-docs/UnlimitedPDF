@@ -434,6 +434,13 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 
 Draw text in your own fonts: Hindi, Telugu, Tamil, French, and other languages written in Latin letters, each shaped the way its script needs. Load a `.ttf` or `.otf` font once with `PdfFont`, then pass it to any text call; characters it doesn't have come from the document's fallback fonts. The PDF embeds only the glyphs it uses, and copied or searched text reads back exactly as written.
 
+Before you start, you need:
+
+- A `.ttf` or `.otf` font that has the letters of each script you write: one font per script, or one that covers them all. The package includes no fonts; ship the font files with your app.
+- The right to embed each font in a PDF. Check the font's license; free fonts under the SIL Open Font License, for example, allow it.
+- A supported script: Latin, Devanagari, Telugu, or Tamil.
+- A check for characters no font has: `FindMissingCharacters` or `FailOnMissingCharacters`, so none is drawn as `?`.
+
 ```cs
 using UnlimitedPDF;
 

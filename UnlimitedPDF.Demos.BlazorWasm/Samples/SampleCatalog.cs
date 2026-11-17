@@ -218,7 +218,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo FontsAndLanguages { get; } = new(
         "Fonts and languages",
-        "Upload your own fonts and make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML. Fonts stay in your browser.",
+        "Make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with free fonts included for the demo or your own. Your fonts stay in your browser.",
         "playground/languages/fonts-and-languages",
         "FontsAndLanguagesSample.cs",
         "fonts-and-languages.pdf",

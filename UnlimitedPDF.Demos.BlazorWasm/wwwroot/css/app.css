@@ -743,6 +743,9 @@ input[type="file"] { max-width: 100%; }
 .font-slot .dropzone { padding: 0.5rem; font-size: 0.8rem; }
 .segmented.wrap { flex-wrap: wrap; }
 .missing-note { font-size: 0.8rem; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 9px; padding: 0.45rem 0.6rem; margin: 0; }
+.prerequisites { padding-left: 1.1rem; margin: 0; }
+.prerequisites li + li { margin-top: 0.35rem; }
+.prerequisites code { font-size: 0.95em; overflow-wrap: anywhere; }
 
 .upload-card {
     display: grid;

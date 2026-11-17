@@ -53,7 +53,7 @@ public static class FaqQuestions
             ], SampleCatalog.CommonProblems),
             new("own-fonts", "Can I use my own fonts?",
             [
-                "Yes. Load a .ttf or .otf font, with TrueType or CFF outlines and including variable fonts, once with PdfFont, from a file, a stream, or bytes. Pass it to AddText, header and footer text, the body flow, or table cells. The PDF embeds only the glyphs the document uses.",
+                "Yes. Load a .ttf or .otf font, with TrueType or CFF outlines and including variable fonts, once with PdfFont, from a file, a stream, or bytes. Pass it to AddText, header and footer text, the body flow, or table cells. The PDF embeds only the glyphs the document uses. Use a font that has your script's letters and whose license allows embedding it in a PDF; the package includes no fonts.",
                 "For HTML, register fonts under the family names your CSS uses with PdfHtmlLoadOptions.Fonts. Font collections (.ttc) and web fonts (WOFF, WOFF2) can't be loaded, and HTML @font-face rules are ignored."
             ], SampleCatalog.FontsAndLanguages),
             new("languages", "Which languages can I use?",

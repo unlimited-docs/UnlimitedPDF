@@ -130,6 +130,7 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\FontsAndLanguagesInput.cs" Link="Demo\Samples\Inputs\FontsAndLanguagesInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\LanguageInvoiceLine.cs" Link="Demo\Samples\Inputs\LanguageInvoiceLine.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\UploadedFontLoader.cs" Link="Demo\Services\UploadedFontLoader.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\BundledFonts.cs" Link="Demo\Services\BundledFonts.cs" />
   </ItemGroup>
 
 </Project>

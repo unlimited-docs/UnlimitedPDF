@@ -12,7 +12,8 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Services;
 /// <param name="Bytes">The file's bytes.</param>
 /// <param name="Font">The font as loaded.</param>
 /// <param name="RightsAsserted">Whether it was loaded with <see cref="PdfFontLoadOptions.IgnoreEmbeddingRestrictions"/>.</param>
-public sealed record UploadedFont(string FileName, byte[] Bytes, PdfFont Font, bool RightsAsserted);
+/// <param name="Bundled">The included free font this is, or null for a visitor's own font.</param>
+public sealed record UploadedFont(string FileName, byte[] Bytes, PdfFont Font, bool RightsAsserted, BundledFont? Bundled = null);
 
 /// <summary>
 /// The result of loading an uploaded font: the font, or a plain message, and whether the visitor may load it anyway by

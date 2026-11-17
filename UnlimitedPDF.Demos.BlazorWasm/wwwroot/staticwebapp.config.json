@@ -53,6 +53,7 @@
       "/_framework/*",
       "/_content/*",
       "/css/*",
+      "/fonts/*",
       "/js/*",
       "/lib/*",
       "/images/*",
