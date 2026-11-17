@@ -20,7 +20,6 @@ public static class MergeDemoFiles
     public static async Task<PdfFile> AccountStatementAsync(SampleImageStore images) =>
         Load(AccountStatementSample.Build(new AccountStatementInput(), await images.GetManyAsync("account-statement-logo.png")));
 
-
     /// <summary>
     /// Returns the Headers and footers demo's report: several pages with page numbers, the sample file of the page
     /// picking and splitting demos.

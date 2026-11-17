@@ -21,7 +21,7 @@ public class PageRendererCoverageTests
     {
         // A new demo can't be skipped quietly: it must be added to Outputs below.
         var covered = Outputs().Select(o => o.Demo).ToHashSet(StringComparer.Ordinal);
-        var missing = SampleCatalog.Categories.SelectMany(c => c.Demos).Concat(SampleCatalog.InvoiceTypes)
+        var missing = SampleCatalog.Pages
             .Select(d => d.Title).Where(title => !covered.Contains(title)).ToList();
 
         Assert.Empty(missing);
@@ -117,11 +117,11 @@ public class PageRendererCoverageTests
             input.Files.Add(new MergeFileInput("b.pdf", Generated(1)));
             return BookmarksAndNumbersSample.Build(input);
         }));
-        foreach (var (domain, documents) in new[] { ("finance", new[] { "Invoice", "Receipt" }), ("hr", new[] { "Payslip" }), ("healthcare", new[] { "Medical report" }) })
+        foreach (var domain in DemoVariants.PackDomains)
         {
-            yield return ("Document packs", domain, One(() =>
+            yield return ("Document packs", domain.Value, One(() =>
             {
-                var input = new MergePackInput("Pack", documents);
+                var input = MergePackSample.Input(domain.Value);
                 foreach (var document in input.Documents) document.File = Generated(1);
                 return MergePackSample.Build(input);
             }));

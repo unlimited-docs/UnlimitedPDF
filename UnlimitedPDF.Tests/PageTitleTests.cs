@@ -168,7 +168,7 @@ public class PageTitleTests
 
     #region Private Methods
 
-    private static List<SampleDemo> AllDemos() => SampleCatalog.Categories.SelectMany(c => c.Demos).Distinct().ToList();
+    private static List<SampleDemo> AllDemos() => SampleCatalog.Pages.ToList();
 
     private static string Description(string page) => Regex.Match(page, "<PageDescription Text=\"(.*?)\" />").Groups[1].Value;
 

@@ -231,7 +231,7 @@ public class HomePageTests
     [Fact]
     public void There_are_six_to_eight_questions_and_each_opens_a_demo_that_exists()
     {
-        var demos = SampleCatalog.Categories.SelectMany(c => c.Demos).Concat(SampleCatalog.InvoiceTypes).ToList();
+        var demos = SampleCatalog.Pages;
         var questions = HomeQuestions.Questions;
 
         Assert.InRange(questions.Count, 6, 8);
@@ -248,7 +248,7 @@ public class HomePageTests
     public void The_capability_rows_and_the_gallery_together_hold_every_demo_once()
     {
         var onPage = CapabilityDemos().Concat(DocumentGallery.Documents.Select(d => d.Demo)).ToList();
-        var all = SampleCatalog.Categories.SelectMany(c => c.Demos).Concat(SampleCatalog.InvoiceTypes).ToList();
+        var all = SampleCatalog.Pages;
 
         Assert.Equal(all.Count, onPage.Count);
         Assert.Equal(all.ToHashSet(), onPage.ToHashSet());

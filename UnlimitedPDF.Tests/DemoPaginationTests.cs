@@ -7,7 +7,7 @@ namespace UnlimitedPDF.Tests;
 
 /// <summary>
 /// The document demos (Invoice, Quotation, Purchase order, Delivery note, Account statement, Payslip, Receipt, Medical
-/// report, Employee directory, console demo) are built on header and footer sections and the body flow (WR-031,
+/// report, console demo) are built on header and footer sections and the body flow (WR-031,
 /// WR-033): with default data and with many rows, no filled rectangles overlap, no text line overlaps another (measured
 /// with Helvetica widths), and every page shows its header, its footer, and "Page n of m".
 /// </summary>

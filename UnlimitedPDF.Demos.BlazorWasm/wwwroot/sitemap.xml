@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Every page of the demos site: the home page, the FAQ, then each demo in sidebar order (SampleCatalog). -->
+<!-- Every page of the demos site: the home page, the FAQ, then each demo page in sidebar order (SampleCatalog.Pages). -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://unlimitedpdf.dev/</loc></url>
   <url><loc>https://unlimitedpdf.dev/faq</loc></url>
@@ -18,6 +18,10 @@
   <url><loc>https://unlimitedpdf.dev/playground/html/common-problems</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/languages/fonts-and-languages</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/invoice</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=quotation</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=purchase-order</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=delivery-note</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=receipt</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/account-statement</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/payslip</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/medical-report</loc></url>

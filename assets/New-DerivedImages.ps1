@@ -269,8 +269,6 @@ $copies = @(
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\account-statement-logo.png'; From = 'originals\account-statement-logo.png'; Use = 'Account statement demo (specks cleared)'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 480, 120, 0.01, 400) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\payslip-logo.png'; From = 'originals\payslip-logo.png'; Use = 'Payslip demo (specks cleared)'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 480, 120, 0.01, 400) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\delivery-note-logo.png'; From = 'originals\delivery-note-logo.png'; Use = 'Delivery note demo (specks cleared)'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 480, 120, 0.01, 400) } },
-    @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\certificate-seal.png'; From = 'originals\certificate-seal.png'; Use = 'Certificate demo (specks cleared)'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 360, 360, 0.01, 400) } },
-    @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\certificate-signature.png'; From = 'originals\certificate-signature.png'; Use = 'Certificate demo (fictional signature)'; Make = { param($i, $o) [ArtworkCopies]::Trimmed($i, $o, 480, 140, 0.01, 0) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\unlimitedpdf-demos-hero-1200.jpg'; From = 'banners\unlimitedpdf-demos-hero.png'; Use = 'App home showcase (wide screens)'; Make = { param($i, $o) [ArtworkCopies]::CoverJpeg($i, $o, 1200, 675, 150000) } },
     @{ Out = 'UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\unlimitedpdf-demos-hero-800.jpg'; From = 'banners\unlimitedpdf-demos-hero.png'; Use = 'App home showcase (phones)'; Make = { param($i, $o) [ArtworkCopies]::CoverJpeg($i, $o, 800, 450, 80000) } },
     @{ Out = 'assets\derived\unlimitedpdf-github-banner.jpg'; From = 'banners\unlimitedpdf-github-banner.png'; Use = 'README.md and nuget/README.md banner'; Make = { param($i, $o) [ArtworkCopies]::CoverJpeg($i, $o, 1280, 640, 250000) } },
@@ -281,7 +279,7 @@ $copies = @(
 # The home page gallery: each document's first page as its demo generates it, small for its tile and large for quick
 # look (26111101 AC-07). The originals are captures; see ARTWORK.md.
 New-Item -ItemType Directory -Force -Path (Join-Path $images 'gallery') | Out-Null
-$gallery = 'invoice', 'quotation', 'purchase-order', 'delivery-note', 'account-statement', 'payslip', 'medical-report', 'receipt', 'certificate', 'employee-directory'
+$gallery = 'invoice', 'quotation', 'purchase-order', 'delivery-note', 'account-statement', 'payslip', 'medical-report', 'receipt'
 $copies += foreach ($name in $gallery) {
     @{ Out = "UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\gallery\$name-320.jpg"; From = "originals\gallery\$name.png"; Use = 'App home gallery tile'; Make = { param($i, $o) [ArtworkCopies]::WidthJpeg($i, $o, 320, 40000) } }
     @{ Out = "UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\gallery\$name-960.jpg"; From = "originals\gallery\$name.png"; Use = 'App home quick look'; Make = { param($i, $o) [ArtworkCopies]::WidthJpeg($i, $o, 960, 150000) } }

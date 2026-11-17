@@ -1,40 +1,24 @@
 @page "/playground/documents/invoice"
-@inject NavigationManager Navigation
 
 @* One demo for the documents that share an invoice's shape (parties, line items, totals): the type is chosen here and
    kept in the address (?type=quotation), and each type keeps its own inputs, sample, and C# code. *@
 <CascadingValue Name="DemoChoice" Value="_choice" IsFixed="false">
-    @switch (Type)
-    {
-        case "quotation":
-            <Quotation @key="Type" />
-            break;
-        case "purchase-order":
-            <PurchaseOrder @key="Type" />
-            break;
-        case "delivery-note":
-            <DeliveryNote @key="Type" />
-            break;
-        case "receipt":
-            <Receipt @key="Type" />
-            break;
-        default:
-            <Invoice @key="Type" />
-            break;
-    }
+    <DynamicComponent Type="Pages[_type.Value]" />
 </CascadingValue>
 
 @code {
-    private static readonly IReadOnlyList<(string Value, string Label)> Types =
-    [
-        ("invoice", "Invoice"),
-        ("quotation", "Quotation"),
-        ("purchase-order", "Purchase order"),
-        ("delivery-note", "Delivery note"),
-        ("receipt", "Receipt"),
-    ];
+    // The page of each type in DemoVariants.InvoiceTypes.
+    private static readonly IReadOnlyDictionary<string, Type> Pages = new Dictionary<string, Type>(StringComparer.Ordinal)
+    {
+        ["invoice"] = typeof(Invoice),
+        ["quotation"] = typeof(Quotation),
+        ["purchase-order"] = typeof(PurchaseOrder),
+        ["delivery-note"] = typeof(DeliveryNote),
+        ["receipt"] = typeof(Receipt),
+    };
 
     private RenderFragment _choice = default!;
+    private DemoVariant _type = DemoVariants.InvoiceTypes[0];
 
     /// <summary>
     /// Gets or sets the document type from the address; any other value shows the invoice.
@@ -44,10 +28,7 @@
     /// <inheritdoc />
     protected override void OnParametersSet()
     {
-        string selected = Types.Any(t => t.Value == Type) ? Type! : "invoice";
-        _choice = @<DemoChoice Legend="Document type" Options="Types" Selected="@selected" OnSelect="Select" />;
+        _type = DemoVariants.Find(DemoVariants.InvoiceTypes, Type);
+        _choice = @<DemoChoice Legend="Document type" Options="DemoVariants.InvoiceTypes" Selected="_type" />;
     }
-
-    private void Select(string value) =>
-        Navigation.NavigateTo(value == "invoice" ? "playground/documents/invoice" : $"playground/documents/invoice?type={value}", replace: true);
 }

@@ -16,8 +16,6 @@ These are source files. They live here, outside every served or packed folder, s
 | `originals/account-statement-logo.png` | 2172 x 724 | Account statement demo logo (fictional Harborview Savings Bank) |
 | `originals/payslip-logo.png` | 2172 x 724 | Payslip demo logo (fictional Greenfield Logistics) |
 | `originals/delivery-note-logo.png` | 2172 x 724 | Delivery note demo logo (fictional Meridian Freight) |
-| `originals/certificate-seal.png` | 1254 x 1254 | Certificate demo seal |
-| `originals/certificate-signature.png` | 2172 x 724 | Fictional certificate demo signature |
 | `branding/favicon.png` | 1254 x 1254 | Original favicon artwork |
 | `branding/unlimitedpdf-logo.png` | 2172 x 724 | Main UnlimitedPDF wordmark |
 | `branding/unlimitedpdf-icon.png` | 1254 x 1254 | Standalone application icon |
@@ -53,17 +51,15 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 | Original | Size | Demo |
 |---|---|---|
 | `originals/gallery/invoice.png` | 1479 x 2092 | Invoice (`playground/documents/invoice`) |
-| `originals/gallery/quotation.png` | 1479 x 2092 | Quotation (`playground/documents/quotation`) |
-| `originals/gallery/purchase-order.png` | 1479 x 2092 | Purchase order (`playground/documents/purchase-order`) |
-| `originals/gallery/delivery-note.png` | 1479 x 2092 | Delivery note (`playground/documents/delivery-note`) |
+| `originals/gallery/quotation.png` | 1479 x 2092 | Quotation (`playground/documents/invoice?type=quotation`) |
+| `originals/gallery/purchase-order.png` | 1479 x 2092 | Purchase order (`playground/documents/invoice?type=purchase-order`) |
+| `originals/gallery/delivery-note.png` | 1479 x 2092 | Delivery note (`playground/documents/invoice?type=delivery-note`) |
 | `originals/gallery/account-statement.png` | 1457 x 2061 | Account statement (`playground/documents/account-statement`) |
 | `originals/gallery/payslip.png` | 1479 x 2092 | Payslip (`playground/documents/payslip`) |
 | `originals/gallery/medical-report.png` | 1479 x 2092 | Medical report (`playground/documents/medical-report`) |
-| `originals/gallery/receipt.png` | 1460 x 2058 | Receipt (`playground/documents/receipt`) |
-| `originals/gallery/certificate.png` | 1479 x 2092 | Certificate (`playground/documents/certificate`) |
-| `originals/gallery/employee-directory.png` | 1457 x 2061 | Employee directory (`playground/documents/employee-directory`) |
+| `originals/gallery/receipt.png` | 1460 x 2058 | Receipt (`playground/documents/invoice?type=receipt`) |
 
-On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the twenty gallery copies below were added. Two runs there produce byte-identical gallery copies.
+On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the gallery copies below were added. Two runs there produce byte-identical gallery copies.
 
 ## Readme screenshots added 2026-11-12
 
@@ -112,8 +108,6 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/account-statement-logo.png` | `originals/account-statement-logo.png` | 415 x 120 | 39,054 | Account statement demo (specks cleared) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/payslip-logo.png` | `originals/payslip-logo.png` | 443 x 120 | 43,746 | Payslip demo (specks cleared) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/delivery-note-logo.png` | `originals/delivery-note-logo.png` | 352 x 120 | 34,429 | Delivery note demo (specks cleared) |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/certificate-seal.png` | `originals/certificate-seal.png` | 295 x 360 | 125,693 | Certificate demo (specks cleared) |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/certificate-signature.png` | `originals/certificate-signature.png` | 480 x 121 | 15,744 | Certificate demo (fictional signature) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/unlimitedpdf-demos-hero-1200.jpg` | `banners/unlimitedpdf-demos-hero.png` | 1200 x 675, JPEG quality 85 | 124,551 | App home showcase (wide screens) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/unlimitedpdf-demos-hero-800.jpg` | `banners/unlimitedpdf-demos-hero.png` | 800 x 450, JPEG quality 85 | 68,417 | App home showcase (phones) |
 | `assets/derived/unlimitedpdf-github-banner.jpg` | `banners/unlimitedpdf-github-banner.png` | 1280 x 640, JPEG quality 90 | 120,382 | README.md and nuget/README.md banner |
@@ -135,10 +129,6 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-960.jpg` | `originals/gallery/medical-report.png` | 960 x 1358, JPEG quality 90 | 123,626 | App home quick look |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | App home gallery tile |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-960.jpg` | `originals/gallery/receipt.png` | 960 x 1353, JPEG quality 90 | 134,964 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-320.jpg` | `originals/gallery/certificate.png` | 320 x 453, JPEG quality 90 | 21,389 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-960.jpg` | `originals/gallery/certificate.png` | 960 x 1358, JPEG quality 90 | 111,324 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-320.jpg` | `originals/gallery/employee-directory.png` | 320 x 453, JPEG quality 80 | 36,425 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-960.jpg` | `originals/gallery/employee-directory.png` | 960 x 1358, JPEG quality 45 | 148,902 | App home quick look |
 | `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/invoice.jpg` | `originals/readme/invoice.png` | 1172 x 945, JPEG quality 90 | 114,508 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/images.jpg` | `originals/readme/images.png` | 832 x 1148, JPEG quality 90 | 50,537 | README.md and nuget/README.md screenshot |

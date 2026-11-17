@@ -26,7 +26,7 @@ public class SitemapTests
         var sitemap = XDocument.Parse(DemosFile("wwwroot/sitemap.xml"));
         var urls = sitemap.Root!.Elements(Sitemaps + "url").Select(u => u.Element(Sitemaps + "loc")!.Value).ToList();
         var expected = new[] { "", "faq" }
-            .Concat(SampleCatalog.Categories.SelectMany(c => c.Demos).Select(d => d.Route))
+            .Concat(SampleCatalog.Pages.Select(d => d.Route))
             .Distinct()
             .Select(SiteLinks.For);
 

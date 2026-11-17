@@ -32,24 +32,6 @@
       "sourceAssetId": "5dfa6f469251b8f7"
     },
     {
-      "path": "originals/certificate-seal.png",
-      "purpose": "Certificate demo seal",
-      "width": 1254,
-      "height": 1254,
-      "bytes": 1125856,
-      "sha256": "830e82106a8a875724a4be6d3c404128ea187d57c1c088b41cc9d8d26bda7941",
-      "sourceAssetId": "d551620d54cb2dc4"
-    },
-    {
-      "path": "originals/certificate-signature.png",
-      "purpose": "Fictional certificate demo signature",
-      "width": 2172,
-      "height": 724,
-      "bytes": 245843,
-      "sha256": "e15c3a53f34759d741603786b3ad4ce62295b13ba316d25cb9a165e7873bd686",
-      "sourceAssetId": "72e974d4d095761f"
-    },
-    {
       "path": "branding/favicon.png",
       "purpose": "Original generated favicon artwork",
       "width": 1254,
@@ -234,7 +216,7 @@
       "height": 2092,
       "bytes": 363060,
       "sha256": "98432ee1bdb3045af294d0e3f4b2a85e051e9d4a25aa6f3dc41c5f8d1fec294a",
-      "capturedFrom": "playground/documents/quotation",
+      "capturedFrom": "playground/documents/invoice?type=quotation",
       "capturedOn": "2026-11-11"
     },
     {
@@ -244,7 +226,7 @@
       "height": 2092,
       "bytes": 348333,
       "sha256": "4d28aa500e7ca517dc935b1fe98e86c3cb80f6bbe3e32c800bed3857b7cad09b",
-      "capturedFrom": "playground/documents/purchase-order",
+      "capturedFrom": "playground/documents/invoice?type=purchase-order",
       "capturedOn": "2026-11-11"
     },
     {
@@ -254,7 +236,7 @@
       "height": 2092,
       "bytes": 303106,
       "sha256": "b847dc16cac594d096d2ed46f8cabeb7f4db933b967934537f0d8bd8d9bbadaf",
-      "capturedFrom": "playground/documents/delivery-note",
+      "capturedFrom": "playground/documents/invoice?type=delivery-note",
       "capturedOn": "2026-11-11"
     },
     {
@@ -294,27 +276,7 @@
       "height": 2058,
       "bytes": 378318,
       "sha256": "5f0ebc185a74a3a6a3d88a4c1a175ac1c225f57c19ef92277be9725b2a9c0895",
-      "capturedFrom": "playground/documents/receipt",
-      "capturedOn": "2026-11-11"
-    },
-    {
-      "path": "originals/gallery/certificate.png",
-      "purpose": "Certificate home gallery picture: first page of the PDF the demo generates with its default input",
-      "width": 1479,
-      "height": 2092,
-      "bytes": 282276,
-      "sha256": "80765a4f5dfcd7b2bfb147d71aa878c01b091274818872a1c29c2eda3bac94de",
-      "capturedFrom": "playground/documents/certificate",
-      "capturedOn": "2026-11-11"
-    },
-    {
-      "path": "originals/gallery/employee-directory.png",
-      "purpose": "Employee directory home gallery picture: first page of the PDF the demo generates with its default input",
-      "width": 1457,
-      "height": 2061,
-      "bytes": 795045,
-      "sha256": "a6413ed70ebd13f83a9c1b7b4e4682bc7d595fa78a1b577406364d212ff92496",
-      "capturedFrom": "playground/documents/employee-directory",
+      "capturedFrom": "playground/documents/invoice?type=receipt",
       "capturedOn": "2026-11-11"
     },
     {

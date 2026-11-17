@@ -23,6 +23,13 @@ public static class SampleCatalog
     public static IReadOnlyList<SampleDemo> InvoiceTypes => [Quotation, PurchaseOrder, DeliveryNote, Receipt];
 
     /// <summary>
+    /// Gets every demo page in sidebar order, each type the Invoice demo makes right after it: the pages the sitemap
+    /// and llms.txt list, each with its own address, title, and description.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> Pages =>
+        Categories.SelectMany(c => c.Demos).Distinct().SelectMany(d => d == Invoice ? [d, .. InvoiceTypes] : new[] { d }).ToList();
+
+    /// <summary>
     /// Gets the demo categories in sidebar order.
     /// </summary>
     public static IReadOnlyList<SampleCategory> Categories => _categories ??=

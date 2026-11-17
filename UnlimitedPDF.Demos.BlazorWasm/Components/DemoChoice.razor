@@ -1,41 +1,53 @@
-@* One choice among a demo's variants (a document type, a pack's domain), as a labelled group of radio buttons. The
-   choice is part of the page address, so a variant can be linked to and kept on reload. *@
-<fieldset class="demo-choice">
-    <legend>@Legend</legend>
-    <div class="demo-choice-options">
+@* One choice among a demo's variants (a document type, a pack's domain), as a labelled list of links. Each variant
+   has its own address, so it can be linked to, kept on reload, and reached with Back. Following a link replaces the
+   page's form, so focus is put back on the chosen link instead of being lost (WCAG 2.4.3). *@
+<nav class="demo-choice" aria-labelledby="@_labelId">
+    <span class="demo-choice-label" id="@_labelId">@Legend</span>
+    <ul class="demo-choice-options">
         @foreach (var option in Options)
         {
-            <label class="demo-choice-option">
-                <input type="radio" name="@_name" value="@option.Value" checked="@(option.Value == Selected)"
-                       @onchange="() => SelectAsync(option.Value)" />
-                <span>@option.Label</span>
-            </label>
+            <li>
+                @if (option == Selected)
+                {
+                    <a class="demo-choice-option" href="@option.Address" aria-current="page" @ref="_current">@option.Label</a>
+                }
+                else
+                {
+                    <a class="demo-choice-option" href="@option.Address" @onclick="() => s_focusAddress = option.Address">@option.Label</a>
+                }
+            </li>
         }
-    </div>
-</fieldset>
+    </ul>
+</nav>
 
 @code {
-    private readonly string _name = $"choice-{Guid.NewGuid():N}";
+    // The address of the link just followed. The page is replaced, and this component with it, so the new page's
+    // choice reads it to take focus; the old one, which renders once more after the click, does not match it.
+    private static string? s_focusAddress;
+
+    private readonly string _labelId = $"choice-{Guid.NewGuid():N}";
+    private ElementReference _current;
 
     /// <summary>
-    /// Gets or sets the group's label.
+    /// Gets or sets the label of the list.
     /// </summary>
     [Parameter, EditorRequired] public string Legend { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the options, each with the value kept in the address and the label shown.
+    /// Gets or sets the variants, in the order shown.
     /// </summary>
-    [Parameter, EditorRequired] public IReadOnlyList<(string Value, string Label)> Options { get; set; } = Array.Empty<(string, string)>();
+    [Parameter, EditorRequired] public IReadOnlyList<DemoVariant> Options { get; set; } = Array.Empty<DemoVariant>();
 
     /// <summary>
-    /// Gets or sets the callback run with the chosen value.
+    /// Gets or sets the variant shown now.
     /// </summary>
-    [Parameter] public EventCallback<string> OnSelect { get; set; }
+    [Parameter, EditorRequired] public DemoVariant Selected { get; set; } = default!;
 
-    /// <summary>
-    /// Gets or sets the chosen value.
-    /// </summary>
-    [Parameter] public string Selected { get; set; } = string.Empty;
-
-    private Task SelectAsync(string value) => OnSelect.InvokeAsync(value);
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (s_focusAddress is null || s_focusAddress != Selected.Address) return;
+        s_focusAddress = null;
+        await _current.FocusAsync();
+    }
 }
