@@ -16,21 +16,6 @@ public static class ScenarioGallery
 
     #endregion
 
-    #region Properties, Indexers
-
-    /// <summary>
-    /// Gets the business domains, in the order the gallery's chips show them.
-    /// </summary>
-    public static IReadOnlyList<string> Domains { get; } = ["Finance", "HR", "Healthcare", "Retail", "Logistics", "General"];
-
-    /// <summary>
-    /// Gets every scenario in catalog order: each demo of the catalog once. The Invoice demo's other document types are
-    /// part of its card.
-    /// </summary>
-    public static IReadOnlyList<SampleDemo> Scenarios => SampleCatalog.Categories.SelectMany(c => c.Demos).Distinct().ToList();
-
-    #endregion
-
     #region Methods
 
     #region Public Methods
@@ -111,6 +96,21 @@ public static class ScenarioGallery
     public static string? PictureOf(SampleDemo demo) => DocumentGallery.Documents.FirstOrDefault(d => d.Demo == demo)?.Picture;
 
     #endregion
+
+    #endregion
+
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the business domains, in the order the gallery's chips show them.
+    /// </summary>
+    public static IReadOnlyList<string> Domains { get; } = ["Finance", "HR", "Healthcare", "Retail", "Logistics", "General"];
+
+    /// <summary>
+    /// Gets every scenario in catalog order: each demo of the catalog once. The Invoice demo's other document types are
+    /// part of its card.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> Scenarios => SampleCatalog.Categories.SelectMany(c => c.Demos).Distinct().ToList();
 
     #endregion
 }

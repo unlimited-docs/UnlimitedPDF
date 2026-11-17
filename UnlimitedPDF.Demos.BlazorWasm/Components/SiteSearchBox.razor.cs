@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Routing;
 using Microsoft.JSInterop;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
 using UnlimitedPDF.Demos.BlazorWasm.Services;
@@ -27,6 +28,9 @@ public partial class SiteSearchBox : IAsyncDisposable
     #region Protected Override Methods
 
     /// <inheritdoc />
+    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
+
+    /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
@@ -52,6 +56,7 @@ public partial class SiteSearchBox : IAsyncDisposable
     /// <inheritdoc />
     public async ValueTask DisposeAsync()
     {
+        Navigation.LocationChanged -= OnLocationChanged;
         await Interop.DisposeSiteSearchAsync(_root);
         _listener?.Dispose();
         GC.SuppressFinalize(this);
@@ -70,12 +75,15 @@ public partial class SiteSearchBox : IAsyncDisposable
         _ => "Code",
     };
 
-    // Following a result opens another page: the box empties for the next search.
-    private void Clear()
+    // Another page opened (a result, or any other link): the box empties for the next search. A result opened in a
+    // new tab leaves this one as it was.
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
+        if (_query.Length == 0) return;
         _query = string.Empty;
         _results = [];
         _status = string.Empty;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnInput(ChangeEventArgs args)
@@ -111,6 +119,8 @@ public partial class SiteSearchBox : IAsyncDisposable
     [Inject] private BrowserInterop Interop { get; set; } = default!;
 
     private bool IsOpen => !_closed && SiteSearch.Words(_query).Length > 0;
+
+    [Inject] private NavigationManager Navigation { get; set; } = default!;
 
     private string ResultsId => InputId + "-results";
 

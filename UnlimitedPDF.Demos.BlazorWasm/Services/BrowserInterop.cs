@@ -114,6 +114,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task DownloadAsync(string url, string fileName) => InvokeVoidAsync("download", url, fileName);
 
     /// <summary>
+    /// Moves keyboard focus to the first button or link inside an element, without scrolling.
+    /// </summary>
+    /// <param name="id">The element's id.</param>
+    public Task FocusFirstControlAsync(string id) => InvokeVoidAsync("focusFirstControl", id);
+
+    /// <summary>
     /// Moves keyboard focus to the skip link's destination: the element the page marks with <c>data-skip-target</c>,
     /// otherwise the main content.
     /// </summary>

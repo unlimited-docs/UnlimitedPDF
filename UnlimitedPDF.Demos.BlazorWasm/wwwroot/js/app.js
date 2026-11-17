@@ -46,6 +46,14 @@ export function scrollIntoViewOnNarrow(element) {
     }
 }
 
+export function focusFirstControl(id) {
+    const element = document.getElementById(id);
+    const control = element && element.querySelector("button, a[href]");
+    if (control) {
+        control.focus({ preventScroll: true });
+    }
+}
+
 export function focusSkipTarget() {
     // The skip link's destination: the element a page marks with data-skip-target (the playground's demo, past its
     // sidebar), otherwise the main content. Only focus moves; the next Tab stop brings itself into view.
@@ -195,14 +203,21 @@ export function initSiteSearch(root, listener) {
             input.focus();
         }
     };
+    // Some browsers (Safari) don't focus a link when it is clicked, so focus leaves for nowhere while a result is
+    // pressed; the results stay until the press ends.
+    let pressing = false;
+    const onPointerDown = () => { pressing = true; };
+    const onPointerUp = () => { setTimeout(() => { pressing = false; }, 0); };
     const onFocusOut = event => {
-        if (!root.contains(event.relatedTarget)) {
+        if (!pressing && !root.contains(event.relatedTarget)) {
             close();
         }
     };
     root.addEventListener("keydown", onKeyDown);
     root.addEventListener("focusout", onFocusOut);
-    root.siteSearch = { onKeyDown, onFocusOut };
+    root.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointerup", onPointerUp);
+    root.siteSearch = { onKeyDown, onFocusOut, onPointerDown, onPointerUp };
 
     if (!searchShortcut) {
         searchShortcut = true;
@@ -217,8 +232,10 @@ export function initSiteSearch(root, listener) {
                 box.focus();
                 box.select();
             } else if (menu && menu.offsetParent !== null) {
+                // On a phone the search is in the menu: open it, then put focus in its search box.
                 event.preventDefault();
                 menu.click();
+                setTimeout(() => document.getElementById("site-menu-search")?.focus(), 50);
             }
         });
     }
@@ -228,6 +245,8 @@ export function disposeSiteSearch(root) {
     if (root && root.siteSearch) {
         root.removeEventListener("keydown", root.siteSearch.onKeyDown);
         root.removeEventListener("focusout", root.siteSearch.onFocusOut);
+        root.removeEventListener("pointerdown", root.siteSearch.onPointerDown);
+        document.removeEventListener("pointerup", root.siteSearch.onPointerUp);
         root.siteSearch = null;
     }
 }

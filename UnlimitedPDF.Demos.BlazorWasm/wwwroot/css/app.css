@@ -1,8 +1,8 @@
 /* UnlimitedPDF Demos: app styles on top of Bootstrap 6 (alpha). */
 
 /* Light and calm (D-021): white surfaces, brand navy for text accents and primary buttons, brand teal for calls to
-   action, and a dark teal focus ring. Contrast on white: ink 15:1, muted 7.1:1, navy 13.3:1, teal ink 6.7:1, focus
-   5.3:1; dark teal text on brand teal 4.75:1. */
+   action, and dark teal for the focus ring and the current-page marks. Contrast on white: ink 15:1, muted 7.1:1, navy
+   13.3:1, teal ink 6.7:1, dark teal 5.3:1. Brand teal itself (2.9:1) is decoration only, never the one cue. */
 :root {
     --app-ink: #13203b;
     --app-muted: #4a5568;
@@ -13,8 +13,6 @@
     --app-accent-soft: #e8eef8;
     --app-teal: #00ac8c;
     --app-teal-ink: #00694f;
-    --app-teal-on: #04342c;
-    --app-teal-soft: #e6f6f2;
     --app-focus: #007a64;
     --app-code-bg: #0f1b33;
     --app-mark: #fff3b0;
@@ -155,7 +153,7 @@ summary:focus-visible,
 }
 
 .topnav-link:hover { color: var(--app-accent); background: var(--app-canvas); }
-.topnav-link.active { color: var(--app-accent); box-shadow: inset 0 -3px 0 var(--app-teal); border-radius: 8px 8px 0 0; }
+.topnav-link.active { color: var(--app-accent); font-weight: 700; box-shadow: inset 0 -3px 0 var(--app-focus); border-radius: 8px 8px 0 0; }
 .topnav-cta { margin-left: 0.5rem; }
 
 /* Menu: phones and narrow windows only, where the search and the links move into the drawer. */
@@ -201,7 +199,7 @@ summary:focus-visible,
     font-weight: 600;
     text-decoration: none;
 }
-.site-menu-link.active { box-shadow: inset 4px 0 0 var(--app-teal); padding-left: 0.75rem; }
+.site-menu-link.active { box-shadow: inset 4px 0 0 var(--app-focus); padding-left: 0.75rem; }
 .site-menu-install { justify-content: center; min-height: 48px; }
 
 .app-main { min-height: calc(100vh - var(--app-topbar-h)); }
@@ -1254,6 +1252,7 @@ summary:focus-visible,
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }
     .breadcrumbs a { min-height: 44px; }
+    .site-search-field { height: 44px; }
     .demo-choice-option { min-height: 44px; }
     .form-control, .form-select { min-height: 44px; }
     .field input[type="color"] { height: 44px; }
@@ -1366,7 +1365,7 @@ summary:focus-visible,
 .site-search-title { color: var(--app-accent); font-weight: 650; }
 .site-search-detail { color: var(--app-muted); font-size: 0.85rem; overflow-wrap: anywhere; }
 .site-search-detail.is-code { font-family: var(--app-mono); font-size: 0.8rem; }
-.site-search-result mark { padding: 0; background: var(--app-mark); color: inherit; }
+.site-search-result mark { padding: 0; background: var(--app-mark); color: inherit; font-weight: 700; }
 .site-search-empty { margin: 0.5rem; color: var(--app-muted); }
 
 /* In the drawer the results take the drawer's width, below the box. */
@@ -1391,7 +1390,7 @@ summary:focus-visible,
     margin-bottom: -1px;
 }
 .gallery-tab:hover { color: var(--app-accent); }
-.gallery-tab[aria-current="page"] { color: var(--app-accent); border-bottom-color: var(--app-teal); }
+.gallery-tab[aria-current="page"] { color: var(--app-accent); font-weight: 700; border-bottom-color: var(--app-focus); }
 
 .gallery-chips ul { gap: 0.5rem; margin: 1rem 0 0.75rem; }
 .gallery-chip {
@@ -1439,7 +1438,7 @@ summary:focus-visible,
 .scenario-link:focus-visible { outline: none; }
 .scenario-thumb {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
     height: 150px;
     overflow: hidden;

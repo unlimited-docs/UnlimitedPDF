@@ -55,7 +55,15 @@ public class ScenarioGalleryTests
         Assert.Equal(all.Count, byCapability.Count);
         Assert.Equal(all.ToHashSet(), byCapability.ToHashSet());
         Assert.Equal(all.ToHashSet(), byDomain.ToHashSet());
-        Assert.All(ScenarioGallery.Domains, d => Assert.NotEmpty(ScenarioGallery.Filter(null, d)));
+        Assert.All(ScenarioGallery.Domains, d =>
+        {
+            var filtered = ScenarioGallery.Filter(null, d);
+            Assert.NotEmpty(filtered);
+            Assert.All(filtered, demo => Assert.Contains(d, ScenarioGallery.DomainsOf(demo)));
+            Assert.Equal(all.Count(demo => ScenarioGallery.DomainsOf(demo).Contains(d)), filtered.Count);
+        });
+        Assert.True(ScenarioGallery.Filter(null, "HR").Count < all.Count);
+        Assert.All(SampleCatalog.Categories, c => Assert.All(ScenarioGallery.Filter(c.Id, null), demo => Assert.Equal(c, ScenarioGallery.CategoryOf(demo))));
     }
 
     [Fact]
@@ -91,6 +99,7 @@ public class ScenarioGalleryTests
         Assert.Null(ScenarioGallery.FindDomain(value));
         Assert.Equal("merge", ScenarioGallery.FindCapability(" MERGE "));
         Assert.Equal("HR", ScenarioGallery.FindDomain("hr"));
+        Assert.Equal("HR", ScenarioGallery.FindDomain(" hr "));
     }
 
     #endregion

@@ -50,7 +50,7 @@ public partial class MainLayout : IDisposable
     /// <summary>
     /// Notes that the menu drawer closed, however it closed (Close, Escape, or a link). Called from <c>js/app.js</c>.
     /// </summary>
-    /// <param name="opening">Unused: the drawer has one opening at a time.</param>
+    /// <param name="opening">Unused here: the dialog helper reports it for dialogs opened more than once at a time.</param>
     [JSInvokable]
     public void MenuClosed(int opening) => _menuOpen = false;
 

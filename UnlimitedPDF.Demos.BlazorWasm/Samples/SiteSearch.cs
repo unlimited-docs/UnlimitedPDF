@@ -46,9 +46,9 @@ public static class SiteSearch
     #region Fields and Constants
 
     /// <summary>
-    /// The longest query read; the rest is ignored.
+    /// The longest detail line shown, before the ellipses that mark a cut.
     /// </summary>
-    public const int MaxQueryLength = 100;
+    public const int MaxDetailLength = 110;
 
     /// <summary>
     /// The most results shown for each kind.
@@ -56,11 +56,14 @@ public static class SiteSearch
     public const int MaxPerKind = 5;
 
     /// <summary>
+    /// The longest query read; the rest is ignored.
+    /// </summary>
+    public const int MaxQueryLength = 100;
+
+    /// <summary>
     /// The most words of a query used.
     /// </summary>
     public const int MaxWords = 8;
-
-    private const int MaxDetailLength = 110;
 
     #endregion
 
@@ -91,19 +94,29 @@ public static class SiteSearch
             .Where(question => words.All(word => Contains(question.Text, word) || question.Answer.Any(paragraph => Contains(paragraph, word))))
             .OrderBy(question => words.All(word => Contains(question.Text, word)) ? 0 : 1)
             .Take(MaxPerKind)
-            .Select(question => new SearchResult(SearchKind.Faq, question.Text, Shorten(question.Answer.FirstOrDefault() ?? string.Empty, null), "faq#" + question.Id)));
+            .Select(question => new SearchResult(SearchKind.Faq, question.Text, Shorten(question.Answer.FirstOrDefault() ?? string.Empty, null), FaqAddress(question.Id))));
 
         foreach (var demo in SampleCatalog.Pages.DistinctBy(demo => demo.SourceFile))
         {
             if (results.Count(r => r.Kind == SearchKind.Code) == MaxPerKind) break;
             string code = source(demo.SourceFile);
             if (!words.All(word => Contains(code, word))) continue;
-            string line = code.Split('\n').Select(l => l.Trim()).First(l => Contains(l, words[0]));
-            results.Add(new SearchResult(SearchKind.Code, demo.Title, Shorten(line, words[0]), demo.Route));
+            // The line holding the most of the words; the first such line when several hold as many.
+            string line = code.Split('\n').Select(l => l.Trim()).MaxBy(l => words.Count(word => Contains(l, word)))!;
+            string word = words.First(w => Contains(line, w));
+            results.Add(new SearchResult(SearchKind.Code, demo.Title, Shorten(line, word), demo.Route));
         }
 
         return results;
     }
+
+    /// <summary>
+    /// Returns the address of an FAQ answer. The query makes it a move to another address even from the FAQ itself,
+    /// so the FAQ page hears it and opens the answer; the fragment names the question.
+    /// </summary>
+    /// <param name="questionId">The question's id.</param>
+    /// <returns>The address without a leading slash.</returns>
+    public static string FaqAddress(string questionId) => $"faq?open={Uri.EscapeDataString(questionId)}#{questionId}";
 
     /// <summary>
     /// Splits a text into the parts a query matches and the parts between them, for highlighting.

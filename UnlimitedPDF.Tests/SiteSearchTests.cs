@@ -65,7 +65,7 @@ public class SiteSearchTests
     public void Every_faq_question_is_found_by_its_text_and_opens_its_answer()
     {
         Assert.All(FaqQuestions.Questions, question =>
-            Assert.Contains(SiteSearch.Find(question.Text, Source), r => r.Kind == SearchKind.Faq && r.Address == "faq#" + question.Id));
+            Assert.Contains(SiteSearch.Find(question.Text, Source), r => r.Kind == SearchKind.Faq && r.Address == SiteSearch.FaqAddress(question.Id)));
     }
 
     [Fact]
@@ -108,6 +108,74 @@ public class SiteSearchTests
 
         // Below 900 px the box and the links give way to Menu.
         Assert.Matches(@"@media \(max-width: 899\.98px\) \{\s*\.topbar-search, \.topnav \{ display: none; \}\s*\.topbar-menu \{ display: inline-flex; \}", DemosFile("wwwroot/css/app.css"));
+    }
+
+    [Fact]
+    public void A_word_found_only_in_an_answer_finds_its_question()
+    {
+        // A word of an answer that its question doesn't hold, and that no other question or answer holds either.
+        var (question, word) = FaqQuestions.Questions
+            .SelectMany(q => q.Answer.SelectMany(a => Regex.Matches(a, "[A-Za-z]{7,}").Select(m => (Question: q, Word: m.Value))))
+            .First(p => !p.Question.Text.Contains(p.Word, StringComparison.OrdinalIgnoreCase)
+                && FaqQuestions.Questions.Count(q => q.Text.Contains(p.Word, StringComparison.OrdinalIgnoreCase) || q.Answer.Any(a => a.Contains(p.Word, StringComparison.OrdinalIgnoreCase))) == 1);
+
+        Assert.Contains(SiteSearch.Find(word, Source), r => r.Kind == SearchKind.Faq && r.Address == SiteSearch.FaqAddress(question.Id));
+    }
+
+    [Fact]
+    public void A_code_line_shows_a_word_within_the_detail_length_once_per_source_file()
+    {
+        var results = SiteSearch.Find("RepeatHeaderRows HeaderRowCount", Source).Where(r => r.Kind == SearchKind.Code).ToList();
+
+        Assert.NotEmpty(results);
+        Assert.All(results, r =>
+        {
+            Assert.True(r.Detail.Contains("RepeatHeaderRows", StringComparison.Ordinal) || r.Detail.Contains("HeaderRowCount", StringComparison.Ordinal), r.Detail);
+            Assert.True(r.Detail.Length <= SiteSearch.MaxDetailLength + 2, r.Detail);
+        });
+
+        // Each source file once.
+        Assert.Equal(results.Count, results.Select(r => SampleCatalog.Pages.First(d => d.Route == r.Address).SourceFile).Distinct().Count());
+    }
+
+    [Fact]
+    public void Every_result_holds_every_word_and_each_kind_is_capped_with_title_matches_first()
+    {
+        // "PDF" is in every demo's page title, so the demos are capped; a title holding the word comes first.
+        var results = SiteSearch.Find("PDF", Source);
+        var demos = results.Where(r => r.Kind == SearchKind.Demo).ToList();
+
+        Assert.Equal(SiteSearch.MaxPerKind, demos.Count);
+        Assert.Equal(SiteSearch.MaxPerKind, results.Count(r => r.Kind == SearchKind.Faq));
+
+        var both = SiteSearch.Find("merge pages", Source);
+        foreach (var result in both.Where(r => r.Kind == SearchKind.Demo))
+        {
+            var demo = SampleCatalog.Pages.First(d => d.Route == result.Address);
+            string text = string.Join(' ', demo.Title, demo.PageTitle, demo.Description, string.Join(' ', demo.Domains), ScenarioGallery.CategoryOf(demo).Title);
+            Assert.Contains("merge", text, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("pages", text, StringComparison.OrdinalIgnoreCase);
+        }
+
+        var titled = SiteSearch.Find("statement", Source).Where(r => r.Kind == SearchKind.Demo).ToList();
+        Assert.Equal(SampleCatalog.AccountStatement.Route, titled[0].Address);
+    }
+
+    [Fact]
+    public void Faq_results_open_their_answer_from_the_faq_itself()
+    {
+        // The query makes the move a new address, so the FAQ page hears it even when it is already open, opens the
+        // answer, and puts focus on its question.
+        Assert.Equal("faq?open=install#install", SiteSearch.FaqAddress("install"));
+        var faq = DemosFile("Pages/Faq.razor.cs");
+        Assert.Contains("_focusOpened = true;", faq, StringComparison.Ordinal);
+        Assert.Contains("await Interop.FocusFirstControlAsync(id);", faq, StringComparison.Ordinal);
+
+        // The box empties when another page opens, not when a result is clicked (a result opened in a new tab
+        // leaves this one as it was).
+        var box = DemosFile("Components/SiteSearchBox.razor");
+        Assert.DoesNotContain("@onclick", box, StringComparison.Ordinal);
+        Assert.Contains("Navigation.LocationChanged += OnLocationChanged", DemosFile("Components/SiteSearchBox.razor.cs"), StringComparison.Ordinal);
     }
 
     [Fact]

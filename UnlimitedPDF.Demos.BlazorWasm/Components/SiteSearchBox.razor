@@ -21,7 +21,7 @@
         {
             @if (_results.Count == 0)
             {
-                <p class="site-search-empty">No results. Try another word, or <a href="@ScenarioGallery.Route" @onclick="Clear">browse every scenario</a>.</p>
+                <p class="site-search-empty">No results. Try another word, or <a href="@ScenarioGallery.Route">browse every scenario</a>.</p>
             }
             @foreach (var group in _results.GroupBy(r => r.Kind))
             {
@@ -31,7 +31,7 @@
                     @foreach (var result in group)
                     {
                         <li>
-                            <a class="site-search-result" href="@result.Address" @onclick="Clear">
+                            <a class="site-search-result" href="@result.Address">
                                 <span class="site-search-title"><HighlightedText Text="@result.Title" Query="@_query" /></span>
                                 <span class="site-search-detail @(result.Kind == SearchKind.Code ? "is-code" : null)"><HighlightedText Text="@result.Detail" Query="@_query" /></span>
                             </a>
