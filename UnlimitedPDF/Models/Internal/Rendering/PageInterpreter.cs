@@ -124,9 +124,12 @@ internal sealed partial class PageInterpreter
         _pendingClip = null;
         while (_saved.Count > 0) Restore();
         CloseGroups(_state);
+        DrawAppearances(page);
         DrawAnnotations(page);
 
-        var svg = new StringBuilder();
+        // The frame around the drawing adds about 200 characters; checking before copying keeps the peak at the limit.
+        if (_body.Length + _defs.Length + 200 > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
+        var svg = new StringBuilder(_body.Length + _defs.Length + 200);
         svg.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").Append(SvgText.Number(shownWidth)).Append(' ')
             .Append(SvgText.Number(shownHeight)).Append("\" width=\"").Append(SvgText.Number(shownWidth))
             .Append("\" height=\"").Append(SvgText.Number(shownHeight)).Append("\">");

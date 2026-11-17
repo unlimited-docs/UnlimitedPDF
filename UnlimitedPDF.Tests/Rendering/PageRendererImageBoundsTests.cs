@@ -259,6 +259,26 @@ public class PageRendererImageBoundsTests
         Assert.DoesNotContain("Exif", Encoding.Latin1.GetString(drawn));
     }
 
+    [Fact]
+    public void A_repeated_image_stops_at_the_output_bound_as_it_is_drawn()
+    {
+        // 2,000 draws of one cached image make about 220,000 characters; the page ends with an XObject this preview
+        // refuses. Stopping at the bound while drawing gives "too large" before the interpreter reaches the refusal.
+        var objects = new List<(int, string, byte[]?)>
+        {
+            (5, "/Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceGray /BitsPerComponent 8", new byte[] { 128 }),
+            (6, "/Type /XObject /Subtype /PS", new byte[] { 32 })
+        };
+        string content = string.Concat(Enumerable.Repeat("/X1 Do ", 2000)) + "/X2 Do";
+        var pdf = RenderTestFiles.OnePage(content, "<< /XObject << /X1 5 0 R /X2 6 0 R >> >>", objects);
+
+        var page = RenderTestFiles.RenderFirst(pdf, PageRenderLimits.Default with { MaxOutputCharacters = 20_000 });
+        var whole = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.Equal("The page drawing is too large.", page.Reason);
+        Assert.Contains("PS", whole.Reason);
+    }
+
     #endregion
 
     #region Private Methods

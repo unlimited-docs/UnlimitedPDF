@@ -61,6 +61,7 @@ internal sealed partial class PageInterpreter
         SvgText.AppendMatrix(_body, placement);
         _body.Append("\"/>");
         _images++;
+        CheckOutput();
     }
 
     // Turns an image XObject into a data URI the browser can show: JPEG data as it is, other images as PNG.

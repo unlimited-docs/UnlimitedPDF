@@ -24,11 +24,6 @@ internal sealed class ToUnicodeMap
     private readonly Dictionary<int, string> _map = new();
     private int _writes;
 
-    /// <summary>
-    /// Gets the number of characters the map holds, counting each write.
-    /// </summary>
-    public long Characters { get; private set; }
-
     #endregion
 
     #region Methods
@@ -77,6 +72,8 @@ internal sealed class ToUnicodeMap
     /// <summary>
     /// Returns the characters code <paramref name="code"/> stands for, or an empty string.
     /// </summary>
+    /// <param name="code">The character code.</param>
+    /// <returns>The characters, or an empty string when the map has no entry for the code.</returns>
     public string Text(int code) => _map.TryGetValue(code, out var text) ? text : string.Empty;
 
     #endregion
@@ -152,6 +149,15 @@ internal sealed class ToUnicodeMap
     }
 
     #endregion
+
+    #endregion
+
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets the number of characters the map holds, counting each write.
+    /// </summary>
+    public long Characters { get; private set; }
 
     #endregion
 }

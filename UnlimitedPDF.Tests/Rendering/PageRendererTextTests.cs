@@ -116,6 +116,18 @@ public class PageRendererTextTests
     }
 
     [Fact]
+    public void Actual_text_around_a_text_object_gives_its_line_once()
+    {
+        var around = Render("/Span << /ActualText <FEFF00660069> >> BDC BT /F1 10 Tf (x) Tj ET EMC");
+        var aroundTwo = Render("/Span << /ActualText <FEFF00660069> >> BDC BT /F1 10 Tf (x) Tj ET BT (y) Tj ET EMC");
+        var alone = Render("/Span << /ActualText <FEFF00660069> >> BDC EMC");
+
+        Assert.Equal(new[] { "fi" }, around.TextLines);
+        Assert.Equal(new[] { "fi", "" }, aroundTwo.TextLines);
+        Assert.Equal(new[] { "fi" }, alone.TextLines);
+    }
+
+    [Fact]
     public void Text_that_looks_like_markup_stays_text()
     {
         var page = Render("BT /F1 10 Tf (<script>alert\\(1\\)</script>&\") Tj ET");

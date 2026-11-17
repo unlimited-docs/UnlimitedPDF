@@ -63,17 +63,27 @@ internal sealed partial class PageInterpreter
         }
 
         if (_spans.Count >= _limits.MaxStateDepth) throw new PageRenderException("The page nests marked content too deeply.");
-        _spans.Push(new MarkedSpan(actual));
-        if (actual is not null)
-        {
-            _line.Append(actual);
-            CheckOutput();
-        }
+        var span = new MarkedSpan(actual);
+        _spans.Push(span);
+        // Outside a text object the text waits: a text object the span encloses takes it into its line.
+        if (actual is not null && _inText) AddToLine(span);
+    }
+
+    // Adds a span's /ActualText to the current line, once.
+    private void AddToLine(MarkedSpan span)
+    {
+        _line.Append(span.ActualText);
+        span.Lined = true;
+        CheckOutput();
     }
 
     private void EndMarkedContent()
     {
-        if (_spans.Count > 0) _spans.Pop();
+        if (_spans.Count == 0) return;
+        // A span that enclosed no text object still gives its text, as a line of its own at the end of the page or
+        // until the next text object starts.
+        var span = _spans.Pop();
+        if (span.ActualText is not null && !span.Lined) AddToLine(span);
     }
 
     private RenderFont FontFor(PdfReadName name, PdfReadDictionary? resources)
@@ -109,6 +119,8 @@ internal sealed partial class PageInterpreter
                 _inText = true;
                 _textMatrix = _lineMatrix = RenderMatrix.Identity;
                 _line.Clear(); // as the text oracle does: only text inside BT ... ET makes a line
+                // An open /ActualText span around the text object gives the line its text.
+                if (_spans.LastOrDefault(span => span.ActualText is not null) is { Lined: false } enclosing) AddToLine(enclosing);
                 return true;
             case "ET": // end text
                 RequireText(op);
@@ -410,20 +422,6 @@ internal sealed partial class PageInterpreter
 
     #endregion
 
-    #region Nested Types
-
-    // A marked-content sequence: its /ActualText, and whether that text has been placed in the page's text yet.
-    private sealed class MarkedSpan
-    {
-        public MarkedSpan(string? actualText) => ActualText = actualText;
-
-        public string? ActualText { get; }
-
-        public bool Shown { get; set; }
-    }
-
-    #endregion
-
     #region Properties, Indexers
 
     private IReadOnlyList<string> TextLines
@@ -436,6 +434,27 @@ internal sealed partial class PageInterpreter
             if (_line.Length > 0) lines.Add(_line.ToString());
             return lines;
         }
+    }
+
+    #endregion
+
+    #region Nested Types
+
+    // A marked-content sequence: its /ActualText, whether that text is in the drawing's text layer yet, and whether
+    // it is in a text line yet.
+    private sealed class MarkedSpan
+    {
+        // Opens a span with its /ActualText, or null.
+        public MarkedSpan(string? actualText) => ActualText = actualText;
+
+        // The text the span's glyphs stand for, or null.
+        public string? ActualText { get; }
+
+        // Whether the text is in a text line yet.
+        public bool Lined { get; set; }
+
+        // Whether the text is in the drawing's text layer yet.
+        public bool Shown { get; set; }
     }
 
     #endregion

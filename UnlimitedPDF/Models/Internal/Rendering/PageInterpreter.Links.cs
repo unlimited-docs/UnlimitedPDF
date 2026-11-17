@@ -91,6 +91,61 @@ internal sealed partial class PageInterpreter
         }
     }
 
+    // Draws the normal appearance of each visible annotation other than links and pop-ups (comments, stamps, form
+    // fields), over the page content, as PDF 12.5.5 places it: the appearance's bounding box, through its /Matrix, is
+    // mapped onto the annotation's /Rect. An annotation without an appearance draws nothing. An appearance that can't
+    // be drawn stops the page, so a page is drawn completely or not at all.
+    private void DrawAppearances(PdfReadDictionary page)
+    {
+        if (_objects.Resolve(page["Annots"]) is not PdfReadArray annotations) return;
+        foreach (var item in annotations.Items.Take(MaxAnnotations))
+        {
+            if (_objects.Resolve(item) is not PdfReadDictionary annotation) continue;
+            if (_objects.Resolve(annotation["Subtype"]) is PdfReadName { Value: "Link" or "Popup" }) continue;
+            if (_objects.Resolve(annotation["F"]) is PdfReadNumber flags && (flags.IntegerValue & HiddenFlags) != 0) continue;
+            if (Appearance(annotation) is not { } form) continue;
+            if (_objects.Resolve(annotation["Rect"]) is not PdfReadArray { Count: 4 } rect) continue;
+            var r = rect.Items.Select(v => _objects.Resolve(v) is PdfReadNumber n ? n.Value : double.NaN).ToArray();
+            if (r.Any(v => !double.IsFinite(v) || Math.Abs(v) > SvgText.MaxMagnitude)) continue;
+            if (_objects.Resolve(form.Dictionary["BBox"]) is not PdfReadArray { Count: 4 } boxArray) continue;
+            var box = boxArray.Items.Select(v => _objects.Resolve(v) is PdfReadNumber n ? n.Value : double.NaN).ToArray();
+            var matrix = RenderMatrix.Identity;
+            if (_objects.Resolve(form.Dictionary["Matrix"]) is PdfReadArray { Count: 6 } m)
+            {
+                var v = m.Items.Select(value => _objects.Resolve(value) is PdfReadNumber n ? n.Value : double.NaN).ToArray();
+                matrix = new RenderMatrix(v[0], v[1], v[2], v[3], v[4], v[5]);
+            }
+
+            // The bounding box's corners through the matrix, then the box around them.
+            var corners = new[] { (box[0], box[1]), (box[2], box[1]), (box[2], box[3]), (box[0], box[3]) }
+                .Select(p => (X: matrix.A * p.Item1 + matrix.C * p.Item2 + matrix.E, Y: matrix.B * p.Item1 + matrix.D * p.Item2 + matrix.F))
+                .ToArray();
+            double minX = corners.Min(p => p.X), maxX = corners.Max(p => p.X), minY = corners.Min(p => p.Y), maxY = corners.Max(p => p.Y);
+            if (!(maxX - minX > 0) || !(maxY - minY > 0) || !double.IsFinite(maxX - minX) || !double.IsFinite(maxY - minY)) continue;
+            double left = Math.Min(r[0], r[2]), bottom = Math.Min(r[1], r[3]);
+            double scaleX = Math.Abs(r[2] - r[0]) / (maxX - minX), scaleY = Math.Abs(r[3] - r[1]) / (maxY - minY);
+            var place = new RenderMatrix(scaleX, 0, 0, scaleY, left - minX * scaleX, bottom - minY * scaleY);
+
+            // Each appearance starts from the default graphics state in the page's space.
+            _state = new RenderState { Ctm = place.Then(_pageMatrix) };
+            if (!_state.Ctm.IsFinite()) continue;
+            DrawForm(form);
+            CloseGroups(_state);
+        }
+    }
+
+    // The annotation's normal appearance: /AP /N, or the entry of /N that /AS names.
+    private PdfReadStream? Appearance(PdfReadDictionary annotation)
+    {
+        if (_objects.Resolve(annotation["AP"]) is not PdfReadDictionary appearances) return null;
+        return _objects.Resolve(appearances["N"]) switch
+        {
+            PdfReadStream stream => stream,
+            PdfReadDictionary states when _objects.Resolve(annotation["AS"]) is PdfReadName state => _objects.Resolve(states[state.Value]) as PdfReadStream,
+            _ => null
+        };
+    }
+
     // Draws a form XObject: its content, through its /Matrix and clipped to its /BBox, with its own resources.
     private void DrawForm(PdfReadStream form)
     {

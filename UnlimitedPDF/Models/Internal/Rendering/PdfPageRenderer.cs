@@ -7,6 +7,10 @@ namespace UnlimitedPDF.Models.Internal.Rendering;
 /// with content this renderer does not understand, or one that reaches a work bound, comes back with the reason
 /// instead of a drawing.
 /// </summary>
+/// <remarks>
+/// Drawing reads objects into the file's shared object cache, so draw the pages of one <see cref="PdfFile"/> from one
+/// thread at a time. Different files may be drawn at the same time.
+/// </remarks>
 internal static class PdfPageRenderer
 {
     #region Fields and Constants
@@ -27,8 +31,9 @@ internal static class PdfPageRenderer
     /// <param name="idPrefix">A prefix for the drawing's element ids, unique among the drawings shown together.</param>
     /// <param name="limits">The work bounds; <see cref="PageRenderLimits.Default"/> when null.</param>
     /// <returns>The drawn page, or the reason it is not drawn.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageIndex"/> is not a page of the file.</exception>
-    /// <exception cref="ArgumentException"><paramref name="idPrefix"/> holds a character other than ASCII letters,
+    /// <exception cref="ArgumentException"><paramref name="idPrefix"/> is null or holds a character other than ASCII letters,
     /// digits, hyphens, and underscores.</exception>
     public static PageRenderResult Render(PdfFile file, int pageIndex, string idPrefix, PageRenderLimits? limits = null)
     {

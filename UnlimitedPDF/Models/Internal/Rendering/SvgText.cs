@@ -54,6 +54,10 @@ internal static class SvgText
     /// <summary>
     /// Appends an RGB color with components from 0 to 1 as <c>#rrggbb</c>.
     /// </summary>
+    /// <param name="builder">The markup being written.</param>
+    /// <param name="red">The red component, from 0 to 1; values outside are clamped.</param>
+    /// <param name="green">The green component, from 0 to 1; values outside are clamped.</param>
+    /// <param name="blue">The blue component, from 0 to 1; values outside are clamped.</param>
     public static void AppendColor(StringBuilder builder, double red, double green, double blue)
     {
         builder.Append('#').Append(Channel(red).ToString("x2", CultureInfo.InvariantCulture))
@@ -64,6 +68,8 @@ internal static class SvgText
     /// <summary>
     /// Appends a matrix as an SVG <c>matrix(...)</c> transform.
     /// </summary>
+    /// <param name="builder">The markup being written.</param>
+    /// <param name="m">The matrix.</param>
     public static void AppendMatrix(StringBuilder builder, RenderMatrix m)
     {
         builder.Append("matrix(").Append(Number(m.A)).Append(' ').Append(Number(m.B)).Append(' ')
@@ -76,6 +82,9 @@ internal static class SvgText
     /// hundred-thousandth keep their value, so a drawing is never collapsed or resized by rounding. Numbers beyond
     /// <see cref="MaxMagnitude"/> stop the page, so one number can't make the drawing huge.
     /// </summary>
+    /// <param name="value">The number.</param>
+    /// <returns>The number as SVG writes it.</returns>
+    /// <exception cref="PageRenderException"><paramref name="value"/> is not finite or is beyond <see cref="MaxMagnitude"/>.</exception>
     public static string Number(double value)
     {
         if (!double.IsFinite(value) || Math.Abs(value) > MaxMagnitude) throw new PageRenderException("The page has a number out of range.");

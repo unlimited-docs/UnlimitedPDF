@@ -1,3 +1,4 @@
+using System.Text;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using UnlimitedPDF.Models.Internal.Rendering;
@@ -46,6 +47,8 @@ public class PageRendererLinksAndFormsTests
     [InlineData("(vbscript:msgbox)")]
     [InlineData("(file:///etc/passwd)")]
     [InlineData("(https://ex ample.com)")]
+    [InlineData("<68747470733A2F2F61C3A92E636F6D>")]
+    [InlineData("<68747470733A2F2F612E636F6D2F7F>")]
     [InlineData("(/relative/path)")]
     [InlineData("<68747470733A2F2F610A2E636F6D>")]
     [InlineData("(mailto:)")]
@@ -223,6 +226,28 @@ public class PageRendererLinksAndFormsTests
     }
 
     [Fact]
+    public void A_link_marked_no_view_is_not_a_link()
+    {
+        var pdf = RenderTestFiles.OnePage("0 0 1 1 re f", pageEntries:
+            "/Annots [<< /Type /Annot /Subtype /Link /F 32 /Rect [0 0 10 10] /A << /S /URI /URI (https://a.com) >> >>]");
+
+        Assert.Equal(0, RenderTestFiles.RenderFirst(pdf).Counts.Links);
+    }
+
+    [Fact]
+    public void An_unbalanced_restore_inside_a_form_leaves_the_page_state_alone()
+    {
+        var pdf = RenderTestFiles.OnePage("1 0 0 rg /Fm1 Do 0 0 5 5 re f", "<< /XObject << /Fm1 5 0 R >> >>",
+            [(5, "/Type /XObject /Subtype /Form /BBox [0 0 10 10]", Encoding.ASCII.GetBytes("Q 0 1 0 rg"))]);
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Contains("fill=\"#ff0000\"", page.Svg);
+        Assert.DoesNotContain("#00ff00", page.Svg);
+    }
+
+    [Fact]
     public void A_form_without_resources_uses_the_page_resources()
     {
         var pdf = RenderTestFiles.OnePage("/Fm1 Do", "<< /XObject << /Fm1 5 0 R >> /Font << /F1 6 0 R >> >>",
@@ -278,9 +303,103 @@ public class PageRendererLinksAndFormsTests
         Assert.True(watch.ElapsedMilliseconds < 2000, $"Took {watch.ElapsedMilliseconds} ms.");
     }
 
+    [Fact]
+    public void A_comment_with_an_appearance_is_drawn_over_the_page_on_its_rectangle()
+    {
+        // A 10 by 10 red square appearance, mapped onto a 50 by 20 rectangle: scaled 5 by 2 and moved to (100, 200).
+        var pdf = AnnotatedPage("/Subtype /FreeText /Rect [100 200 150 220] /AP << /N 5 0 R >>", ("/BBox [0 0 10 10]", "1 0 0 rg 0 0 10 10 re f"));
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Equal(3, page.Counts.Paths); // the page's square, the clip to the appearance box, and the red square
+        Assert.Contains("fill=\"#ff0000\"", page.Svg);
+        // The page flips y: user (x, y) is drawn at (x, 842 - y), so the square spans x 100 to 150 and y 622 to 642.
+        Assert.Contains("matrix(5 0 0 -2 100 642)", page.Svg);
+    }
+
+    [Fact]
+    public void An_appearance_matrix_is_applied_before_its_box_is_mapped_onto_the_rectangle()
+    {
+        // The matrix turns the 20 by 10 box a quarter turn, so the box it gives is 10 wide and 20 high.
+        var pdf = AnnotatedPage("/Subtype /Stamp /Rect [0 0 10 20] /AP << /N 5 0 R >>", ("/BBox [0 0 20 10] /Matrix [0 1 -1 0 0 0]", "0 0 1 rg 0 0 20 10 re f"));
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Contains("fill=\"#0000ff\"", page.Svg);
+        Assert.Contains("matrix(0 -1 -1 0 10 842)", page.Svg);
+    }
+
+    [Theory]
+    [InlineData("/F 2")]
+    [InlineData("/F 32")]
+    public void A_hidden_annotation_draws_nothing(string flags)
+    {
+        var pdf = AnnotatedPage($"/Subtype /FreeText {flags} /Rect [0 0 10 10] /AP << /N 5 0 R >>", ("/BBox [0 0 10 10]", "1 0 0 rg 0 0 10 10 re f"));
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Equal(1, page.Counts.Paths);
+    }
+
+    [Fact]
+    public void A_field_draws_the_appearance_its_state_names_and_a_popup_draws_nothing()
+    {
+        var pdf = new RawPdfBuilder()
+            .AddObject(1, "<< /Type /Catalog /Pages 2 0 R >>")
+            .AddObject(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+            .AddObject(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 100 100] /Contents 4 0 R /Annots ["
+                + "<< /Type /Annot /Subtype /Widget /Rect [0 0 10 10] /AS /On /AP << /N << /On 5 0 R /Off 6 0 R >> >> >> "
+                + "<< /Type /Annot /Subtype /Popup /Rect [0 0 10 10] /AP << /N 6 0 R >> >>] >>")
+            .AddStream(4, string.Empty, Encoding.ASCII.GetBytes("0 0 1 1 re f"))
+            .AddStream(5, "/Type /XObject /Subtype /Form /BBox [0 0 10 10]", Encoding.ASCII.GetBytes("0 1 0 rg 0 0 10 10 re f"))
+            .AddStream(6, "/Type /XObject /Subtype /Form /BBox [0 0 10 10]", Encoding.ASCII.GetBytes("1 0 0 rg 0 0 10 10 re f"))
+            .ToBytes();
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Contains("fill=\"#00ff00\"", page.Svg);
+        Assert.DoesNotContain("fill=\"#ff0000\"", page.Svg);
+    }
+
+    [Fact]
+    public void A_comment_kept_by_a_merge_is_drawn_on_the_merged_page()
+    {
+        var source = PdfFile.FromBytes(AnnotatedPage("/Subtype /FreeText /Rect [100 200 150 220] /AP << /N 5 0 R >>", ("/BBox [0 0 10 10]", "1 0 0 rg 0 0 10 10 re f")));
+        var document = new PdfDocument();
+        document.AddPages(source);
+        using var merged = new MemoryStream();
+        document.Save(merged);
+
+        var page = RenderTestFiles.RenderFirst(merged.ToArray());
+
+        Assert.True(page.IsDrawn, page.Reason);
+        Assert.Contains("FreeText", Encoding.Latin1.GetString(merged.ToArray()));
+        Assert.Contains("fill=\"#ff0000\"", page.Svg);
+    }
+
+    [Fact]
+    public void An_appearance_that_cannot_be_drawn_stops_the_page()
+    {
+        var pdf = AnnotatedPage("/Subtype /FreeText /Rect [0 0 10 10] /AP << /N 5 0 R >>", ("/BBox [0 0 10 10] /Group << /S /Transparency >>", "0 0 10 10 re f"));
+
+        var page = RenderTestFiles.RenderFirst(pdf);
+
+        Assert.False(page.IsDrawn);
+        Assert.Contains("transparency group", page.Reason);
+    }
+
     #endregion
 
     #region Private Methods
+
+    // A page with a square path and one annotation whose normal appearance is object 5.
+    private static byte[] AnnotatedPage(string annotation, (string Entries, string Content) appearance) =>
+        RenderTestFiles.OnePage("0 0 1 1 re f", pageEntries: $"/Annots [<< /Type /Annot {annotation} >>]",
+            extraObjects: [(5, $"/Type /XObject /Subtype /Form {appearance.Entries}", Encoding.ASCII.GetBytes(appearance.Content))]);
 
     // Three pages with links of every kind, a named destination, a text field, and actions that must be dropped.
     private static byte[] BuildFixture()
