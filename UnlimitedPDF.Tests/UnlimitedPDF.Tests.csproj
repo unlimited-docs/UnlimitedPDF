@@ -48,6 +48,7 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\PickPagesSample.cs" Link="Demo\Samples\PickPagesSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleCatalog.cs" Link="Demo\Samples\SampleCatalog.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DemoVariant.cs" Link="Demo\Samples\DemoVariant.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ErrorText.cs" Link="Demo\Samples\ErrorText.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DemoVariants.cs" Link="Demo\Samples\DemoVariants.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ScenarioGallery.cs" Link="Demo\Samples\ScenarioGallery.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SiteSearch.cs" Link="Demo\Samples\SiteSearch.cs" />

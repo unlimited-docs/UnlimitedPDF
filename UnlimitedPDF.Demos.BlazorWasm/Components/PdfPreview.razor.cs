@@ -276,6 +276,11 @@ public partial class PdfPreview : IAsyncDisposable
     [Parameter] public bool Busy { get; set; }
 
     /// <summary>
+    /// Gets or sets the language tag of the PDF's text when it isn't the page's English, or null.
+    /// </summary>
+    [Parameter] public string? Language { get; set; }
+
+    /// <summary>
     /// Gets whether a PDF is shown.
     /// </summary>
     public bool HasPdf => _url is not null;

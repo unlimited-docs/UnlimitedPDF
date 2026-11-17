@@ -47,6 +47,9 @@
     --bs-theme-focus-ring: rgba(0, 122, 100, 0.35);
 }
 
+/* A control reached with Tab or Shift+Tab is scrolled clear of the sticky top bar (WCAG 2.4.11). */
+html { scroll-padding-top: calc(var(--app-topbar-h) + 0.5rem); }
+
 html, body {
     font-family: var(--app-font);
     color: var(--app-ink);
@@ -70,6 +73,7 @@ select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
 .form-control:focus-visible,
+.form-control:focus-within,
 .form-select:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
     outline: 2px solid var(--app-focus);
@@ -236,7 +240,7 @@ summary:focus-visible,
 .breadcrumb-nav { padding: 1rem 1.75rem 0; }
 .breadcrumbs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
 .breadcrumbs li + li::before { content: "/"; margin-right: 0.25rem; color: var(--app-muted); }
-.breadcrumbs a { display: inline-flex; align-items: center; min-height: 24px; color: var(--app-accent); }
+.breadcrumbs a { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; min-width: 24px; padding: 0 0.25rem; color: var(--app-accent); }
 .playground-content { padding: 0.75rem 1.75rem 3rem; min-width: 0; }
 
 @media (max-width: 899.98px) {
@@ -386,7 +390,7 @@ summary:focus-visible,
     font-weight: 550;
 }
 
-.stale-note button { border: 0; background: none; color: inherit; text-decoration: underline; padding: 0; font: inherit; }
+.stale-note button { border: 0; background: none; color: inherit; text-decoration: underline; padding: 0; font: inherit; min-height: 24px; }
 
 .error-box {
     margin: 0.9rem;
@@ -618,16 +622,22 @@ summary:focus-visible,
 
 .opt-section-toggle .icon { color: var(--app-muted); transition: transform 0.15s ease; }
 .opt-section-toggle[aria-expanded="false"] .icon { transform: rotate(-90deg); }
-.opt-section-body { padding-bottom: 0.85rem; display: grid; gap: 0.7rem; }
+.opt-section-body { padding-bottom: 0.85rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.7rem; }
 
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-.field-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+/* Columns may shrink below a field's built-in width, so nothing scrolls sideways at 320 px (WCAG 1.4.10). */
+.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.field-row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+.form-control, .form-select { min-width: 0; max-width: 100%; }
+input[type="file"] { max-width: 100%; }
+.field { min-width: 0; }
+.field-row .btn { min-width: 0; white-space: normal; }
 .field label, .field .field-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--app-muted); margin-bottom: 0.25rem; }
 .field .form-control { font-size: 0.9rem; }
-.field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-line); border-radius: 8px; background: #fff; }
+.field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-field-border); border-radius: 8px; background: #fff; }
 /* A button that acts on the field above it (Remove a file): the same gap as between fields (26111201 AC-06). */
 .field-action { margin-top: 0.7rem; }
 .field-hint { font-size: 0.75rem; color: var(--app-muted); margin-top: 0.25rem; }
+.field-hint > a { display: inline-flex; align-items: center; min-height: 24px; }
 .field-error { font-size: 0.75rem; color: var(--app-danger); margin: 0.25rem 0 0; }
 
 /* HTML to PDF: the HTML editor and the warning list. */
@@ -662,7 +672,8 @@ summary:focus-visible,
 
 .segmented { display: inline-flex; border: 1px solid var(--app-line); border-radius: 9px; padding: 2px; background: var(--app-canvas); }
 .segmented button { border: 0; background: none; padding: 0.3rem 0.75rem; border-radius: 7px; font-size: 0.85rem; font-weight: 600; color: var(--app-muted); }
-.segmented button[aria-pressed="true"] { background: #fff; color: var(--app-accent); box-shadow: 0 1px 2px rgba(18, 33, 61, 0.12); }
+/* The pressed segment is filled navy with white text: 13.3:1, and 12.5:1 against the group (WCAG 1.4.1, 1.4.11). */
+.segmented button[aria-pressed="true"] { background: var(--app-accent); color: #fff; box-shadow: 0 1px 2px rgba(18, 33, 61, 0.12); }
 
 /* Repeating rows (line items, results) */
 .rows { display: grid; gap: 0.5rem; }
@@ -709,6 +720,8 @@ summary:focus-visible,
 .dropzone .icon { color: var(--app-accent); }
 .dropzone strong { color: var(--app-ink); }
 .dropzone.is-over { border-color: var(--app-accent); background: var(--app-accent-soft); }
+/* The file input is invisible over its label, so the zone shows the keyboard focus (WCAG 2.4.7). */
+.dropzone:focus-within { outline: 2px solid var(--app-focus); outline-offset: 2px; }
 
 .dropzone-input {
     position: absolute;
@@ -722,7 +735,7 @@ summary:focus-visible,
 .font-slot { border: 1px solid var(--app-line); border-radius: 12px; padding: 0.6rem 0.7rem; display: grid; gap: 0.4rem; }
 .font-slot.is-needed { border-color: var(--cap-languages); background: var(--cap-languages-soft); }
 .font-slot-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem; }
-.font-slot-needed { font-size: 0.7rem; font-weight: 600; color: var(--cap-languages); border: 1px solid var(--cap-languages); border-radius: 6px; padding: 0 0.35rem; }
+.font-slot-needed { font-size: 0.7rem; font-weight: 600; color: #11692f; border: 1px solid #11692f; border-radius: 6px; padding: 0 0.35rem; }
 .font-slot-link { margin-left: auto; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.2rem; }
 .font-slot-file { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; min-width: 0; }
 .font-slot-file .icon { color: var(--cap-languages); flex: none; }
@@ -1067,7 +1080,8 @@ summary:focus-visible,
 /* The copy-link control: a link icon in the muted color, 5.6:1 on white (26111201 AC-02). */
 .faq-link { flex: none; width: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--app-muted); border-radius: 12px; }
 .faq-link:hover { color: var(--app-accent); }
-.faq-link-status:empty { display: none; }
+/* Kept rendered while empty, so screen readers hear the text when it arrives. */
+.faq-link-status:empty { padding: 0; background: none; }
 .faq-link-status {
     position: absolute;
     right: 0.5rem;
@@ -1129,7 +1143,7 @@ summary:focus-visible,
     z-index: 1000;
 }
 
-#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.5rem; top: 0.25rem; min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; }
 
 /* ---------- Phone tap targets (26111103 AC-05) ---------- */
 
@@ -1353,3 +1367,15 @@ summary:focus-visible,
 
 /* KPI report: the twelve monthly figures in three columns. */
 .kpi-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 0.6rem; }
+
+/* Phone tap targets for controls whose base rules come later in this file, so these win (26111103 AC-05). */
+@media (max-width: 575.98px) {
+    .demo-choice .demo-choice-option { min-height: 44px; }
+    .breadcrumbs a { min-height: 44px; min-width: 44px; }
+    .gallery-tabs .gallery-tab { min-height: 44px; min-width: 44px; justify-content: center; }
+    .stale-note button { min-height: 44px; }
+    .font-slot-link { min-height: 44px; }
+    .faq-demo { min-height: 44px; }
+    .field-hint > a { min-height: 44px; }
+    .site-search .site-search-field { min-height: 44px; height: 48px; }
+}

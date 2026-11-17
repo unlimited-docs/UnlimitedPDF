@@ -2,7 +2,7 @@
 
 <SamplePage @ref="_page" Demo="SampleCatalog.FontsAndLanguages" Build="BuildAsync" PageCount="null" OnReset="Reset"
             SourceFile="@(_input.Mode == DrawMode.Html ? "FontsAndLanguagesHtmlSample.cs" : "FontsAndLanguagesSample.cs")"
-            FileName="@($"fonts-and-languages-{_input.Language}.pdf")">
+            FileName="@($"fonts-and-languages-{_input.Language}.pdf")" ContentLanguage="@_input.LanguageTag">
     <Inputs>
         <CollapsibleSection Title="Invoice">
             <div class="field">
@@ -47,19 +47,19 @@
         <CollapsibleSection Title="Seller and buyer" InitiallyOpen="false">
             <div class="field">
                 <label for="fl-seller-name">Seller name</label>
-                <input id="fl-seller-name" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-seller-address">Seller address</label>
-                <input id="fl-seller-address" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-name">Buyer name</label>
-                <input id="fl-buyer-name" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-address">Buyer address</label>
-                <input id="fl-buyer-address" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field-row">
                 <div class="field">
@@ -86,15 +86,15 @@
                                 <Icon Name="close" Size="16" />
                             </button>
                         </div>
-                        <input class="form-control" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
+                        <input class="form-control" lang="@_input.LanguageTag" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
                         <div class="field-row">
                             <div class="field">
-                                <label>Qty</label>
-                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                                <label for="@($"fonts-and-languages-1-{number}-qty")">Qty</label>
+                                <input id="@($"fonts-and-languages-1-{number}-qty")" type="number" min="0" class="form-control" @bind="line.Quantity" />
                             </div>
                             <div class="field">
-                                <label>Rate</label>
-                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
+                                <label for="@($"fonts-and-languages-1-{number}-rate")">Rate</label>
+                                <input id="@($"fonts-and-languages-1-{number}-rate")" type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
                             </div>
                         </div>
                     </div>

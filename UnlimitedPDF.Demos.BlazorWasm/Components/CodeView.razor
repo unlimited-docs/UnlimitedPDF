@@ -5,5 +5,5 @@
         @(_copyState switch { CopyState.Copied => "Copied", CopyState.Unavailable => "Copy not available", _ => "Copy code" })
     </button>
     <span class="visually-hidden" role="status">@(_copyState switch { CopyState.Copied => "Code copied.", CopyState.Unavailable => "Copy is not available in this browser.", _ => "" })</span>
-    <pre tabindex="0" aria-label="@AriaLabel"><code>@Source</code></pre>
+    <pre tabindex="0" role="region" aria-label="@AriaLabel"><code>@Source</code></pre>
 </div>

@@ -2,9 +2,10 @@
 
 <div class="install">
     <code>@Command</code>
-    <button type="button" @onclick="CopyAsync" aria-label="Copy the install command">
-        <Icon Name="@(_copied ? "check" : "copy")" Size="14" /> @(_copied ? "Copied" : "Copy")
+    <button type="button" @onclick="CopyAsync">
+        <Icon Name="@(_copied ? "check" : "copy")" Size="14" /> @(_copied ? "Copied" : "Copy")<span class="visually-hidden"> the install command</span>
     </button>
+    <span class="visually-hidden" role="status">@(_copied ? "Install command copied." : "")</span>
 </div>
 
 @code {

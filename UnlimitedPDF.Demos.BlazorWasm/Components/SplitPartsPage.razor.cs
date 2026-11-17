@@ -198,8 +198,8 @@ public partial class SplitPartsPage : IAsyncDisposable
         }
         catch (Exception exception)
         {
-            _error = exception.Message;
-            _announcement = $"{Wording.Failed} {exception.Message}";
+            _error = ErrorText.Plain(exception);
+            _announcement = null; // the error box is an alert and announces itself
             // Split errors are expected while options are being edited; the status line shows them, so they are
             // logged without the app's error banner.
             Console.WriteLine(exception);

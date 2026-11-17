@@ -54,7 +54,7 @@
                 </div>
             }
 
-            <PdfPreview @ref="_preview" Busy="_busy" />
+            <PdfPreview @ref="_preview" Busy="_busy" Language="@ContentLanguage" />
 
             <div class="status-bar">
                 @if (_result is { } result)

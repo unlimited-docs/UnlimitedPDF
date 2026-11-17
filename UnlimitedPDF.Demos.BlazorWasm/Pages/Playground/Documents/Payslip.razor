@@ -45,12 +45,12 @@
                         </div>
                         <div class="field-row">
                             <div class="field">
-                                <label>Label</label>
-                                <input class="form-control" @bind="line.Label" @bind:event="oninput" />
+                                <label for="@($"payslip-1-{number}-label")">Label</label>
+                                <input id="@($"payslip-1-{number}-label")" class="form-control" @bind="line.Label" @bind:event="oninput" />
                             </div>
                             <div class="field">
-                                <label>Amount</label>
-                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Amount" />
+                                <label for="@($"payslip-1-{number}-amount")">Amount</label>
+                                <input id="@($"payslip-1-{number}-amount")" type="number" min="0" step="0.01" class="form-control" @bind="line.Amount" />
                             </div>
                         </div>
                     </div>
@@ -74,12 +74,12 @@
                         </div>
                         <div class="field-row">
                             <div class="field">
-                                <label>Label</label>
-                                <input class="form-control" @bind="line.Label" @bind:event="oninput" />
+                                <label for="@($"payslip-2-{number}-label")">Label</label>
+                                <input id="@($"payslip-2-{number}-label")" class="form-control" @bind="line.Label" @bind:event="oninput" />
                             </div>
                             <div class="field">
-                                <label>Amount</label>
-                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Amount" />
+                                <label for="@($"payslip-2-{number}-amount")">Amount</label>
+                                <input id="@($"payslip-2-{number}-amount")" type="number" min="0" step="0.01" class="form-control" @bind="line.Amount" />
                             </div>
                         </div>
                     </div>

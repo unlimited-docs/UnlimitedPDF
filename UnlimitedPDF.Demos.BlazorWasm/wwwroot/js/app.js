@@ -193,6 +193,10 @@ export function initSiteSearch(root, listener) {
         if ((event.key === "ArrowDown" || event.key === "ArrowUp") && links.length > 0) {
             event.preventDefault();
             const step = event.key === "ArrowDown" ? 1 : -1;
+            if (at === 0 && step < 0) {
+                input.focus(); // Up from the first result goes back to the box.
+                return;
+            }
             const next = at < 0 ? (step > 0 ? 0 : links.length - 1) : (at + step + links.length) % links.length;
             links[next].focus();
         } else if (event.key === "Escape" && links.length + root.querySelectorAll(".site-search-empty").length > 0) {

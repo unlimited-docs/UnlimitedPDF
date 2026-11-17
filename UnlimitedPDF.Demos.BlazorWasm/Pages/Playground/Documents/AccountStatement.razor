@@ -42,12 +42,12 @@
                         <input class="form-control" aria-label="Description of transaction @number" @bind="line.Description" @bind:event="oninput" />
                         <div class="field-row">
                             <div class="field">
-                                <label>Date</label>
-                                <input type="date" class="form-control" @bind="line.Date" />
+                                <label for="@($"account-statement-1-{number}-date")">Date</label>
+                                <input id="@($"account-statement-1-{number}-date")" type="date" class="form-control" @bind="line.Date" />
                             </div>
                             <div class="field">
-                                <label>Amount (minus for a debit)</label>
-                                <input type="number" step="0.01" class="form-control" @bind="line.Amount" />
+                                <label for="@($"account-statement-1-{number}-amount-minus-for-a-debit")">Amount (minus for a debit)</label>
+                                <input id="@($"account-statement-1-{number}-amount-minus-for-a-debit")" type="number" step="0.01" class="form-control" @bind="line.Amount" />
                             </div>
                         </div>
                     </div>

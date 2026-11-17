@@ -119,8 +119,8 @@ public partial class SamplePage
         }
         catch (Exception exception)
         {
-            _error = exception.Message;
-            _announcement = $"Couldn't generate the PDF. {exception.Message}";
+            _error = ErrorText.Plain(exception);
+            _announcement = null; // the error box is an alert and announces itself
             // Generation errors are expected while options are being edited; the status line shows them, so they are
             // logged without the app's error banner.
             Console.WriteLine(exception);
@@ -183,6 +183,12 @@ public partial class SamplePage
     /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).
     /// </summary>
     [Parameter] public string? FileName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the language tag of the PDF's text when it isn't English, for the drawn pages' <c>lang</c>
+    /// (WCAG 3.1.2), or null.
+    /// </summary>
+    [Parameter] public string? ContentLanguage { get; set; }
 
     /// <summary>
     /// Gets or sets the choice among the demo's variants that a host page gives, shown above the options (a

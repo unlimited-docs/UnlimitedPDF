@@ -63,7 +63,14 @@ public partial class MainLayout : IDisposable
     // A link in the drawer opens another page: the drawer closes so the page shows.
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        if (_menuOpen) _ = InvokeAsync(CloseMenuAsync);
+        if (_menuOpen) _ = InvokeAsync(CloseMenuForPageAsync);
+    }
+
+    // The drawer returns focus to Menu as it closes; the new page's content takes it instead.
+    private async Task CloseMenuForPageAsync()
+    {
+        await CloseMenuAsync();
+        await Interop.FocusSkipTargetAsync();
     }
 
     private async Task OpenMenuAsync()

@@ -33,7 +33,7 @@
         </div>
     </div>
 
-    <div class="viewer-scroll" tabindex="0" role="region" aria-label="PDF pages" aria-keyshortcuts="Plus Minus 0" @ref="_scroll" @onkeydown="OnKeyDownAsync"
+    <div class="viewer-scroll" tabindex="0" role="region" aria-label="PDF pages" aria-keyshortcuts="Plus = - 0" @ref="_scroll" @onkeydown="OnKeyDownAsync"
          style="@($"--scale: {Format(_scale ?? 1)}; --widest: {Format(_widest)}")">
         @if (_unreadable is not null)
         {
@@ -51,7 +51,7 @@
                 <span>Press Generate PDF to build it in your browser.</span>
             </div>
         }
-        <div class="viewer-pages">
+        <div class="viewer-pages" lang="@Language">
             @for (int index = 0; index < _pageCount; index++)
             {
                 int number = index + 1;
