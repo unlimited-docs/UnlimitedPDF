@@ -3,8 +3,10 @@ using UnlimitedPDF.Demo.ConsoleApp;
 
 Console.WriteLine("Start: Unlimited PDF");
 
-// The output path can be passed as the first argument.
-var pdfFilePath = args.Length > 0 ? args[0] : @"D:\\unlimited-pdf-sample.pdf";
+// The output path can be passed as the first argument; by default the files are written to an "output" folder in the
+// working folder, which works on every machine and operating system.
+var pdfFilePath = args.Length > 0 ? args[0] : Path.Combine(Environment.CurrentDirectory, "output", "unlimited-pdf-sample.pdf");
+Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(pdfFilePath))!);
 
 // The demo images are copied next to the app at build time.
 var assetsDirectory = Path.Combine(AppContext.BaseDirectory, "Assets");
@@ -28,5 +30,7 @@ var htmlFilePath = Path.Combine(outputDirectory, Path.GetFileNameWithoutExtensio
 var html = HtmlDemo.Write(assetsDirectory, htmlFilePath);
 Console.WriteLine($"Converted {HtmlDemo.FileName} to {htmlFilePath} with {html.Warnings.Count} warnings");
 
-Console.WriteLine("End: Unlimited PDF");
-Console.ReadLine();
+Console.WriteLine($"End: Unlimited PDF. The files are in {outputDirectory}");
+
+// Keeps a console window opened by double-click on screen; a redirected or scripted run ends at once.
+if (!Console.IsInputRedirected) Console.ReadLine();

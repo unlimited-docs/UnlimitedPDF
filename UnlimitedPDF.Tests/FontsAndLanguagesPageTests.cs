@@ -106,7 +106,7 @@ public class FontsAndLanguagesPageTests
         int start = readme.IndexOf("## Demos\n", StringComparison.Ordinal);
         string demos = readme.Substring(start, readme.IndexOf("\n## ", start + 3, StringComparison.Ordinal) - start);
 
-        Assert.Contains("in a Languages category (Fonts and languages, with text calls or HTML)", demos, StringComparison.Ordinal);
+        Assert.Contains("Languages (Fonts and languages, with text calls or HTML)", demos, StringComparison.Ordinal);
         Assert.Contains("Hindi, Telugu, Tamil, French, or a mix with fonts you upload", demos, StringComparison.Ordinal);
     }
 

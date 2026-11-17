@@ -45,6 +45,22 @@ public class HtmlDemoTests
         string program = File.ReadAllText(Path.Combine(Fixtures.DemoAssets(), "..", "Program.cs"));
         Assert.Contains("HtmlDemo.Write(assetsDirectory, htmlFilePath)", program);
         Assert.Contains("Path.Combine(outputDirectory,", program);
+
+        // The default output is under the working folder on every machine, and a scripted run doesn't wait for Enter.
+        Assert.Contains("Path.Combine(Environment.CurrentDirectory, \"output\", \"unlimited-pdf-sample.pdf\")", program);
+        Assert.DoesNotContain(@"D:\", program);
+        Assert.Contains("if (!Console.IsInputRedirected) Console.ReadLine();", program);
+    }
+
+    [Fact]
+    public void The_readme_names_every_scenario_of_the_site()
+    {
+        string readme = File.ReadAllText(Path.Combine(Fixtures.DemoAssets(), "..", "..", "README.md"));
+        string demos = readme[readme.IndexOf("## Demos", StringComparison.Ordinal)..readme.IndexOf("## Sample Code", StringComparison.Ordinal)];
+
+        Assert.Contains($"{UnlimitedPDF.Demos.BlazorWasm.Samples.ScenarioGallery.Scenarios.Count} scenarios", demos, StringComparison.Ordinal);
+        Assert.All(UnlimitedPDF.Demos.BlazorWasm.Samples.SampleCatalog.Pages,
+            demo => Assert.Contains(demo.Title.Replace(" + ", " and ").Replace(" & ", " and "), demos, StringComparison.OrdinalIgnoreCase));
     }
 
     #endregion
