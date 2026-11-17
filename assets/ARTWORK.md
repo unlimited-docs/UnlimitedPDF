@@ -132,22 +132,14 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `assets/derived/unlimitedpdf-github-banner.jpg` | `banners/unlimitedpdf-github-banner.png` | 1280 x 640, JPEG quality 90 | 120,382 | README.md and nuget/README.md banner |
 | `assets/derived/unlimitedpdf-social-preview.jpg` | `banners/unlimitedpdf-social-card.png` | 1280 x 640, JPEG quality 90 | 115,660 | GitHub repository social preview (uploaded in Settings) |
 | `nuget/icon.png` | `nuget/unlimitedpdf-package-icon.png` | 128 x 128 | 21,808 | NuGet package icon |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-320.jpg` | `originals/gallery/invoice.png` | 320 x 453, JPEG quality 90 | 21,566 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-960.jpg` | `originals/gallery/invoice.png` | 960 x 1358, JPEG quality 90 | 114,845 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-320.jpg` | `originals/gallery/quotation.png` | 320 x 453, JPEG quality 90 | 20,312 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-960.jpg` | `originals/gallery/quotation.png` | 960 x 1358, JPEG quality 90 | 117,977 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-320.jpg` | `originals/gallery/purchase-order.png` | 320 x 453, JPEG quality 90 | 21,115 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-960.jpg` | `originals/gallery/purchase-order.png` | 960 x 1358, JPEG quality 90 | 117,939 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-320.jpg` | `originals/gallery/delivery-note.png` | 320 x 453, JPEG quality 90 | 18,985 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-960.jpg` | `originals/gallery/delivery-note.png` | 960 x 1358, JPEG quality 90 | 101,788 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-320.jpg` | `originals/gallery/account-statement.png` | 320 x 453, JPEG quality 80 | 37,471 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-960.jpg` | `originals/gallery/account-statement.png` | 960 x 1358, JPEG quality 45 | 146,543 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-320.jpg` | `originals/gallery/payslip.png` | 320 x 453, JPEG quality 90 | 21,329 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-960.jpg` | `originals/gallery/payslip.png` | 960 x 1358, JPEG quality 90 | 119,957 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-320.jpg` | `originals/gallery/medical-report.png` | 320 x 453, JPEG quality 90 | 22,380 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-960.jpg` | `originals/gallery/medical-report.png` | 960 x 1358, JPEG quality 90 | 123,626 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-960.jpg` | `originals/gallery/receipt.png` | 960 x 1353, JPEG quality 90 | 134,964 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-320.jpg` | `originals/gallery/invoice.png` | 320 x 453, JPEG quality 90 | 21,566 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-320.jpg` | `originals/gallery/quotation.png` | 320 x 453, JPEG quality 90 | 20,312 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-320.jpg` | `originals/gallery/purchase-order.png` | 320 x 453, JPEG quality 90 | 21,115 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-320.jpg` | `originals/gallery/delivery-note.png` | 320 x 453, JPEG quality 90 | 18,985 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-320.jpg` | `originals/gallery/account-statement.png` | 320 x 453, JPEG quality 80 | 37,471 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-320.jpg` | `originals/gallery/payslip.png` | 320 x 453, JPEG quality 90 | 21,329 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-320.jpg` | `originals/gallery/medical-report.png` | 320 x 453, JPEG quality 90 | 22,380 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/bookmarks-and-numbers-320.jpg` | `originals/gallery/bookmarks-and-numbers.png` | 320 x 453 | 4,357 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoices-320.jpg` | `originals/gallery/invoices.png` | 320 x 453 | 19,443 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/common-html-to-pdf-problems-320.jpg` | `originals/gallery/common-html-to-pdf-problems.png` | 320 x 453 | 30,188 | Scenario card |

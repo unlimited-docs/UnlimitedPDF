@@ -176,16 +176,19 @@ public class HomePageTests
     }
 
     [Fact]
-    public void Each_gallery_document_has_a_tile_picture_and_a_quick_look_picture()
+    public void Each_card_picture_is_320_pixels_wide_and_no_larger_copy_is_shipped()
     {
+        // The cards show 320 px copies; the larger quick look copies were removed with the quick look (T-13).
+        foreach (var demo in ScenarioGallery.Scenarios)
+        {
+            var path = RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{ScenarioGallery.PictureOf(demo)}-320.jpg");
+            Assert.True(File.Exists(path), $"{demo.Title}: {Path.GetFileName(path)} is missing");
+            Assert.Equal(320, PdfImage.FromBytes(File.ReadAllBytes(path)).PixelWidth);
+        }
+
+        Assert.Empty(Directory.GetFiles(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery"), "*-960.jpg"));
         foreach (var entry in DocumentGallery.Documents)
         {
-            foreach (var (suffix, width) in new[] { ("320", 320), ("960", 960) })
-            {
-                var path = RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{entry.Picture}-{suffix}.jpg");
-                Assert.True(File.Exists(path), $"{entry.Demo.Title}: {Path.GetFileName(path)} is missing");
-                Assert.Equal(width, PdfImage.FromBytes(File.ReadAllBytes(path)).PixelWidth);
-            }
 
             Assert.True(File.Exists(RepositoryFile($"assets/originals/gallery/{entry.Picture}.png")), $"{entry.Demo.Title}: its original is missing");
         }
