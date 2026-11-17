@@ -203,3 +203,68 @@ export function setDescription(text) {
     }
     meta.content = text;
 }
+
+// The site-wide search box (SiteSearchBox): Down and Up Arrow move between the results, Escape closes them and puts
+// focus back in the box, and leaving the box and its results closes them too. Ctrl+K (Cmd+K on a Mac) focuses the
+// visible search box, or opens the phone menu that holds one.
+let searchShortcut = false;
+
+export function initSiteSearch(root, listener) {
+    if (!root || root.siteSearch) {
+        return;
+    }
+    const input = root.querySelector(".site-search-input");
+    const results = () => [...root.querySelectorAll(".site-search-results a")];
+    const close = () => listener.invokeMethodAsync("CloseResults").catch(() => { });
+    const onKeyDown = event => {
+        const links = results();
+        const at = links.indexOf(document.activeElement);
+        if ((event.key === "ArrowDown" || event.key === "ArrowUp") && links.length > 0) {
+            event.preventDefault();
+            const step = event.key === "ArrowDown" ? 1 : -1;
+            const next = at < 0 ? (step > 0 ? 0 : links.length - 1) : (at + step + links.length) % links.length;
+            links[next].focus();
+        } else if (event.key === "Escape" && links.length + root.querySelectorAll(".site-search-empty").length > 0) {
+            // Inside the phone menu this closes the results, not the menu.
+            event.preventDefault();
+            event.stopPropagation();
+            close();
+            input.focus();
+        }
+    };
+    const onFocusOut = event => {
+        if (!root.contains(event.relatedTarget)) {
+            close();
+        }
+    };
+    root.addEventListener("keydown", onKeyDown);
+    root.addEventListener("focusout", onFocusOut);
+    root.siteSearch = { onKeyDown, onFocusOut };
+
+    if (!searchShortcut) {
+        searchShortcut = true;
+        document.addEventListener("keydown", event => {
+            if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.key.toLowerCase() !== "k") {
+                return;
+            }
+            const box = [...document.querySelectorAll(".site-search-input")].find(element => element.offsetParent !== null);
+            const menu = document.querySelector("[data-site-menu-open]");
+            if (box) {
+                event.preventDefault();
+                box.focus();
+                box.select();
+            } else if (menu && menu.offsetParent !== null) {
+                event.preventDefault();
+                menu.click();
+            }
+        });
+    }
+}
+
+export function disposeSiteSearch(root) {
+    if (root && root.siteSearch) {
+        root.removeEventListener("keydown", root.siteSearch.onKeyDown);
+        root.removeEventListener("focusout", root.siteSearch.onFocusOut);
+        root.siteSearch = null;
+    }
+}

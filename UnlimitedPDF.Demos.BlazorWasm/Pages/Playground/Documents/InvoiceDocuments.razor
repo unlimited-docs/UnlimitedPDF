@@ -18,6 +18,7 @@
     };
 
     private RenderFragment _choice = default!;
+    private DemoVariant? _shown;
     private DemoVariant _type = DemoVariants.InvoiceTypes[0];
 
     /// <summary>
@@ -29,6 +30,8 @@
     protected override void OnParametersSet()
     {
         _type = DemoVariants.Find(DemoVariants.InvoiceTypes, Type);
-        _choice = @<DemoChoice Legend="Document type" Options="DemoVariants.InvoiceTypes" Selected="_type" />;
+        bool moved = DemoVariants.Moved(_shown, _type);
+        _shown = _type;
+        _choice = @<DemoChoice Legend="Document type" Options="DemoVariants.InvoiceTypes" Selected="_type" TakeFocus="moved" />;
     }
 }

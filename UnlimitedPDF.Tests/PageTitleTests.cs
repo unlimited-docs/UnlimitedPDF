@@ -51,7 +51,7 @@ public class PageTitleTests
     [Fact]
     public void Site_pages_have_a_short_title_and_description_of_their_own()
     {
-        var pages = new[] { "Pages/Home.razor", "Pages/Faq.razor", "Pages/NotFound.razor" }.Select(DemosFile).ToList();
+        var pages = new[] { "Pages/Home.razor", "Pages/Faq.razor", "Pages/NotFound.razor", "Pages/PlaygroundIndex.razor" }.Select(DemosFile).ToList();
         var titles = pages.Select(Title).ToList();
 
         Assert.All(titles, t => Assert.True(t.Length <= MaxTitleLength, $"'{t}' is {t.Length} characters."));
@@ -87,7 +87,8 @@ public class PageTitleTests
             ["Components/SamplePage.razor"] = "<CanonicalLink Path=\"@Demo.Route\" />",
             ["Components/SplitPartsPage.razor"] = "<CanonicalLink Path=\"@Demo.Route\" />",
             ["Pages/Home.razor"] = "<CanonicalLink Path=\"\" />",
-            ["Pages/Faq.razor"] = "<CanonicalLink Path=\"faq\" />"
+            ["Pages/Faq.razor"] = "<CanonicalLink Path=\"faq\" />",
+            ["Pages/PlaygroundIndex.razor"] = "<CanonicalLink Path=\"playground\" />"
         };
 
         foreach (var (file, tag) in canonical)
@@ -119,7 +120,7 @@ public class PageTitleTests
 
         // Every link is absolute, because agents often keep the text without the file's own address (QF-26111204).
         // Site links are pages the app has; the rest point at the project's own GitHub and NuGet pages.
-        var routes = AllDemos().Select(d => d.Route).Concat(["faq", ""]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
+        var routes = AllDemos().Select(d => d.Route).Concat(["faq", "playground", ""]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
         foreach (Match link in Regex.Matches(text, @"\]\(([^)]+)\)"))
         {
             var target = link.Groups[1].Value;

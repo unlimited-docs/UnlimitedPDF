@@ -1,0 +1,44 @@
+@* The site-wide search (D-024): results drop down as you type, grouped by demos, FAQ answers, and code. Down Arrow
+   moves into the results and Up and Down move between them; Escape closes them until the next keystroke in the box;
+   Ctrl+K (Cmd+K) focuses the box. The query and the results are shown as text only (A05). *@
+<div class="site-search" @ref="_root">
+    <label class="visually-hidden" for="@InputId">Search scenarios, FAQ, and code</label>
+    <div class="site-search-field">
+        <Icon Name="search" Size="16" />
+        <input id="@InputId" class="site-search-input" type="search" placeholder="Search scenarios, features, and code"
+               autocomplete="off" spellcheck="false" maxlength="@SiteSearch.MaxQueryLength"
+               aria-controls="@ResultsId" aria-describedby="@HintId"
+               value="@_query" @oninput="OnInput" />
+        @if (ShowShortcut)
+        {
+            <kbd class="site-search-key" aria-hidden="true">Ctrl K</kbd>
+        }
+    </div>
+    <span id="@HintId" class="visually-hidden">Results show below as you type. Press Down Arrow to move into them, and Escape to close them.</span>
+    <p class="visually-hidden" role="status">@_status</p>
+    <div id="@ResultsId" class="site-search-results" hidden="@(!IsOpen)">
+        @if (IsOpen)
+        {
+            @if (_results.Count == 0)
+            {
+                <p class="site-search-empty">No results. Try another word, or <a href="@ScenarioGallery.Route" @onclick="Clear">browse every scenario</a>.</p>
+            }
+            @foreach (var group in _results.GroupBy(r => r.Kind))
+            {
+                string groupId = $"{ResultsId}-{group.Key.ToString().ToLowerInvariant()}";
+                <p class="site-search-group" id="@groupId">@GroupName(group.Key)</p>
+                <ul class="site-search-list" aria-labelledby="@groupId">
+                    @foreach (var result in group)
+                    {
+                        <li>
+                            <a class="site-search-result" href="@result.Address" @onclick="Clear">
+                                <span class="site-search-title"><HighlightedText Text="@result.Title" Query="@_query" /></span>
+                                <span class="site-search-detail @(result.Kind == SearchKind.Code ? "is-code" : null)"><HighlightedText Text="@result.Detail" Query="@_query" /></span>
+                            </a>
+                        </li>
+                    }
+                </ul>
+            }
+        }
+    </div>
+</div>

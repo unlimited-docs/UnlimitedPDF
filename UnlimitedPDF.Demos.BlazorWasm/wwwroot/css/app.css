@@ -1,14 +1,23 @@
 /* UnlimitedPDF Demos: app styles on top of Bootstrap 6 (alpha). */
 
+/* Light and calm (D-021): white surfaces, brand navy for text accents and primary buttons, brand teal for calls to
+   action, and a dark teal focus ring. Contrast on white: ink 15:1, muted 7.1:1, navy 13.3:1, teal ink 6.7:1, focus
+   5.3:1; dark teal text on brand teal 4.75:1. */
 :root {
-    --app-ink: #12213d;
-    --app-muted: #5b6886;
-    --app-line: #e3e8f2;
+    --app-ink: #13203b;
+    --app-muted: #4a5568;
+    --app-line: #e3e7ee;
     --app-surface: #ffffff;
-    --app-canvas: #f6f8fc;
-    --app-accent: #2357e8;
-    --app-accent-soft: #e8efff;
-    --app-teal: #19b2a6;
+    --app-canvas: #f6f8fb;
+    --app-accent: #002a73;
+    --app-accent-soft: #e8eef8;
+    --app-teal: #00ac8c;
+    --app-teal-ink: #00694f;
+    --app-teal-on: #04342c;
+    --app-teal-soft: #e6f6f2;
+    --app-focus: #007a64;
+    --app-code-bg: #0f1b33;
+    --app-mark: #fff3b0;
     --app-danger: #c4314b;
     --app-danger-soft: #fdecef;
     --app-warn-soft: #fff6e0;
@@ -18,12 +27,12 @@
     --app-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-/* Bootstrap 6 derives its primary theme from these; point them at the app's blue. */
+/* Bootstrap 6 derives its primary theme from these; point them at brand navy. */
 :root {
-    --bs-primary-base: #2357e8;
-    --bs-primary-bg: #2357e8;
-    --bs-primary-fg: #1d47c2;
-    --bs-primary-border: #9db5f5;
+    --bs-primary-base: #002a73;
+    --bs-primary-bg: #002a73;
+    --bs-primary-fg: #002a73;
+    --bs-primary-border: #8fa3c7;
     --bs-primary-contrast: #ffffff;
 }
 
@@ -36,7 +45,7 @@
     --bs-theme-bg-muted: #e3e8f2;
     --bs-theme-border: #cfd8ea;
     --bs-theme-contrast: #ffffff;
-    --bs-theme-focus-ring: rgba(35, 87, 232, 0.35);
+    --bs-theme-focus-ring: rgba(0, 122, 100, 0.35);
 }
 
 html, body {
@@ -51,8 +60,8 @@ h1:focus { outline: none; }
 
 /* ---------- Focus and field borders (26111103 AC-03, AC-10) ---------- */
 
-/* One keyboard focus ring for every link, button, tab, and field: solid accent, about 5:1 on the light surfaces. It
-   replaces the framework's translucent ring, which measured under 2:1. FAQ controls keep their inset ring below. */
+/* One keyboard focus ring for every link, button, tab, and field: solid dark teal, about 5:1 on the light surfaces.
+   It replaces the framework's translucent ring, which measured under 2:1. FAQ controls keep their inset ring below. */
 a:focus-visible,
 button:focus-visible,
 .btn:focus-visible,
@@ -64,7 +73,7 @@ summary:focus-visible,
 .form-control:focus-visible,
 .form-select:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
-    outline: 2px solid var(--app-accent);
+    outline: 2px solid var(--app-focus);
     outline-offset: 2px;
 }
 
@@ -79,14 +88,14 @@ summary:focus-visible,
 .form-select,
 .field input[type="color"] { border-color: var(--app-field-border); }
 
-/* ---------- Top bar ---------- */
+/* ---------- Top bar (D-021, D-024, D-028) ---------- */
 
 .topbar {
     position: sticky;
     top: 0;
     z-index: 20;
     height: var(--app-topbar-h);
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.96);
     backdrop-filter: saturate(1.4) blur(8px);
     border-bottom: 1px solid var(--app-line);
 }
@@ -98,8 +107,7 @@ summary:focus-visible,
     padding: 0 1.25rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .brand {
@@ -118,7 +126,7 @@ summary:focus-visible,
     display: inline-flex;
     align-items: center;
     padding: 0.1rem 0.55rem;
-    border: 1px solid #c9d8ff;
+    border: 1px solid #b9c7e0;
     border-radius: 999px;
     background: var(--app-accent-soft);
     color: var(--app-accent);
@@ -130,12 +138,15 @@ summary:focus-visible,
 }
 .version-link:hover .version-badge { border-color: var(--app-accent); }
 
-.topnav { display: flex; align-items: center; gap: 0.25rem; }
+/* The search box takes the room between the logo and the links. */
+.topbar-search { flex: 1 1 auto; min-width: 0; max-width: 34rem; }
+
+.topnav { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; }
 
 .topnav-link {
     display: inline-flex;
     align-items: center;
-    color: var(--app-muted);
+    color: var(--app-ink);
     text-decoration: none;
     font-weight: 550;
     font-size: 0.95rem;
@@ -143,15 +154,55 @@ summary:focus-visible,
     border-radius: 8px;
 }
 
-.topnav-link:hover { color: var(--app-ink); background: var(--app-canvas); }
-.topnav-link.active { color: var(--app-accent); }
+.topnav-link:hover { color: var(--app-accent); background: var(--app-canvas); }
+.topnav-link.active { color: var(--app-accent); box-shadow: inset 0 -3px 0 var(--app-teal); border-radius: 8px 8px 0 0; }
 .topnav-cta { margin-left: 0.5rem; }
+
+/* Menu: phones and narrow windows only, where the search and the links move into the drawer. */
+.topbar-menu { display: none; margin-left: auto; gap: 0.4rem; align-items: center; border: 1px solid var(--app-field-border); }
+
+@media (max-width: 899.98px) {
+    .topbar-search, .topnav { display: none; }
+    .topbar-menu { display: inline-flex; }
+}
 
 @media (max-width: 575.98px) {
     .topbar-inner { padding: 0 0.9rem; }
-    .topnav-home, .topnav-github, .cta-long { display: none; }
-    .topnav-cta { margin-left: 0.25rem; }
 }
+
+/* The menu drawer: the browser's modal dialog, full height at the right edge, at most 22rem wide. */
+.site-menu {
+    margin: 0 0 0 auto;
+    width: min(22rem, 100vw);
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 1rem 1.1rem 1.5rem;
+    border: 0;
+    border-left: 1px solid var(--app-line);
+    background: var(--app-surface);
+    color: var(--app-ink);
+    overflow-y: auto;
+}
+.site-menu[open] { display: flex; flex-direction: column; gap: 1rem; }
+.site-menu::backdrop { background: rgba(15, 27, 51, 0.45); }
+.site-menu-head { display: flex; align-items: center; justify-content: space-between; }
+.site-menu-title { margin: 0; font-weight: 700; color: var(--app-accent); font-size: 1.05rem; }
+.site-menu-close { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--app-field-border); }
+.site-menu-nav { display: flex; flex-direction: column; }
+.site-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 48px;
+    padding: 0 0.25rem;
+    border-bottom: 1px solid var(--app-line);
+    color: var(--app-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+.site-menu-link.active { box-shadow: inset 4px 0 0 var(--app-teal); padding-left: 0.75rem; }
+.site-menu-install { justify-content: center; min-height: 48px; }
 
 .app-main { min-height: calc(100vh - var(--app-topbar-h)); }
 
@@ -1212,6 +1263,7 @@ summary:focus-visible,
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }
     .output-tab, .sidebar-link { min-height: 44px; }
+    .demo-choice-option { min-height: 44px; }
     .form-control, .form-select { min-height: 44px; }
     .field input[type="color"] { height: 44px; }
     input[type="file"] { min-height: 44px; }
@@ -1245,5 +1297,179 @@ summary:focus-visible,
     color: var(--app-ink); font-size: 0.9rem; text-decoration: none;
 }
 .demo-choice-option:hover { border-color: var(--app-accent); background: var(--app-accent-soft); }
-.demo-choice-option:focus-visible { outline: 3px solid var(--app-accent); outline-offset: 2px; }
 .demo-choice-option[aria-current="page"] { border-color: var(--app-accent); background: var(--app-accent); color: #fff; font-weight: 600; }
+
+/* ---------- Site-wide search (D-024) ---------- */
+
+.site-search { position: relative; }
+.site-search-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--app-field-border);
+    border-radius: 10px;
+    background: var(--app-surface);
+    color: var(--app-muted);
+}
+.site-search-field:focus-within { outline: 2px solid var(--app-focus); outline-offset: 2px; }
+.site-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--app-ink);
+    font-size: 0.95rem;
+}
+/* The field shows the ring for the box as a whole. */
+.site-search-input:focus-visible { outline: none; }
+.site-search-input::placeholder { color: var(--app-muted); opacity: 1; }
+.site-search-key {
+    padding: 0.05rem 0.4rem;
+    border: 1px solid var(--app-line);
+    border-radius: 6px;
+    background: var(--app-canvas);
+    color: var(--app-muted);
+    font-family: var(--app-font);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+.site-search-results {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    z-index: 25;
+    max-height: min(70vh, 32rem);
+    overflow-y: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--app-line);
+    border-radius: 12px;
+    background: var(--app-surface);
+    box-shadow: 0 12px 32px rgba(0, 42, 115, 0.16);
+}
+.site-search-results[hidden] { display: none; }
+.site-search-group {
+    margin: 0.4rem 0.5rem 0.2rem;
+    color: var(--app-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.site-search-list { margin: 0; padding: 0; list-style: none; }
+.site-search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-height: 44px;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    color: var(--app-ink);
+    text-decoration: none;
+}
+.site-search-result:hover, .site-search-result:focus-visible { background: var(--app-accent-soft); }
+.site-search-result:focus-visible { outline-offset: -2px; }
+.site-search-title { color: var(--app-accent); font-weight: 650; }
+.site-search-detail { color: var(--app-muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+.site-search-detail.is-code { font-family: var(--app-mono); font-size: 0.8rem; }
+.site-search-result mark { padding: 0; background: var(--app-mark); color: inherit; }
+.site-search-empty { margin: 0.5rem; color: var(--app-muted); }
+
+/* In the drawer the results take the drawer's width, below the box. */
+.site-menu .site-search-results { position: static; margin-top: 0.4rem; box-shadow: none; max-height: none; }
+
+/* ---------- Scenario gallery (D-022) ---------- */
+
+.gallery { max-width: 1240px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+.gallery-head h1 { margin: 0 0 0.4rem; color: var(--app-accent); font-size: clamp(1.8rem, 3vw, 2.4rem); }
+.gallery-lead { max-width: 44rem; margin: 0 0 1.25rem; color: var(--app-muted); font-size: 1.05rem; }
+
+.gallery-tabs ul, .gallery-chips ul { display: flex; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
+.gallery-tabs ul { gap: 0.25rem 1.25rem; border-bottom: 1px solid var(--app-line); }
+.gallery-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--app-muted);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+}
+.gallery-tab:hover { color: var(--app-accent); }
+.gallery-tab[aria-current="page"] { color: var(--app-accent); border-bottom-color: var(--app-teal); }
+
+.gallery-chips ul { gap: 0.5rem; margin: 1rem 0 0.75rem; }
+.gallery-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0.25rem 0.9rem;
+    border: 1px solid #8a94a6;
+    border-radius: 999px;
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+.gallery-chip:hover { border-color: var(--app-accent); }
+.gallery-chip[aria-current="page"] { border-color: var(--app-accent); background: var(--app-accent); color: #fff; font-weight: 600; }
+
+.gallery-count { margin: 0 0 1rem; color: var(--app-muted); font-size: 0.9rem; }
+.gallery-empty { padding: 2rem; border: 1px dashed var(--app-field-border); border-radius: var(--app-radius); text-align: center; }
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* The whole card opens the demo: the title link's area covers it, and the card shows the link's focus ring. */
+.scenario-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius);
+    background: var(--app-surface);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.scenario-card:hover { border-color: #b9c7e0; box-shadow: 0 8px 22px rgba(0, 42, 115, 0.1); }
+.scenario-card:focus-within { outline: 2px solid var(--app-focus); outline-offset: 2px; }
+.scenario-link { color: var(--app-accent); text-decoration: none; }
+.scenario-link::after { content: ""; position: absolute; inset: 0; }
+.scenario-link:focus-visible { outline: none; }
+.scenario-thumb {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+    overflow: hidden;
+    background: var(--tone-soft, var(--app-accent-soft));
+    color: var(--tone, var(--app-accent));
+}
+.scenario-thumb img { width: 78%; height: auto; margin-top: 2.25rem; border-radius: 4px 4px 0 0; box-shadow: 0 2px 10px rgba(0, 42, 115, 0.18); }
+.tone-navy { --tone: var(--app-accent); --tone-soft: var(--app-accent-soft); }
+.scenario-body { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.9rem 1rem 1rem; flex: 1 1 auto; }
+.scenario-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.scenario-desc { margin: 0; color: var(--app-muted); font-size: 0.9rem; }
+.scenario-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: auto 0 0; padding-top: 0.35rem; font-size: 0.8rem; }
+.scenario-capability { color: var(--app-muted); font-weight: 600; }
+.scenario-tags { color: var(--app-teal-ink); font-weight: 650; }
+
+@media (max-width: 575.98px) {
+    .gallery { padding: 1.25rem 1rem 2rem; }
+    .gallery-grid { grid-template-columns: 1fr; }
+    .gallery-chip { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scenario-card { transition: none; }
+}

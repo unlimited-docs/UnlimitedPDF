@@ -10,6 +10,7 @@
 @code {
     private RenderFragment _choice = default!;
     private DemoVariant _domain = DemoVariants.PackDomains[0];
+    private DemoVariant? _shown;
 
     /// <summary>
     /// Gets or sets the domain from the address; any other value shows the finance pack.
@@ -20,10 +21,12 @@
     protected override void OnParametersSet()
     {
         _domain = DemoVariants.Find(DemoVariants.PackDomains, Domain);
-        _choice = @<DemoChoice Legend="Pack" Options="DemoVariants.PackDomains" Selected="_domain" />;
+        bool moved = DemoVariants.Moved(_shown, _domain);
+        _shown = _domain;
+        _choice = @<DemoChoice Legend="Pack" Options="DemoVariants.PackDomains" Selected="_domain" TakeFocus="moved" />;
     }
 
-    // Each name MergePackSample.Input lists.
+    // Each name a pack of MergePackSample.Input lists.
     private Task<PdfFile> GenerateAsync(string name) => name switch
     {
         "Invoice" => MergeDemoFiles.InvoiceAsync(ImageStore),

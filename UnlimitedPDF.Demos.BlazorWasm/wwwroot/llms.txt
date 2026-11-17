@@ -75,3 +75,4 @@ pdfDocument.Save("sample.pdf");
 
 - [Source code](https://github.com/unlimited-docs/UnlimitedPDF): the library, this playground, and their tests.
 - [Home](https://unlimitedpdf.dev/): an overview of what the library does, with short code samples.
+- [Scenarios](https://unlimitedpdf.dev/playground): every demo, filtered by capability and business domain.

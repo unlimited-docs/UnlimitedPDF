@@ -12,12 +12,6 @@ namespace UnlimitedPDF.Tests;
 /// </summary>
 public class DemoVariantsTests
 {
-    #region Fields and Constants
-
-    private static readonly string[] KnownDomains = ["General", "Finance", "HR", "Healthcare", "Retail", "Logistics"];
-
-    #endregion
-
     #region Methods
 
     #region Public Methods
@@ -28,6 +22,7 @@ public class DemoVariantsTests
         // The page's generator must know every name a pack lists, or the pack fails when it is opened.
         var generated = GeneratorNames("Pages/Playground/Merge/DocumentPacks.razor");
         var titles = new List<string>();
+        var names = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var domain in DemoVariants.PackDomains)
         {
@@ -36,12 +31,14 @@ public class DemoVariantsTests
             var pack = PdfFile.FromBytes(PdfPageReader.SaveBytes(MergePackSample.Build(input)));
 
             Assert.NotEmpty(input.Documents);
-            Assert.All(input.Documents, d => Assert.Contains(d.Name, MergePackSample.DocumentNames));
+            Assert.All(input.Documents, d => Assert.Contains(d.Name, generated));
+            names.UnionWith(input.Documents.Select(d => d.Name));
             Assert.Equal(1 + input.Documents.Count, pack.PageCount);
             titles.Add(input.CoverTitle);
         }
 
-        Assert.Equal(MergePackSample.DocumentNames.Order(), generated.Order());
+        // And the page generates nothing no pack holds.
+        Assert.Equal(names.Order(), generated.Order());
         Assert.Equal(titles.Count, titles.Distinct(StringComparer.Ordinal).Count());
     }
 
@@ -58,9 +55,36 @@ public class DemoVariantsTests
                 string? value = query.Success ? Uri.UnescapeDataString(query.Groups[1].Value) : null;
 
                 Assert.Same(variant, DemoVariants.Find(variants, value));
+                if (value is not null) Assert.Equal(variant.Value, value);
                 Assert.Equal(variant == variants[0], value is null);
             }
         }
+    }
+
+    [Fact]
+    public void The_choice_is_a_labelled_list_of_links_that_keeps_focus_on_the_shown_variant()
+    {
+        // WCAG 2.4.3: moving to another variant (a link, Back, or Forward) replaces the form, so the host page, which
+        // stays in place, asks for focus on the shown variant's link. A page just opened (from another page, a new tab,
+        // or a bookmark) asks for nothing.
+        var choice = DemosFile("Components/DemoChoice.razor");
+
+        Assert.Contains("<nav class=\"demo-choice\" aria-labelledby=\"@_labelId\">", choice, StringComparison.Ordinal);
+        Assert.Contains("aria-current=\"page\" @ref=\"_current\" @onclick:preventDefault>", choice, StringComparison.Ordinal);
+        Assert.Contains("if (firstRender && TakeFocus) await _current.FocusAsync();", choice, StringComparison.Ordinal);
+        Assert.DoesNotContain("type=\"radio\"", choice, StringComparison.Ordinal);
+        Assert.DoesNotContain("static", choice, StringComparison.Ordinal);
+        foreach (var page in new[] { "Pages/Playground/Documents/InvoiceDocuments.razor", "Pages/Playground/Merge/DocumentPacks.razor" })
+        {
+            var host = DemosFile(page);
+            Assert.Contains("bool moved = DemoVariants.Moved(_shown, ", host, StringComparison.Ordinal);
+            Assert.Contains("TakeFocus=\"moved\" />", host, StringComparison.Ordinal);
+        }
+
+        var first = DemoVariants.InvoiceTypes[0];
+        Assert.False(DemoVariants.Moved(null, first));
+        Assert.False(DemoVariants.Moved(first, first));
+        Assert.True(DemoVariants.Moved(first, DemoVariants.InvoiceTypes[1]));
     }
 
     [Fact]
@@ -70,7 +94,7 @@ public class DemoVariantsTests
         {
             Assert.NotEmpty(d.Domains);
             Assert.Equal(d.Domains.Count, d.Domains.Distinct(StringComparer.Ordinal).Count());
-            Assert.All(d.Domains, domain => Assert.Contains(domain, KnownDomains));
+            Assert.All(d.Domains, domain => Assert.Contains(domain, ScenarioGallery.Domains));
         });
     }
 
@@ -125,8 +149,8 @@ public class DemoVariantsTests
         File.ReadAllText(Path.Combine(Path.GetDirectoryName(source)!, "..", "UnlimitedPDF.Demos.BlazorWasm", relative));
 
     // The names the packs page generates: each case of its GenerateAsync switch.
-    private static IEnumerable<string> GeneratorNames(string page) =>
-        Regex.Matches(DemosFile(page), "\"([^\"]+)\" => MergeDemoFiles\\.").Select(m => m.Groups[1].Value);
+    private static List<string> GeneratorNames(string page) =>
+        Regex.Matches(DemosFile(page), "\"([^\"]+)\" => MergeDemoFiles\\.").Select(m => m.Groups[1].Value).ToList();
 
     // The types the invoice page maps to a page: each key of its Pages map.
     private static IEnumerable<string> PageKeys(string page) =>

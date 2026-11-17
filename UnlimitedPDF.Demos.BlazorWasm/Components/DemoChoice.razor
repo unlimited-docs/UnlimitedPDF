@@ -1,6 +1,7 @@
 @* One choice among a demo's variants (a document type, a pack's domain), as a labelled list of links. Each variant
-   has its own address, so it can be linked to, kept on reload, and reached with Back. Following a link replaces the
-   page's form, so focus is put back on the chosen link instead of being lost (WCAG 2.4.3). *@
+   has its own address, so it can be linked to, kept on reload, and reached with Back. Moving to another variant, by a
+   link or by Back and Forward, replaces the page's form, so the host page asks for focus on the shown variant's link
+   instead of letting it be lost (WCAG 2.4.3). *@
 <nav class="demo-choice" aria-labelledby="@_labelId">
     <span class="demo-choice-label" id="@_labelId">@Legend</span>
     <ul class="demo-choice-options">
@@ -9,11 +10,12 @@
             <li>
                 @if (option == Selected)
                 {
-                    <a class="demo-choice-option" href="@option.Address" aria-current="page" @ref="_current">@option.Label</a>
+                    @* Following the shown variant's own link would only add a second history entry for the same page. *@
+                    <a class="demo-choice-option" href="@option.Address" aria-current="page" @ref="_current" @onclick:preventDefault>@option.Label</a>
                 }
                 else
                 {
-                    <a class="demo-choice-option" href="@option.Address" @onclick="() => s_focusAddress = option.Address">@option.Label</a>
+                    <a class="demo-choice-option" href="@option.Address">@option.Label</a>
                 }
             </li>
         }
@@ -21,10 +23,6 @@
 </nav>
 
 @code {
-    // The address of the link just followed. The page is replaced, and this component with it, so the new page's
-    // choice reads it to take focus; the old one, which renders once more after the click, does not match it.
-    private static string? s_focusAddress;
-
     private readonly string _labelId = $"choice-{Guid.NewGuid():N}";
     private ElementReference _current;
 
@@ -43,11 +41,15 @@
     /// </summary>
     [Parameter, EditorRequired] public DemoVariant Selected { get; set; } = default!;
 
+    /// <summary>
+    /// Gets or sets whether the shown variant's link takes focus when the choice first shows: true when the page has
+    /// just moved here from another of its variants (see <see cref="DemoVariants.Moved"/>).
+    /// </summary>
+    [Parameter] public bool TakeFocus { get; set; }
+
     /// <inheritdoc />
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (s_focusAddress is null || s_focusAddress != Selected.Address) return;
-        s_focusAddress = null;
-        await _current.FocusAsync();
+        if (firstRender && TakeFocus) await _current.FocusAsync();
     }
 }

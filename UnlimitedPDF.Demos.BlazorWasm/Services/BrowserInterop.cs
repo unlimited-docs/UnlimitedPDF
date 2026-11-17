@@ -103,6 +103,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     }
 
     /// <summary>
+    /// Stops a search box's keyboard handling (see <see cref="InitSiteSearchAsync{T}"/>).
+    /// </summary>
+    /// <param name="root">The search box's outer element.</param>
+    public Task DisposeSiteSearchAsync(ElementReference root) => InvokeVoidAsync("disposeSiteSearch", root);
+
+    /// <summary>
     /// Saves the content of a blob URL as a file.
     /// </summary>
     /// <param name="url">The blob URL.</param>
@@ -114,6 +120,16 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// otherwise the main content.
     /// </summary>
     public Task FocusSkipTargetAsync() => InvokeVoidAsync("focusSkipTarget");
+
+    /// <summary>
+    /// Starts a search box's keyboard handling: arrow keys between results, Escape and leaving the box close them
+    /// (through <paramref name="listener"/>'s <c>CloseResults</c>), and Ctrl+K focuses the visible box.
+    /// </summary>
+    /// <typeparam name="T">The search box component.</typeparam>
+    /// <param name="root">The search box's outer element.</param>
+    /// <param name="listener">The search box, told when its results should close.</param>
+    public Task InitSiteSearchAsync<T>(ElementReference root, DotNetObjectReference<T> listener) where T : class =>
+        InvokeVoidAsync("initSiteSearch", root, listener);
 
     /// <summary>
     /// Reports which section is in view, for a page's topic index: on screens 1,024 px and wider, the listener hears the

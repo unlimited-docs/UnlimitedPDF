@@ -1,11 +1,101 @@
 @page "/playground"
-@inject NavigationManager Navigation
+
+@* The scenario gallery (D-022): every demo as a card, with capability tabs and business domain chips. Both filters
+   are links kept in the address, so a filtered view can be shared and Back returns to the previous one. *@
+<PageTitle>C# PDF examples by scenario · UnlimitedPDF</PageTitle>
+<PageDescription Text="Every UnlimitedPDF demo by capability and business domain: invoices, statements, payslips, merge, split, HTML to PDF, and languages, with C# code." />
+<CanonicalLink Path="playground" />
+
+<div class="gallery">
+    <div class="gallery-head">
+        <h1>Scenarios</h1>
+        <p class="gallery-lead">Real documents and everyday PDF tasks. Each one runs in your browser: change its data, see the PDF, and copy its C# code.</p>
+    </div>
+
+    <nav class="gallery-tabs" aria-label="Capability">
+        <ul>
+            <li><a class="gallery-tab" href="@ScenarioGallery.Address(null, _domain)" aria-current="@Current(_capability is null)">All</a></li>
+            @foreach (var category in SampleCatalog.Categories)
+            {
+                <li><a class="gallery-tab" href="@ScenarioGallery.Address(category.Id, _domain)" aria-current="@Current(_capability == category.Id)">@category.Title</a></li>
+            }
+        </ul>
+    </nav>
+
+    <nav class="gallery-chips" aria-label="Business domain">
+        <ul>
+            <li><a class="gallery-chip" href="@ScenarioGallery.Address(_capability, null)" aria-current="@Current(_domain is null)">Every domain</a></li>
+            @foreach (var domain in ScenarioGallery.Domains)
+            {
+                <li><a class="gallery-chip" href="@ScenarioGallery.Address(_capability, domain)" aria-current="@Current(_domain == domain)">@domain</a></li>
+            }
+        </ul>
+    </nav>
+
+    <p class="gallery-count" role="status">@CountText</p>
+
+    @if (_scenarios.Count == 0)
+    {
+        <p class="gallery-empty">No scenario matches both filters. <a href="@ScenarioGallery.Address(_capability, null)">Show every domain</a>.</p>
+    }
+    else
+    {
+        <ul class="gallery-grid">
+            @foreach (var demo in _scenarios)
+            {
+                var category = ScenarioGallery.CategoryOf(demo);
+                var picture = ScenarioGallery.PictureOf(demo);
+                <li class="scenario-card">
+                    <div class="scenario-thumb tone-@(category.Tone ?? "navy")">
+                        @if (picture is not null)
+                        {
+                            <img src="images/gallery/@(picture)-320.jpg" alt="" width="320" height="453" loading="lazy" decoding="async" />
+                        }
+                        else
+                        {
+                            <Icon Name="@demo.Icon" Size="40" />
+                        }
+                    </div>
+                    <div class="scenario-body">
+                        <h2 class="scenario-title"><a class="scenario-link" href="@demo.Route">@demo.Title</a></h2>
+                        <p class="scenario-desc">@demo.Description</p>
+                        <p class="scenario-meta">
+                            <span class="scenario-capability">@category.Title</span>
+                            <span class="scenario-tags"><span class="visually-hidden">Domains: </span>@string.Join(" · ", ScenarioGallery.DomainsOf(demo))</span>
+                        </p>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+</div>
 
 @code {
+    private string? _capability;
+    private string? _domain;
+    private IReadOnlyList<SampleDemo> _scenarios = [];
+
+    /// <summary>
+    /// Gets or sets the capability filter from the address (a category id); any other value shows every capability.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "capability")] public string? Capability { get; set; }
+
+    /// <summary>
+    /// Gets or sets the domain filter from the address; any other value shows every domain.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "domain")] public string? Domain { get; set; }
+
+    private string CountText => _scenarios.Count == ScenarioGallery.Scenarios.Count
+        ? $"{_scenarios.Count} scenarios"
+        : $"{_scenarios.Count} of {ScenarioGallery.Scenarios.Count} scenarios";
+
     /// <inheritdoc />
-    protected override void OnInitialized()
+    protected override void OnParametersSet()
     {
-        // The playground opens on its first demo.
-        Navigation.NavigateTo(SampleCatalog.Categories[0].Demos[0].Route, replace: true);
+        _capability = ScenarioGallery.FindCapability(Capability);
+        _domain = ScenarioGallery.FindDomain(Domain);
+        _scenarios = ScenarioGallery.Filter(_capability, _domain);
     }
+
+    private static string? Current(bool current) => current ? "page" : null;
 }

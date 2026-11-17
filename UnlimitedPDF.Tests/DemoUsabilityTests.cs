@@ -181,9 +181,9 @@ public class DemoUsabilityTests
     public void Links_buttons_tabs_and_fields_share_one_solid_focus_ring()
     {
         var css = Read("wwwroot/css/app.css");
-        var rule = Regex.Match(css, @"((?:[^{}]*:focus-visible,\s*)+[^{}]*:focus-visible)\s*\{\s*outline: 2px solid var\(--app-accent\);\s*outline-offset: 2px;\s*\}");
+        var rule = Regex.Match(css, @"((?:[^{}]*:focus-visible,\s*)+[^{}]*:focus-visible)\s*\{\s*outline: 2px solid var\(--app-focus\);\s*outline-offset: 2px;\s*\}");
 
-        Assert.True(rule.Success, "A shared :focus-visible rule draws a 2 px accent outline.");
+        Assert.True(rule.Success, "A shared :focus-visible rule draws a 2 px focus-color outline.");
         var selectors = rule.Groups[1].Value;
         Assert.All(
             new[] { "a:focus-visible", "button:focus-visible", ".btn:focus-visible", "[role=\"tab\"]:focus-visible", "input:focus-visible", "select:focus-visible", "textarea:focus-visible" },
@@ -200,7 +200,7 @@ public class DemoUsabilityTests
             new[]
             {
                 ".brand", ".topnav-link", ".btn", ".output-tab", ".sidebar-link", ".form-control", ".row-remove", ".check-field",
-                ".install button", ".jump-link", ".questions-more", ".tile-actions .btn", ".ql-icon-button", ".ql-nav .btn"
+                ".install button", ".jump-link", ".questions-more", ".tile-actions .btn", ".ql-icon-button", ".ql-nav .btn", ".demo-choice-option"
             },
             // The selector starts a rule (line start, after a comma, or after a closing brace), so ".btn" does not match
             // inside ".tile-actions .btn".
