@@ -33,4 +33,40 @@
     <EmbeddedResource Include="Samples\FaqSnippets.cs" LogicalName="Samples.FaqSnippets.cs" />
   </ItemGroup>
 
+  <!-- The site's Content-Security-Policy (staticwebapp.config.json) allows one inline script: the import map the build
+       writes into index.html. Its hash changes with every build, so it is worked out after publish and written into the
+       published config in place of IMPORTMAP-HASH (26111701 T-14). -->
+  <UsingTask TaskName="WriteImportMapHash" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Folder ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Using Namespace="System.IO" />
+      <Using Namespace="System.Security.Cryptography" />
+      <Using Namespace="System.Text" />
+      <Using Namespace="System.Text.RegularExpressions" />
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        string html = File.ReadAllText(Path.Combine(Folder, "index.html"));
+        var map = Regex.Match(html, "<script type=\"importmap\">(.*?)</script>", RegexOptions.Singleline);
+        string configPath = Path.Combine(Folder, "staticwebapp.config.json");
+        string config = File.ReadAllText(configPath);
+        if (!map.Success || !config.Contains("IMPORTMAP-HASH"))
+        {
+            Log.LogError("WriteImportMapHash: index.html has no import map, or the config has no IMPORTMAP-HASH to replace.");
+            return false;
+        }
+        using (var sha = SHA256.Create())
+        {
+            // The browser hashes the script as parsed, with every line break as one line feed.
+            string text = map.Groups[1].Value.Replace("\r\n", "\n").Replace('\r', '\n');
+            string hash = Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(text)));
+            File.WriteAllText(configPath, config.Replace("IMPORTMAP-HASH", hash));
+        }
+      ]]></Code>
+    </Task>
+  </UsingTask>
+
+  <Target Name="WriteImportMapHashAfterPublish" AfterTargets="Publish">
+    <WriteImportMapHash Folder="$(PublishDir)wwwroot" />
+  </Target>
 </Project>

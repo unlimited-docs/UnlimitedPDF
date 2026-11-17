@@ -1,4 +1,51 @@
 {
+  "routes": [
+    {
+      "route": "/playground/documents/quotation",
+      "redirect": "/playground/documents/invoice?type=quotation",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/documents/purchase-order",
+      "redirect": "/playground/documents/invoice?type=purchase-order",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/documents/delivery-note",
+      "redirect": "/playground/documents/invoice?type=delivery-note",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/documents/receipt",
+      "redirect": "/playground/documents/invoice?type=receipt",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/merge/month-end-pack",
+      "redirect": "/playground/merge/document-packs",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/merge/employee-pack",
+      "redirect": "/playground/merge/document-packs?domain=hr",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/merge/patient-pack",
+      "redirect": "/playground/merge/document-packs?domain=healthcare",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/documents/certificate",
+      "redirect": "/playground?capability=documents",
+      "statusCode": 301
+    },
+    {
+      "route": "/playground/documents/employee-directory",
+      "redirect": "/playground?capability=documents",
+      "statusCode": 301
+    }
+  ],
   "navigationFallback": {
     "rewrite": "/index.html",
     "exclude": [
@@ -10,5 +57,12 @@
       "/images/*",
       "/*.{css,js,json,wasm,dat,png,jpg,jpeg,svg,ico,webp,txt,xml,br,gz}"
     ]
+  },
+  "globalHeaders": {
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-IMPORTMAP-HASH'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
   }
 }
