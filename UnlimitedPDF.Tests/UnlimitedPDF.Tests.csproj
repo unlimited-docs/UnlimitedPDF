@@ -6,6 +6,9 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
+    <!-- The frameworks run one after another: run at once, three test processes compete for the machine and push the
+         timing tests, which guard against slow algorithms, past their bounds. -->
+    <TestTfmsInParallel>false</TestTfmsInParallel>
   </PropertyGroup>
 
   <!-- Test-only packages, pinned to exact versions (PR-010). They never reach the library. -->
