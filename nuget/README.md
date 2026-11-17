@@ -1,14 +1,10 @@
 ﻿![UnlimitedPDF: a lightweight .NET library for programmatically creating PDF files](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/unlimitedpdf-github-banner.jpg)
 
-<h3 align="center">UnlimitedPDF Library</h3>
+### UnlimitedPDF Library
 
-<p align="center">
 UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, images, headers, and footers, merging and splitting existing PDFs, and converting HTML to PDF, saved to a file or a stream.
-</p>
 
-<p align="center">
-<b>Try it live:</b> <a href="https://unlimitedpdf.dev/">unlimitedpdf.dev</a>, where every demo builds its PDF in your browser and shows the C# code.
-</p>
+**Try it live:** [unlimitedpdf.dev](https://unlimitedpdf.dev/), where every demo builds its PDF in your browser and shows the C# code.
 
 ## Status
 
@@ -517,6 +513,8 @@ PdfOperations.ConvertHtml(html, "total.pdf");
 - Changed: text drawn without a font now shows Western European characters such as `é`, `ü`, `€`, dashes, and curly quotes instead of `?`. Documents with only ASCII text are written exactly as before.
 - Changed: HTML reports each character it draws as `?` with a `MissingCharacter` warning, so `FailOnWarning` now fails on such characters, and reports `@font-face` as `FontFaceIgnored` instead of `UnsupportedProperty`.
 - Changed: in HTML, a word wider than its line is split only between whole characters, so an emoji or a letter with its accent stays together.
+- Fixed: table cell positions, sizes, and border widths are always written as plain decimal numbers. A very small or very large value used to be written in exponent form, such as `1E-05`, which PDF readers don't accept.
+- Fixed: loading a damaged PDF to merge or split stays fast and small. Compressed data with out-of-range predictor settings is reported as a damaged file, and oversized named-destination names are skipped, instead of taking large amounts of memory and time.
 - The package includes `THIRD-PARTY-NOTICES.txt`, the license of the Unicode data the script tables are built from.
 
 ## Changes in 1.0.1

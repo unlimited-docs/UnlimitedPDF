@@ -530,6 +530,8 @@ PdfOperations.ConvertHtml(html, "total.pdf");
 - Changed: text drawn without a font now shows Western European characters such as `é`, `ü`, `€`, dashes, and curly quotes instead of `?`. Documents with only ASCII text are written exactly as before.
 - Changed: HTML reports each character it draws as `?` with a `MissingCharacter` warning, so `FailOnWarning` now fails on such characters, and reports `@font-face` as `FontFaceIgnored` instead of `UnsupportedProperty`.
 - Changed: in HTML, a word wider than its line is split only between whole characters, so an emoji or a letter with its accent stays together.
+- Fixed: table cell positions, sizes, and border widths are always written as plain decimal numbers. A very small or very large value used to be written in exponent form, such as `1E-05`, which PDF readers don't accept.
+- Fixed: loading a damaged PDF to merge or split stays fast and small. Compressed data with out-of-range predictor settings is reported as a damaged file, and oversized named-destination names are skipped, instead of taking large amounts of memory and time.
 - The package includes `THIRD-PARTY-NOTICES.txt`, the license of the Unicode data the script tables are built from.
 
 ## Changes in 1.0.1
