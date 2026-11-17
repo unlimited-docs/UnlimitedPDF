@@ -35,8 +35,8 @@
         _page?.NotifyInputsChanged();
     }
 
-    // The Employee directory demo's several pages, so the demo works before any upload.
-    private static SplitInput Defaults() => new() { File = new MergeFileInput("Employee directory", MergeDemoFiles.EmployeeDirectory()) };
+    // The Headers and footers demo's several-page report, so the demo works before any upload.
+    private static SplitInput Defaults() => new() { File = new MergeFileInput("Report", MergeDemoFiles.Report()) };
 
     private void Reset() => _input = Defaults();
 }

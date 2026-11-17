@@ -1,0 +1,37 @@
+@page "/playground/documents/invoice"
+
+@* One demo for the documents that share an invoice's shape (parties, line items, totals): the type is chosen here and
+   kept in the address (?type=quotation), and each type keeps its own inputs, sample, and C# code. *@
+<CascadingValue Name="DemoChoice" Value="_choice" IsFixed="false">
+    <DynamicComponent Type="Pages[_type.Value]" />
+</CascadingValue>
+
+@code {
+    // The page of each type in DemoVariants.InvoiceTypes.
+    private static readonly IReadOnlyDictionary<string, Type> Pages = new Dictionary<string, Type>(StringComparer.Ordinal)
+    {
+        ["invoice"] = typeof(Invoice),
+        ["quotation"] = typeof(Quotation),
+        ["purchase-order"] = typeof(PurchaseOrder),
+        ["delivery-note"] = typeof(DeliveryNote),
+        ["receipt"] = typeof(Receipt),
+    };
+
+    private RenderFragment _choice = default!;
+    private DemoVariant? _shown;
+    private DemoVariant _type = DemoVariants.InvoiceTypes[0];
+
+    /// <summary>
+    /// Gets or sets the document type from the address; any other value shows the invoice.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "type")] public string? Type { get; set; }
+
+    /// <inheritdoc />
+    protected override void OnParametersSet()
+    {
+        _type = DemoVariants.Find(DemoVariants.InvoiceTypes, Type);
+        bool moved = DemoVariants.Moved(_shown, _type);
+        _shown = _type;
+        _choice = @<DemoChoice Legend="Document type" Options="DemoVariants.InvoiceTypes" Selected="_type" TakeFocus="moved" />;
+    }
+}

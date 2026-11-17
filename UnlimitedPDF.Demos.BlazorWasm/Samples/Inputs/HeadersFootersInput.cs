@@ -6,6 +6,20 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
 /// </summary>
 public sealed class HeadersFootersInput
 {
+    #region Methods
+
+    #region Public Methods
+
+    /// <summary>
+    /// Returns the input of the long report the page-picking and splitting demos use as their sample file: eight
+    /// sections of twenty rows, several pages with page numbers.
+    /// </summary>
+    public static HeadersFootersInput Report() => new() { SectionCount = 8, RowsPerSection = 20 };
+
+    #endregion
+
+    #endregion
+
     #region Properties, Indexers
 
     /// <summary>

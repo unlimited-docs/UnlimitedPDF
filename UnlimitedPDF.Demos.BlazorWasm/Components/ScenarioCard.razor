@@ -1,0 +1,36 @@
+@* One scenario as a card (the gallery and the home page's popular scenarios): the first page of its PDF, its name as
+   the link that the whole card opens, what it shows, its capability, and its business domains. *@
+<li class="scenario-card">
+    <div class="scenario-thumb tone-@(Category.Tone ?? "navy")">
+        <img src="images/gallery/@(ScenarioGallery.PictureOf(Demo))-320.jpg" alt="" width="320" height="453" loading="lazy" decoding="async" />
+    </div>
+    <div class="scenario-body">
+        @if (HeadingLevel == 3)
+        {
+            <h3 class="scenario-title"><a class="scenario-link" href="@Demo.Route">@Demo.Title</a></h3>
+        }
+        else
+        {
+            <h2 class="scenario-title"><a class="scenario-link" href="@Demo.Route">@Demo.Title</a></h2>
+        }
+        <p class="scenario-desc">@Demo.Description</p>
+        <p class="scenario-meta">
+            <span class="scenario-capability">@Category.Title</span>
+            <span class="scenario-tags"><span class="visually-hidden">Domains: </span>@string.Join(" · ", ScenarioGallery.DomainsOf(Demo))</span>
+        </p>
+    </div>
+</li>
+
+@code {
+    /// <summary>
+    /// Gets or sets the scenario.
+    /// </summary>
+    [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the level of the card's heading: 2 in the gallery, 3 under a section heading on the home page.
+    /// </summary>
+    [Parameter] public int HeadingLevel { get; set; } = 2;
+
+    private SampleCategory Category => ScenarioGallery.CategoryOf(Demo);
+}

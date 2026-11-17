@@ -43,6 +43,18 @@ public static class MergePackSample
         return pack;
     }
 
+    /// <summary>
+    /// Returns the default inputs of a domain's pack (see <see cref="DemoVariants.PackDomains"/>).
+    /// </summary>
+    /// <param name="domain">The domain: "finance", "hr", or "healthcare"; any other value gives the finance pack.</param>
+    /// <returns>The cover title and the documents, all included.</returns>
+    public static MergePackInput Input(string domain) => domain switch
+    {
+        "hr" => new MergePackInput("Employee pack", "Payslip", "Contract"),
+        "healthcare" => new MergePackInput("Patient pack", "Medical report", "Receipt"),
+        _ => new MergePackInput("Month-end pack", "Invoice", "Receipt", "Account statement"),
+    };
+
     #endregion
 
     #endregion

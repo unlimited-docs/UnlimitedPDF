@@ -1,0 +1,25 @@
+@* A text with the parts a search query matched marked. Each part is written as text, so a query or a result can never
+   become markup (A05). *@
+@foreach (var part in SiteSearch.Highlight(Text, Query))
+{
+    if (part.IsMatch)
+    {
+        <mark>@part.Text</mark>
+    }
+    else
+    {
+        @part.Text
+    }
+}
+
+@code {
+    /// <summary>
+    /// Gets or sets the shown text.
+    /// </summary>
+    [Parameter, EditorRequired] public string Text { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Gets or sets the query whose words are marked, or null to mark nothing.
+    /// </summary>
+    [Parameter] public string? Query { get; set; }
+}

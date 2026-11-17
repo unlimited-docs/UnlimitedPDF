@@ -11,6 +11,7 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// (RV-24); CFF2 blends weigh their regions once (RV-19) and an invalid vsindex is corrupt (RV-27); and CFF2 runs longer than CFF's 48 operands are split into valid CFF groups when an instance is written
 /// (RV-05, RV-21).
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class CffCharstringLimitTests
 {
     #region Fields and Constants

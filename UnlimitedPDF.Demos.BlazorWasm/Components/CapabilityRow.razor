@@ -1,12 +1,13 @@
-@* One capability on the home page: its tinted icon and name, what it does, its code sample, and a link to each demo. *@
-<section id="@Category.Id" class="panel cap-row tone-@Category.Tone" aria-labelledby="@HeadingId">
+@* One capability on the home page, as a row (D-026): its tinted icon and name, what it does, a link to each demo, and
+   its code sample. *@
+<section id="@Category.Id" class="@($"panel cap-row {(Category.Tone is null ? "" : "tone-" + Category.Tone)}".TrimEnd())" aria-labelledby="@HeadingId">
     <div class="cap-intro">
         <div class="cap-head">
             @if (Category.Icon is not null)
             {
                 <span class="cap-icon"><Icon Name="@Category.Icon" Size="22" /></span>
             }
-            <h2 id="@HeadingId">@Category.Title</h2>
+            <h3 id="@HeadingId">@Category.Title</h3>
         </div>
         <p class="cap-lead">@Category.Description</p>
     </div>
@@ -24,7 +25,7 @@
         {
             @foreach (var group in groups)
             {
-                <h3 class="cap-group-title">@group.Title</h3>
+                <h4 class="cap-group-title">@group.Title</h4>
                 @DemoLinks(group.Demos)
             }
         }

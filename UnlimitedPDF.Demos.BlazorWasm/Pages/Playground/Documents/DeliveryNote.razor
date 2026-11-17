@@ -1,4 +1,3 @@
-@page "/playground/documents/delivery-note"
 @inject SampleImageStore ImageStore
 
 <SamplePage @ref="_page" Demo="SampleCatalog.DeliveryNote" Build="BuildAsync" PageCount="null" OnReset="Reset">
@@ -48,22 +47,22 @@
                         </div>
                         <div class="field-row">
                             <div class="field">
-                                <label>Code</label>
-                                <input class="form-control" @bind="line.Code" @bind:event="oninput" />
+                                <label for="@($"delivery-note-1-{number}-code")">Code</label>
+                                <input id="@($"delivery-note-1-{number}-code")" class="form-control" @bind="line.Code" @bind:event="oninput" />
                             </div>
                             <div class="field">
-                                <label>Description</label>
-                                <input class="form-control" @bind="line.Description" @bind:event="oninput" />
+                                <label for="@($"delivery-note-1-{number}-description")">Description</label>
+                                <input id="@($"delivery-note-1-{number}-description")" class="form-control" @bind="line.Description" @bind:event="oninput" />
                             </div>
                         </div>
                         <div class="field-row">
                             <div class="field">
-                                <label>Ordered</label>
-                                <input type="number" min="0" class="form-control" @bind="line.Ordered" />
+                                <label for="@($"delivery-note-1-{number}-ordered")">Ordered</label>
+                                <input id="@($"delivery-note-1-{number}-ordered")" type="number" min="0" class="form-control" @bind="line.Ordered" />
                             </div>
                             <div class="field">
-                                <label>Shipped</label>
-                                <input type="number" min="0" class="form-control" @bind="line.Shipped" />
+                                <label for="@($"delivery-note-1-{number}-shipped")">Shipped</label>
+                                <input id="@($"delivery-note-1-{number}-shipped")" type="number" min="0" class="form-control" @bind="line.Shipped" />
                             </div>
                         </div>
                     </div>

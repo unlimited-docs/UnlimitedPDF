@@ -44,9 +44,7 @@ pdfDocument.Save("sample.pdf");
 - [Merge a cover page and PDF page ranges in C#](https://unlimitedpdf.dev/playground/merge/cover-and-ranges): Put a built cover page in front of chosen page ranges from each file.
 - [Extract and reorder PDF pages in C#](https://unlimitedpdf.dev/playground/merge/pick-pages): Take the pages you want from a PDF, in the order you want, such as 3, 1-2.
 - [Merged PDF bookmarks and page numbers in C#](https://unlimitedpdf.dev/playground/merge/bookmarks-and-numbers): Name each file's bookmark; the contents and closing pages show page numbers that count every merged page.
-- [Month-end PDF pack: generate and merge in C#](https://unlimitedpdf.dev/playground/merge/month-end-pack): An invoice, a receipt, and an account statement, generated and merged behind a cover page.
-- [Employee PDF pack: generate and merge in C#](https://unlimitedpdf.dev/playground/merge/employee-pack): A payslip and a certificate, generated and merged behind a cover page.
-- [Patient PDF pack: generate and merge in C#](https://unlimitedpdf.dev/playground/merge/patient-pack): A medical report and a receipt, generated and merged behind a cover page.
+- [Generate and merge PDF document packs in C#](https://unlimitedpdf.dev/playground/merge/document-packs): Generate a month-end, employee, or patient pack from the other demos and merge it behind a cover page, with a bookmark per document.
 
 ## Split PDFs
 
@@ -55,27 +53,31 @@ pdfDocument.Save("sample.pdf");
 
 ## HTML to PDF
 
-- [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.
+- [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no engine required, nothing uploaded.
 - [Common HTML to PDF problems in C#](https://unlimitedpdf.dev/playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.
 
 ## Languages
 
-- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): Upload your own fonts and make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML. Fonts stay in your browser.
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): Make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with free fonts included for the demo or your own. Your fonts stay in your browser.
 
 ## Complete business documents
 
 - [Create a PDF invoice in C#](https://unlimitedpdf.dev/playground/documents/invoice): A tax invoice with a logo, product photos in the line items, and computed totals.
-- [Create a PDF quotation in C#](https://unlimitedpdf.dev/playground/documents/quotation): A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.
-- [Create a PDF purchase order in C#](https://unlimitedpdf.dev/playground/documents/purchase-order): A purchase order whose item table runs across pages, with the totals kept together at the end.
-- [Create a PDF delivery note in C#](https://unlimitedpdf.dev/playground/documents/delivery-note): A delivery note that lists ordered and shipped quantities and keeps the signature block together.
+- [Create a PDF quotation in C#](https://unlimitedpdf.dev/playground/documents/invoice?type=quotation): A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.
+- [Create a PDF purchase order in C#](https://unlimitedpdf.dev/playground/documents/invoice?type=purchase-order): A purchase order whose item table runs across pages, with the totals kept together at the end.
+- [Create a PDF delivery note in C#](https://unlimitedpdf.dev/playground/documents/invoice?type=delivery-note): A delivery note that lists ordered and shipped quantities and keeps the signature block together.
+- [Create a PDF receipt in C#](https://unlimitedpdf.dev/playground/documents/invoice?type=receipt): A compact A6 store receipt with items, tax, and payment details.
+- [Generate invoices in bulk in C#: 1,000 PDFs](https://unlimitedpdf.dev/playground/documents/bulk-invoices): Make up to 1,000 invoices in your browser, see the total time and the time per invoice, and download them all as one zip file.
 - [Create a PDF bank statement in C#](https://unlimitedpdf.dev/playground/documents/account-statement): A bank statement with a first-page summary, a running balance, and the header row on every page.
+- [Create a grouped PDF inventory report in C#](https://unlimitedpdf.dev/playground/documents/inventory-report): Stock grouped by warehouse, with a subtotal per warehouse and the header row repeated on every page.
 - [Create a PDF payslip in C#](https://unlimitedpdf.dev/playground/documents/payslip): A one-page payslip with earnings, deductions, and net pay, held to one page by a page limit.
+- [Create a PDF contract from HTML in C#](https://unlimitedpdf.dev/playground/documents/contract): An employment agreement written in HTML: numbered clauses, long paragraphs that wrap across pages, and page X of Y.
 - [Create a PDF medical report in C#](https://unlimitedpdf.dev/playground/documents/medical-report): A laboratory report with patient details, results, reference ranges, and flags.
-- [Create a PDF receipt in C#](https://unlimitedpdf.dev/playground/documents/receipt): A compact A6 store receipt with items, tax, and payment details.
-- [Create a PDF certificate in C#](https://unlimitedpdf.dev/playground/documents/certificate): A certificate of achievement with a seal and a signature image.
-- [Create a PDF employee directory in C#](https://unlimitedpdf.dev/playground/documents/employee-directory): A long table that continues across pages, repeats its header row, and numbers every page.
+- [Create a PDF KPI report with bar charts in C#](https://unlimitedpdf.dev/playground/documents/kpi-report): Headline figures and a bar chart of monthly revenue, drawn from rectangles on one page.
+- [Print PDF shipping labels on A4 sheets in C#](https://unlimitedpdf.dev/playground/documents/shipping-labels): Address labels on A4 sheets of three by seven, outlined for cutting and ready to print.
 
 ## Optional
 
 - [Source code](https://github.com/unlimited-docs/UnlimitedPDF): the library, this playground, and their tests.
 - [Home](https://unlimitedpdf.dev/): an overview of what the library does, with short code samples.
+- [Scenarios](https://unlimitedpdf.dev/playground): every demo, filtered by capability and business domain.

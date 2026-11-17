@@ -6,7 +6,7 @@ using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// The demos home page: the capability rows, their code samples, the document gallery, and the "How do I...?"
+/// The demos home page: the capability rows, their code samples, the scenario cards, and the "How do I...?"
 /// questions read the demo list and real builders, so what the page says stays true (26111101 V-03 to V-10, PR-012).
 /// </summary>
 public class HomePageTests
@@ -56,7 +56,7 @@ public class HomePageTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(16, capabilityDemos.Count);
+        Assert.Equal(14, capabilityDemos.Count);
         Assert.Equal(capabilityDemos.Count, capabilityDemos.Select(d => d.Icon).Distinct(StringComparer.Ordinal).Count());
         Assert.All(SampleCatalog.Categories.SelectMany(c => c.Demos), d => Assert.Contains(d.Icon, drawn));
         Assert.All(SampleCatalog.Categories.Where(c => c.Icon is not null), c => Assert.Contains(c.Icon!, drawn));
@@ -134,54 +134,33 @@ public class HomePageTests
     }
 
     [Fact]
-    public void The_gallery_has_one_tile_per_document_in_catalogue_order()
+    public void Each_document_picture_belongs_to_one_document_demo()
     {
-        var documents = SampleCatalog.Categories.Single(c => c.Id == "documents").Demos;
+        // The pictures of the scenario cards: document demos and the types the Invoice demo makes, one picture each.
+        // A newer document demo without a captured picture shows its capability's icon instead.
+        var documents = SampleCatalog.Categories.Single(c => c.Id == "documents").Demos.Concat(SampleCatalog.InvoiceTypes).ToHashSet();
+        var tiles = DocumentGallery.Documents.Select(d => d.Demo).ToList();
 
-        Assert.Equal(documents, DocumentGallery.Documents.Select(d => d.Demo));
-        Assert.Equal(documents.Count, DocumentGallery.Documents.Select(d => d.Picture).Distinct(StringComparer.Ordinal).Count());
-        Assert.All(DocumentGallery.Documents, d => Assert.False(string.IsNullOrWhiteSpace(d.Summary)));
-        Assert.All(DocumentGallery.Documents, d => Assert.Equal(d.Picture, d.Demo.Route.Split('/')[^1]));
+        Assert.All(tiles, demo => Assert.Contains(demo, documents));
+        Assert.Equal(tiles.Count, tiles.Distinct().Count());
+        Assert.Equal(tiles.Count, DocumentGallery.Documents.Select(d => d.Picture).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(DocumentGallery.Documents, d => Assert.Equal(d.Picture, Path.GetFileNameWithoutExtension(d.Demo.FileName)));
     }
 
     [Fact]
-    public void Each_tile_shows_the_page_count_and_size_of_the_document_its_demo_builds()
+    public void Each_card_picture_is_320_pixels_wide_and_no_larger_copy_is_shipped()
     {
-        foreach (var entry in DocumentGallery.Documents)
+        // The cards show 320 px copies; the larger quick look copies were removed with the quick look (T-13).
+        foreach (var demo in ScenarioGallery.Scenarios)
         {
-            var document = entry.Build(Images(entry.Images));
-            var pdf = PdfPageReader.SaveBytes(document);
-
-            Assert.True(entry.PageCount == PdfFile.FromBytes(pdf).PageCount, $"{entry.Demo.Title}: {PdfFile.FromBytes(pdf).PageCount} pages, tile says {entry.PageCount}");
-            Assert.Equal(entry.PageSize, document.PageSize);
+            var path = RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{ScenarioGallery.PictureOf(demo)}-320.jpg");
+            Assert.True(File.Exists(path), $"{demo.Title}: {Path.GetFileName(path)} is missing");
+            Assert.Equal(320, PdfImage.FromBytes(File.ReadAllBytes(path)).PixelWidth);
         }
-    }
 
-    [Fact]
-    public void Each_gallery_builder_calls_its_sample_with_a_new_input()
-    {
-        // Guards the gallery's ten builders against drifting from the samples' own default inputs. That a download has
-        // the bytes the demo page produces is checked in the browser (V-14), where the page builds it.
+        Assert.Empty(Directory.GetFiles(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery"), "*-960.jpg"));
         foreach (var entry in DocumentGallery.Documents)
         {
-            var images = Images(entry.Images);
-            var expected = PdfPageReader.SaveBytes(DemoDefault(entry.Demo, images));
-
-            Assert.True(expected.AsSpan().SequenceEqual(PdfPageReader.SaveBytes(entry.Build(images))), $"{entry.Demo.Title}: the bytes differ");
-        }
-    }
-
-    [Fact]
-    public void Each_gallery_document_has_a_tile_picture_and_a_quick_look_picture()
-    {
-        foreach (var entry in DocumentGallery.Documents)
-        {
-            foreach (var (suffix, width) in new[] { ("320", 320), ("960", 960) })
-            {
-                var path = RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{entry.Picture}-{suffix}.jpg");
-                Assert.True(File.Exists(path), $"{entry.Demo.Title}: {Path.GetFileName(path)} is missing");
-                Assert.Equal(width, PdfImage.FromBytes(File.ReadAllBytes(path)).PixelWidth);
-            }
 
             Assert.True(File.Exists(RepositoryFile($"assets/originals/gallery/{entry.Picture}.png")), $"{entry.Demo.Title}: its original is missing");
         }
@@ -228,7 +207,7 @@ public class HomePageTests
     [Fact]
     public void There_are_six_to_eight_questions_and_each_opens_a_demo_that_exists()
     {
-        var demos = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
+        var demos = SampleCatalog.Pages;
         var questions = HomeQuestions.Questions;
 
         Assert.InRange(questions.Count, 6, 8);
@@ -242,33 +221,100 @@ public class HomePageTests
     }
 
     [Fact]
-    public void The_capability_rows_and_the_gallery_together_hold_every_demo_once()
+    public void The_capability_rows_hold_every_demo_once_and_the_popular_scenarios_are_six_of_them()
     {
-        var onPage = CapabilityDemos().Concat(DocumentGallery.Documents.Select(d => d.Demo)).ToList();
-        var all = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
+        // D-026: a row per capability, so every demo is one click from the home page; six popular scenarios above them.
+        var rows = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
+        var popular = ScenarioGallery.Popular;
 
-        Assert.Equal(all.Count, onPage.Count);
-        Assert.Equal(all.ToHashSet(), onPage.ToHashSet());
+        Assert.Equal(ScenarioGallery.Scenarios.Count, rows.Count);
+        Assert.Equal(ScenarioGallery.Scenarios.ToHashSet(), rows.ToHashSet());
+        Assert.Equal(6, popular.Count);
+        Assert.Equal(popular.Count, popular.Distinct().Count());
+        Assert.All(popular, demo => Assert.Contains(demo, ScenarioGallery.Scenarios));
     }
 
     [Fact]
-    public void The_home_page_links_each_row_demo_and_each_tile_to_its_demo()
+    public void The_home_page_links_each_row_demo_and_each_popular_card_to_its_demo()
     {
-        // A guard against removal: the page renders the capability rows and the gallery, a row links its demos, and a
-        // tile links its document's demo. Only the component tags and link attributes are matched, so renaming a
-        // variable does not fail it. That the rows and the gallery hold every demo is checked above.
+        // A guard against removal: the page renders every capability row and the popular scenarios as cards, a row
+        // links its demos, and a card links its demo. That the rows hold every demo is checked above.
         var home = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/Home.razor"));
         var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
-        var tiles = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/DocumentTiles.razor"));
+        var card = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/ScenarioCard.razor"));
 
         Assert.Contains("<CapabilityRow ", home, StringComparison.Ordinal);
-        Assert.Contains("<DocumentTiles", home, StringComparison.Ordinal);
+        Assert.Contains("private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories;", home, StringComparison.Ordinal);
+        Assert.Contains("@foreach (var demo in ScenarioGallery.Popular)", home, StringComparison.Ordinal);
+        Assert.Contains("<ScenarioCard Demo=\"demo\" HeadingLevel=\"3\" />", home, StringComparison.Ordinal);
         // The row calls its link fragment for a category's demos and for each group's (F-23): the link attribute alone
         // also sits in the fragment's definition, so it would pass a row that never shows its links.
         Assert.Contains(".Route\"", row, StringComparison.Ordinal);
         Assert.Equal(2, Regex.Matches(row, @"@DemoLinks\(\w+\.Demos\)").Count);
-        Assert.Contains("DocumentGallery.Documents", tiles, StringComparison.Ordinal);
-        Assert.Contains(".Demo.Route\"", tiles, StringComparison.Ordinal);
+        Assert.Equal(2, Regex.Matches(card, "<a class=\"scenario-link\" href=\"@Demo.Route\">").Count);
+
+        // The approved order (D-026): hero and illustration, benefits, first PDF, popular, capabilities, How do I, FAQ band.
+        string[] order = ["class=\"hero\"", "class=\"showcase\"", "class=\"benefits\"", "first-pdf", "ScenarioGallery.Popular", "<CapabilityRow ", "id=\"how-do-i\"", "class=\"faq-band\""];
+        var positions = order.Select(marker => home.IndexOf(marker, StringComparison.Ordinal)).ToList();
+        Assert.All(positions, position => Assert.True(position >= 0));
+        Assert.Equal(positions.Order(), positions);
+        Assert.Contains("No engine required", home, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_first_pdf_and_documents_samples_run_as_shown()
+    {
+        string folder = Path.Combine(Path.GetTempPath(), "unlimitedpdf-first-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(folder);
+        try
+        {
+            HomeSnippets.First(folder);
+            Assert.Equal(1, PdfFile.FromBytes(File.ReadAllBytes(Path.Combine(folder, "hello.pdf"))).PageCount);
+        }
+        finally
+        {
+            Directory.Delete(folder, recursive: true);
+        }
+
+        using var stream = new MemoryStream();
+        HomeSnippets.Documents(stream);
+        var texts = ImportedPagesTests.PageTexts(PdfFile.FromBytes(stream.ToArray()));
+        Assert.True(texts.Length > 1);
+        Assert.All(texts, text => Assert.Contains("Amount", text, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_home_page_says_what_is_true_and_names_every_new_tab()
+    {
+        // PR-012 and WCAG 2.4.4: the claims match the library, the picture is described as the illustration it is,
+        // the headings keep their levels, and every link that opens a new tab says so.
+        var home = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/Home.razor"));
+        var card = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/ScenarioCard.razor"));
+        var project = File.ReadAllText(RepositoryFile("UnlimitedPDF/UnlimitedPDF.csproj"));
+
+        Assert.Contains("No engine required: it runs wherever .NET 6 or later runs", home, StringComparison.Ordinal);
+        Assert.Matches("alt=\"Stylized illustration titled UnlimitedPDF Demos[^\"]*certificate cards\"", home);
+        Assert.DoesNotContain("made with UnlimitedPDF", home, StringComparison.Ordinal);
+        Assert.Contains("<CodeView Source=\"@_firstPdf\"", home, StringComparison.Ordinal);
+        Assert.Contains("SnippetText.Extract(SampleSource.Read(\"HomeSnippets.cs\"), \"first\")", home, StringComparison.Ordinal);
+        Assert.Equal(6, Regex.Matches(home, "<h2 id=\"[a-z-]+-title\" class=\"section-title").Count + Regex.Matches(home, "<h2 id=\"faq-band-title\">").Count);
+        Assert.Contains("<h3 class=\"scenario-title\">", card, StringComparison.Ordinal);
+        string license = Regex.Match(project, "<PackageLicenseExpression>([^<]+)</PackageLicenseExpression>").Groups[1].Value;
+        Assert.Contains($"(\"Free and open\", \"{license} licensed", home, StringComparison.Ordinal);
+        Assert.Contains("net6.0", project, StringComparison.Ordinal);
+
+        foreach (var file in new[] { "Pages/Home.razor", "Pages/NotFound.razor", "Layout/MainLayout.razor" })
+        {
+            var text = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/" + file));
+            foreach (Match link in Regex.Matches(text, "<a [^>]*target=\"_blank\"[^>]*>(?<body>.*?)</a>", RegexOptions.Singleline))
+            {
+                bool footer = link.Value.Contains("unlimited-docs\"", StringComparison.Ordinal) || link.Value.Contains("contributors", StringComparison.Ordinal);
+                bool version = link.Value.Contains("version-link", StringComparison.Ordinal);
+                if (!footer && !version) Assert.Contains("opens in a new tab", link.Groups["body"].Value, StringComparison.Ordinal);
+            }
+        }
+
+        Assert.Contains("<SiteSearchBox InputId=\"not-found-search\" />", File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/NotFound.razor")), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -291,22 +337,6 @@ public class HomePageTests
 
     private static IEnumerable<SampleDemo> CapabilityDemos() =>
         SampleCatalog.Categories.Where(c => Capabilities.Contains(c.Title)).SelectMany(c => c.Demos);
-
-    // The sample called directly with a new input, as its demo page does on first load.
-    private static PdfDocument DemoDefault(SampleDemo demo, SampleImages images) => demo.Title switch
-    {
-        "Invoice" => InvoiceSample.Build(new InvoiceInput(), images),
-        "Quotation" => QuotationSample.Build(new QuotationInput(), images),
-        "Purchase order" => PurchaseOrderSample.Build(new PurchaseOrderInput(), images),
-        "Delivery note" => DeliveryNoteSample.Build(new DeliveryNoteInput(), images),
-        "Account statement" => AccountStatementSample.Build(new AccountStatementInput(), images),
-        "Payslip" => PayslipSample.Build(new PayslipInput(), images),
-        "Medical report" => MedicalReportSample.Build(new MedicalReportInput(), images),
-        "Receipt" => ReceiptSample.Build(new ReceiptInput(), images),
-        "Certificate" => CertificateSample.Build(new CertificateInput(), images),
-        "Employee directory" => EmployeeDirectorySample.Build(new EmployeeDirectoryInput()),
-        _ => throw new ArgumentOutOfRangeException(nameof(demo), demo.Title, "Not a gallery document.")
-    };
 
     // Only the images a document names, loaded from the app's served copies, so the document is the one the demo builds
     // (a row's height follows its photo) and a missing name fails the build.

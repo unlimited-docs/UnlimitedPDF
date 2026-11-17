@@ -56,22 +56,22 @@
                         <input class="form-control" aria-label="Name of test @number" @bind="result.Test" @bind:event="oninput" />
                         <div class="field-row">
                             <div class="field">
-                                <label>Result</label>
-                                <input class="form-control" @bind="result.Result" @bind:event="oninput" />
+                                <label for="@($"medical-report-1-{number}-result")">Result</label>
+                                <input id="@($"medical-report-1-{number}-result")" class="form-control" @bind="result.Result" @bind:event="oninput" />
                             </div>
                             <div class="field">
-                                <label>Unit</label>
-                                <input class="form-control" @bind="result.Unit" @bind:event="oninput" />
+                                <label for="@($"medical-report-1-{number}-unit")">Unit</label>
+                                <input id="@($"medical-report-1-{number}-unit")" class="form-control" @bind="result.Unit" @bind:event="oninput" />
                             </div>
                         </div>
                         <div class="field-row">
                             <div class="field">
-                                <label>Range low</label>
-                                <input type="number" step="any" class="form-control" @bind="result.Low" />
+                                <label for="@($"medical-report-1-{number}-range-low")">Range low</label>
+                                <input id="@($"medical-report-1-{number}-range-low")" type="number" step="any" class="form-control" @bind="result.Low" />
                             </div>
                             <div class="field">
-                                <label>Range high</label>
-                                <input type="number" step="any" class="form-control" @bind="result.High" />
+                                <label for="@($"medical-report-1-{number}-range-high")">Range high</label>
+                                <input id="@($"medical-report-1-{number}-range-high")" type="number" step="any" class="form-control" @bind="result.High" />
                             </div>
                         </div>
                     </div>

@@ -17,6 +17,7 @@ public partial class Faq
     private readonly HashSet<string> _open = new(StringComparer.Ordinal);
     private readonly ElementReference[] _sections = new ElementReference[FaqQuestions.Groups.Count];
     private string? _currentGroup;
+    private bool _focusOpened;
     private DotNetObjectReference<Faq>? _listener;
     private string _query = "";
     private bool _refreshSections;
@@ -45,6 +46,13 @@ public partial class Faq
         {
             _scrollTo = null;
             await Interop.ScrollToElementAsync(id, smooth: false);
+
+            // On the FAQ already (a search result, a link), the page doesn't change, so focus goes to the question.
+            if (_focusOpened)
+            {
+                _focusOpened = false;
+                await Interop.FocusFirstControlAsync(id);
+            }
         }
 
         if (_refreshSections)
@@ -105,8 +113,10 @@ public partial class Faq
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        // A question link followed while the page is open (only the fragment changes).
-        if (OpenLinkedQuestion(args.Location)) _ = InvokeAsync(StateHasChanged);
+        // A question link followed while the page is open: the fragment changes, or a search result's address.
+        if (!OpenLinkedQuestion(args.Location)) return;
+        _focusOpened = true;
+        _ = InvokeAsync(StateHasChanged);
     }
 
     private void OnSearch(ChangeEventArgs args)

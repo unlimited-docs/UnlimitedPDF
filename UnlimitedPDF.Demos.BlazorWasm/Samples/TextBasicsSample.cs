@@ -21,7 +21,7 @@ public static class TextBasicsSample
     {
         // Coordinates are in points (1/72 inch), measured from the bottom-left corner of the page.
         var document = new PdfDocument(input.PageSize);
-        var pageCount = Math.Max(1, input.PageCount);
+        var pageCount = Math.Clamp(input.PageCount, 1, 100);
 
         for (int pageNumber = 1; pageNumber <= pageCount; pageNumber++)
         {

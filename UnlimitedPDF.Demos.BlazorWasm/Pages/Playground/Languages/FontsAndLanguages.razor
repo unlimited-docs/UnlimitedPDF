@@ -2,7 +2,7 @@
 
 <SamplePage @ref="_page" Demo="SampleCatalog.FontsAndLanguages" Build="BuildAsync" PageCount="null" OnReset="Reset"
             SourceFile="@(_input.Mode == DrawMode.Html ? "FontsAndLanguagesHtmlSample.cs" : "FontsAndLanguagesSample.cs")"
-            FileName="@($"fonts-and-languages-{_input.Language}.pdf")">
+            FileName="@($"fonts-and-languages-{_input.Language}.pdf")" ContentLanguage="@_input.LanguageTag">
     <Inputs>
         <CollapsibleSection Title="Invoice">
             <div class="field">
@@ -25,14 +25,24 @@
         </CollapsibleSection>
 
         <CollapsibleSection Title="Fonts">
-            <p class="field-hint">Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
+            <p class="field-hint">The Devanagari, Telugu, and Tamil slots start with free Noto Sans fonts included for this demo; Latin text uses the built-in font. Drop your own font on a slot to replace its font. Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
+            @if (_loadingDefaults)
+            {
+                <div class="upload-reading" role="status">
+                    <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span> Loading the included fonts...
+                </div>
+            }
+            else if (_defaultsMissing)
+            {
+                <p class="field-hint" role="status">Some included fonts couldn't be loaded. Add your own font to each empty slot.</p>
+            }
             <div class="font-slots">
                 @foreach (var script in FontSlots.Scripts)
                 {
                     <FontSlot @key="script" Script="script" Needed="_needed.Contains(script)" Value="SlotFont(script)" ValueChanged="font => SetFont(script, font)" />
                 }
             </div>
-            @if (_missing.Count > 0)
+            @if (_missing.Count > 0 && !_loadingDefaults)
             {
                 <p class="missing-note" role="status">
                     @_missing.Count @(_missing.Count == 1 ? "character has" : "characters have") no font and @(_missing.Count == 1 ? "is" : "are") drawn as ?: @string.Join(" ", _missing.Take(12))@(_missing.Count > 12 ? " ..." : "")
@@ -44,22 +54,33 @@
             }
         </CollapsibleSection>
 
+        <CollapsibleSection Title="Before you use your own fonts" InitiallyOpen="false">
+            <ul class="field-hint prerequisites">
+                <li>A <code>.ttf</code> or <code>.otf</code> font with TrueType or CFF outlines that has the letters of each script you write: one font per script, or one that covers them all. Font collections (<code>.ttc</code>) and web fonts (WOFF, WOFF2) can't be loaded.</li>
+                <li>The right to embed the font in a PDF. Check its license; a font whose license forbids embedding fails to load unless you set <code>IgnoreEmbeddingRestrictions</code> in <code>PdfFontLoadOptions</code>.</li>
+                <li>Load each font once with <code>PdfFont.FromFile</code>, <code>FromStream</code>, or <code>FromBytes</code>, and ship the file with your app. Pass it to a text call, or add it to <code>document.FontFallback</code> for characters the call's font doesn't have.</li>
+                <li>For HTML, register each font in <code>PdfHtmlLoadOptions.Fonts</code> under the family name your CSS uses.</li>
+                <li>Scripts: Latin, Devanagari (Hindi, Marathi, and others), Telugu, and Tamil. Right-to-left scripts and Chinese, Japanese, and Korean aren't supported yet.</li>
+                <li>Check for characters no font has with <code>FindMissingCharacters</code>, or set <code>FailOnMissingCharacters</code> so saving fails instead of drawing ?.</li>
+            </ul>
+        </CollapsibleSection>
+
         <CollapsibleSection Title="Seller and buyer" InitiallyOpen="false">
             <div class="field">
                 <label for="fl-seller-name">Seller name</label>
-                <input id="fl-seller-name" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-seller-address">Seller address</label>
-                <input id="fl-seller-address" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-name">Buyer name</label>
-                <input id="fl-buyer-name" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-address">Buyer address</label>
-                <input id="fl-buyer-address" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field-row">
                 <div class="field">
@@ -86,15 +107,15 @@
                                 <Icon Name="close" Size="16" />
                             </button>
                         </div>
-                        <input class="form-control" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
+                        <input class="form-control" lang="@_input.LanguageTag" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
                         <div class="field-row">
                             <div class="field">
-                                <label>Qty</label>
-                                <input type="number" min="0" class="form-control" @bind="line.Quantity" />
+                                <label for="@($"fonts-and-languages-1-{number}-qty")">Qty</label>
+                                <input id="@($"fonts-and-languages-1-{number}-qty")" type="number" min="0" class="form-control" @bind="line.Quantity" />
                             </div>
                             <div class="field">
-                                <label>Rate</label>
-                                <input type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
+                                <label for="@($"fonts-and-languages-1-{number}-rate")">Rate</label>
+                                <input id="@($"fonts-and-languages-1-{number}-rate")" type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
                             </div>
                         </div>
                     </div>
@@ -165,11 +186,17 @@
     </Inputs>
 </SamplePage>
 
+@inject HttpClient Http
+
 @code {
     private const int MaxWarningsShown = 8;
 
     private readonly Dictionary<FontScript, UploadedFont> _slots = new();
+    private IReadOnlyDictionary<FontScript, UploadedFont> _bundled = new Dictionary<FontScript, UploadedFont>();
+    private Task? _defaults;
+    private bool _defaultsMissing;
     private FontScript? _emptyNeeded;
+    private bool _loadingDefaults = true;
     private PdfHtml? _html;
     private FontsAndLanguagesInput _input = new();
     private IReadOnlyList<string> _missing = Array.Empty<string>();
@@ -177,7 +204,11 @@
     private SamplePage? _page;
     private (int Min, int Max)? _variable;
 
-    protected override void OnInitialized() => Refresh();
+    protected override void OnInitialized()
+    {
+        Refresh();
+        _defaults = LoadDefaultsAsync();
+    }
 
     private void AddItem()
     {
@@ -185,8 +216,11 @@
         _page?.NotifyInputsChanged();
     }
 
-    private Task<PdfDocument> BuildAsync()
+    private async Task<PdfDocument> BuildAsync()
     {
+        // The first preview waits for the included fonts, so it never draws their scripts as "?" (CR-001).
+        if (_defaults is not null) await _defaults;
+
         // Each filled slot's font at the body weight and at the heading weight (the same font for one weight).
         var filled = FontSlots.Scripts.Where(_slots.ContainsKey).Select(script => (Script: script, Upload: _slots[script])).ToList();
         var fonts = filled.Select(s => (s.Script, Font: UploadedFontLoader.AtWeight(s.Upload, _input.BodyWeight), Heading: UploadedFontLoader.AtWeight(s.Upload, _input.HeadingWeight))).ToList();
@@ -196,10 +230,32 @@
             // HTML takes each font once; the weights go into the CSS.
             var document = FontsAndLanguagesHtmlSample.Build(_input, filled.Select(s => (s.Script, s.Upload.Font)).ToList(), out var html);
             _html = html;
-            return Task.FromResult(document);
+            return document;
         }
         _html = null;
-        return Task.FromResult(FontsAndLanguagesSample.Build(_input, fonts.Select(f => f.Font).ToList(), fonts.Select(f => f.Heading).ToList()));
+        return FontsAndLanguagesSample.Build(_input, fonts.Select(f => f.Font).ToList(), fonts.Select(f => f.Heading).ToList());
+    }
+
+    // Puts the included fonts in the slots that are still empty; a visitor's font dropped meanwhile stays.
+    private async Task LoadDefaultsAsync()
+    {
+        try
+        {
+            _bundled = await BundledFonts.LoadAsync(Http);
+            FillEmptySlots();
+        }
+        finally
+        {
+            _defaultsMissing = _bundled.Count < BundledFonts.All.Count;
+            _loadingDefaults = false;
+            Refresh();
+            StateHasChanged();
+        }
+    }
+
+    private void FillEmptySlots()
+    {
+        foreach (var (script, font) in _bundled) _slots.TryAdd(script, font);
     }
 
     // The scripts the invoice needs, the characters no font has, the first needed slot still empty, and the weight
@@ -221,11 +277,12 @@
         _page?.NotifyInputsChanged();
     }
 
-    // Reset restores the invoice and options; the uploaded fonts stay, since they are not defaults.
+    // Reset restores the invoice, the options, and the included fonts in empty slots; a visitor's own fonts stay.
     private void Reset()
     {
         _input = new FontsAndLanguagesInput();
         _html = null;
+        FillEmptySlots();
         Refresh();
     }
 

@@ -2,7 +2,7 @@
 
 Released under Apache-2.0 with the rest of the repository (PR-008, PR-011).
 
-Created with ChatGPT image generation for the project owner and downloaded on 2026-11-04 from the [shared asset chat](https://chatgpt.com/share/6aeb010e-7d90-83e8-b31b-ae43794edd92). This folder contains 12 PNG artwork files from that chat, plus the five demo logos described under [Demo logos added 2026-11-06](#demo-logos-added-2026-11-06). On 2026-11-04, the GitHub banner and social card were edited with the built-in image generation tool to replace unsupported API examples in their code windows. Their surrounding designs and original dimensions were retained. The demo hero was also edited to use the current UnlimitedPDF Demos logo once, replacing the stacked logo and duplicate headline while retaining the subtitle and four document illustrations. Its 800- and 1200-pixel responsive copies were regenerated with `New-DerivedImages.ps1`. The remaining 9 files are unchanged originals. The separate download for the resized seven-file demo pack was unavailable, so original dimensions and sizes differ from those advertised for that ZIP.
+Created with an image-generation service for the project owner and downloaded on 2026-11-04. This folder contains 12 PNG artwork files from that service, plus the five demo logos described under [Demo logos added 2026-11-06](#demo-logos-added-2026-11-06). On 2026-11-04, the GitHub banner and social card were edited with the built-in image generation tool to replace unsupported API examples in their code windows. Their surrounding designs and original dimensions were retained. The demo hero was also edited to use the current UnlimitedPDF Demos logo once, replacing the stacked logo and duplicate headline while retaining the subtitle and four document illustrations. Its 800- and 1200-pixel responsive copies were regenerated with `New-DerivedImages.ps1`. The remaining 9 files are unchanged originals. The separate download for the resized seven-file demo pack was unavailable, so original dimensions and sizes differ from those advertised for that ZIP.
 
 These are source files. They live here, outside every served or packed folder, so no published site or package carries them (PR-013). The demo app, the package, and the readmes use the smaller copies listed under [Derived copies](#derived-copies). `generated-assets-manifest.json` records dimensions, sizes, source asset identifiers, and SHA-256 checksums. The two corrected banners also have edit records containing the exact generation prompts and displayed C# snippets. Both snippets were compiled and executed against the local `UnlimitedPDF.csproj` with .NET SDK 10.0.403, and their rendered text was visually checked. They use `AddPage()`, `AddText(...)`, and `Save(...)` as implemented in `PdfDocument.cs` and `PdfPageBuilder.cs`.
 
@@ -16,8 +16,6 @@ These are source files. They live here, outside every served or packed folder, s
 | `originals/account-statement-logo.png` | 2172 x 724 | Account statement demo logo (fictional Harborview Savings Bank) |
 | `originals/payslip-logo.png` | 2172 x 724 | Payslip demo logo (fictional Greenfield Logistics) |
 | `originals/delivery-note-logo.png` | 2172 x 724 | Delivery note demo logo (fictional Meridian Freight) |
-| `originals/certificate-seal.png` | 1254 x 1254 | Certificate demo seal |
-| `originals/certificate-signature.png` | 2172 x 724 | Fictional certificate demo signature |
 | `branding/favicon.png` | 1254 x 1254 | Original favicon artwork |
 | `branding/unlimitedpdf-logo.png` | 2172 x 724 | Main UnlimitedPDF wordmark |
 | `branding/unlimitedpdf-icon.png` | 1254 x 1254 | Standalone application icon |
@@ -53,17 +51,34 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 | Original | Size | Demo |
 |---|---|---|
 | `originals/gallery/invoice.png` | 1479 x 2092 | Invoice (`playground/documents/invoice`) |
-| `originals/gallery/quotation.png` | 1479 x 2092 | Quotation (`playground/documents/quotation`) |
-| `originals/gallery/purchase-order.png` | 1479 x 2092 | Purchase order (`playground/documents/purchase-order`) |
-| `originals/gallery/delivery-note.png` | 1479 x 2092 | Delivery note (`playground/documents/delivery-note`) |
+| `originals/gallery/quotation.png` | 1479 x 2092 | Quotation (`playground/documents/invoice?type=quotation`) |
+| `originals/gallery/purchase-order.png` | 1479 x 2092 | Purchase order (`playground/documents/invoice?type=purchase-order`) |
+| `originals/gallery/delivery-note.png` | 1479 x 2092 | Delivery note (`playground/documents/invoice?type=delivery-note`) |
 | `originals/gallery/account-statement.png` | 1457 x 2061 | Account statement (`playground/documents/account-statement`) |
 | `originals/gallery/payslip.png` | 1479 x 2092 | Payslip (`playground/documents/payslip`) |
 | `originals/gallery/medical-report.png` | 1479 x 2092 | Medical report (`playground/documents/medical-report`) |
-| `originals/gallery/receipt.png` | 1460 x 2058 | Receipt (`playground/documents/receipt`) |
-| `originals/gallery/certificate.png` | 1479 x 2092 | Certificate (`playground/documents/certificate`) |
-| `originals/gallery/employee-directory.png` | 1457 x 2061 | Employee directory (`playground/documents/employee-directory`) |
+| `originals/gallery/receipt.png` | 1460 x 2058 | Receipt (`playground/documents/invoice?type=receipt`) |
+| `originals/gallery/bookmarks-and-numbers.png` | 1479 x 2092 | Bookmarks & numbers (`playground/merge/bookmarks-and-numbers`) |
+| `originals/gallery/invoices.png` | 1479 x 2092 | Bulk invoices (first invoice) (`playground/documents/bulk-invoices`) |
+| `originals/gallery/common-html-to-pdf-problems.png` | 1479 x 2092 | Common problems (`playground/html/common-problems`) |
+| `originals/gallery/contract.png` | 1479 x 2092 | Contract (`playground/documents/contract`) |
+| `originals/gallery/cover-and-ranges.png` | 1479 x 2092 | Cover + ranges (`playground/merge/cover-and-ranges`) |
+| `originals/gallery/document-pack.png` | 1479 x 2092 | Document packs (`playground/merge/document-packs`) |
+| `originals/gallery/headers-and-footers.png` | 1479 x 2092 | Headers and footers (`playground/create/headers-and-footers`) |
+| `originals/gallery/fonts-and-languages.png` | 1479 x 2092 | Fonts and languages (French) (`playground/languages/fonts-and-languages`) |
+| `originals/gallery/html-to-pdf.png` | 1479 x 2092 | HTML to PDF (`playground/html/html-to-pdf`) |
+| `originals/gallery/images.png` | 1479 x 2092 | Images (`playground/create/images`) |
+| `originals/gallery/inventory-report.png` | 1479 x 2092 | Inventory report (`playground/documents/inventory-report`) |
+| `originals/gallery/joined.png` | 1479 x 2092 | Join files, the two joined files' first pages laid over each other (`playground/merge/join-files`) |
+| `originals/gallery/kpi-report.png` | 1479 x 2092 | KPI report (`playground/documents/kpi-report`) |
+| `originals/gallery/picked-pages.png` | 1479 x 2092 | Pick pages (`playground/merge/pick-pages`) |
+| `originals/gallery/shipping-labels.png` | 1479 x 2092 | Shipping labels (`playground/documents/shipping-labels`) |
+| `originals/gallery/every-n-pages.png` | 1479 x 2092 | Every N pages, the second page of the first part (`playground/split/every-n-pages`) |
+| `originals/gallery/page-ranges.png` | 1479 x 2092 | Page ranges (first part) (`playground/split/page-ranges`) |
+| `originals/gallery/tables.png` | 1479 x 2092 | Tables (`playground/create/tables`) |
+| `originals/gallery/text-and-pages.png` | 1479 x 2092 | Text and pages (`playground/create/text-and-pages`) |
 
-On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the twenty gallery copies below were added. Two runs there produce byte-identical gallery copies.
+On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the gallery copies below were added. Two runs there produce byte-identical gallery copies.
 
 ## Readme screenshots added 2026-11-12
 
@@ -112,33 +127,38 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/account-statement-logo.png` | `originals/account-statement-logo.png` | 415 x 120 | 39,054 | Account statement demo (specks cleared) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/payslip-logo.png` | `originals/payslip-logo.png` | 443 x 120 | 43,746 | Payslip demo (specks cleared) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/delivery-note-logo.png` | `originals/delivery-note-logo.png` | 352 x 120 | 34,429 | Delivery note demo (specks cleared) |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/certificate-seal.png` | `originals/certificate-seal.png` | 295 x 360 | 125,693 | Certificate demo (specks cleared) |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/certificate-signature.png` | `originals/certificate-signature.png` | 480 x 121 | 15,744 | Certificate demo (fictional signature) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/unlimitedpdf-demos-hero-1200.jpg` | `banners/unlimitedpdf-demos-hero.png` | 1200 x 675, JPEG quality 85 | 124,551 | App home showcase (wide screens) |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/unlimitedpdf-demos-hero-800.jpg` | `banners/unlimitedpdf-demos-hero.png` | 800 x 450, JPEG quality 85 | 68,417 | App home showcase (phones) |
 | `assets/derived/unlimitedpdf-github-banner.jpg` | `banners/unlimitedpdf-github-banner.png` | 1280 x 640, JPEG quality 90 | 120,382 | README.md and nuget/README.md banner |
 | `assets/derived/unlimitedpdf-social-preview.jpg` | `banners/unlimitedpdf-social-card.png` | 1280 x 640, JPEG quality 90 | 115,660 | GitHub repository social preview (uploaded in Settings) |
 | `nuget/icon.png` | `nuget/unlimitedpdf-package-icon.png` | 128 x 128 | 21,808 | NuGet package icon |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-320.jpg` | `originals/gallery/invoice.png` | 320 x 453, JPEG quality 90 | 21,566 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-960.jpg` | `originals/gallery/invoice.png` | 960 x 1358, JPEG quality 90 | 114,845 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-320.jpg` | `originals/gallery/quotation.png` | 320 x 453, JPEG quality 90 | 20,312 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-960.jpg` | `originals/gallery/quotation.png` | 960 x 1358, JPEG quality 90 | 117,977 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-320.jpg` | `originals/gallery/purchase-order.png` | 320 x 453, JPEG quality 90 | 21,115 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-960.jpg` | `originals/gallery/purchase-order.png` | 960 x 1358, JPEG quality 90 | 117,939 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-320.jpg` | `originals/gallery/delivery-note.png` | 320 x 453, JPEG quality 90 | 18,985 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-960.jpg` | `originals/gallery/delivery-note.png` | 960 x 1358, JPEG quality 90 | 101,788 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-320.jpg` | `originals/gallery/account-statement.png` | 320 x 453, JPEG quality 80 | 37,471 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-960.jpg` | `originals/gallery/account-statement.png` | 960 x 1358, JPEG quality 45 | 146,543 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-320.jpg` | `originals/gallery/payslip.png` | 320 x 453, JPEG quality 90 | 21,329 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-960.jpg` | `originals/gallery/payslip.png` | 960 x 1358, JPEG quality 90 | 119,957 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-320.jpg` | `originals/gallery/medical-report.png` | 320 x 453, JPEG quality 90 | 22,380 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-960.jpg` | `originals/gallery/medical-report.png` | 960 x 1358, JPEG quality 90 | 123,626 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-960.jpg` | `originals/gallery/receipt.png` | 960 x 1353, JPEG quality 90 | 134,964 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-320.jpg` | `originals/gallery/certificate.png` | 320 x 453, JPEG quality 90 | 21,389 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/certificate-960.jpg` | `originals/gallery/certificate.png` | 960 x 1358, JPEG quality 90 | 111,324 | App home quick look |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-320.jpg` | `originals/gallery/employee-directory.png` | 320 x 453, JPEG quality 80 | 36,425 | App home gallery tile |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/employee-directory-960.jpg` | `originals/gallery/employee-directory.png` | 960 x 1358, JPEG quality 45 | 148,902 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoice-320.jpg` | `originals/gallery/invoice.png` | 320 x 453, JPEG quality 90 | 21,566 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/quotation-320.jpg` | `originals/gallery/quotation.png` | 320 x 453, JPEG quality 90 | 20,312 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/purchase-order-320.jpg` | `originals/gallery/purchase-order.png` | 320 x 453, JPEG quality 90 | 21,115 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/delivery-note-320.jpg` | `originals/gallery/delivery-note.png` | 320 x 453, JPEG quality 90 | 18,985 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/account-statement-320.jpg` | `originals/gallery/account-statement.png` | 320 x 453, JPEG quality 80 | 37,471 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/payslip-320.jpg` | `originals/gallery/payslip.png` | 320 x 453, JPEG quality 90 | 21,329 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-320.jpg` | `originals/gallery/medical-report.png` | 320 x 453, JPEG quality 90 | 22,380 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/bookmarks-and-numbers-320.jpg` | `originals/gallery/bookmarks-and-numbers.png` | 320 x 453 | 4,357 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoices-320.jpg` | `originals/gallery/invoices.png` | 320 x 453 | 19,443 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/common-html-to-pdf-problems-320.jpg` | `originals/gallery/common-html-to-pdf-problems.png` | 320 x 453 | 30,188 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/contract-320.jpg` | `originals/gallery/contract.png` | 320 x 453 | 34,219 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/cover-and-ranges-320.jpg` | `originals/gallery/cover-and-ranges.png` | 320 x 453 | 5,625 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/document-pack-320.jpg` | `originals/gallery/document-pack.png` | 320 x 453 | 5,905 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/headers-and-footers-320.jpg` | `originals/gallery/headers-and-footers.png` | 320 x 453 | 37,977 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/fonts-and-languages-320.jpg` | `originals/gallery/fonts-and-languages.png` | 320 x 453 | 14,635 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/html-to-pdf-320.jpg` | `originals/gallery/html-to-pdf.png` | 320 x 453 | 16,800 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/images-320.jpg` | `originals/gallery/images.png` | 320 x 453 | 10,934 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/inventory-report-320.jpg` | `originals/gallery/inventory-report.png` | 320 x 453 | 37,913 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/joined-320.jpg` | `originals/gallery/joined.png` | 320 x 453 | 14,042 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/kpi-report-320.jpg` | `originals/gallery/kpi-report.png` | 320 x 453 | 18,820 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/picked-pages-320.jpg` | `originals/gallery/picked-pages.png` | 320 x 453 | 35,840 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/shipping-labels-320.jpg` | `originals/gallery/shipping-labels.png` | 320 x 453 | 32,639 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/every-n-pages-320.jpg` | `originals/gallery/every-n-pages.png` | 320 x 453 | 36,585 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/page-ranges-320.jpg` | `originals/gallery/page-ranges.png` | 320 x 453 | 39,565 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/tables-320.jpg` | `originals/gallery/tables.png` | 320 x 453 | 11,592 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/text-and-pages-320.jpg` | `originals/gallery/text-and-pages.png` | 320 x 453 | 6,857 | Scenario card |
 | `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/invoice.jpg` | `originals/readme/invoice.png` | 1172 x 945, JPEG quality 90 | 114,508 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/images.jpg` | `originals/readme/images.png` | 832 x 1148, JPEG quality 90 | 50,537 | README.md and nuget/README.md screenshot |

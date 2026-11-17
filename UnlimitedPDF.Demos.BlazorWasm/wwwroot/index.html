@@ -14,18 +14,19 @@
     <link rel="icon" type="image/png" href="images/favicon.png" />
     <script type="importmap"></script>
     <style>
-        /* First screen: plain HTML and inline CSS, so it paints at once while .NET downloads. Blazor replaces it. */
+        /* First screen: plain HTML and inline CSS in the site's colors (D-021), so it paints at once while .NET downloads.
+           Blazor replaces it. */
         .boot { min-height: 100vh; display: grid; place-items: center; padding: 2rem; text-align: center;
                 font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-                background: radial-gradient(60rem 30rem at 50% -10%, #e6efff 0%, #ffffff 60%); color: #12213d; }
+                background: radial-gradient(60rem 30rem at 50% -10%, #e6f6f2 0%, #ffffff 60%); color: #13203b; }
         .boot-card { max-width: 36rem; }
-        .boot-brand { font-size: 2.25rem; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
-        .boot-brand span { color: #2357e8; }
-        .boot-tagline { font-size: 1.125rem; color: #4a5875; margin: 0.75rem 0 2rem; line-height: 1.5; }
-        .boot-track { height: 6px; border-radius: 999px; background: #dde5f5; overflow: hidden; width: min(22rem, 80vw); margin: 0 auto; }
-        .boot-bar { height: 100%; width: var(--blazor-load-percentage, 4%); background: linear-gradient(90deg, #2357e8, #19b2a6);
+        .boot-brand { font-size: 2.25rem; font-weight: 800; letter-spacing: -0.02em; margin: 0; color: #002a73; }
+        .boot-brand span { color: #007a64; }
+        .boot-tagline { font-size: 1.125rem; color: #4a5568; margin: 0.75rem 0 2rem; line-height: 1.5; }
+        .boot-track { height: 6px; border-radius: 999px; background: #dfe5ee; overflow: hidden; width: min(22rem, 80vw); margin: 0 auto; }
+        .boot-bar { height: 100%; width: var(--blazor-load-percentage, 4%); background: #002a73;
                     border-radius: inherit; transition: width 0.15s ease-out; }
-        .boot-status { margin-top: 0.75rem; font-size: 0.875rem; color: #6b7894; font-variant-numeric: tabular-nums; }
+        .boot-status { margin-top: 0.75rem; font-size: 0.875rem; color: #4a5568; font-variant-numeric: tabular-nums; }
         .boot-status::after { content: "Loading the playground " var(--blazor-load-percentage-text, ""); }
         @media (prefers-reduced-motion: reduce) { .boot-bar { transition: none; } }
     </style>
@@ -36,7 +37,7 @@
         <div class="boot">
             <div class="boot-card">
                 <p class="boot-brand">Unlimited<span>PDF</span></p>
-                <p class="boot-tagline">Create PDFs with text, tables, and images in pure .NET, generated right here in your browser.</p>
+                <p class="boot-tagline">Create, merge, split, and convert HTML to PDF in pure .NET. No engine required: every demo runs right here in your browser.</p>
                 <div class="boot-track" role="progressbar" aria-label="Loading the playground"><div class="boot-bar"></div></div>
                 <div class="boot-status" aria-hidden="true"></div>
                 <!-- For readers that don't run JavaScript, including agents and crawlers: what the site is and where to read about it. -->
@@ -51,7 +52,7 @@
     <div id="blazor-error-ui">
         Something went wrong. Reload the page to continue.
         <a href="." class="reload">Reload</a>
-        <span class="dismiss">&#x2715;</span>
+        <button type="button" class="dismiss" aria-label="Dismiss">&#x2715;</button>
     </div>
     <script src="_framework/blazor.webassembly#[.{fingerprint}].js"></script>
 </body>

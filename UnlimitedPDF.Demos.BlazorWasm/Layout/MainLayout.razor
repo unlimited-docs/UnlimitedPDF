@@ -1,9 +1,11 @@
 @inherits LayoutComponentBase
 
-@* The first Tab stop on every page: skips the top bar (and the playground sidebar) to the page's own content. The
+@* The first Tab stop on every page: skips the top bar (and a demo's breadcrumb) to the page's own content. The
    click moves focus in code, because a bare "#main-content" link resolves against the base href and would open Home. *@
 <a class="skip-link" href="#main-content" @onclick="SkipToContentAsync" @onclick:preventDefault>Skip to content</a>
 
+@* The top bar (D-021, D-024): the logo and version, the site-wide search, the main links, and Install. Below 900 px
+   the search and links move into the menu drawer (D-028). *@
 <header class="topbar">
     <div class="topbar-inner">
         <div class="brand-group">
@@ -23,17 +25,41 @@
                 </a>
             }
         </div>
+        <div class="topbar-search">
+            <SiteSearchBox InputId="site-search" ShowShortcut="true" />
+        </div>
         <nav class="topnav" aria-label="Main">
-            <NavLink class="topnav-link topnav-home" href="" Match="NavLinkMatch.All">Home</NavLink>
-            <NavLink class="topnav-link" href="playground" Match="NavLinkMatch.Prefix">Playground</NavLink>
+            <NavLink class="topnav-link" href="playground" Match="NavLinkMatch.Prefix">Scenarios</NavLink>
             <NavLink class="topnav-link" href="faq" Match="NavLinkMatch.All">FAQ</NavLink>
-            <a class="topnav-link topnav-github" href="https://github.com/unlimited-docs/UnlimitedPDF" target="_blank" rel="noopener">GitHub</a>
-            <a class="btn btn-sm btn-solid theme-primary topnav-cta" href="https://www.nuget.org/packages/UnlimitedPDF" target="_blank" rel="noopener">
-                <span class="cta-long">Get it on </span>NuGet
+            <a class="topnav-link topnav-github" href="@GitHubUrl" target="_blank" rel="noopener">GitHub<span class="visually-hidden"> (opens in a new tab)</span></a>
+            <a class="btn btn-sm btn-solid theme-primary topnav-cta" href="@NuGetUrl" target="_blank" rel="noopener">
+                Install<span class="visually-hidden"> from NuGet (opens in a new tab)</span>
             </a>
         </nav>
+        <button type="button" class="btn btn-sm topbar-menu" data-site-menu-open aria-haspopup="dialog" aria-controls="site-menu"
+                @onclick="OpenMenuAsync">
+            <Icon Name="menu" Size="18" /> Menu
+        </button>
     </div>
 </header>
+
+@* The phone menu (D-028): a modal drawer, so focus stays inside it, Escape closes it, and focus goes back to Menu. *@
+<dialog id="site-menu" class="site-menu" aria-labelledby="site-menu-title" @ref="_menu">
+    <div class="site-menu-head">
+        <p id="site-menu-title" class="site-menu-title">Menu</p>
+        <button type="button" class="btn btn-sm site-menu-close" @onclick="CloseMenuAsync"><Icon Name="close" Size="18" /> Close</button>
+    </div>
+    <SiteSearchBox InputId="site-menu-search" />
+    <nav class="site-menu-nav" aria-label="Main">
+        <NavLink class="site-menu-link" href="" Match="NavLinkMatch.All">Home</NavLink>
+        <NavLink class="site-menu-link" href="playground" Match="NavLinkMatch.Prefix">Scenarios</NavLink>
+        <NavLink class="site-menu-link" href="faq" Match="NavLinkMatch.All">FAQ</NavLink>
+        <a class="site-menu-link" href="@GitHubUrl" target="_blank" rel="noopener">GitHub <Icon Name="external" Size="14" /><span class="visually-hidden"> (opens in a new tab)</span></a>
+    </nav>
+    <a class="btn btn-solid theme-primary site-menu-install" href="@NuGetUrl" target="_blank" rel="noopener">
+        Install from NuGet<span class="visually-hidden"> (opens in a new tab)</span>
+    </a>
+</dialog>
 
 <main id="main-content" class="app-main" tabindex="-1">
     @Body

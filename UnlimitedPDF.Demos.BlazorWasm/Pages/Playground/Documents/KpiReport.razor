@@ -1,0 +1,47 @@
+@page "/playground/documents/kpi-report"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.KpiReport" Build="BuildAsync" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Report">
+            <div class="field">
+                <label for="kpi-company">Company</label>
+                <input id="kpi-company" class="form-control" @bind="_input.Company" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="kpi-period">Period</label>
+                <input id="kpi-period" class="form-control" @bind="_input.Period" @bind:event="oninput" />
+            </div>
+        </CollapsibleSection>
+        <CollapsibleSection Title="Monthly revenue (lakh INR)">
+            <div class="kpi-months">
+                @for (int index = 0; index < _input.MonthlyRevenue.Count; index++)
+                {
+                    int month = index;
+                    <div class="field">
+                        <label for="@($"kpi-month-{month}")">@Months[month]</label>
+                        <input id="@($"kpi-month-{month}")" type="number" min="0" step="1" class="form-control" value="@_input.MonthlyRevenue[month]"
+                               @onchange="e => SetMonth(month, e.Value)" />
+                    </div>
+                }
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private static readonly string[] Months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+    private KpiReportInput _input = new();
+    private SamplePage? _page;
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(KpiReportSample.Build(_input));
+
+    private void Reset() => _input = new();
+
+    // A value that is not a number counts as 0; the chart never draws a negative bar.
+    private void SetMonth(int month, object? value)
+    {
+        _input.MonthlyRevenue[month] = decimal.TryParse(value?.ToString(), System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var amount) ? amount : 0;
+        _page?.NotifyInputsChanged();
+    }
+}

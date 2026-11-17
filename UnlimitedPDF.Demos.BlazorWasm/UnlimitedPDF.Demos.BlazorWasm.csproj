@@ -33,4 +33,26 @@
     <EmbeddedResource Include="Samples\FaqSnippets.cs" LogicalName="Samples.FaqSnippets.cs" />
   </ItemGroup>
 
+  <!-- The site's Content-Security-Policy (staticwebapp.config.json) allows one inline script: the import map the build
+       writes into index.html. Its hash changes with every build, so after publish it is worked out and written into the
+       published config, always from the source template, so a second publish works too (26111701 T-14). The code is
+       in Build/WriteImportMapHash.cs, which the tests also compile; it is not part of the app. -->
+  <ItemGroup>
+    <Compile Remove="Build\**" />
+    <None Remove="Build\**" />
+  </ItemGroup>
+
+  <UsingTask TaskName="WriteImportMapHash" TaskFactory="RoslynCodeTaskFactory" AssemblyFile="$(MSBuildToolsPath)\Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Folder ParameterType="System.String" Required="true" />
+      <Template ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)Build\WriteImportMapHash.cs" />
+    </Task>
+  </UsingTask>
+
+  <Target Name="WriteImportMapHashAfterPublish" AfterTargets="Publish">
+    <WriteImportMapHash Folder="$(PublishDir)wwwroot" Template="$(MSBuildThisFileDirectory)wwwroot\staticwebapp.config.json" />
+  </Target>
 </Project>

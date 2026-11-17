@@ -13,11 +13,22 @@
     {
         <div class="font-slot-file">
             <Icon Name="check" Size="16" />
-            <span title="@font.FileName">@font.FileName · @Describe(font.Font)</span>
+            @if (font.Bundled is { } bundled)
+            {
+                <span title="@font.FileName">@bundled.Name (included) · @Describe(font.Font)</span>
+            }
+            else
+            {
+                <span title="@font.FileName">@font.FileName · @Describe(font.Font)</span>
+            }
             <button type="button" class="row-remove" title="Remove the @Script font" aria-label="Remove the @Script font" @onclick="RemoveAsync">
                 <Icon Name="close" Size="16" />
             </button>
         </div>
+        @if (font.Bundled is not null)
+        {
+            <p class="field-hint">A free font under the <a href="@BundledFonts.LicensePath" target="_blank" rel="noopener">@BundledFonts.LicenseName</a>, included only for this demo.</p>
+        }
         @if (!_covers)
         {
             <p class="field-hint">This font has no @Script letters. It is still used for any other characters it has.</p>
@@ -34,7 +45,7 @@
     @* The file input stays in the page while its file is read, so it is hidden rather than removed. *@
     <label class="dropzone" hidden="@_reading">
         <InputFile class="dropzone-input" OnChange="OnFileChosenAsync" accept=".ttf,.otf,font/ttf,font/otf" aria-label="@($"Upload a {Script} font")" />
-        <strong>@(Value is null ? "Drop a .ttf or .otf font" : "Drop another font to replace it")</strong>
+        <strong>@(Value is null ? "Drop a .ttf or .otf font" : Value.Bundled is null ? "Drop another font to replace it" : "Use your own font: drop a .ttf or .otf")</strong>
         <span>or click to browse · up to @(PdfFont.DefaultMaxFileSize / (1024 * 1024)) MB</span>
     </label>
 

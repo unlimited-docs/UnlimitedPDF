@@ -1,8 +1,8 @@
 {
-  "source": "https://chatgpt.com/share/6aeb010e-7d90-83e8-b31b-ae43794edd92",
+  "source": "Image-generation service (shared session, not linked)",
   "downloadedOn": "2026-11-04",
-  "generationTool": "ChatGPT image generation",
-  "notes": "PNG artwork downloaded from the shared chat. On 2026-11-04, the GitHub banner and social card were edited to correct their code windows using the local UnlimitedPDF API, and the demo hero was edited to show the current logo once without a duplicate headline. Edit records contain exact prompts and validation details; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
+  "generationTool": "Image-generation service",
+  "notes": "PNG artwork downloaded from the shared session. On 2026-11-04, the GitHub banner and social card were edited to correct their code windows using the local UnlimitedPDF API, and the demo hero was edited to show the current logo once without a duplicate headline. Edit records contain exact prompts and validation details; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
   "assets": [
     {
       "path": "originals/invoice-logo.png",
@@ -30,24 +30,6 @@
       "bytes": 250775,
       "sha256": "8d3299d9146344f853e3099a0d36e5709d13069e7c58cf6604a4291b469dd169",
       "sourceAssetId": "5dfa6f469251b8f7"
-    },
-    {
-      "path": "originals/certificate-seal.png",
-      "purpose": "Certificate demo seal",
-      "width": 1254,
-      "height": 1254,
-      "bytes": 1125856,
-      "sha256": "830e82106a8a875724a4be6d3c404128ea187d57c1c088b41cc9d8d26bda7941",
-      "sourceAssetId": "d551620d54cb2dc4"
-    },
-    {
-      "path": "originals/certificate-signature.png",
-      "purpose": "Fictional certificate demo signature",
-      "width": 2172,
-      "height": 724,
-      "bytes": 245843,
-      "sha256": "e15c3a53f34759d741603786b3ad4ce62295b13ba316d25cb9a165e7873bd686",
-      "sourceAssetId": "72e974d4d095761f"
     },
     {
       "path": "branding/favicon.png",
@@ -234,7 +216,7 @@
       "height": 2092,
       "bytes": 363060,
       "sha256": "98432ee1bdb3045af294d0e3f4b2a85e051e9d4a25aa6f3dc41c5f8d1fec294a",
-      "capturedFrom": "playground/documents/quotation",
+      "capturedFrom": "playground/documents/invoice?type=quotation",
       "capturedOn": "2026-11-11"
     },
     {
@@ -244,7 +226,7 @@
       "height": 2092,
       "bytes": 348333,
       "sha256": "4d28aa500e7ca517dc935b1fe98e86c3cb80f6bbe3e32c800bed3857b7cad09b",
-      "capturedFrom": "playground/documents/purchase-order",
+      "capturedFrom": "playground/documents/invoice?type=purchase-order",
       "capturedOn": "2026-11-11"
     },
     {
@@ -254,7 +236,7 @@
       "height": 2092,
       "bytes": 303106,
       "sha256": "b847dc16cac594d096d2ed46f8cabeb7f4db933b967934537f0d8bd8d9bbadaf",
-      "capturedFrom": "playground/documents/delivery-note",
+      "capturedFrom": "playground/documents/invoice?type=delivery-note",
       "capturedOn": "2026-11-11"
     },
     {
@@ -294,27 +276,7 @@
       "height": 2058,
       "bytes": 378318,
       "sha256": "5f0ebc185a74a3a6a3d88a4c1a175ac1c225f57c19ef92277be9725b2a9c0895",
-      "capturedFrom": "playground/documents/receipt",
-      "capturedOn": "2026-11-11"
-    },
-    {
-      "path": "originals/gallery/certificate.png",
-      "purpose": "Certificate home gallery picture: first page of the PDF the demo generates with its default input",
-      "width": 1479,
-      "height": 2092,
-      "bytes": 282276,
-      "sha256": "80765a4f5dfcd7b2bfb147d71aa878c01b091274818872a1c29c2eda3bac94de",
-      "capturedFrom": "playground/documents/certificate",
-      "capturedOn": "2026-11-11"
-    },
-    {
-      "path": "originals/gallery/employee-directory.png",
-      "purpose": "Employee directory home gallery picture: first page of the PDF the demo generates with its default input",
-      "width": 1457,
-      "height": 2061,
-      "bytes": 795045,
-      "sha256": "a6413ed70ebd13f83a9c1b7b4e4682bc7d595fa78a1b577406364d212ff92496",
-      "capturedFrom": "playground/documents/employee-directory",
+      "capturedFrom": "playground/documents/invoice?type=receipt",
       "capturedOn": "2026-11-11"
     },
     {
@@ -396,6 +358,196 @@
       "sha256": "7d0fcb50c3b1b6a38cb6fd81e209f2af89f0c886db881b149ddc553c42a46b7c",
       "capturedFrom": "README.md \"HTML to PDF\" example",
       "capturedOn": "2026-11-12"
+    },
+    {
+      "path": "originals/gallery/bookmarks-and-numbers.png",
+      "purpose": "Bookmarks & numbers card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 26991,
+      "sha256": "3f51ced0c598a9e4c20535c6e4a296164ee1c9c3b86e30eebd00e15058fcb811",
+      "capturedFrom": "playground/merge/bookmarks-and-numbers",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/invoices.png",
+      "purpose": "Bulk invoices (first invoice) card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 120529,
+      "sha256": "fe98cb90cf76911f65feaed7c5b8a31288bf14ad7fb930efaa359d6acacf1403",
+      "capturedFrom": "playground/documents/bulk-invoices",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/common-html-to-pdf-problems.png",
+      "purpose": "Common problems card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 279235,
+      "sha256": "a8270494a7c489475da6bf1f499289bce6ca04606af70f52b7e474a01ebde729",
+      "capturedFrom": "playground/html/common-problems",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/contract.png",
+      "purpose": "Contract card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 219527,
+      "sha256": "5c378de217ea24bee1415e9740775da2432d3a3cab9960481f195411985e130a",
+      "capturedFrom": "playground/documents/contract",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/cover-and-ranges.png",
+      "purpose": "Cover + ranges card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 34121,
+      "sha256": "51a742a3703271e724a6ed063f3b90e6a2fe6beb3f19443a28388b030015594e",
+      "capturedFrom": "playground/merge/cover-and-ranges",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/document-pack.png",
+      "purpose": "Document packs card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 39678,
+      "sha256": "5abe005e3937ef7b7f71b62e68de16b20438d7e0906ccf92e60c3d35184cbe71",
+      "capturedFrom": "playground/merge/document-packs",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/headers-and-footers.png",
+      "purpose": "Headers and footers card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 191913,
+      "sha256": "8d92a7f9929d53e302150f071167fba3274b9885931fd078843eb3007f053c0c",
+      "capturedFrom": "playground/create/headers-and-footers",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/fonts-and-languages.png",
+      "purpose": "Fonts and languages (French) card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 76974,
+      "sha256": "d5694b99a2e57ac7a03051ee512bd6ce1982f8ad09f4fad5a66538af4117f9b2",
+      "capturedFrom": "playground/languages/fonts-and-languages",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/html-to-pdf.png",
+      "purpose": "HTML to PDF card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 132842,
+      "sha256": "6b66046f49e6d6644773d0c84f2474baefe1d859b77da3a9c83c57093b6a8915",
+      "capturedFrom": "playground/html/html-to-pdf",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/images.png",
+      "purpose": "Images card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 170738,
+      "sha256": "bfda08959b025813d6d2576ed79a87b31a8672e7cbd70e9509a6efb32d9658bc",
+      "capturedFrom": "playground/create/images",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/inventory-report.png",
+      "purpose": "Inventory report card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 278798,
+      "sha256": "a8d0924b01c5d821d824772162861abfad673ce3b5cafd0d27ae8c2cb1688f7c",
+      "capturedFrom": "playground/documents/inventory-report",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/joined.png",
+      "purpose": "Join files card picture: the first pages of the two files the demo joins with its default input, laid over each other",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 247093,
+      "sha256": "124e4c2cf75059320ae0a7bc1e90932d9c79545f9c9602b5a46161f331571a96",
+      "capturedFrom": "playground/merge/join-files",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/kpi-report.png",
+      "purpose": "KPI report card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 66650,
+      "sha256": "04056745da0895a7e485884e3914045af3bf630627844f6a85b98d6d74a4f0d9",
+      "capturedFrom": "playground/documents/kpi-report",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/picked-pages.png",
+      "purpose": "Pick pages card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 211656,
+      "sha256": "11fdd046c25de32c5fb8b23993cac59c6c5aca72bdd1f680eee2f04a42dfe2fa",
+      "capturedFrom": "playground/merge/pick-pages",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/shipping-labels.png",
+      "purpose": "Shipping labels card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 169220,
+      "sha256": "072e32b1e08f8e48c236d7f57bfc0fc669f63ed2ca422109dd59fab0c401c3d1",
+      "capturedFrom": "playground/documents/shipping-labels",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/every-n-pages.png",
+      "purpose": "Every N pages card picture: the second page of the first part the demo makes with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 210240,
+      "sha256": "c34e20741a06c35fb8028da70233f6dfbc835bfcc49238673aafa7c5cf5001d0",
+      "capturedFrom": "playground/split/every-n-pages",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/page-ranges.png",
+      "purpose": "Page ranges (first part) card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 199697,
+      "sha256": "97d0b7662d874ace41a71627b0eaf5d07131ded89f09d052aab67e5d21456e4a",
+      "capturedFrom": "playground/split/page-ranges",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/tables.png",
+      "purpose": "Tables card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 61428,
+      "sha256": "fe20b7f0d14d7e9f79a9c295aad2daf5c6995e895a79d82aaeb98e47a2c45f8b",
+      "capturedFrom": "playground/create/tables",
+      "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/text-and-pages.png",
+      "purpose": "Text and pages card picture: first page of the PDF the demo generates with its default input",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 33301,
+      "sha256": "ec53fcc990eef64234e1a0b4d872624c9911081a59241445158e93fb41df96ff",
+      "capturedFrom": "playground/create/text-and-pages",
+      "capturedOn": "2026-11-17"
     }
   ]
 }

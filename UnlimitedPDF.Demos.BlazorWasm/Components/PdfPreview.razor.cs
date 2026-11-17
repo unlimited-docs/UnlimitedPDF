@@ -1,28 +1,68 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+using UnlimitedPDF.Demos.BlazorWasm.Samples;
 using UnlimitedPDF.Demos.BlazorWasm.Services;
+using UnlimitedPDF.Models.Internal.Rendering;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Components;
 
 /// <summary>
-/// Shows a generated PDF in the browser's built-in PDF view, and offers the same bytes for download or a new tab.
-/// While a new PDF is generated, the previous one stays visible, dimmed under a progress overlay. Browsers that don't
-/// show a PDF placed in a frame (Android Chrome) get a "Your PDF is ready" card with Open PDF and Download instead, so
-/// nothing downloads by itself (QF-26111303). iPhone and iPad show the PDF in the frame (QF-26111402).
+/// Shows a generated PDF drawn page by page by the library's renderer, and offers the same bytes for download or a new
+/// tab. While a new PDF is generated, the previous one stays visible, dimmed under a progress overlay.
 /// </summary>
 public partial class PdfPreview : IAsyncDisposable
 {
     #region Fields and Constants
 
+    // Zoom steps, as CSS pixels per PDF point over 4/3 (1 is the page's actual size on screen).
+    private static readonly double[] Steps = [0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4];
+
+    private static int s_instances;
+
+    private readonly HashSet<int> _drawn = [];
+    private readonly Dictionary<int, string> _failed = [];
+    private readonly string _prefix = $"pv{Interlocked.Increment(ref s_instances)}-";
+    private PdfFile? _file;
     private string _fileName = string.Empty;
-    private ElementReference _frame;
-    private bool? _inPage;
-    private int _size;
+    private int _goVersion;
+    private DotNetObjectReference<PdfPreview>? _listener;
+    private int _pageCount;
+    private bool _rewatch;
+    private double? _scale;
+    private ElementReference _scroll;
+    private int _shown;
+    private IReadOnlyList<(double Width, double Height)> _sizes = [];
+    private string? _unreadable;
     private string? _url;
+    private int _version;
+    private double _widest = 595;
 
     #endregion
 
     #region Methods
+
+    #region Protected Override Methods
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _listener = DotNetObjectReference.Create(this);
+            await Interop.InitViewerAsync(_scroll, _listener);
+        }
+
+        if (_rewatch)
+        {
+            _rewatch = false;
+            await Interop.ScrollToPageAsync(_scroll, 1, smooth: false);
+            await Interop.WatchPagesAsync(_scroll);
+        }
+    }
+
+    #endregion
 
     #region Public Methods
 
@@ -31,72 +71,199 @@ public partial class PdfPreview : IAsyncDisposable
     {
         try
         {
+            await Interop.DisposeViewerAsync(_scroll);
             await Interop.RevokeObjectUrlAsync(_url);
         }
-        catch (Microsoft.JSInterop.JSDisconnectedException)
+        catch (JSDisconnectedException)
         {
             // The page is closing; the browser releases the URL itself.
         }
 
         _url = null;
+        _listener?.Dispose();
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
-    /// Saves the current PDF under the given file name.
+    /// Saves the shown PDF under a file name.
     /// </summary>
-    /// <param name="fileName">The file name, for example "invoice.pdf".</param>
+    /// <param name="fileName">The file name to save as.</param>
     public async Task DownloadAsync(string fileName)
     {
-        if (_url is not null)
-        {
-            await Interop.DownloadAsync(_url, fileName);
-        }
+        if (_url is not null) await Interop.DownloadAsync(_url, fileName);
     }
 
     /// <summary>
-    /// Opens the current PDF in a new browser tab.
+    /// Draws one page, when the viewer asks for it as it comes near the view. Called from <c>js/app.js</c>.
+    /// </summary>
+    /// <param name="number">The 1-based page number.</param>
+    [JSInvokable]
+    public async Task DrawPage(int number)
+    {
+        if (_file is null || number < 1 || number > _pageCount || _drawn.Contains(number) || _failed.ContainsKey(number)) return;
+
+        int version = _version;
+        // Every page has its own id prefix: the pages share one document, where a reference to an id finds the first
+        // element with it.
+        var page = PdfPageRenderer.Render(_file, number - 1, PagePrefix(version, number));
+        if (version != _version) return;
+
+        bool placed = page.Svg is not null && await Interop.PlacePageAsync(_scroll, version, number, page.Svg);
+        if (version != _version) return;
+        if (placed)
+        {
+            _drawn.Add(number);
+            return;
+        }
+
+        _failed[number] = page.Reason ?? "The drawing can't be shown.";
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Opens the shown PDF in a new browser tab.
     /// </summary>
     public async Task OpenInNewTabAsync()
     {
-        if (_url is not null)
-        {
-            await Interop.OpenInNewTabAsync(_url);
-        }
+        if (_url is not null) await Interop.OpenInNewTabAsync(_url);
     }
 
     /// <summary>
-    /// Shows a new PDF and releases the previous one.
+    /// Notes the page in view, for the page number box. Called from <c>js/app.js</c>.
     /// </summary>
-    /// <param name="pdfBytes">The PDF content.</param>
-    /// <param name="fileName">The PDF's file name, for example "invoice.pdf", shown on the ready card and used by its
-    /// Download button.</param>
+    /// <param name="number">The 1-based page number.</param>
+    [JSInvokable]
+    public void PageShown(int number)
+    {
+        if (number == _shown || number < 1 || number > _pageCount) return;
+        _shown = number;
+        StateHasChanged();
+    }
+
+    /// <summary>
+    /// Sets the zoom after a two-finger pinch. Called from <c>js/app.js</c>.
+    /// </summary>
+    /// <param name="ratio">How much the fingers spread (above 1) or closed (below 1).</param>
+    [JSInvokable]
+    public async Task Pinched(double ratio)
+    {
+        if (_pageCount == 0 || !double.IsFinite(ratio) || ratio <= 0) return;
+        double fit = await FitScaleAsync();
+        double scale = Math.Clamp(await CurrentScaleAsync() * ratio, Math.Min(Steps[0], fit), Steps[^1]);
+        await SetScaleAsync(scale <= fit + 0.01 && fit < Steps[0] ? null : Math.Round(scale * 20) / 20);
+    }
+
+    /// <summary>
+    /// Shows a new PDF: its pages are laid out at their sizes and drawn as they come into view.
+    /// </summary>
+    /// <param name="pdfBytes">The PDF.</param>
+    /// <param name="fileName">The file name for Download.</param>
     public async Task ShowAsync(byte[] pdfBytes, string fileName)
     {
         ArgumentNullException.ThrowIfNull(pdfBytes);
-        _inPage ??= await Interop.CanShowPdfInPageAsync();
 
+        string url = await Interop.CreateObjectUrlAsync(pdfBytes, "application/pdf");
         var previous = _url;
-        _url = await Interop.CreateObjectUrlAsync(pdfBytes, "application/pdf");
+        _url = url;
         _fileName = fileName;
-        _size = pdfBytes.Length;
-        if (_inPage == true)
+        _version++;
+        _drawn.Clear();
+        _failed.Clear();
+        _shown = 1;
+        _unreadable = null;
+        try
         {
-            await Interop.ShowInFrameAsync(_frame, _url);
+            _file = PdfFile.FromBytes(pdfBytes);
+            _sizes = Enumerable.Range(0, _file.PageCount).Select(i => PdfPageRenderer.Size(_file, i) ?? (595.0, 842.0)).ToList();
+            _pageCount = _sizes.Count;
+            _widest = _sizes.Count == 0 ? 595 : _sizes.Max(s => s.Width);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            _file = null;
+            _sizes = [];
+            _pageCount = 0;
+            _unreadable = ErrorText.Plain(exception);
         }
 
-        await Interop.RevokeObjectUrlAsync(previous);
+        _rewatch = true;
         StateHasChanged();
+        await Interop.RevokeObjectUrlAsync(previous);
     }
 
     #endregion
 
     #region Private Methods
 
-    // The same form as the size in the output's status line, for example "14.2 KB".
-    private static string FormatSize(int bytes) =>
-        bytes < 1024
-            ? $"{bytes} B"
-            : string.Format(CultureInfo.InvariantCulture, "{0:0.0} KB", bytes / 1024.0);
+    private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
+
+    // The zoom in use: the set one, or the fit.
+    private async Task<double> CurrentScaleAsync() => _scale ?? await FitScaleAsync();
+
+    // The zoom that makes the widest page fill the viewer.
+    private async Task<double> FitScaleAsync()
+    {
+        double width = await Interop.ViewerWidthAsync(_scroll);
+        return width > 0 ? width / (_widest * 4 / 3) : 1;
+    }
+
+    private async Task FitWidthAsync() => await SetScaleAsync(null);
+
+    private async Task GoToAsync(ChangeEventArgs args)
+    {
+        if (!int.TryParse(args.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)) return;
+        number = Math.Clamp(number, 1, Math.Max(1, _pageCount));
+        _shown = number;
+        _goVersion++; // the box shows the page reached, not a number out of range that was typed
+        await Interop.ScrollToPageAsync(_scroll, number, smooth: true);
+    }
+
+    // + and = zoom in, - zooms out, and 0 fits the width, while the pages have focus.
+    private async Task OnKeyDownAsync(KeyboardEventArgs args)
+    {
+        if (args.CtrlKey || args.MetaKey || args.AltKey) return;
+        switch (args.Key)
+        {
+            case "+" or "=": await ZoomInAsync(); break;
+            case "-": await ZoomOutAsync(); break;
+            case "0": await FitWidthAsync(); break;
+        }
+    }
+
+    private async Task OpenAtPageAsync(int number)
+    {
+        if (_url is not null) await Interop.OpenInNewTabAsync($"{_url}#page={number}");
+    }
+
+    /// <summary>
+    /// Returns the id prefix of a drawn page: the preview, the PDF shown, and the page, so no two pages share an id.
+    /// </summary>
+    private string PagePrefix(int version, int number) => $"{_prefix}v{version}p{number}-";
+
+    // A new zoom keeps the page in view at the top.
+    private async Task SetScaleAsync(double? scale)
+    {
+        _scale = scale;
+        StateHasChanged();
+        await Task.Yield();
+        await Interop.ScrollToPageAsync(_scroll, Math.Max(1, _shown), smooth: false);
+    }
+
+    private async Task ZoomInAsync()
+    {
+        double scale = await CurrentScaleAsync();
+        await SetScaleAsync(Steps.FirstOrDefault(step => step > scale + 0.01, Steps[^1]));
+    }
+
+    // Below the smallest step, zooming out goes back to the fit, never to a larger page.
+    private async Task ZoomOutAsync()
+    {
+        double scale = await CurrentScaleAsync();
+        double fit = await FitScaleAsync();
+        double? next = Steps.Where(step => step < scale - 0.01).Select(step => (double?)step).LastOrDefault();
+        if (next is null && fit < scale - 0.01) await SetScaleAsync(null);
+        else if (next is { } step) await SetScaleAsync(step);
+    }
 
     #endregion
 
@@ -105,22 +272,23 @@ public partial class PdfPreview : IAsyncDisposable
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets or sets a value indicating whether a PDF is being generated.
+    /// Gets or sets whether a new PDF is being generated; the shown one is dimmed under a progress overlay meanwhile.
     /// </summary>
     [Parameter] public bool Busy { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether a PDF is shown.
+    /// Gets or sets the language tag of the PDF's text when it isn't the page's English, or null.
+    /// </summary>
+    [Parameter] public string? Language { get; set; }
+
+    /// <summary>
+    /// Gets whether a PDF is shown.
     /// </summary>
     public bool HasPdf => _url is not null;
 
-    /// <summary>
-    /// Gets or sets the browser helpers.
-    /// </summary>
     [Inject] private BrowserInterop Interop { get; set; } = default!;
 
-    // A PDF is ready, and this browser doesn't show a PDF placed in a frame.
-    private bool ShowsCard => _url is not null && _inPage == false;
+    private string ZoomLabel => _scale is { } scale ? $"{Math.Round(scale * 100)}%" : "Fit";
 
     #endregion
 }

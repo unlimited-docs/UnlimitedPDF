@@ -1,0 +1,472 @@
+using UnlimitedPDF.Models.Internal.Reading;
+
+namespace UnlimitedPDF.Models.Internal.Rendering;
+
+/// <summary>
+/// Runs a page's content operators and writes what they draw as SVG. It understands the operators the library writes
+/// and a few close relatives; anything else stops the page with a <see cref="PageRenderException"/>, so a page is
+/// either drawn completely or not at all.
+/// </summary>
+internal sealed partial class PageInterpreter
+{
+    #region Fields and Constants
+
+    private readonly StringBuilder _body = new();
+    private readonly PdfReadDictionary _catalog;
+    private readonly StringBuilder _defs = new();
+    private readonly string _idPrefix;
+    private readonly PageRenderLimits _limits;
+    private readonly StringBuilder _path = new();
+    private readonly PdfObjectTable _objects;
+    private readonly List<int> _pageObjects;
+    private readonly Stack<RenderState> _saved = new();
+
+    // The longest dash pattern drawn; real patterns have a few entries, and each stroke repeats the pattern.
+    private const int MaxDashEntries = 32;
+
+    // Operators allowed while a path is being built: more construction, painting, or clipping. PDF allows nothing else
+    // there, so anything else means the content is damaged.
+    private static readonly HashSet<string> PathOperators = new(StringComparer.Ordinal)
+    {
+        "m", "l", "c", "v", "y", "h", "re", "f", "F", "f*", "S", "s", "B", "B*", "b", "b*", "n", "W", "W*",
+    };
+
+    private int _clipDepth;
+    private long _contentBytes;
+    private PdfReadDictionary? _currentResources;
+    private int _formDepth;
+
+    // Default user space of the page to the SVG page: the flip and the page rotation, before any cm.
+    private RenderMatrix _pageMatrix = RenderMatrix.Identity;
+    private (double X, double Y) _current;
+    private (double X, double Y) _subpathStart;
+    private int _nextId;
+    private int _operators;
+    private bool _pathHasPoints;
+    private int _pathSegments;
+    private int _paths;
+    private string? _pendingClip;
+    private RenderState _state = new();
+
+    #endregion
+
+    #region Constructors and Finalizers
+
+    /// <summary>
+    /// Creates an interpreter for one page.
+    /// </summary>
+    /// <param name="file">The file the page belongs to, to resolve references and link destinations.</param>
+    /// <param name="pageObjects">The object numbers of the file's pages, in page order.</param>
+    /// <param name="limits">The work bounds.</param>
+    /// <param name="idPrefix">A prefix for element ids, unique among the drawings shown together.</param>
+    public PageInterpreter(PdfSourceFile file, IEnumerable<int> pageObjects, PageRenderLimits limits, string idPrefix)
+    {
+        _objects = file.Objects;
+        _catalog = file.Catalog;
+        _pageObjects = pageObjects.ToList();
+        _limits = limits;
+        _idPrefix = idPrefix;
+    }
+
+    #endregion
+
+    #region Methods
+
+    #region Public Methods
+
+    /// <summary>
+    /// Returns the size a page is shown at, its rotation applied, without drawing it.
+    /// </summary>
+    /// <param name="inherited">The page's own or inherited media box, crop box, and rotation.</param>
+    /// <returns>The width and height in points.</returns>
+    /// <exception cref="PageRenderException">The page's boxes or rotation can't be used.</exception>
+    public (double Width, double Height) ShownSize(IReadOnlyDictionary<string, PdfReadValue> inherited)
+    {
+        var (box, rotate) = Geometry(inherited);
+        double width = box.X1 - box.X0, height = box.Y1 - box.Y0;
+        return rotate is 90 or 270 ? (height, width) : (width, height);
+    }
+
+    /// <summary>
+    /// Draws a page.
+    /// </summary>
+    /// <param name="page">The page dictionary.</param>
+    /// <param name="inherited">The page's own or inherited resources, media box, crop box, and rotation.</param>
+    /// <param name="pageNumber">The 1-based page number.</param>
+    /// <returns>The drawn page.</returns>
+    /// <exception cref="PageRenderException">The page holds content the renderer does not draw.</exception>
+    public PageRenderResult Draw(PdfReadDictionary page, IReadOnlyDictionary<string, PdfReadValue> inherited, int pageNumber)
+    {
+        var (box, rotate) = Geometry(inherited);
+        double width = box.X1 - box.X0, height = box.Y1 - box.Y0;
+
+        // From PDF user space (y up, origin at the box corner) to SVG (y down), turned by the page rotation.
+        var flip = new RenderMatrix(1, 0, 0, -1, -box.X0, box.Y1);
+        var turn = rotate switch
+        {
+            90 => new RenderMatrix(0, 1, -1, 0, height, 0),
+            180 => new RenderMatrix(-1, 0, 0, -1, width, height),
+            270 => new RenderMatrix(0, -1, 1, 0, 0, width),
+            _ => RenderMatrix.Identity,
+        };
+        _state.Ctm = _pageMatrix = flip.Then(turn);
+        double shownWidth = rotate is 90 or 270 ? height : width;
+        double shownHeight = rotate is 90 or 270 ? width : height;
+
+        var resources = _objects.Resolve(inherited.TryGetValue("Resources", out var res) ? res : null) as PdfReadDictionary;
+        // The streams of a page's /Contents array are one content stream split in parts, so the graphics state
+        // carries from one part to the next.
+        Run(Concatenate(ContentStreams(page)), resources);
+
+        // A path never painted at the end of the page draws nothing.
+        _path.Clear();
+        _pathHasPoints = false;
+        _pendingClip = null;
+        while (_saved.Count > 0) Restore();
+        CloseGroups(_state);
+        DrawAppearances(page);
+        DrawAnnotations(page);
+
+        // The frame around the drawing adds about 200 characters; checking before copying keeps the peak at the limit.
+        if (_body.Length + _defs.Length + 200 > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
+        var svg = new StringBuilder(_body.Length + _defs.Length + 200);
+        svg.Append("<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 ").Append(SvgText.Number(shownWidth)).Append(' ')
+            .Append(SvgText.Number(shownHeight)).Append("\" width=\"").Append(SvgText.Number(shownWidth))
+            .Append("\" height=\"").Append(SvgText.Number(shownHeight)).Append("\">");
+        if (_defs.Length > 0) svg.Append("<defs>").Append(_defs).Append("</defs>");
+        svg.Append("<rect width=\"100%\" height=\"100%\" fill=\"#ffffff\"/>");
+        svg.Append(_body).Append("</svg>");
+        if (svg.Length > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
+
+        return new PageRenderResult(pageNumber, shownWidth, shownHeight, svg.ToString(), null, TextLines,
+            new PageRenderCounts(_paths, _glyphs, _images, _links));
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private static double Number(PdfReadValue value) => value is PdfReadNumber number
+        ? number.Value
+        : throw new PageRenderException("An operator has an operand that is not a number.");
+
+    private static double[] Numbers(IReadOnlyList<PdfReadValue> operands, int count)
+    {
+        if (operands.Count < count) throw new PageRenderException("An operator has too few operands.");
+        var values = new double[count];
+        for (int i = 0; i < count; i++)
+        {
+            values[i] = Number(operands[operands.Count - count + i]);
+            if (!double.IsFinite(values[i])) throw new PageRenderException("An operator has an operand that is not finite.");
+        }
+        return values;
+    }
+
+    private static byte[] Concatenate(IEnumerable<byte[]> parts)
+    {
+        using var all = new MemoryStream();
+        foreach (var part in parts)
+        {
+            all.Write(part, 0, part.Length);
+            all.WriteByte((byte)'\n');
+        }
+        return all.ToArray();
+    }
+
+    private void AddSegment(string command, params double[] points)
+    {
+        if (++_pathSegments > _limits.MaxPathSegments) throw new PageRenderException("The page has too many path segments.");
+        if (command != "M" && !_pathHasPoints) throw new PageRenderException("A path on the page doesn't start with a move.");
+        if (_path.Length + _body.Length + _defs.Length > _limits.MaxOutputCharacters) throw new PageRenderException("The page drawing is too large.");
+        _path.Append(command);
+        for (int i = 0; i < points.Length; i++) _path.Append(i == 0 ? "" : " ").Append(SvgText.Number(points[i]));
+        _pathHasPoints = true;
+        if (command == "Z")
+        {
+            _current = _subpathStart;
+        }
+        else
+        {
+            _current = (points[^2], points[^1]);
+            if (command == "M") _subpathStart = _current;
+        }
+    }
+
+    private (double X0, double Y0, double X1, double Y1)? Box(PdfReadValue? value)
+    {
+        if (_objects.Resolve(value) is not PdfReadArray { Count: 4 } array) return null;
+        var n = array.Items.Select(item => _objects.Resolve(item) is PdfReadNumber number ? number.Value : double.NaN).ToArray();
+        if (n.Any(v => !double.IsFinite(v))) return null;
+        return (Math.Min(n[0], n[2]), Math.Min(n[1], n[3]), Math.Max(n[0], n[2]), Math.Max(n[1], n[3]));
+    }
+
+    private void CheckOutput()
+    {
+        if (_body.Length + _defs.Length + _line.Length + _textCharacters > _limits.MaxOutputCharacters)
+            throw new PageRenderException("The page drawing is too large.");
+    }
+
+    private void CloseGroups(RenderState state)
+    {
+        for (int i = 0; i < state.OpenGroups; i++) _body.Append("</g>");
+        _clipDepth -= state.OpenGroups;
+        state.OpenGroups = 0;
+    }
+
+    private IEnumerable<byte[]> ContentStreams(PdfReadDictionary page)
+    {
+        var contents = _objects.Resolve(page["Contents"]);
+        var streams = contents switch
+        {
+            PdfReadStream stream => new List<PdfReadValue> { stream },
+            PdfReadArray array => array.Items.Select(item => _objects.Resolve(item)).ToList(),
+            _ => new List<PdfReadValue>(),
+        };
+        foreach (var item in streams)
+        {
+            if (item is not PdfReadStream stream) throw new PageRenderException("The page content is not a stream.");
+            yield return Decode(stream);
+        }
+    }
+
+    private byte[] Decode(PdfReadStream stream)
+    {
+        byte[] data;
+        try
+        {
+            data = PdfStreamDecoder.Decode(stream, _objects.Resolve, _limits.MaxContentBytes - _contentBytes);
+        }
+        catch (PdfReadException exception) when (exception.Error == PdfReadError.TooLarge)
+        {
+            throw new PageRenderException("The page content is too large.");
+        }
+        catch (PdfReadException exception)
+        {
+            throw new PageRenderException($"A stream on the page can't be read: {exception.Message}");
+        }
+        _contentBytes += data.Length;
+        if (_contentBytes > _limits.MaxContentBytes) throw new PageRenderException("The page content is too large.");
+        return data;
+    }
+
+    // The visible box (the crop box inside the media box) and the rotation in degrees: 0, 90, 180, or 270.
+    private ((double X0, double Y0, double X1, double Y1) Box, int Rotate) Geometry(IReadOnlyDictionary<string, PdfReadValue> inherited)
+    {
+        var media = Box(inherited.TryGetValue("MediaBox", out var mediaValue) ? mediaValue : null)
+            ?? throw new PageRenderException("The page has no media box.");
+
+        // The crop box is the visible part of the media box; viewers clip it to the media box.
+        var box = Box(inherited.TryGetValue("CropBox", out var cropValue) ? cropValue : null) is { } crop
+            ? (X0: Math.Max(crop.X0, media.X0), Y0: Math.Max(crop.Y0, media.Y0), X1: Math.Min(crop.X1, media.X1), Y1: Math.Min(crop.Y1, media.Y1))
+            : media;
+        int rotate = 0;
+        if (inherited.TryGetValue("Rotate", out var rotateValue))
+        {
+            if (_objects.Resolve(rotateValue) is not PdfReadNumber { IsInteger: true } r || r.IntegerValue % 90 != 0)
+                throw new PageRenderException("The page has a rotation that is not a multiple of 90 degrees.");
+            rotate = (int)(((r.IntegerValue % 360) + 360) % 360);
+        }
+
+        if (box.X1 - box.X0 <= 0 || box.Y1 - box.Y0 <= 0) throw new PageRenderException("The page has an empty media box.");
+        return (box, rotate);
+    }
+
+    private string NewId(string kind) => $"{_idPrefix}{kind}{_nextId++}";
+
+    // Ends the current path: fills or strokes it, then applies a pending clip (W or W*), then clears it.
+    private void Paint(bool fill, bool stroke, bool evenOdd)
+    {
+        if (_pathHasPoints && (fill || stroke))
+        {
+            _paths++;
+            _body.Append("<path d=\"").Append(_path).Append("\" transform=\"");
+            SvgText.AppendMatrix(_body, _state.Ctm);
+            _body.Append('"');
+            if (fill)
+            {
+                _body.Append(" fill=\"");
+                SvgText.AppendColor(_body, _state.Fill.Red, _state.Fill.Green, _state.Fill.Blue);
+                _body.Append('"');
+                if (evenOdd) _body.Append(" fill-rule=\"evenodd\"");
+            }
+            else
+            {
+                _body.Append(" fill=\"none\"");
+            }
+            if (stroke) AppendStroke(_body);
+            _body.Append("/>");
+        }
+
+        if (_pendingClip is not null && _pathHasPoints)
+        {
+            string id = NewId("c");
+            _defs.Append("<clipPath id=\"").Append(id).Append("\"><path d=\"").Append(_path).Append("\" transform=\"");
+            SvgText.AppendMatrix(_defs, _state.Ctm);
+            _defs.Append('"');
+            if (_pendingClip == "W*") _defs.Append(" clip-rule=\"evenodd\"");
+            _defs.Append("/></clipPath>");
+            _body.Append("<g clip-path=\"url(#").Append(id).Append(")\">");
+            _state.OpenGroups++;
+            if (++_clipDepth > _limits.MaxClipDepth) throw new PageRenderException("The page nests clipping paths too deeply.");
+            _paths++;
+        }
+
+        CheckOutput();
+        _pendingClip = null;
+        _path.Clear();
+        _pathHasPoints = false;
+    }
+
+    private void AppendStroke(StringBuilder builder)
+    {
+        builder.Append(" stroke=\"");
+        SvgText.AppendColor(builder, _state.Stroke.Red, _state.Stroke.Green, _state.Stroke.Blue);
+        builder.Append('"');
+        if (_state.LineWidth <= 0)
+        {
+            // A zero width is the thinnest line the device can draw.
+            builder.Append(" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\"");
+        }
+        else
+        {
+            builder.Append(" stroke-width=\"").Append(SvgText.Number(_state.LineWidth)).Append('"');
+        }
+        if (_state.LineCap == 1) builder.Append(" stroke-linecap=\"round\"");
+        else if (_state.LineCap == 2) builder.Append(" stroke-linecap=\"square\"");
+        if (_state.LineJoin == 1) builder.Append(" stroke-linejoin=\"round\"");
+        else if (_state.LineJoin == 2) builder.Append(" stroke-linejoin=\"bevel\"");
+        else if (_state.MiterLimit != 4 && _state.MiterLimit >= 1) builder.Append(" stroke-miterlimit=\"").Append(SvgText.Number(_state.MiterLimit)).Append('"');
+        if (_state.Dash.Length > 0 && _state.Dash.Any(d => d > 0))
+        {
+            builder.Append(" stroke-dasharray=\"").Append(string.Join(" ", _state.Dash.Select(SvgText.Number))).Append('"');
+            if (_state.DashPhase != 0) builder.Append(" stroke-dashoffset=\"").Append(SvgText.Number(_state.DashPhase)).Append('"');
+        }
+    }
+
+    private void Restore()
+    {
+        CloseGroups(_state);
+        _state = _saved.Pop();
+    }
+
+    // Runs one content stream with the given resources.
+    private void Run(byte[] content, PdfReadDictionary? resources)
+    {
+        _currentResources = resources;
+        var reader = new ContentReader(content, _limits.MaxOperands);
+        int baseDepth = _saved.Count;
+        while (reader.Next(out string op))
+        {
+            if (++_operators > _limits.MaxOperators) throw new PageRenderException("The page has too many drawing operators.");
+            var operands = reader.Operands;
+            if (_pathHasPoints && !PathOperators.Contains(op))
+                throw new PageRenderException($"A path on the page is not finished before the operator {Shorten(op)}.");
+            switch (op)
+            {
+                // Graphics state
+                case "q": // save
+                    if (_saved.Count >= _limits.MaxStateDepth) throw new PageRenderException("The page nests saved states too deeply.");
+                    _saved.Push(_state);
+                    _state = _state.Copy();
+                    _state.OpenGroups = 0;
+                    break;
+                case "Q": // restore; an unbalanced Q in this stream is ignored
+                    if (_saved.Count > baseDepth) Restore();
+                    break;
+                case "cm": // concatenate matrix
+                {
+                    var m = Numbers(operands, 6);
+                    var ctm = new RenderMatrix(m[0], m[1], m[2], m[3], m[4], m[5]).Then(_state.Ctm);
+                    if (!ctm.IsFinite()) throw new PageRenderException("The page has a transformation that is not finite.");
+                    _state.Ctm = ctm;
+                    break;
+                }
+                case "w": _state.LineWidth = Numbers(operands, 1)[0]; break; // line width
+                case "J": _state.LineCap = (int)Numbers(operands, 1)[0]; break; // line cap
+                case "j": _state.LineJoin = (int)Numbers(operands, 1)[0]; break; // line join
+                case "M": _state.MiterLimit = Numbers(operands, 1)[0]; break; // miter limit
+                case "d": // dash pattern
+                    if (operands.Count < 2 || operands[^2] is not PdfReadArray { Count: <= MaxDashEntries } dash)
+                        throw new PageRenderException("A dash pattern is not valid.");
+                    _state.Dash = dash.Items.Select(item => Math.Abs(Number(_objects.Resolve(item)))).ToArray();
+                    _state.DashPhase = Number(operands[^1]);
+                    break;
+                case "i": case "ri": break; // flatness and rendering intent do not change the drawing
+
+                // Colors in device color spaces
+                case "rg": { var c = Numbers(operands, 3); _state.Fill = (c[0], c[1], c[2]); break; }
+                case "RG": { var c = Numbers(operands, 3); _state.Stroke = (c[0], c[1], c[2]); break; }
+                case "g": { var c = Numbers(operands, 1); _state.Fill = (c[0], c[0], c[0]); break; }
+                case "G": { var c = Numbers(operands, 1); _state.Stroke = (c[0], c[0], c[0]); break; }
+                case "k": { var c = Numbers(operands, 4); _state.Fill = FromCmyk(c); break; }
+                case "K": { var c = Numbers(operands, 4); _state.Stroke = FromCmyk(c); break; }
+
+                // Path construction
+                case "m": { var p = Numbers(operands, 2); AddSegment("M", p); break; }
+                case "l": { var p = Numbers(operands, 2); AddSegment("L", p); break; }
+                case "c": { var p = Numbers(operands, 6); AddSegment("C", p); break; }
+                case "v": // curve whose first control point is the current point
+                {
+                    var p = Numbers(operands, 4);
+                    AddSegment("C", _current.X, _current.Y, p[0], p[1], p[2], p[3]);
+                    break;
+                }
+                case "y": // curve whose second control point is its end point
+                {
+                    var p = Numbers(operands, 4);
+                    AddSegment("C", p[0], p[1], p[2], p[3], p[2], p[3]);
+                    break;
+                }
+                case "h": AddSegment("Z"); break; // close subpath
+                case "re": // rectangle
+                {
+                    var r = Numbers(operands, 4);
+                    AddSegment("M", r[0], r[1]);
+                    AddSegment("L", r[0] + r[2], r[1]);
+                    AddSegment("L", r[0] + r[2], r[1] + r[3]);
+                    AddSegment("L", r[0], r[1] + r[3]);
+                    AddSegment("Z");
+                    break;
+                }
+
+                // Path painting
+                case "f": case "F": Paint(true, false, false); break; // fill
+                case "f*": Paint(true, false, true); break; // fill, even-odd
+                case "S": Paint(false, true, false); break; // stroke
+                case "s": AddSegment("Z"); Paint(false, true, false); break; // close and stroke
+                case "B": Paint(true, true, false); break; // fill and stroke
+                case "B*": Paint(true, true, true); break;
+                case "b": AddSegment("Z"); Paint(true, true, false); break; // close, fill, and stroke
+                case "b*": AddSegment("Z"); Paint(true, true, true); break;
+                case "n": Paint(false, false, false); break; // end path (applies a pending clip)
+                case "W": case "W*": // clip with the path being built, once it is painted
+                    if (!_pathHasPoints) throw new PageRenderException("The page clips without a path.");
+                    _pendingClip = op;
+                    break;
+
+                // Marked content does not change the drawing
+                case "BMC": BeginMarkedContent(null, resources); break;
+                case "MP": case "DP": break;
+                case "BDC": BeginMarkedContent(operands, resources); break;
+                case "EMC": EndMarkedContent(); break;
+
+                default:
+                    if (!RunTextOrObject(op, operands, resources))
+                        throw new PageRenderException($"The page uses the operator {Shorten(op)}, which this preview doesn't draw.");
+                    break;
+            }
+        }
+        while (_saved.Count > baseDepth) Restore();
+    }
+
+    // The PDF specification's conversion from DeviceCMYK to DeviceRGB.
+    private static (double, double, double) FromCmyk(double[] c) =>
+        (1 - Math.Min(1, c[0] + c[3]), 1 - Math.Min(1, c[1] + c[3]), 1 - Math.Min(1, c[2] + c[3]));
+
+    // Keeps a reason short when it quotes something from the PDF.
+    private static string Shorten(string text) => text.Length <= 32 ? text : text.Substring(0, 32) + "...";
+
+    #endregion
+
+    #endregion
+}

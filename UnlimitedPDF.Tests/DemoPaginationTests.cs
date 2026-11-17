@@ -7,7 +7,7 @@ namespace UnlimitedPDF.Tests;
 
 /// <summary>
 /// The document demos (Invoice, Quotation, Purchase order, Delivery note, Account statement, Payslip, Receipt, Medical
-/// report, Employee directory, console demo) are built on header and footer sections and the body flow (WR-031,
+/// report, console demo) are built on header and footer sections and the body flow (WR-031,
 /// WR-033): with default data and with many rows, no filled rectangles overlap, no text line overlaps another (measured
 /// with Helvetica widths), and every page shows its header, its footer, and "Page n of m".
 /// </summary>
@@ -120,18 +120,6 @@ public class DemoPaginationTests
         AssertNumbered(pages);
         Assert.All(pages, page => Assert.True(page.Shows("Thank you for shopping with us!")));
         Assert.Contains(pages, page => page.Shows("Paid by: Card"));
-    }
-
-    [Fact]
-    public void Employee_directory_numbers_every_page()
-    {
-        var pages = PdfPageReader.Save(EmployeeDirectorySample.Build(new EmployeeDirectoryInput { EmployeeCount = 300 }));
-
-        Assert.True(pages.Count >= 3);
-        AssertNoOverlaps(pages);
-        AssertNumbered(pages);
-        Assert.All(pages, page => Assert.True(page.Shows("Employee directory")));
-        Assert.True(pages[pages.Count - 1].Shows("300"));
     }
 
     [Fact]

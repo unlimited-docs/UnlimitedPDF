@@ -5,7 +5,7 @@ namespace UnlimitedPDF.Tests;
 
 /// <summary>
 /// Usability guarantees of the demos Home page, Playground, and FAQ that markup and styles can prove: the skip link,
-/// the keyboard focus ring, phone tap targets, the current demo kept in view in the sidebar, and "Back to options"
+/// the keyboard focus ring, phone tap targets, the demo pages' breadcrumb, and "Back to options"
 /// (26111103 V-03); the FAQ search field border, the copy-link icon, the FAQ phone sizes, the scenario list's inset
 /// ring, and the gap above Remove buttons (26111201 V-03). Contrast, sizes, and fit are measured in the browser
 /// (26111103 V-01, V-02; 26111201 V-01, V-02).
@@ -35,10 +35,10 @@ public class DemoUsabilityTests
         Assert.Contains("> Back to options", markup, StringComparison.Ordinal);
         Assert.Contains("await Interop.ScrollToElementAsync($\"{_id}-options\", smooth: true)", code, StringComparison.Ordinal);
 
-        // Shown only where the options sit above the output.
+        // Shown only where the data sits above the PDF (below 900 px).
         var css = Read("wwwroot/css/app.css");
         Assert.Contains(".output-actions .btn.back-to-options { display: none; }", css, StringComparison.Ordinal);
-        Assert.Matches(@"@media \(max-width: 1279\.98px\) \{\s*\.output-actions \.btn\.back-to-options \{ display: inline-flex;", css);
+        Assert.Matches(@"@media \(max-width: 899\.98px\) \{\s*\.output-actions \.btn\.back-to-options \{ display: inline-flex;", css);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class DemoUsabilityTests
         {
             "Layout/MainLayout.razor", "Layout/MainLayout.razor.cs", "Layout/PlaygroundLayout.razor", "Layout/PlaygroundLayout.razor.cs",
             "Components/SamplePage.razor", "Components/SamplePage.razor.cs", "Components/SplitPartsPage.razor", "Components/SplitPartsPage.razor.cs",
-            "Pages/Playground/Create/HeadersFooters.razor", "Pages/Playground/Documents/EmployeeDirectory.razor",
+            "Pages/Playground/Create/HeadersFooters.razor",
             "Components/FaqQuestionItem.razor", "Components/Icon.razor", "Pages/Playground/Html/CommonProblems.razor",
             "Pages/Playground/Merge/BookmarksAndNumbers.razor", "Pages/Playground/Merge/CoverAndRanges.razor"
         };
@@ -131,39 +131,39 @@ public class DemoUsabilityTests
     }
 
     [Fact]
-    public void Browsers_without_an_in_page_pdf_view_get_the_ready_card_instead_of_the_frame()
+    public void Every_browser_gets_the_pdf_drawn_in_the_page_with_its_real_text_and_nothing_else()
     {
-        // QF-26111303: Android Chrome downloads a PDF placed in a frame, so browsers without a PDF viewer never get the
-        // PDF in the frame and see a "Your PDF is ready" card with Open PDF and Download. QF-26111402: iPhone and iPad
-        // are no longer singled out; they report a viewer and show the PDF in the frame.
+        // D-010, D-014, D-016: the library draws every page in the page, on every browser and phone, instead of a
+        // frame that needs the browser's own PDF viewer. The drawing is checked in the browser before it is placed:
+        // only the elements and attributes the renderer writes, links to web pages, mail, or another page, and images
+        // as PNG or JPEG data (A05).
         var script = Read("wwwroot/js/app.js");
-        Assert.Contains("export function canShowPdfInPage()", script, StringComparison.Ordinal);
-        Assert.Contains("return navigator.pdfViewerEnabled;", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("iPhone|", script, StringComparison.Ordinal);
-        Assert.DoesNotContain("maxTouchPoints", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("canShowPdfInPage", script, StringComparison.Ordinal);
+        Assert.DoesNotContain("showInFrame", script, StringComparison.Ordinal);
+        Assert.Contains("new DOMParser().parseFromString(text, \"image/svg+xml\")", script, StringComparison.Ordinal);
+        Assert.Contains("const svgElements = new Set([\"svg\", \"defs\", \"rect\", \"path\", \"clipPath\", \"g\", \"text\", \"use\", \"image\", \"a\", \"title\"]);", script, StringComparison.Ordinal);
+        Assert.Contains("case \"image\": return /^data:image\\/(png|jpeg);base64,", script, StringComparison.Ordinal);
+        Assert.Contains("case \"a\": return /^#[A-Za-z0-9_-]+$/.test(value) || /^(https?:|mailto:)/i.test(value);", script, StringComparison.Ordinal);
+        Assert.Contains("canvas.replaceChildren(drawing);", script, StringComparison.Ordinal);
 
         var code = Read("Components/PdfPreview.razor.cs");
-        Assert.Contains("_inPage ??= await Interop.CanShowPdfInPageAsync();", code, StringComparison.Ordinal);
-        Assert.Matches(@"if \(_inPage == true\)\s*\{\s*await Interop\.ShowInFrameAsync\(_frame, _url\);", code);
+        Assert.Contains("PdfPageRenderer.Render(_file, number - 1, ", code, StringComparison.Ordinal);
+        Assert.Contains("await Interop.PlacePageAsync(_scroll, version, number, page.Svg)", code, StringComparison.Ordinal);
+        // A drawing fills only a page of the PDF it was made from, so one that arrives after a new PDF is dropped.
+        Assert.Contains("`.viewer-page[data-version=\"${version}\"][data-page=\"${number}\"] .viewer-canvas`", script, StringComparison.Ordinal);
+        Assert.Contains("data-version=\"@_version\"", Read("Components/PdfPreview.razor"), StringComparison.Ordinal);
+        Assert.Contains("_failed[number] = page.Reason", code, StringComparison.Ordinal);
 
+        // A page that can't be drawn says why and opens the PDF at that page; Open PDF and Download use the exact bytes.
         var markup = Read("Components/PdfPreview.razor");
-        Assert.Contains("<strong>Your PDF is ready</strong>", markup, StringComparison.Ordinal);
-        Assert.Contains("<span>Open it in your device's PDF viewer, or download it.</span>", markup, StringComparison.Ordinal);
-        Assert.DoesNotContain("can't show", markup, StringComparison.Ordinal); // no claim that the browser can't show PDFs
+        Assert.DoesNotContain("<iframe", markup, StringComparison.Ordinal);
+        Assert.Contains("<strong>Page @number can't be drawn here.</strong>", markup, StringComparison.Ordinal);
+        Assert.Contains("@onclick=\"() => OpenAtPageAsync(number)\"", markup, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"OpenInNewTabAsync\"", markup, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"() => DownloadAsync(_fileName)\"", markup, StringComparison.Ordinal);
-
-        // Every caller names the file, so the card shows it and its Download saves under it. A demo may name its own
-        // file per choice (Fonts and languages names the language); otherwise the demo's file name is used.
-        var frame = Read("Components/SamplePage.razor.cs");
-        Assert.Contains("_preview.ShowAsync(pdfBytes, ShownFileName)", frame, StringComparison.Ordinal);
-        Assert.Contains("private string ShownFileName => FileName ?? Demo.FileName;", frame, StringComparison.Ordinal);
-        Assert.Contains("_preview.ShowAsync(parts[0].Bytes, parts[0].Part.FileName)", Read("Components/SplitPartsPage.razor.cs"), StringComparison.Ordinal);
-
-        // The output toolbar fits a 375 px phone instead of cutting off Download.
-        var css = Read("wwwroot/css/app.css");
-        Assert.Contains(".output-actions { display: flex; flex-wrap: wrap;", css, StringComparison.Ordinal);
-        Assert.Contains(".output-actions .btn-sm { padding-inline: 0.5rem; }", string.Join("\n", PhoneBlocks(css)), StringComparison.Ordinal);
+        Assert.Contains("string url = await Interop.CreateObjectUrlAsync(pdfBytes, \"application/pdf\");", code, StringComparison.Ordinal);
+        // The URL replaced is read after the new one exists, so two quick calls never revoke the same one twice.
+        Assert.Matches(@"string url = await Interop\.CreateObjectUrlAsync\(pdfBytes, ""application/pdf""\);\s*var previous = _url;\s*_url = url;", code);
     }
 
     [Fact]
@@ -181,9 +181,9 @@ public class DemoUsabilityTests
     public void Links_buttons_tabs_and_fields_share_one_solid_focus_ring()
     {
         var css = Read("wwwroot/css/app.css");
-        var rule = Regex.Match(css, @"((?:[^{}]*:focus-visible,\s*)+[^{}]*:focus-visible)\s*\{\s*outline: 2px solid var\(--app-accent\);\s*outline-offset: 2px;\s*\}");
+        var rule = Regex.Match(css, @"((?:[^{}]*:focus-visible,\s*)+[^{}]*:focus-visible)\s*\{\s*outline: 2px solid var\(--app-focus\);\s*outline-offset: 2px;\s*\}");
 
-        Assert.True(rule.Success, "A shared :focus-visible rule draws a 2 px accent outline.");
+        Assert.True(rule.Success, "A shared :focus-visible rule draws a 2 px focus-color outline.");
         var selectors = rule.Groups[1].Value;
         Assert.All(
             new[] { "a:focus-visible", "button:focus-visible", ".btn:focus-visible", "[role=\"tab\"]:focus-visible", "input:focus-visible", "select:focus-visible", "textarea:focus-visible" },
@@ -199,11 +199,10 @@ public class DemoUsabilityTests
         Assert.All(
             new[]
             {
-                ".brand", ".topnav-link", ".btn", ".output-tab", ".sidebar-link", ".form-control", ".row-remove", ".check-field",
-                ".install button", ".jump-link", ".questions-more", ".tile-actions .btn", ".ql-icon-button", ".ql-nav .btn"
+                ".brand", ".topnav-link", ".btn", ".breadcrumbs a", ".viewer-tool", ".form-control", ".row-remove", ".check-field",
+                ".install button", ".cap-link", ".questions-more", ".demo-choice-option", ".site-search .site-search-field"
             },
             // The selector starts a rule (line start, after a comma, or after a closing brace), so ".btn" does not match
-            // inside ".tile-actions .btn".
             selector => Assert.Matches(new Regex(@"(^|[,}])\s*" + Regex.Escape(selector) + @"\s*[,{][^}]*min-height: 44px", RegexOptions.Multiline), phone));
     }
 
@@ -243,22 +242,19 @@ public class DemoUsabilityTests
     }
 
     [Fact]
-    public void The_current_demo_is_brought_into_view_in_the_sidebar()
+    public void Demo_pages_lead_back_to_the_gallery_and_their_capability()
     {
-        var layout = Read("Layout/PlaygroundLayout.razor.cs");
-        var script = Read("wwwroot/js/app.js");
+        // D-023: no sidebar; a breadcrumb names the gallery and the demo's capability, and follows the address.
+        var layout = Read("Layout/PlaygroundLayout.razor");
+        var code = Read("Layout/PlaygroundLayout.razor.cs");
 
-        Assert.Contains("Navigation.LocationChanged += OnLocationChanged", layout, StringComparison.Ordinal);
-        Assert.Contains("Navigation.LocationChanged -= OnLocationChanged", layout, StringComparison.Ordinal);
-        Assert.Contains("await Interop.RevealActiveLinkAsync(_sidebar)", layout, StringComparison.Ordinal);
-
-        // The helper does nothing when the sidebar is missing or hidden (a closed phone menu), and scrolls only the
-        // sidebar, never the page.
-        var helper = Regex.Match(script, @"export function revealActiveLink\(container\) \{(?<body>.*?)\n\}", RegexOptions.Singleline).Groups["body"].Value;
-        Assert.Contains("if (!container || container.offsetParent === null)", helper, StringComparison.Ordinal);
-        Assert.Contains("container.scrollTop", helper, StringComparison.Ordinal);
-        Assert.DoesNotContain("scrollIntoView", helper, StringComparison.Ordinal);
-        Assert.DoesNotContain("window.scroll", helper, StringComparison.Ordinal);
+        Assert.Contains("<nav class=\"breadcrumb-nav\" aria-label=\"Breadcrumb\">", layout, StringComparison.Ordinal);
+        Assert.Contains("<li><a href=\"@ScenarioGallery.Route\">Scenarios</a></li>", layout, StringComparison.Ordinal);
+        Assert.Contains("<li><a href=\"@ScenarioGallery.Address(category.Id, null)\">@category.Title</a></li>", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("sidebar", layout, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Navigation.LocationChanged += OnLocationChanged", code, StringComparison.Ordinal);
+        Assert.Contains("Navigation.LocationChanged -= OnLocationChanged", code, StringComparison.Ordinal);
+        Assert.DoesNotContain("revealActiveLink", Read("wwwroot/js/app.js"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -286,14 +282,14 @@ public class DemoUsabilityTests
     }
 
     [Fact]
-    public void The_playground_skip_target_is_the_demo_past_the_sidebar()
+    public void The_playground_skip_target_is_the_demo_past_the_breadcrumb()
     {
         var playground = Read("Layout/PlaygroundLayout.razor");
 
         Assert.Matches("<div class=\"playground-content\" data-skip-target tabindex=\"-1\">", playground);
         Assert.True(
-            playground.IndexOf("playground-sidebar", StringComparison.Ordinal) < playground.IndexOf("data-skip-target", StringComparison.Ordinal),
-            "The skip target comes after the sidebar.");
+            playground.IndexOf("breadcrumb-nav", StringComparison.Ordinal) is >= 0 and var crumbs && crumbs < playground.IndexOf("data-skip-target", StringComparison.Ordinal),
+            "The skip target comes after the breadcrumb.");
 
         var script = Read("wwwroot/js/app.js");
         Assert.Contains("export function focusSkipTarget()", script, StringComparison.Ordinal);

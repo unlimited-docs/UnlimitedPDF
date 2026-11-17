@@ -8,7 +8,7 @@ using UnlimitedPDF.Demos.BlazorWasm.Services;
 namespace UnlimitedPDF.Demos.BlazorWasm.Components;
 
 /// <summary>
-/// The page frame every playground demo shares: options with Generate, a Preview and C# code card, and the status
+/// The page frame every playground demo shares: options with Generate, the drawn PDF and the C# code, and the status
 /// line. It generates the default PDF when the demo opens, runs one generation at a time, and keeps the last good
 /// preview visible while a new one is built or when generation fails.
 /// </summary>
@@ -26,7 +26,6 @@ public partial class SamplePage
     private GenerationResult? _result;
     private string _source = "";
     private bool _stale;
-    private OutputTab _tab = OutputTab.Preview;
 
     #endregion
 
@@ -84,14 +83,6 @@ public partial class SamplePage
         await Interop.ScrollToElementAsync($"{_id}-options", smooth: true);
     }
 
-    private async Task DownloadAsync()
-    {
-        if (_preview is not null)
-        {
-            await _preview.DownloadAsync(ShownFileName);
-        }
-    }
-
     private async Task GenerateAsync(bool userStarted)
     {
         if (_busy || _preview is null)
@@ -124,13 +115,12 @@ public partial class SamplePage
             int pageCount = PageCount ?? CountPages(pdfBytes);
             _result = new GenerationResult(pageCount, pdfBytes.Length, stopwatch.ElapsedMilliseconds);
             _stale = false;
-            _tab = OutputTab.Preview;
             _announcement = $"PDF ready: {pageCount} {(pageCount == 1 ? "page" : "pages")}, generated in {stopwatch.ElapsedMilliseconds} milliseconds.";
         }
         catch (Exception exception)
         {
-            _error = exception.Message;
-            _announcement = $"Couldn't generate the PDF. {exception.Message}";
+            _error = ErrorText.Plain(exception);
+            _announcement = null; // the error box is an alert and announces itself
             // Generation errors are expected while options are being edited; the status line shows them, so they are
             // logged without the app's error banner.
             Console.WriteLine(exception);
@@ -166,16 +156,9 @@ public partial class SamplePage
         }
     }
 
-    private async Task OpenInNewTabAsync()
-    {
-        if (_preview is not null)
-        {
-            await _preview.OpenInNewTabAsync();
-        }
-    }
-
     private async Task ResetAsync()
     {
+        if (_busy) return;
         await OnReset.InvokeAsync();
         NotifyInputsChanged();
     }
@@ -192,11 +175,21 @@ public partial class SamplePage
     [Parameter, EditorRequired] public Func<Task<PdfDocument>> Build { get; set; } = default!;
 
     /// <summary>
+    /// Gets or sets the choice among the demo's variants that a host page gives, shown above the options (a
+    /// document type, a pack's domain); null when the demo has none.
+    /// </summary>
+    [CascadingParameter(Name = "DemoChoice")] public RenderFragment? Choice { get; set; }
+
+    /// <summary>
+    /// Gets or sets the language tag of the PDF's text when it isn't English, for the drawn pages' <c>lang</c>
+    /// (WCAG 3.1.2), or null.
+    /// </summary>
+    [Parameter] public string? ContentLanguage { get; set; }
+
+    /// <summary>
     /// Gets or sets the demo shown on this page.
     /// </summary>
     [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
-
-    private bool HasPdf => _preview?.HasPdf == true;
 
     /// <summary>
     /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).
@@ -237,12 +230,6 @@ public partial class SamplePage
     #endregion
 
     #region Nested Types
-
-    private enum OutputTab
-    {
-        Preview,
-        Code
-    }
 
     private sealed record GenerationResult(int Pages, int Bytes, long Milliseconds);
 

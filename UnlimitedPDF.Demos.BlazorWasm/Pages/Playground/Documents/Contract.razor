@@ -1,0 +1,39 @@
+@page "/playground/documents/contract"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.Contract" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Parties">
+            <div class="field">
+                <label for="con-employer">Employer</label>
+                <input id="con-employer" class="form-control" @bind="_input.EmployerName" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="con-employee">Employee</label>
+                <input id="con-employee" class="form-control" @bind="_input.EmployeeName" @bind:event="oninput" />
+            </div>
+        </CollapsibleSection>
+        <CollapsibleSection Title="Terms">
+            <div class="field">
+                <label for="con-role">Role</label>
+                <input id="con-role" class="form-control" @bind="_input.Role" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="con-start">Start date</label>
+                <input id="con-start" type="date" class="form-control" @bind="_input.StartDate" />
+            </div>
+            <div class="field">
+                <label for="con-salary">Annual salary (INR)</label>
+                <input id="con-salary" type="number" min="0" step="1000" class="form-control" @bind="_input.AnnualSalary" />
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private ContractInput _input = new();
+    private SamplePage? _page;
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(ContractSample.Build(_input));
+
+    private void Reset() => _input = new();
+}

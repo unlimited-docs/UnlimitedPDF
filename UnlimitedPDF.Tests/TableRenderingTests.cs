@@ -25,6 +25,21 @@ public class TableRenderingTests
     #region Public Methods
 
     [Fact]
+    public void Table_numbers_never_use_exponent_notation()
+    {
+        // A table at a tiny offset made the old default number format write "1E-05", which is not a PDF number (PR-006).
+        var document = new PdfDocument();
+        var table = document.AddPage().AddTable(0.00001, 700, 100);
+        table.GetOrCreateCell(0, 0).Text = "x";
+        using var stream = new MemoryStream();
+        document.Save(stream);
+
+        string pdf = Encoding.Latin1.GetString(stream.ToArray());
+        Assert.DoesNotMatch(@"\d[eE][-+]?\d", pdf);
+        Assert.Contains("0.00001 ", pdf);
+    }
+
+    [Fact]
     public void At_least_row_grows_to_fit_an_image_and_rows_below_move_down()
     {
         // AC-10: in a 100 pt column with 4 pt padding the logo is 92 x 36.8 and the AtLeast row grows to 44.8 pt.

@@ -1,14 +1,22 @@
 /* UnlimitedPDF Demos: app styles on top of Bootstrap 6 (alpha). */
 
+/* Light and calm (D-021): white surfaces, brand navy for text accents and primary buttons, brand teal for calls to
+   action, and dark teal for the focus ring and the current-page marks. Contrast on white: ink 15:1, muted 7.1:1, navy
+   13.3:1, teal ink 6.7:1, dark teal 5.3:1. Brand teal itself (2.9:1) is decoration only, never the one cue. */
 :root {
-    --app-ink: #12213d;
-    --app-muted: #5b6886;
-    --app-line: #e3e8f2;
+    --app-ink: #13203b;
+    --app-muted: #4a5568;
+    --app-line: #e3e7ee;
     --app-surface: #ffffff;
-    --app-canvas: #f6f8fc;
-    --app-accent: #2357e8;
-    --app-accent-soft: #e8efff;
-    --app-teal: #19b2a6;
+    --app-canvas: #f6f8fb;
+    --app-accent: #002a73;
+    --app-accent-soft: #e8eef8;
+    --app-teal: #00ac8c;
+    --app-teal-ink: #00694f;
+    --app-teal-soft: #e6f6f2;
+    --app-focus: #007a64;
+    --app-code-bg: #0f1b33;
+    --app-mark: #fff3b0;
     --app-danger: #c4314b;
     --app-danger-soft: #fdecef;
     --app-warn-soft: #fff6e0;
@@ -18,12 +26,12 @@
     --app-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
-/* Bootstrap 6 derives its primary theme from these; point them at the app's blue. */
+/* Bootstrap 6 derives its primary theme from these; point them at brand navy. */
 :root {
-    --bs-primary-base: #2357e8;
-    --bs-primary-bg: #2357e8;
-    --bs-primary-fg: #1d47c2;
-    --bs-primary-border: #9db5f5;
+    --bs-primary-base: #002a73;
+    --bs-primary-bg: #002a73;
+    --bs-primary-fg: #002a73;
+    --bs-primary-border: #8fa3c7;
     --bs-primary-contrast: #ffffff;
 }
 
@@ -36,8 +44,11 @@
     --bs-theme-bg-muted: #e3e8f2;
     --bs-theme-border: #cfd8ea;
     --bs-theme-contrast: #ffffff;
-    --bs-theme-focus-ring: rgba(35, 87, 232, 0.35);
+    --bs-theme-focus-ring: rgba(0, 122, 100, 0.35);
 }
+
+/* A control reached with Tab or Shift+Tab is scrolled clear of the sticky top bar (WCAG 2.4.11). */
+html { scroll-padding-top: calc(var(--app-topbar-h) + 0.5rem); }
 
 html, body {
     font-family: var(--app-font);
@@ -51,8 +62,8 @@ h1:focus { outline: none; }
 
 /* ---------- Focus and field borders (26111103 AC-03, AC-10) ---------- */
 
-/* One keyboard focus ring for every link, button, tab, and field: solid accent, about 5:1 on the light surfaces. It
-   replaces the framework's translucent ring, which measured under 2:1. FAQ controls keep their inset ring below. */
+/* One keyboard focus ring for every link, button, tab, and field: solid dark teal, about 5:1 on the light surfaces.
+   It replaces the framework's translucent ring, which measured under 2:1. FAQ controls keep their inset ring below. */
 a:focus-visible,
 button:focus-visible,
 .btn:focus-visible,
@@ -62,9 +73,10 @@ select:focus-visible,
 textarea:focus-visible,
 summary:focus-visible,
 .form-control:focus-visible,
+.form-control:focus-within,
 .form-select:focus-visible,
 [tabindex]:not([tabindex="-1"]):focus-visible {
-    outline: 2px solid var(--app-accent);
+    outline: 2px solid var(--app-focus);
     outline-offset: 2px;
 }
 
@@ -79,14 +91,14 @@ summary:focus-visible,
 .form-select,
 .field input[type="color"] { border-color: var(--app-field-border); }
 
-/* ---------- Top bar ---------- */
+/* ---------- Top bar (D-021, D-024, D-028) ---------- */
 
 .topbar {
     position: sticky;
     top: 0;
     z-index: 20;
     height: var(--app-topbar-h);
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(255, 255, 255, 0.96);
     backdrop-filter: saturate(1.4) blur(8px);
     border-bottom: 1px solid var(--app-line);
 }
@@ -98,8 +110,7 @@ summary:focus-visible,
     padding: 0 1.25rem;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
+    gap: 1.25rem;
 }
 
 .brand {
@@ -118,7 +129,7 @@ summary:focus-visible,
     display: inline-flex;
     align-items: center;
     padding: 0.1rem 0.55rem;
-    border: 1px solid #c9d8ff;
+    border: 1px solid #b9c7e0;
     border-radius: 999px;
     background: var(--app-accent-soft);
     color: var(--app-accent);
@@ -130,12 +141,15 @@ summary:focus-visible,
 }
 .version-link:hover .version-badge { border-color: var(--app-accent); }
 
-.topnav { display: flex; align-items: center; gap: 0.25rem; }
+/* The search box takes the room between the logo and the links. */
+.topbar-search { flex: 1 1 auto; min-width: 0; max-width: 34rem; }
+
+.topnav { display: flex; align-items: center; gap: 0.25rem; margin-left: auto; }
 
 .topnav-link {
     display: inline-flex;
     align-items: center;
-    color: var(--app-muted);
+    color: var(--app-ink);
     text-decoration: none;
     font-weight: 550;
     font-size: 0.95rem;
@@ -143,15 +157,55 @@ summary:focus-visible,
     border-radius: 8px;
 }
 
-.topnav-link:hover { color: var(--app-ink); background: var(--app-canvas); }
-.topnav-link.active { color: var(--app-accent); }
+.topnav-link:hover { color: var(--app-accent); background: var(--app-canvas); }
+.topnav-link.active { color: var(--app-accent); font-weight: 700; box-shadow: inset 0 -3px 0 var(--app-focus); border-radius: 8px 8px 0 0; }
 .topnav-cta { margin-left: 0.5rem; }
+
+/* Menu: phones and narrow windows only, where the search and the links move into the drawer. */
+.topbar-menu { display: none; margin-left: auto; gap: 0.4rem; align-items: center; border: 1px solid var(--app-field-border); }
+
+@media (max-width: 899.98px) {
+    .topbar-search, .topnav { display: none; }
+    .topbar-menu { display: inline-flex; }
+}
 
 @media (max-width: 575.98px) {
     .topbar-inner { padding: 0 0.9rem; }
-    .topnav-home, .topnav-github, .cta-long { display: none; }
-    .topnav-cta { margin-left: 0.25rem; }
 }
+
+/* The menu drawer: the browser's modal dialog, full height at the right edge, at most 22rem wide. */
+.site-menu {
+    margin: 0 0 0 auto;
+    width: min(22rem, 100vw);
+    max-width: 100vw;
+    height: 100dvh;
+    max-height: 100dvh;
+    padding: 1rem 1.1rem 1.5rem;
+    border: 0;
+    border-left: 1px solid var(--app-line);
+    background: var(--app-surface);
+    color: var(--app-ink);
+    overflow-y: auto;
+}
+.site-menu[open] { display: flex; flex-direction: column; gap: 1rem; }
+.site-menu::backdrop { background: rgba(15, 27, 51, 0.45); }
+.site-menu-head { display: flex; align-items: center; justify-content: space-between; }
+.site-menu-title { margin: 0; font-weight: 700; color: var(--app-accent); font-size: 1.05rem; }
+.site-menu-close { display: inline-flex; align-items: center; gap: 0.35rem; border: 1px solid var(--app-field-border); }
+.site-menu-nav { display: flex; flex-direction: column; }
+.site-menu-link {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 48px;
+    padding: 0 0.25rem;
+    border-bottom: 1px solid var(--app-line);
+    color: var(--app-accent);
+    font-weight: 600;
+    text-decoration: none;
+}
+.site-menu-link.active { box-shadow: inset 4px 0 0 var(--app-focus); padding-left: 0.75rem; }
+.site-menu-install { justify-content: center; min-height: 48px; }
 
 .app-main { min-height: calc(100vh - var(--app-topbar-h)); }
 
@@ -181,86 +235,17 @@ summary:focus-visible,
 
 /* ---------- Playground shell ---------- */
 
-.playground {
-    max-width: 1440px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
-    gap: 0;
-}
+/* Demo pages: a breadcrumb to the scenario gallery and the demo's capability, then the demo across the full width. */
+.playground { max-width: 1600px; margin: 0 auto; }
+.breadcrumb-nav { padding: 1rem 1.75rem 0; }
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
+.breadcrumbs li + li::before { content: "/"; margin-right: 0.25rem; color: var(--app-muted); }
+.breadcrumbs a { display: inline-flex; align-items: center; justify-content: center; min-height: 24px; min-width: 24px; padding: 0 0.25rem; color: var(--app-accent); }
+.playground-content { padding: 0.75rem 1.75rem 3rem; min-width: 0; }
 
-.playground-menu { display: none; }
-
-.playground-sidebar {
-    position: sticky;
-    top: var(--app-topbar-h);
-    align-self: start;
-    height: calc(100vh - var(--app-topbar-h));
-    overflow-y: auto;
-    padding: 1.5rem 0.75rem 2rem 1.25rem;
-    border-right: 1px solid var(--app-line);
-}
-
-.sidebar-group + .sidebar-group { margin-top: 1.5rem; }
-
-.sidebar-group-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--app-muted);
-    padding: 0 0.6rem 0.5rem;
-}
-
-.sidebar-subgroup-title { font-size: 0.78rem; font-weight: 600; color: var(--app-muted); padding: 0.45rem 0.6rem 0.2rem; }
-
-.sidebar-list { list-style: none; margin: 0; padding: 0; }
-
-.sidebar-link {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.6rem;
-    border-radius: 9px;
-    color: var(--app-ink);
-    text-decoration: none;
-    font-size: 0.93rem;
-    font-weight: 500;
-}
-
-.sidebar-link .icon { color: var(--app-muted); flex: none; }
-.sidebar-link:hover { background: #eef2fa; }
-/* The current demo: tinted, bold, and an accent bar on its left edge (the bar is the 3:1 indicator; the tint alone
-   is 1.08:1 against the sidebar). */
-.sidebar-link.active { background: var(--app-accent-soft); color: var(--app-accent); font-weight: 650; box-shadow: inset 3px 0 0 var(--app-accent); }
-.sidebar-link.active .icon { color: var(--app-accent); }
-
-.playground-content { padding: 1.5rem 1.75rem 3rem; min-width: 0; }
-
-@media (max-width: 1023.98px) {
-    .playground { grid-template-columns: minmax(0, 1fr); }
-
-    .playground-menu {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        margin: 1rem 1.25rem 0;
-        justify-self: start;
-    }
-
-    .playground-sidebar {
-        display: none;
-        position: static;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--app-line);
-        padding: 0.75rem 1.25rem 1rem;
-    }
-
-    /* The open menu is its own scroll box, one screen at most, so the current demo can be brought into view in it
-       (26111103 AC-07). */
-    .playground-sidebar.is-open { display: block; max-height: calc(100dvh - var(--app-topbar-h) - 5rem); overflow-y: auto; }
-    .playground-content { padding: 1rem 1.25rem 2.5rem; }
+@media (max-width: 899.98px) {
+    .breadcrumb-nav { padding: 0.75rem 1.25rem 0; }
+    .playground-content { padding: 0.5rem 1.25rem 2.5rem; }
 }
 
 /* ---------- Demo page ---------- */
@@ -269,17 +254,26 @@ summary:focus-visible,
 .demo-header h1 { font-size: 1.6rem; font-weight: 750; letter-spacing: -0.015em; margin: 0 0 0.35rem; }
 .demo-lead { color: var(--app-muted); margin: 0; max-width: 60rem; }
 
+/* Three columns (D-023): the visitor's data, the PDF, and the C# code. Below 1,280 px the code goes under the data and
+   the PDF; below 900 px all three stack in that order. */
 .demo-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1.25fr) minmax(300px, 0.85fr);
     gap: 1.25rem;
     align-items: start;
 }
 
-/* Side by side only when the preview still gets a useful width next to the sidebar and the options. */
 @media (max-width: 1279.98px) {
+    .demo-grid { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+    .demo-code { grid-column: 1 / -1; }
+}
+
+@media (max-width: 899.98px) {
     .demo-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.demo-column-title { margin: 0; padding: 0.85rem 1rem 0.35rem; font-size: 1rem; font-weight: 700; color: var(--app-accent); }
+.output-head .demo-column-title { padding: 0.6rem 0; }
 
 .panel {
     background: var(--app-surface);
@@ -322,7 +316,7 @@ summary:focus-visible,
 .demo-output { scroll-margin-top: calc(var(--app-topbar-h) + 0.5rem); }
 .demo-inputs:focus { outline: none; }
 
-@media (max-width: 1279.98px) {
+@media (max-width: 899.98px) {
     .output-actions .btn.back-to-options { display: inline-flex; align-items: center; gap: 0.35rem; }
 }
 .demo-shortcut kbd {
@@ -347,34 +341,15 @@ summary:focus-visible,
     flex-wrap: wrap;
 }
 
-.output-tabs { display: flex; gap: 0.25rem; }
-
-.output-tab {
-    border: 0;
-    background: none;
-    padding: 0.6rem 0.85rem;
-    font-weight: 600;
-    font-size: 0.92rem;
-    color: var(--app-muted);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-}
-
-.output-tab:hover { color: var(--app-ink); }
-.output-tab[aria-selected="true"] { color: var(--app-accent); border-bottom-color: var(--app-accent); }
-
 .output-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; padding-bottom: 0.4rem; }
 .output-actions .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
 
-/* Phones: Back to options, Open, and Download fit on one line at 375 px instead of Download being cut off at the
-   panel's edge; narrower screens wrap (QF-26111303). */
+/* Phones: Back to options and Download all fit on one line at 375 px; narrower screens wrap (QF-26111303). */
 @media (max-width: 575.98px) {
     .output-head { padding-inline: 0.5rem; }
     .output-actions { gap: 0.15rem; }
     .output-actions .btn-sm { padding-inline: 0.5rem; }
 }
-
-.output-body { position: relative; }
 
 /* Split demos: one row per part, above the preview of the selected part. */
 .split-parts { list-style: none; margin: 0 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; max-height: 14rem; overflow-y: auto; }
@@ -415,7 +390,7 @@ summary:focus-visible,
     font-weight: 550;
 }
 
-.stale-note button { border: 0; background: none; color: inherit; text-decoration: underline; padding: 0; font: inherit; }
+.stale-note button { border: 0; background: none; color: inherit; text-decoration: underline; padding: 0; font: inherit; min-height: 24px; }
 
 .error-box {
     margin: 0.9rem;
@@ -431,52 +406,119 @@ summary:focus-visible,
 
 .error-box p { margin: 0; color: #7d1b2d; }
 
-/* ---------- PDF preview ---------- */
+/* ---------- PDF preview (D-015, D-025) ---------- */
 
-.preview {
+/* The drawn preview: a toolbar above the pages, then the pages in one scrolling column on a grey desk. */
+.viewer { position: relative; display: flex; flex-direction: column; background: #e9edf3; border-top: 1px solid var(--app-line); }
+
+.viewer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--app-surface);
+    border-bottom: 1px solid var(--app-line);
+}
+.viewer-go { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+.viewer-go label { font-weight: 600; }
+.viewer-page-input { width: 4.75rem; min-height: 36px; padding: 0.2rem 0.45rem; font-variant-numeric: tabular-nums; }
+.viewer-page-total { color: var(--app-muted); white-space: nowrap; }
+.viewer-zoom { display: flex; align-items: center; gap: 0.25rem; }
+.viewer-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    border: 1px solid var(--app-field-border);
+    background: var(--app-surface);
+}
+.viewer-tool[aria-pressed="true"] { border-color: var(--app-accent); background: var(--app-accent-soft); color: var(--app-accent); font-weight: 650; }
+.viewer-zoom-level { min-width: 3.25rem; text-align: center; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.viewer-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-left: auto; }
+.viewer-actions .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* Two fingers pan the pages but don't zoom the whole site: the preview takes the pinch for its own zoom. */
+.viewer-scroll {
     position: relative;
     height: min(78vh, 900px);
     min-height: 420px;
-    background: #eef1f7;
+    overflow: auto;
+    padding: 1rem;
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+}
+.viewer-scroll:focus-visible { outline-offset: -3px; }
+
+.viewer-pages {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    transform: scale(var(--pinch, 1));
+    transform-origin: top center;
 }
 
-.preview-frame { width: 100%; height: 100%; border: 0; display: block; background: #eef1f7; }
+/* A page at the chosen zoom (1 point is 4/3 CSS pixels at 100%), or, fitting the width, the widest page fills it. The
+   auto margins center a page that fits and let a wider one scroll to both of its edges. */
+.viewer-page {
+    position: relative;
+    flex: none;
+    width: calc(var(--pw) * var(--scale) * 1.3333px);
+    aspect-ratio: var(--pw) / var(--ph);
+    margin-inline: auto;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 27, 51, 0.18), 0 6px 18px rgba(15, 27, 51, 0.08);
+}
+.viewer.is-fit .viewer-page { width: calc(100% * var(--pw) / var(--widest)); }
+.viewer-canvas, .viewer-canvas > svg { display: block; width: 100%; height: 100%; }
 
-.preview-frame.is-hidden { visibility: hidden; }
+.viewer-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--app-warn-soft);
+    color: var(--app-ink);
+    overflow-wrap: anywhere;
+}
+.viewer-page > .viewer-notice { position: absolute; inset: 0; }
+.viewer-notice .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
 
-.preview-empty, .preview-overlay {
+.viewer-empty {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.25rem;
+    min-height: 100%;
+    padding: 2rem;
+    text-align: center;
+    color: var(--app-muted);
+}
+.viewer-empty .icon { color: #8f9bb3; margin-bottom: 0.5rem; }
+.viewer-empty strong { color: var(--app-ink); font-size: 1.05rem; }
+
+/* Phones: the page box and the zoom share one row, Open PDF and Download the next; "Page" is still read aloud. */
+@media (max-width: 575.98px) {
+    .viewer-toolbar { gap: 0.4rem 0.6rem; padding: 0.4rem 0.5rem; }
+    .viewer-go label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .viewer-zoom-level { min-width: 2.6rem; }
+    .viewer-scroll { height: 70vh; min-height: 320px; padding: 0.6rem; }
+    .viewer-actions { margin-left: 0; }
+    .viewer-tool, .viewer-page-input { min-height: 44px; min-width: 44px; }
+}
+
+.preview-overlay {
     position: absolute;
     inset: 0;
     display: grid;
     place-items: center;
     text-align: center;
     padding: 2rem;
-}
-
-.preview-empty { color: var(--app-muted); }
-.preview-empty .icon { color: #a8b3cb; margin-bottom: 0.75rem; }
-.preview-empty strong { display: block; color: var(--app-ink); font-size: 1.05rem; margin-bottom: 0.25rem; }
-
-/* Browsers that don't show a PDF placed in a frame get the ready card instead of the frame, and the preview area takes
-   the card's height rather than a tall empty box (QF-26111303). */
-.preview.is-card { height: auto; min-height: 0; }
-.preview.is-card .preview-frame { position: absolute; inset: 0; height: 0; }
-.preview-ready {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 2rem 1.25rem;
-    text-align: center;
-    color: var(--app-muted);
-}
-.preview-ready > .icon { color: var(--app-accent); margin-bottom: 0.5rem; }
-.preview-ready strong { color: var(--app-ink); font-size: 1.05rem; }
-.preview-ready-meta { font-size: 0.85rem; overflow-wrap: anywhere; }
-.preview-ready-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1rem; }
-.preview-ready-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
-
-.preview-overlay {
     background: rgba(246, 248, 252, 0.72);
     backdrop-filter: blur(1.5px);
     animation: fade-in 0.15s ease-out;
@@ -517,7 +559,9 @@ summary:focus-visible,
 
 /* ---------- Code view ---------- */
 
-.code-view { position: relative; height: min(78vh, 900px); min-height: 420px; background: #0f1a2e; }
+.code-view { position: relative; height: min(78vh, 900px); min-height: 420px; background: var(--app-code-bg); }
+.demo-code { overflow: hidden; }
+.demo-code .code-view { border-top: 1px solid var(--app-line); }
 
 .code-view pre {
     margin: 0;
@@ -549,13 +593,14 @@ summary:focus-visible,
 
 .code-copy:hover { background: #1b2a47; }
 
-/* Side by side (1,280 px and wider): the preview and code view take the screen height left after the top bar, the demo
-   heading, the output tabs, and the status line, so Generate, the whole preview, and the status line all fit the first
-   screen (26111103 AC-06). On the split demos the parts list above the preview is capped and its room is taken off. */
-@media (min-width: 1280px) {
-    .preview, .code-view { height: clamp(320px, calc(100dvh - 20rem), 900px); min-height: 0; }
+/* Side by side (900 px and wider): the pages and the code take the screen height left after the top bar, the
+   breadcrumb, the demo heading, the toolbar, and the status line, so Generate, the pages, and the status line all fit
+   the first screen (26111103 AC-06). On the split demos the parts list above the preview is capped and its room is
+   taken off. */
+@media (min-width: 900px) {
+    .viewer-scroll, .code-view { height: clamp(320px, calc(100dvh - 22rem), 900px); min-height: 0; }
     .split-parts { max-height: 8rem; }
-    .split-parts + .preview { height: clamp(260px, calc(100dvh - 29rem), 900px); }
+    .split-parts + .viewer .viewer-scroll { height: clamp(260px, calc(100dvh - 31rem), 900px); }
 }
 
 /* ---------- Option sections and fields ---------- */
@@ -577,16 +622,22 @@ summary:focus-visible,
 
 .opt-section-toggle .icon { color: var(--app-muted); transition: transform 0.15s ease; }
 .opt-section-toggle[aria-expanded="false"] .icon { transform: rotate(-90deg); }
-.opt-section-body { padding-bottom: 0.85rem; display: grid; gap: 0.7rem; }
+.opt-section-body { padding-bottom: 0.85rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: 0.7rem; }
 
-.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; }
-.field-row-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+/* Columns may shrink below a field's built-in width, so nothing scrolls sideways at 320 px (WCAG 1.4.10). */
+.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.field-row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+.form-control { min-width: 0; max-width: 100%; }
+input[type="file"] { max-width: 100%; }
+.field { min-width: 0; }
+.field-row .btn { min-width: 0; white-space: normal; }
 .field label, .field .field-label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--app-muted); margin-bottom: 0.25rem; }
 .field .form-control { font-size: 0.9rem; }
-.field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-line); border-radius: 8px; background: #fff; }
+.field input[type="color"] { width: 100%; height: 2.25rem; padding: 0.2rem; border: 1px solid var(--app-field-border); border-radius: 8px; background: #fff; }
 /* A button that acts on the field above it (Remove a file): the same gap as between fields (26111201 AC-06). */
 .field-action { margin-top: 0.7rem; }
 .field-hint { font-size: 0.75rem; color: var(--app-muted); margin-top: 0.25rem; }
+.field-hint > a { display: inline-flex; align-items: center; min-height: 24px; }
 .field-error { font-size: 0.75rem; color: var(--app-danger); margin: 0.25rem 0 0; }
 
 /* HTML to PDF: the HTML editor and the warning list. */
@@ -621,7 +672,8 @@ summary:focus-visible,
 
 .segmented { display: inline-flex; border: 1px solid var(--app-line); border-radius: 9px; padding: 2px; background: var(--app-canvas); }
 .segmented button { border: 0; background: none; padding: 0.3rem 0.75rem; border-radius: 7px; font-size: 0.85rem; font-weight: 600; color: var(--app-muted); }
-.segmented button[aria-pressed="true"] { background: #fff; color: var(--app-accent); box-shadow: 0 1px 2px rgba(18, 33, 61, 0.12); }
+/* The pressed segment is filled navy with white text: 13.3:1, and 12.5:1 against the group (WCAG 1.4.1, 1.4.11). */
+.segmented button[aria-pressed="true"] { background: var(--app-accent); color: #fff; box-shadow: 0 1px 2px rgba(18, 33, 61, 0.12); }
 
 /* Repeating rows (line items, results) */
 .rows { display: grid; gap: 0.5rem; }
@@ -668,6 +720,8 @@ summary:focus-visible,
 .dropzone .icon { color: var(--app-accent); }
 .dropzone strong { color: var(--app-ink); }
 .dropzone.is-over { border-color: var(--app-accent); background: var(--app-accent-soft); }
+/* The file input is invisible over its label, so the zone shows the keyboard focus (WCAG 2.4.7). */
+.dropzone:focus-within { outline: 2px solid var(--app-focus); outline-offset: 2px; }
 
 .dropzone-input {
     position: absolute;
@@ -681,7 +735,7 @@ summary:focus-visible,
 .font-slot { border: 1px solid var(--app-line); border-radius: 12px; padding: 0.6rem 0.7rem; display: grid; gap: 0.4rem; }
 .font-slot.is-needed { border-color: var(--cap-languages); background: var(--cap-languages-soft); }
 .font-slot-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem; }
-.font-slot-needed { font-size: 0.7rem; font-weight: 600; color: var(--cap-languages); border: 1px solid var(--cap-languages); border-radius: 6px; padding: 0 0.35rem; }
+.font-slot-needed { font-size: 0.7rem; font-weight: 600; color: #11692f; border: 1px solid #11692f; border-radius: 6px; padding: 0 0.35rem; }
 .font-slot-link { margin-left: auto; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.2rem; }
 .font-slot-file { display: flex; align-items: center; gap: 0.4rem; font-size: 0.85rem; min-width: 0; }
 .font-slot-file .icon { color: var(--cap-languages); flex: none; }
@@ -689,6 +743,9 @@ summary:focus-visible,
 .font-slot .dropzone { padding: 0.5rem; font-size: 0.8rem; }
 .segmented.wrap { flex-wrap: wrap; }
 .missing-note { font-size: 0.8rem; color: #9a3412; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 9px; padding: 0.45rem 0.6rem; margin: 0; }
+.prerequisites { padding-left: 1.1rem; margin: 0; }
+.prerequisites li + li { margin-top: 0.35rem; }
+.prerequisites code { font-size: 0.95em; overflow-wrap: anywhere; }
 
 .upload-card {
     display: grid;
@@ -707,99 +764,110 @@ summary:focus-visible,
 .upload-error { font-size: 0.82rem; color: var(--app-danger); }
 .upload-reading { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
 
-/* ---------- Home ---------- */
+/* ---------- Home (D-026, D-027) ---------- */
+
+/* The call to action: brand teal with dark teal text, 4.75:1. */
+.btn-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 0;
+    background: var(--app-teal);
+    color: #04342c;
+    font-weight: 650;
+}
+/* Hover lightens the teal, keeping 5.7:1 with the dark text. */
+.btn-cta:hover { background: #26bc9f; color: #04342c; }
 
 .hero {
-    background: radial-gradient(70rem 32rem at 50% -20%, #e1eaff 0%, rgba(246, 248, 252, 0) 65%);
-    padding: 4.5rem 1.25rem 3rem;
+    padding: 3.5rem 1.25rem 2.5rem;
     text-align: center;
+    background: var(--app-surface);
+    border-bottom: 1px solid var(--app-line);
 }
+.hero h1 {
+    max-width: 52rem;
+    margin: 0.9rem auto 0.75rem;
+    color: var(--app-accent);
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+}
+/* Large text in dark teal, 5.3:1 (brand teal itself is under 3:1 on white). */
+.hero h1 span { color: var(--app-focus); }
+.hero-lead { max-width: 40rem; margin: 0 auto; color: var(--app-muted); font-size: 1.1rem; line-height: 1.6; }
+.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 2rem; }
+.hero-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 /* The release announcement above the headline (QF-26111209): a filled version pill, then what the release adds. */
 .hero-release {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    max-width: 100%;
+    padding: 0.25rem 0.75rem 0.25rem 0.3rem;
+    border-radius: 999px;
+    background: var(--app-teal-soft);
+    color: var(--app-teal-ink);
     font-size: 0.85rem;
-    font-weight: 550;
-    color: var(--app-ink);
+    font-weight: 600;
     text-decoration: none;
-    background: var(--app-surface);
-    border: 1px solid var(--app-line);
-    border-radius: 999px;
-    padding: 0.25rem 0.8rem 0.25rem 0.25rem;
-    margin-bottom: 1.25rem;
 }
-.hero-release:hover { border-color: var(--app-accent); }
-.hero-release-text { text-wrap: balance; } /* two even lines on a phone, not one word alone */
-.hero-release .icon { color: var(--app-accent); flex: none; }
-.hero-release-version {
-    flex: none;
-    font-size: 0.78rem;
-    font-weight: 650;
-    color: #fff;
-    background: var(--app-accent);
-    border-radius: 999px;
-    padding: 0.15rem 0.6rem;
-    font-variant-numeric: tabular-nums;
-}
+.hero-release-version { padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--app-teal-ink); color: #ffffff; font-variant-numeric: tabular-nums; }
+.hero-release:hover .hero-release-text { text-decoration: underline; }
 
-.hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 0 auto 1rem; max-width: 52rem; }
-.hero h1 span { background: linear-gradient(90deg, var(--app-accent), var(--app-teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hero-lead { font-size: 1.15rem; color: var(--app-muted); max-width: 40rem; margin: 0 auto 2rem; line-height: 1.55; }
-.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-bottom: 1.75rem; }
-.hero-actions .btn { display: inline-flex; align-items: center; gap: 0.45rem; }
-
-.install {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    max-width: 100%;
-    background: #0f1a2e;
-    color: #dbe5ff;
-    border-radius: 12px;
-    padding: 0.55rem 0.6rem 0.55rem 1rem;
-    font-family: var(--app-mono);
-    font-size: 0.9rem;
-}
-
-.install code { color: inherit; white-space: nowrap; overflow: auto; }
-.install code::before { content: "$ "; color: #7f8db0; }
-.install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
-.install button:hover { background: #1b2a47; }
-
-/* On a phone the whole command fits beside its Copy button, and "pure .NET" stays on one line. */
-@media (max-width: 575.98px) {
-    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.75rem; }
-    .install button { padding: 0.3rem 0.5rem; min-height: 36px; }
-    .hero h1 span { white-space: nowrap; }
-}
-
-/* The narrowest phones (320 px): the command keeps fitting beside Copy. */
-@media (max-width: 359.98px) {
-    .install { font-size: 0.64rem; gap: 0.35rem; padding-left: 0.6rem; }
-}
-
-/* Showcase illustration under the hero; width and height attributes reserve its 16:9 box before it loads. */
-.showcase { max-width: 1240px; margin: 0 auto; padding: 0 1.25rem 1rem; }
+/* The production illustration; width and height attributes reserve its 16:9 box before it loads. */
+.showcase { max-width: 900px; margin: 0 auto; }
 .showcase img {
     display: block;
     width: 100%;
     height: auto;
     border-radius: 16px;
     border: 1px solid var(--app-line);
-    box-shadow: 0 18px 40px -24px rgba(18, 33, 61, 0.35);
+    box-shadow: 0 10px 30px rgba(0, 42, 115, 0.12);
     background: var(--app-canvas);
 }
 
-.section { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem; }
-.section-head { text-align: center; margin-bottom: 1.75rem; }
-.section-head h2 { font-size: 1.75rem; font-weight: 750; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
-.section-head p { color: var(--app-muted); margin: 0; }
+.section { max-width: 1200px; margin: 0 auto; padding: 2.75rem 1.25rem 0.5rem; }
+.home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+.section-title { margin: 0 0 0.35rem; color: var(--app-accent); font-size: 1.65rem; font-weight: 750; letter-spacing: -0.015em; }
+.section-title.is-centered { text-align: center; }
+.section-lead { margin: 0 0 1.25rem; color: var(--app-muted); }
+.section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.5rem 1.5rem; margin-bottom: 1.25rem; }
+.section-head .section-lead { margin-bottom: 0; }
+.section-more { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; font-weight: 700; text-decoration: none; }
+.section-more:hover { text-decoration: underline; }
 
-/* Capability colors: an icon color and its soft background. Text keeps the ink color; each icon color has at least
-   3:1 contrast against its soft background (26111101 AC-20). */
+/* Why UnlimitedPDF: six tiles, three across from 900 px, two from 576 px. */
+.benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0 0; padding: 0; list-style: none; }
+.benefit { padding: 1.1rem 1.2rem; }
+.benefit h3 { margin: 0 0 0.3rem; color: var(--app-accent); font-size: 1.05rem; font-weight: 700; }
+.benefit p { margin: 0; color: var(--app-muted); font-size: 0.92rem; }
+
+/* Three lines to your first PDF: the words and the install command beside the code. */
+.first-pdf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; align-items: center; }
+.first-pdf-code .code-view { height: auto; min-height: 0; border-radius: 14px; overflow: hidden; }
+.first-pdf-code .code-view pre { height: auto; padding-top: 2.9rem; }
+
+.install {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 100%;
+    background: var(--app-code-bg);
+    color: #dbe5ff;
+    border-radius: 12px;
+    padding: 0.55rem 0.6rem 0.55rem 1rem;
+    font-family: var(--app-mono);
+    font-size: 0.9rem;
+}
+.install code { color: inherit; white-space: nowrap; overflow: auto; }
+.install code::before { content: "$ "; color: #9aa7c4; }
+.install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
+.install button:hover { background: #1b2a47; }
+
+/* Capability colors: an icon color and its soft background. Each icon color has at least 3:1 against its soft
+   background (26111101 AC-20). */
 :root {
     --cap-create: #2357e8;
     --cap-create-soft: #e8efff;
@@ -819,251 +887,128 @@ summary:focus-visible,
 .tone-purple { --tone: var(--cap-html); --tone-soft: var(--cap-html-soft); }
 .tone-green { --tone: var(--cap-languages); --tone-soft: var(--cap-languages-soft); }
 
-/* A jump keeps the section's heading below the sticky top bar. */
-.cap-row, .home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
-
-/* Jump links between the hero and the illustration. */
-.jump-links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-    max-width: 1200px;
-    margin: -1rem auto 1.75rem;
-    padding: 0 1.25rem;
+/* Capability rows (D-026): the icon, name, description, and every demo beside the code sample; one column below
+   1,024 px, in the order name, description, demos, sample. */
+.cap-rows { display: grid; gap: 1rem; }
+.cap-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: "intro code" "demos code";
+    gap: 0.75rem 1.5rem;
+    align-items: start;
+    padding: 1.25rem 1.4rem;
+    scroll-margin-top: calc(var(--app-topbar-h) + 1rem);
 }
-
-.jump-link {
+.cap-intro { grid-area: intro; }
+.cap-code { grid-area: code; }
+.cap-demos { grid-area: demos; }
+.cap-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem; }
+.cap-icon { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
+.cap-head h3 { margin: 0; color: var(--app-accent); font-size: 1.25rem; font-weight: 750; }
+.cap-lead { margin: 0; color: var(--app-muted); }
+.cap-group-title { margin: 0.6rem 0 0.3rem; color: var(--app-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.cap-links { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.cap-link {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.85rem;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0.25rem 0.75rem 0.25rem 0.45rem;
     border: 1px solid var(--app-line);
     border-radius: 999px;
-    background: var(--app-surface);
-    color: var(--app-ink);
+    color: var(--app-accent);
     font-size: 0.9rem;
     font-weight: 600;
     text-decoration: none;
 }
-
-.jump-link .icon { color: var(--tone, var(--app-muted)); }
-.jump-link:hover { border-color: #c9d6f5; background: #f3f6fd; }
-
-/* On a phone the six links are two even rows of three, each a 40 px tap target; the icons give way to the words. */
-@media (max-width: 575.98px) {
-    .jump-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; padding: 0 1rem; margin-bottom: 1.25rem; }
-    .jump-link { justify-content: center; min-height: 40px; padding: 0.35rem 0.4rem; font-size: 0.8rem; text-align: center; white-space: nowrap; }
-    .jump-link .icon { display: none; }
-}
-
-/* Capability rows: the name and description beside the code sample, the demos across the full width below; one
-   column below 1,024 px, in the order name, description, sample, demos (AC-09). */
-.cap-rows { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem 1rem; display: grid; gap: 1.25rem; }
-
-.cap-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "intro code" "demos demos";
-    gap: 1rem 1.5rem;
-    align-items: start;
-    padding: 1.5rem;
-}
-
-.cap-intro { grid-area: intro; }
-.cap-code { grid-area: code; }
-.cap-demos { grid-area: demos; }
-
-.cap-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
-.cap-icon { width: 42px; height: 42px; flex: none; border-radius: 11px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
-.cap-head h2 { font-size: 1.45rem; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
-.cap-lead { color: var(--app-muted); margin: 0; }
-
-.cap-group-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--app-muted); margin: 0.9rem 0 0.4rem; }
-.cap-group-title:first-child { margin-top: 0; }
-
-.cap-links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
-
-.cap-link {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    height: 100%;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--app-line);
-    border-radius: 10px;
-    color: var(--app-ink);
-    text-decoration: none;
-}
-
-.cap-link:hover { border-color: #c9d6f5; background: #f8faff; }
-.cap-link-icon { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
-.cap-link-text { display: grid; gap: 0.1rem; min-width: 0; }
-.cap-link-title { font-weight: 650; font-size: 0.92rem; }
-.cap-link-desc { color: var(--app-muted); font-size: 0.8rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-/* The row's code sample: the code view at its content's height, scrolling sideways inside itself. */
+.cap-link:hover { border-color: var(--app-accent); background: var(--app-accent-soft); }
+.cap-link-icon { display: inline-flex; color: var(--tone, var(--app-accent)); }
+/* The row keeps to names; each description is on its demo's page and read with the link. */
+.cap-link-desc { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .cap-code .code-view { height: auto; min-height: 0; border-radius: 12px; overflow: hidden; }
-.cap-code .code-view pre { height: auto; padding: 2.6rem 1.1rem 1.1rem; overflow-x: auto; }
+.cap-code .code-view pre { height: auto; max-height: 14rem; padding-top: 2.9rem; }
 
 @media (max-width: 1023.98px) {
-    .cap-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "code" "demos"; padding: 1.25rem; }
-    .cap-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cap-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "demos" "code"; }
+    .first-pdf { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
 }
 
-/* On a phone a demo link is its icon and name in two columns; its description is on its page. The rows stay short
-   enough to scan, and each link is a 48 px tap target. */
-@media (max-width: 575.98px) {
-    .cap-row { padding: 1rem; gap: 0.85rem; }
-    .cap-head h2 { font-size: 1.3rem; }
-    .cap-icon { width: 38px; height: 38px; }
-    .cap-link { align-items: center; min-height: 48px; padding: 0.45rem 0.55rem; gap: 0.5rem; }
-    .cap-link-icon { width: 28px; height: 28px; }
-    .cap-link-title { font-size: 0.86rem; line-height: 1.25; }
-    .cap-link-desc { display: none; }
-    .cap-code .code-view pre { font-size: 0.76rem; padding: 2.5rem 0.9rem 0.9rem; }
+@media (max-width: 899.98px) {
+    .benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-/* Real-life documents: five tiles per row from 1,024 px, three from 576 px, two below. A short last row is
-   centered, so ten tiles in rows of three end on one centered tile instead of one at the left. */
-.tiles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; --tiles-per-row: 5; }
-.tiles > li { flex: 0 0 calc((100% - (var(--tiles-per-row) - 1) * 1rem) / var(--tiles-per-row)); min-width: 0; }
-.tile { display: flex; flex-direction: column; overflow: hidden; }
-.tile-picture { display: block; width: 100%; height: auto; aspect-ratio: 320 / 453; object-fit: cover; object-position: top; background: #fff; border-bottom: 1px solid var(--app-line); cursor: zoom-in; }
-.tile-body { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.75rem 0.85rem 0.85rem; flex: 1; }
-.tile-title { font-size: 0.98rem; font-weight: 700; margin: 0; }
-.tile-summary { color: var(--app-muted); font-size: 0.8rem; line-height: 1.4; margin: 0; }
-.tile-facts { color: var(--app-muted); font-size: 0.78rem; font-weight: 600; margin: 0; }
-.tile-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.4rem; }
-
-@media (max-width: 1023.98px) {
-    .tiles { --tiles-per-row: 3; }
-}
-
-/* On a phone the two actions sit one above the other at the tile's full width, and the summary keeps to two lines. */
-@media (max-width: 575.98px) {
-    .tiles { --tiles-per-row: 2; gap: 0.75rem; }
-    .tiles > li { flex-basis: calc((100% - 0.75rem) / 2); }
-    .tile-body { padding: 0.6rem 0.65rem 0.7rem; gap: 0.25rem; }
-    .tile-title { font-size: 0.9rem; }
-    .tile-summary { font-size: 0.76rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .tile-actions { flex-direction: column; gap: 0.35rem; }
-    .tile-actions .btn { width: 100%; min-height: 40px; justify-content: center; display: inline-flex; align-items: center; }
-}
-
-/* Quick look: the browser's modal dialog, the picture beside its facts; full width on a phone, picture first. */
-.quick-look {
-    width: min(1040px, calc(100vw - 2rem));
-    max-height: calc(100vh - 2rem);
-    padding: 0;
-    border: 1px solid var(--app-line);
-    border-radius: var(--app-radius);
-    background: var(--app-surface);
-    color: var(--app-ink);
-    box-shadow: 0 24px 60px -20px rgba(18, 33, 61, 0.45);
-}
-
-.quick-look::backdrop { background: rgba(15, 26, 46, 0.55); }
-
-.ql-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
-.ql-picture { margin: 0; padding: 1rem; background: #eef1f7; display: grid; justify-items: center; align-content: start; gap: 0.5rem; }
-/* The tile's small picture (already loaded when its tile has been on screen) shows behind the large one until it arrives. */
-.ql-picture img { display: block; width: auto; max-width: 100%; height: auto; max-height: calc(100vh - 6.5rem); background: #fff center / 100% 100% no-repeat; box-shadow: 0 2px 10px rgba(18, 33, 61, 0.18); aspect-ratio: 960 / 1358; }
-.ql-page { font-size: 0.8rem; color: var(--app-muted); font-weight: 600; }
-.ql-side { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem 1.4rem; min-width: 0; }
-.ql-top { display: flex; align-items: center; justify-content: space-between; }
-.ql-position { font-size: 0.8rem; font-weight: 650; color: var(--app-muted); }
-.ql-icon-button { border: 1px solid var(--app-line); background: var(--app-surface); color: var(--app-ink); border-radius: 8px; padding: 0.3rem; line-height: 0; }
-.ql-icon-button:hover { background: var(--app-canvas); }
-.ql-title { font-size: 1.4rem; font-weight: 750; letter-spacing: -0.015em; margin: 0; }
-.ql-description { color: var(--app-muted); margin: 0; }
-.ql-facts { display: flex; gap: 1.5rem; margin: 0; }
-.ql-facts dt { font-size: 0.75rem; font-weight: 600; color: var(--app-muted); }
-.ql-facts dd { margin: 0; font-weight: 650; }
-.ql-actions, .ql-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.ql-actions .btn, .ql-nav .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
-/* While a download builds, the download button and the steps it holds look unavailable. */
-.ql-actions .btn[aria-disabled="true"], .ql-nav .btn[aria-disabled="true"] { opacity: 0.55; cursor: progress; }
-.ql-nav { margin-top: auto; justify-content: space-between; }
-.ql-error { margin: 0; padding: 0.6rem 0.8rem; border-radius: 10px; background: var(--app-danger-soft); color: #7d1b2d; font-size: 0.88rem; }
-.icon-flip { transform: scaleX(-1); }
-
-@media (max-width: 767.98px) {
-    .ql-layout { grid-template-columns: minmax(0, 1fr); }
-    .ql-picture img { max-height: 60vh; }
-}
-
-/* On a phone the position and Close stay at the top and Previous and Next at the bottom while the picture and the
-   details scroll between them, so Close and the steps are always one tap away. */
-@media (max-width: 575.98px) {
-    /* The scroll padding keeps a focused control clear of the two sticky bars. */
-    .quick-look { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; margin: 0; border-radius: 0; border: 0; scroll-padding-block: 3.75rem 4rem; }
-    .ql-layout { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; }
-    .ql-side { display: contents; }
-    .ql-top { order: -1; position: sticky; top: 0; z-index: 1; padding: 0.5rem 1rem; background: var(--app-surface); border-bottom: 1px solid var(--app-line); }
-    .ql-icon-button { padding: 0.5rem; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
-    .ql-picture { padding: 0.75rem; }
-    .ql-picture img { max-height: 48vh; }
-    .ql-title, .ql-description, .ql-facts, .ql-actions, .ql-error { margin-inline: 1rem; }
-    .ql-actions .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
-    .ql-nav { position: sticky; bottom: 0; margin-top: auto; padding: 0.5rem 1rem; background: var(--app-surface); border-top: 1px solid var(--app-line); }
-    .ql-nav .btn { min-height: 44px; }
+/* The six popular scenarios: three across from 1,024 px. */
+@media (min-width: 1024px) {
+    .home-section .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* "How do I...?": two columns of questions, one on a phone. */
-.questions { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-
+.questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
 .question {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    height: 100%;
-    padding: 0.9rem 1.1rem;
-    color: var(--app-ink);
+    gap: 0.35rem 1rem;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    color: var(--app-accent);
+    font-weight: 600;
     text-decoration: none;
 }
+.question:hover { border-color: var(--app-accent); }
+.question-demo { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--app-muted); font-size: 0.85rem; font-weight: 500; }
 
-.question:hover { border-color: #c9d6f5; }
-.question-text { font-weight: 650; }
-.question-demo { display: inline-flex; align-items: center; gap: 0.35rem; flex: none; color: var(--app-accent); font-size: 0.85rem; font-weight: 600; }
+/* "More questions in the FAQ" at the end of "How do I...?". */
+.questions-more { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; font-weight: 600; text-decoration: none; }
+.questions-more:hover { text-decoration: underline; }
 
-/* Below 1,024 px the demo's name goes under its question, so a question never wraps beside it. */
-@media (max-width: 1023.98px) {
-    .question { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.35rem; }
+/* The FAQ band: white on brand navy, 13.3:1. */
+.faq-band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    margin-bottom: 2.5rem;
+    padding: 1.75rem 2rem;
+    border-radius: 16px;
+    background: var(--app-accent);
+    color: #ffffff;
 }
+.faq-band h2 { margin: 0 0 0.35rem; font-size: 1.4rem; font-weight: 750; }
+.faq-band p { margin: 0; max-width: 44rem; color: #dce5f5; }
+.faq-band .btn-cta:focus-visible { outline-color: #ffffff; }
 
 @media (max-width: 575.98px) {
-    .questions { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
-    .question { padding: 0.8rem 1rem; }
+    .hero { padding: 2.25rem 1rem 1.75rem; }
+    .section { padding: 2rem 1rem 0.5rem; }
+    .benefits, .questions { grid-template-columns: minmax(0, 1fr); }
+    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.75rem; }
+    .install button { padding: 0.3rem 0.5rem; min-height: 36px; }
+    .hero h1 span { white-space: nowrap; }
+    .faq-band { padding: 1.4rem 1.25rem; }
 }
 
-/* The four facts: one row from 1,024 px, two by two from 576 px, one column below. */
-.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
-
-@media (max-width: 1023.98px) {
-    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* The narrowest phones (320 px): the command keeps fitting beside Copy. */
+@media (max-width: 359.98px) {
+    .install { font-size: 0.64rem; gap: 0.35rem; padding-left: 0.6rem; }
 }
-
-@media (max-width: 575.98px) {
-    .facts { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
-}
-.fact { padding: 1.1rem 1.25rem; }
-.fact strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
-.fact span { color: var(--app-muted); font-size: 0.9rem; }
 
 /* The site footer, on every page (MainLayout): the credit line, then the platform, license, and demo-data notes. */
-.footer { border-top: 1px solid var(--app-line); padding: 1.5rem 1.25rem; text-align: center; color: var(--app-muted); font-size: 0.85rem; }
+.footer { border-top: 1px solid var(--app-line); padding: 1.5rem 1.25rem; text-align: center; color: var(--app-muted); font-size: 0.85rem; background: var(--app-surface); }
 .footer p { margin: 0; }
 .footer p + p { margin-top: 0.35rem; }
 .footer a { text-decoration: underline; text-underline-offset: 2px; }
 .footer-heart { fill: currentColor; color: var(--app-danger); vertical-align: -2px; }
 
-.not-found { max-width: 32rem; margin: 5rem auto; text-align: center; padding: 0 1.25rem; }
-
-/* "More questions in the FAQ" at the end of "How do I...?". */
-.questions-more { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; font-weight: 600; text-decoration: none; }
-.questions-more:hover { text-decoration: underline; }
+/* A missing page: the code, what happened, the search, and the ways on. */
+.not-found { max-width: 36rem; margin: 4rem auto; padding: 0 1.25rem; text-align: center; }
+.not-found .not-found-code { margin: 0; color: var(--app-focus); font-size: 3.5rem; font-weight: 800; letter-spacing: -0.03em; }
+.not-found h1 { margin: 0 0 0.5rem; color: var(--app-accent); font-size: 1.9rem; font-weight: 750; }
+.not-found p { color: var(--app-muted); }
+.not-found-search { margin: 1.5rem 0; text-align: left; }
+.not-found-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
 
 /* ---------- FAQ page ---------- */
 
@@ -1138,7 +1083,8 @@ summary:focus-visible,
 /* The copy-link control: a link icon in the muted color, 5.6:1 on white (26111201 AC-02). */
 .faq-link { flex: none; width: 44px; display: grid; place-items: center; border: 0; background: none; color: var(--app-muted); border-radius: 12px; }
 .faq-link:hover { color: var(--app-accent); }
-.faq-link-status:empty { display: none; }
+/* Kept rendered while empty, so screen readers hear the text when it arrives. */
+.faq-link-status:empty { padding: 0; background: none; }
 .faq-link-status {
     position: absolute;
     right: 0.5rem;
@@ -1200,7 +1146,7 @@ summary:focus-visible,
     z-index: 1000;
 }
 
-#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.5rem; top: 0.25rem; min-width: 44px; min-height: 44px; border: 0; background: none; color: inherit; }
 
 /* ---------- Phone tap targets (26111103 AC-05) ---------- */
 
@@ -1211,7 +1157,9 @@ summary:focus-visible,
     .version-link { min-height: 44px; }
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }
-    .output-tab, .sidebar-link { min-height: 44px; }
+    .breadcrumbs a { min-height: 44px; }
+    .site-search .site-search-field { min-height: 44px; }
+    .demo-choice-option { min-height: 44px; }
     .form-control, .form-select { min-height: 44px; }
     .field input[type="color"] { height: 44px; }
     input[type="file"] { min-height: 44px; }
@@ -1224,13 +1172,213 @@ summary:focus-visible,
     .code-copy::before { content: ""; position: absolute; inset: -7px -4px; }
 }
 
-/* Home's own phone tap targets: the install Copy button, the jump links, the document tiles' Quick look and Open, and
-   the link to the FAQ (26111103 AC-05), and the release announcement (QF-26111209). The Quick look dialog's own
-   buttons are sized in its phone block above. */
+/* Home's own phone tap targets: the install Copy button, the demo links of the capability rows, and the link to the
+   FAQ (26111103 AC-05), and the release announcement (QF-26111209). */
 @media (max-width: 575.98px) {
     .hero-release { min-height: 44px; }
     .install button { min-height: 44px; }
-    .jump-link { min-height: 44px; }
+    .cap-link { min-height: 44px; }
     .questions-more { min-height: 44px; }
-    .tile-actions .btn { min-height: 44px; }
+}
+
+/* A demo's variants (a document type, a pack's domain): a labelled row of links, the current one filled. */
+.demo-choice { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; margin-bottom: 1rem; }
+.demo-choice-label { font-weight: 600; color: var(--app-ink); }
+.demo-choice-options { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.demo-choice-option {
+    display: inline-flex; align-items: center; min-height: 2.25rem; padding: 0.3rem 0.85rem;
+    border: 1px solid var(--app-field-border); border-radius: 999px; background: var(--app-surface);
+    color: var(--app-ink); font-size: 0.9rem; text-decoration: none;
+}
+.demo-choice-option:hover { border-color: var(--app-accent); background: var(--app-accent-soft); }
+.demo-choice-option[aria-current="page"] { border-color: var(--app-accent); background: var(--app-accent); color: #fff; font-weight: 600; }
+
+/* ---------- Site-wide search (D-024) ---------- */
+
+.site-search { position: relative; }
+.site-search-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    height: 40px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--app-field-border);
+    border-radius: 10px;
+    background: var(--app-surface);
+    color: var(--app-muted);
+}
+.site-search-field:focus-within { outline: 2px solid var(--app-focus); outline-offset: 2px; }
+.site-search-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--app-ink);
+    font-size: 0.95rem;
+}
+/* The field shows the ring for the box as a whole. */
+.site-search-input:focus-visible { outline: none; }
+.site-search-input::placeholder { color: var(--app-muted); opacity: 1; }
+.site-search-key {
+    padding: 0.05rem 0.4rem;
+    border: 1px solid var(--app-line);
+    border-radius: 6px;
+    background: var(--app-canvas);
+    color: var(--app-muted);
+    font-family: var(--app-font);
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+.site-search-results {
+    position: absolute;
+    top: calc(100% + 0.4rem);
+    left: 0;
+    right: 0;
+    z-index: 25;
+    max-height: min(70vh, 32rem);
+    overflow-y: auto;
+    padding: 0.5rem;
+    border: 1px solid var(--app-line);
+    border-radius: 12px;
+    background: var(--app-surface);
+    box-shadow: 0 12px 32px rgba(0, 42, 115, 0.16);
+}
+.site-search-results[hidden] { display: none; }
+.site-search-group {
+    margin: 0.4rem 0.5rem 0.2rem;
+    color: var(--app-muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.site-search-list { margin: 0; padding: 0; list-style: none; }
+.site-search-result {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    min-height: 44px;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    color: var(--app-ink);
+    text-decoration: none;
+}
+.site-search-result:hover, .site-search-result:focus-visible { background: var(--app-accent-soft); }
+.site-search-result:focus-visible { outline-offset: -2px; }
+.site-search-title { color: var(--app-accent); font-weight: 650; }
+.site-search-detail { color: var(--app-muted); font-size: 0.85rem; overflow-wrap: anywhere; }
+.site-search-detail.is-code { font-family: var(--app-mono); font-size: 0.8rem; }
+.site-search-result mark { padding: 0; background: var(--app-mark); color: inherit; font-weight: 700; }
+.site-search-empty { margin: 0.5rem; color: var(--app-muted); }
+
+/* In the drawer the results take the drawer's width, below the box. */
+.site-menu .site-search-results { position: static; margin-top: 0.4rem; box-shadow: none; max-height: none; }
+
+/* ---------- Scenario gallery (D-022) ---------- */
+
+.gallery { max-width: 1240px; margin: 0 auto; padding: 2rem 1.25rem 3rem; }
+.gallery-head h1 { margin: 0 0 0.4rem; color: var(--app-accent); font-size: clamp(1.8rem, 3vw, 2.4rem); }
+.gallery-lead { max-width: 44rem; margin: 0 0 1.25rem; color: var(--app-muted); font-size: 1.05rem; }
+
+.gallery-tabs ul, .gallery-chips ul { display: flex; flex-wrap: wrap; margin: 0; padding: 0; list-style: none; }
+.gallery-tabs ul { gap: 0.25rem 1.25rem; border-bottom: 1px solid var(--app-line); }
+.gallery-tab {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--app-muted);
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -1px;
+}
+.gallery-tab:hover { color: var(--app-accent); }
+.gallery-tab[aria-current="page"] { color: var(--app-accent); font-weight: 700; border-bottom-color: var(--app-focus); }
+
+.gallery-chips ul { gap: 0.5rem; margin: 1rem 0 0.75rem; }
+.gallery-chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0.25rem 0.9rem;
+    border: 1px solid #8a94a6;
+    border-radius: 999px;
+    background: var(--app-surface);
+    color: var(--app-ink);
+    font-size: 0.9rem;
+    text-decoration: none;
+}
+.gallery-chip:hover { border-color: var(--app-accent); }
+.gallery-chip[aria-current="page"] { border-color: var(--app-accent); background: var(--app-accent); color: #fff; font-weight: 600; }
+
+.gallery-count { margin: 0 0 1rem; color: var(--app-muted); font-size: 0.9rem; }
+.gallery-empty { padding: 2rem; border: 1px dashed var(--app-field-border); border-radius: var(--app-radius); text-align: center; }
+
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+/* The whole card opens the demo: the title link's area covers it, and the card shows the link's focus ring. */
+.scenario-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--app-line);
+    border-radius: var(--app-radius);
+    background: var(--app-surface);
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.scenario-card:hover { border-color: #b9c7e0; box-shadow: 0 8px 22px rgba(0, 42, 115, 0.1); }
+.scenario-card:focus-within { outline: 2px solid var(--app-focus); outline-offset: 2px; }
+.scenario-link { color: var(--app-accent); text-decoration: none; }
+.scenario-link::after { content: ""; position: absolute; inset: 0; }
+.scenario-link:focus-visible { outline: none; }
+.scenario-thumb {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    height: 150px;
+    overflow: hidden;
+    background: var(--tone-soft, var(--app-accent-soft));
+    color: var(--tone, var(--app-accent));
+}
+.scenario-thumb img { width: 78%; height: auto; margin-top: 2.25rem; border-radius: 4px 4px 0 0; box-shadow: 0 2px 10px rgba(0, 42, 115, 0.18); }
+.tone-navy { --tone: var(--app-accent); --tone-soft: var(--app-accent-soft); }
+.scenario-body { display: flex; flex-direction: column; gap: 0.35rem; padding: 0.9rem 1rem 1rem; flex: 1 1 auto; }
+.scenario-title { margin: 0; font-size: 1.05rem; font-weight: 700; }
+.scenario-desc { margin: 0; color: var(--app-muted); font-size: 0.9rem; }
+.scenario-meta { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; margin: auto 0 0; padding-top: 0.35rem; font-size: 0.8rem; }
+.scenario-capability { color: var(--app-muted); font-weight: 600; }
+.scenario-tags { color: var(--app-teal-ink); font-weight: 650; }
+
+@media (max-width: 575.98px) {
+    .gallery { padding: 1.25rem 1rem 2rem; }
+    .gallery-grid { grid-template-columns: 1fr; }
+    .gallery-chip { min-height: 44px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scenario-card { transition: none; }
+}
+
+/* KPI report: the twelve monthly figures in three columns. */
+.kpi-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 0.6rem; }
+
+/* Phone tap targets for controls whose base rules come later in this file, so these win (26111103 AC-05). */
+@media (max-width: 575.98px) {
+    .demo-choice .demo-choice-option { min-height: 44px; }
+    .breadcrumbs a { min-height: 44px; min-width: 44px; }
+    .gallery-tabs .gallery-tab { min-height: 44px; min-width: 44px; justify-content: center; }
+    .stale-note button { min-height: 44px; }
+    .font-slot-link { min-height: 44px; }
+    .faq-demo { min-height: 44px; }
+    .field-hint > a { min-height: 44px; }
+    .site-search .site-search-field { min-height: 44px; height: 48px; }
 }

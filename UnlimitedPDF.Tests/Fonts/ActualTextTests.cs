@@ -13,6 +13,7 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// no span; every drawn glyph has a <c>ToUnicode</c> entry, a character glyph always stands for the same character,
 /// and the actual text is written as hex (A05).
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class ActualTextTests
 {
     #region Fields and Constants
@@ -104,6 +105,7 @@ public class ActualTextTests
 
         PdfStructureChecker.AssertValid(pdf);
         Assert.Equal(text, PageText(pdf));
+        Rendering.RenderTestFiles.AssertDrawnWithTheSameText(pdf);
         Assert.Equal(4, PdfInspector.Read(pdf).Fonts().Count);
         Assert.Single(Regex.Matches(Assert.Single(PdfPageReader.Read(pdf)).Content, "BT "));
     }
@@ -343,6 +345,7 @@ public class ActualTextTests
         document.AddPage().AddText(text, font, 72, 720);
         var pdf = PdfPageReader.SaveBytes(document);
         PdfStructureChecker.AssertValid(pdf);
+        Rendering.RenderTestFiles.AssertDrawnWithTheSameText(pdf); // the demo preview reads the same text (26111701 V-04)
         return (pdf, Assert.Single(PdfPageReader.Read(pdf)).Content);
     }
 

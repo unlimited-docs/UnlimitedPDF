@@ -40,10 +40,10 @@ public class MergePlaygroundTests
         Assert.Equal("Create", categories[0].Title);
         Assert.Equal("Merge", merge.Title);
         Assert.Equal(
-            new[] { "Join files", "Cover + ranges", "Pick pages", "Bookmarks & numbers", "Month-end pack", "Employee pack", "Patient pack" },
+            new[] { "Join files", "Cover + ranges", "Pick pages", "Bookmarks & numbers", "Document packs" },
             merge.Demos.Select(demo => demo.Title));
         Assert.Equal(
-            new[] { "join-files", "cover-and-ranges", "pick-pages", "bookmarks-and-numbers", "month-end-pack", "employee-pack", "patient-pack" },
+            new[] { "join-files", "cover-and-ranges", "pick-pages", "bookmarks-and-numbers", "document-packs" },
             merge.Demos.Select(demo => demo.Route.Replace("playground/merge/", string.Empty, StringComparison.Ordinal)));
         Assert.All(merge.Demos, demo => Assert.StartsWith("playground/merge/", demo.Route, StringComparison.Ordinal));
         Assert.DoesNotContain(categories.SelectMany(c => c.Demos), demo => demo.Route.Contains("merge-pdfs", StringComparison.Ordinal));

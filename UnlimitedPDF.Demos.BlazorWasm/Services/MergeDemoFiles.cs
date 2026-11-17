@@ -21,15 +21,15 @@ public static class MergeDemoFiles
         Load(AccountStatementSample.Build(new AccountStatementInput(), await images.GetManyAsync("account-statement-logo.png")));
 
     /// <summary>
-    /// Returns the Certificate demo's document.
+    /// Returns the Contract demo's agreement.
     /// </summary>
-    public static async Task<PdfFile> CertificateAsync(SampleImageStore images) =>
-        Load(CertificateSample.Build(new CertificateInput(), await images.GetManyAsync("certificate-seal.png", "certificate-signature.png")));
+    public static PdfFile Contract() => Load(ContractSample.Build(new ContractInput()));
 
     /// <summary>
-    /// Returns the Employee directory demo's document (several pages).
+    /// Returns the Headers and footers demo's report: several pages with page numbers, the sample file of the page
+    /// picking and splitting demos.
     /// </summary>
-    public static PdfFile EmployeeDirectory() => Load(EmployeeDirectorySample.Build(new EmployeeDirectoryInput()));
+    public static PdfFile Report() => Load(HeadersFootersSample.Build(HeadersFootersInput.Report()));
 
     /// <summary>
     /// Returns the Invoice demo's document.

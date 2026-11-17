@@ -18,6 +18,10 @@ internal sealed class AnnotationImporter
     // Annotation flags: Hidden (bit 2) and NoView (bit 6).
     private const int HiddenFlags = 2 | 32;
 
+    // The longest named-destination key read, and the most key bytes read from the name tree in all.
+    private const int MaxNameLength = 4096;
+    private const long MaxNameBytes = 16L * 1024 * 1024;
+
     private static readonly HashSet<string> DroppedSubtypes = new(StringComparer.Ordinal)
     {
         "Screen", "Movie", "Sound", "RichMedia", "3D", "FileAttachment",
@@ -198,6 +202,7 @@ internal sealed class AnnotationImporter
         {
             var visited = new HashSet<int>();
             var pending = new Stack<PdfReadValue?>();
+            long keyBytes = 0;
             pending.Push(names["Dests"]);
             while (pending.Count > 0)
             {
@@ -208,7 +213,11 @@ internal sealed class AnnotationImporter
                 {
                     for (int i = 0; i + 1 < pairs.Count; i += 2)
                     {
-                        if (_table.Resolve(pairs[i]) is PdfReadString key) _named.TryAdd(Encoding.Latin1.GetString(key.Bytes), pairs[i + 1]);
+                        // A long key, or keys past the byte budget (a key repeated by reference), are skipped, so a
+                        // small hostile file can't make the walk decode gigabytes (A06).
+                        if (_table.Resolve(pairs[i]) is not PdfReadString key || key.Bytes.Length > MaxNameLength) continue;
+                        if ((keyBytes += key.Bytes.Length) > MaxNameBytes) return _named;
+                        _named.TryAdd(Encoding.Latin1.GetString(key.Bytes), pairs[i + 1]);
                     }
                 }
                 if (_table.Resolve(node["Kids"]) is PdfReadArray kids)

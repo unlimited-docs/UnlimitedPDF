@@ -28,7 +28,6 @@ public partial class SplitPartsPage : IAsyncDisposable
     private int _selected;
     private string _source = "";
     private bool _stale;
-    private OutputTab _tab = OutputTab.Preview;
     private string? _zipUrl;
 
     #endregion
@@ -83,8 +82,14 @@ public partial class SplitPartsPage : IAsyncDisposable
             ? $"{bytes} B"
             : string.Format(CultureInfo.InvariantCulture, "{0:0.0} KB", bytes / 1024.0);
 
-    private static string PagesText(PdfSplitPart part) =>
-        part.FirstPage == part.LastPage
+    // The time per file, for runs that make many files.
+    private static string FormatEach(SplitResult result) =>
+        string.Format(CultureInfo.InvariantCulture, "{0:0.#} ms", (double)result.Milliseconds / result.Parts);
+
+    // The pages a part took from the source, or, for files made from scratch, how many pages each has.
+    private static string PagesText(PdfSplitPart part, bool countsPages) =>
+        countsPages ? $"{part.LastPage - part.FirstPage + 1} {(part.FirstPage == part.LastPage ? "page" : "pages")}"
+        : part.FirstPage == part.LastPage
             ? $"page {part.FirstPage}"
             : $"pages {part.FirstPage}-{part.LastPage}";
 
@@ -144,13 +149,14 @@ public partial class SplitPartsPage : IAsyncDisposable
 
     private async Task ResetAsync()
     {
+        if (_busy) return;
         await OnReset.InvokeAsync();
         NotifyInputsChanged();
     }
 
     private async Task SelectAsync(int index)
     {
-        if (_preview is null || index >= _parts.Count)
+        if (_busy || _preview is null || index >= _parts.Count)
         {
             return;
         }
@@ -170,7 +176,7 @@ public partial class SplitPartsPage : IAsyncDisposable
 
         _busy = true;
         _error = null;
-        _announcement = "Splitting the PDF.";
+        _announcement = Wording.Busy;
         StateHasChanged();
 
         // Let the browser paint the busy state before .NET starts working on the single UI thread.
@@ -188,13 +194,12 @@ public partial class SplitPartsPage : IAsyncDisposable
 
             _result = new SplitResult(parts.Count, parts.Sum(part => part.Bytes.Length), stopwatch.ElapsedMilliseconds);
             _stale = false;
-            _tab = OutputTab.Preview;
-            _announcement = $"Split into {parts.Count} {(parts.Count == 1 ? "part" : "parts")} in {stopwatch.ElapsedMilliseconds} milliseconds.";
+            _announcement = $"{parts.Count} {(parts.Count == 1 ? Wording.One : Wording.Many)} ready in {stopwatch.ElapsedMilliseconds} milliseconds.";
         }
         catch (Exception exception)
         {
-            _error = exception.Message;
-            _announcement = $"Couldn't split the PDF. {exception.Message}";
+            _error = ErrorText.Plain(exception);
+            _announcement = null; // the error box is an alert and announces itself
             // Split errors are expected while options are being edited; the status line shows them, so they are
             // logged without the app's error banner.
             Console.WriteLine(exception);
@@ -242,17 +247,46 @@ public partial class SplitPartsPage : IAsyncDisposable
     /// </summary>
     [Parameter] public EventCallback OnReset { get; set; }
 
+    /// <summary>
+    /// Gets or sets the words the page uses for its action and its files: <see cref="SplitWording"/> unless a demo
+    /// that makes many files of its own gives other words.
+    /// </summary>
+    [Parameter] public PartsWording Wording { get; set; } = SplitWording;
+
+    /// <summary>
+    /// Gets the words of the Split demos.
+    /// </summary>
+    public static PartsWording SplitWording { get; } = new("Split PDF", "Splitting...", "Parts", "part", "parts", "split",
+        "Couldn't split the PDF.", "Every PDF is split locally. Nothing is uploaded.", "Split to update", CountsPages: false, TimesEach: false);
+
+    /// <summary>
+    /// Gets the words of the Bulk invoices demo.
+    /// </summary>
+    public static PartsWording InvoiceWording { get; } = new("Generate invoices", "Generating...", "Invoices", "invoice", "invoices", "made",
+        "Couldn't make the invoices.", "Every invoice is made locally. Nothing is uploaded.", "Generate to update", CountsPages: true, TimesEach: true);
+
     #endregion
 
     #region Nested Types
 
-    private enum OutputTab
-    {
-        Preview,
-        Code
-    }
-
     private sealed record SplitResult(int Parts, int Bytes, long Milliseconds);
+
+    /// <summary>
+    /// The words a parts page uses.
+    /// </summary>
+    /// <param name="Action">The main button, for example "Split PDF".</param>
+    /// <param name="Busy">The main button while it works, also announced.</param>
+    /// <param name="Heading">The heading of the list of files.</param>
+    /// <param name="One">One file, for example "part".</param>
+    /// <param name="Many">More files, for example "parts".</param>
+    /// <param name="Done">The verb of the status line, for example "split".</param>
+    /// <param name="Failed">The error heading.</param>
+    /// <param name="Local">The status line before the first run.</param>
+    /// <param name="Update">The button that runs again after the inputs change.</param>
+    /// <param name="CountsPages">Whether a file's pages are counted, instead of named by the source pages they took.</param>
+    /// <param name="TimesEach">Whether the status line also gives the time per file.</param>
+    public sealed record PartsWording(string Action, string Busy, string Heading, string One, string Many, string Done, string Failed,
+        string Local, string Update, bool CountsPages, bool TimesEach);
 
     #endregion
 }

@@ -51,7 +51,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 ## Demos
 
-`UnlimitedPDF.Demos.BlazorWasm` is an interactive playground that runs entirely in the browser. It generates PDFs for text and pages, tables, images, and headers and footers; merges PDFs, including your own uploads, in a Merge category (join files, cover and page ranges, pick pages, bookmarks and page numbers, and month-end, employee, and patient packs); splits PDFs, including your own uploads, in a Split category (every N pages and page ranges, with each part or a zip of all parts to download); converts HTML to PDF in an HTML to PDF category (templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit); draws an invoice in Hindi, Telugu, Tamil, French, or a mix with fonts you upload, in a Languages category (Fonts and languages, with text calls or HTML); and builds complete business documents: invoice, quotation, purchase order, delivery note, account statement, payslip, medical report, receipt, certificate, and employee directory. Each demo has editable options, a live preview, a download, and the C# code that builds it.
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive site that runs entirely in the browser: no engine required, nothing uploaded. Its scenario gallery lists 23 scenarios by capability and business domain, and each scenario shows your data, the PDF drawn in the page, and the C# code side by side. Create: text and pages, tables, images, and headers and footers. Merge: join files, cover and ranges, pick pages, bookmarks and numbers, and document packs for finance, HR, and healthcare. Split: every N pages and page ranges. HTML to PDF: templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit. Languages (Fonts and languages, with text calls or HTML): an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with free fonts included for the demo or fonts you upload. Real-life documents: invoice (also quotation, purchase order, delivery note, and receipt), bulk invoices (up to 1,000, zipped), account statement (up to 5,000 rows), inventory report, payslip, contract, medical report, KPI report, and shipping labels. Each scenario has editable data, a download, and the C# code that builds it.
 
 Try it live at [unlimitedpdf.dev](https://unlimitedpdf.dev/), or run it locally:
 
@@ -446,6 +446,13 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 ## Fonts and languages
 
 Draw text in your own fonts: Hindi, Telugu, Tamil, French, and other languages written in Latin letters, each shaped the way its script needs. Load a `.ttf` or `.otf` font once with `PdfFont`, then pass it to any text call; characters it doesn't have come from the document's fallback fonts. The PDF embeds only the glyphs it uses, and copied or searched text reads back exactly as written.
+
+Before you start, you need:
+
+- A `.ttf` or `.otf` font that has the letters of each script you write: one font per script, or one that covers them all. The package includes no fonts; ship the font files with your app.
+- The right to embed each font in a PDF. Check the font's license; free fonts under the SIL Open Font License, for example, allow it.
+- A supported script: Latin, Devanagari, Telugu, or Tamil.
+- A check for characters no font has: `FindMissingCharacters` or `FailOnMissingCharacters`, so none is drawn as `?`.
 
 ```cs
 using UnlimitedPDF;

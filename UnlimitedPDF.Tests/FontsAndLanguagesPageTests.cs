@@ -54,7 +54,7 @@ public class FontsAndLanguagesPageTests
         Assert.Contains("FileName=\"@($\"fonts-and-languages-{_input.Language}.pdf\")\"", page, StringComparison.Ordinal);
         Assert.Contains("_source = SampleSource.Read(ShownSourceFile);", frame, StringComparison.Ordinal);
         Assert.Contains("private string ShownSourceFile => SourceFile ?? Demo.SourceFile;", frame, StringComparison.Ordinal);
-        Assert.Contains("DownloadAsync(ShownFileName)", frame, StringComparison.Ordinal);
+        Assert.Contains("await _preview.ShowAsync(pdfBytes, ShownFileName);", frame, StringComparison.Ordinal);
 
         // Both samples are compiled into the site and embedded for the code card.
         Assert.Contains("<EmbeddedResource Include=\"Samples\\*Sample.cs\"", DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj"), StringComparison.Ordinal);
@@ -106,8 +106,8 @@ public class FontsAndLanguagesPageTests
         int start = readme.IndexOf("## Demos\n", StringComparison.Ordinal);
         string demos = readme.Substring(start, readme.IndexOf("\n## ", start + 3, StringComparison.Ordinal) - start);
 
-        Assert.Contains("in a Languages category (Fonts and languages, with text calls or HTML)", demos, StringComparison.Ordinal);
-        Assert.Contains("Hindi, Telugu, Tamil, French, or a mix with fonts you upload", demos, StringComparison.Ordinal);
+        Assert.Contains("Languages (Fonts and languages, with text calls or HTML)", demos, StringComparison.Ordinal);
+        Assert.Contains("Hindi, Telugu, Tamil, French, or a mix, drawn with free fonts included for the demo or fonts you upload", demos, StringComparison.Ordinal);
     }
 
     #endregion

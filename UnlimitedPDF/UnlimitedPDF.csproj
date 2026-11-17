@@ -46,6 +46,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="UnlimitedPDF.Tests" />
+    <InternalsVisibleTo Include="UnlimitedPDF.Demos.BlazorWasm" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net6.0'">

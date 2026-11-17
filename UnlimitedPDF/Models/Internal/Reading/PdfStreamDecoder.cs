@@ -68,13 +68,20 @@ internal static class PdfStreamDecoder
     private static byte[] Unpredict(byte[] data, PdfReadDictionary parameters, Func<PdfReadValue?, PdfReadValue> resolve)
     {
         int predictor = IntegerOr(parameters, "Predictor", 1, resolve);
-        if (predictor <= 1) return data;
+        if (predictor <= 1 || data.Length == 0) return data;
 
-        int colors = Math.Max(1, IntegerOr(parameters, "Colors", 1, resolve));
-        int bits = Math.Max(1, IntegerOr(parameters, "BitsPerComponent", 8, resolve));
-        int columns = Math.Max(1, IntegerOr(parameters, "Columns", 1, resolve));
+        int colors = IntegerOr(parameters, "Colors", 1, resolve);
+        int bits = IntegerOr(parameters, "BitsPerComponent", 8, resolve);
+        int columns = IntegerOr(parameters, "Columns", 1, resolve);
+        if (colors is < 1 or > 32 || bits is not (1 or 2 or 4 or 8 or 16) || columns < 1)
+            throw PdfReadException.Damaged("A predictor has parameters out of range.");
         int bytesPerPixel = Math.Max(1, (colors * bits + 7) / 8);
-        int rowLength = (colors * bits * columns + 7) / 8;
+
+        // A row longer than the whole stream can't be valid; checking it first keeps a hostile /Columns from
+        // overflowing or allocating far beyond the data (A06).
+        long longRowLength = ((long)colors * bits * columns + 7) / 8;
+        if (longRowLength > Math.Max(1, data.Length)) throw PdfReadException.Damaged("A predictor row is longer than its stream.");
+        int rowLength = (int)longRowLength;
 
         if (predictor == 2)
         {
@@ -88,7 +95,8 @@ internal static class PdfStreamDecoder
 
         if (predictor < 10) throw PdfReadException.Damaged($"Predictor {predictor} is not supported.");
 
-        var result = new List<byte>(data.Length);
+        var result = new byte[(data.Length + rowLength) / (rowLength + 1) * (long)rowLength];
+        int written = 0;
         var previous = new byte[rowLength];
         var current = new byte[rowLength];
         for (int offset = 0; offset < data.Length; offset += rowLength + 1)
@@ -112,10 +120,12 @@ internal static class PdfStreamDecoder
                     _ => throw PdfReadException.Damaged($"PNG predictor row type {type} is not valid."),
                 };
             }
-            result.AddRange(current.Take(Math.Max(0, available)));
+            int kept = Math.Max(0, available);
+            Array.Copy(current, 0, result, written, kept);
+            written += kept;
             (previous, current) = (current, previous);
         }
-        return result.ToArray();
+        return written == result.Length ? result : result.AsSpan(0, written).ToArray();
     }
 
     #endregion

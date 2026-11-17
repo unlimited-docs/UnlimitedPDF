@@ -119,6 +119,19 @@ public sealed class FontsAndLanguagesInput
     public string Language { get; set; } = "";
 
     /// <summary>
+    /// Gets the language tag of the chosen invoice's text, for the page's <c>lang</c> attributes (WCAG 3.1.2), or null
+    /// for the mixed invoice, whose fields hold several languages.
+    /// </summary>
+    public string? LanguageTag => Language switch
+    {
+        "hindi" => "hi",
+        "telugu" => "te",
+        "tamil" => "ta",
+        "french" => "fr",
+        _ => null,
+    };
+
+    /// <summary>
     /// Gets or sets how the invoice is drawn. The default is the programmatic calls.
     /// </summary>
     public DrawMode Mode { get; set; } = DrawMode.TextCalls;

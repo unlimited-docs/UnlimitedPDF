@@ -2,6 +2,8 @@
 <PageDescription Text="@Demo.Description" />
 <CanonicalLink Path="@Demo.Route" />
 
+@* A demo page (D-023): the visitor's data, the PDF, and the C# code side by side on wide screens, stacked in that order
+   on phones. *@
 <article class="demo">
     <header class="demo-header">
         <h1>@(Demo.Heading ?? Demo.Title)</h1>
@@ -9,12 +11,15 @@
     </header>
 
     <div class="demo-grid">
-        <section class="panel demo-inputs" id="@($"{_id}-options")" tabindex="-1" @ref="_optionsSection" aria-label="Options">
+        <section class="panel demo-inputs" id="@($"{_id}-options")" tabindex="-1" @ref="_optionsSection" aria-labelledby="@($"{_id}-data")">
+            <h2 class="demo-column-title" id="@($"{_id}-data")">Your data</h2>
+            @Choice
             <div class="demo-inputs-body" @oninput="OnInputsChanged" @onchange="OnInputsChanged" @onkeydown="OnInputsKeyDownAsync">
                 @Inputs
             </div>
             <div class="demo-actions">
-                <button type="button" class="btn btn-solid theme-primary btn-generate" disabled="@_busy" @onclick="() => GenerateAsync(userStarted: true)">
+                @* While a PDF is generated the buttons say so instead of being disabled, so a button that has focus keeps it. *@
+                <button type="button" class="btn btn-solid theme-primary btn-generate" aria-disabled="@(_busy ? "true" : null)" @onclick="() => GenerateAsync(userStarted: true)">
                     @if (_busy)
                     {
                         <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span>
@@ -25,29 +30,18 @@
                         <span>Generate PDF</span>
                     }
                 </button>
-                <button type="button" class="btn btn-text" disabled="@_busy" @onclick="ResetAsync">Reset to defaults</button>
+                <button type="button" class="btn btn-text" aria-disabled="@(_busy ? "true" : null)" @onclick="ResetAsync">Reset to defaults</button>
                 <span class="demo-shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
             </div>
         </section>
 
-        <section class="panel demo-output" @ref="_outputSection" aria-label="Output">
+        <section class="panel demo-output" @ref="_outputSection" aria-labelledby="@($"{_id}-pdf")">
             <div class="output-head">
-                <div class="output-tabs" role="tablist">
-                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-preview")" aria-controls="@($"{_id}-panel-preview")"
-                            aria-selected="@(_tab == OutputTab.Preview ? "true" : "false")" @onclick="() => _tab = OutputTab.Preview">Preview</button>
-                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-code")" aria-controls="@($"{_id}-panel-code")"
-                            aria-selected="@(_tab == OutputTab.Code ? "true" : "false")" @onclick="() => _tab = OutputTab.Code">C# code</button>
-                </div>
+                <h2 class="demo-column-title" id="@($"{_id}-pdf")">PDF</h2>
                 <div class="output-actions">
-                    @* Below 1,280 px the options sit above the output; this brings them back in one tap. *@
+                    @* Where the data sits above the PDF, this brings it back in one tap. *@
                     <button type="button" class="btn btn-sm btn-text back-to-options" @onclick="BackToOptionsAsync" title="Scroll up to this demo's options">
                         <Icon Name="pen" Size="16" /> Back to options
-                    </button>
-                    <button type="button" class="btn btn-sm btn-text" disabled="@(!HasPdf || _busy)" @onclick="OpenInNewTabAsync" title="Open the PDF in a new tab">
-                        <Icon Name="external" Size="16" /> Open
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline" disabled="@(!HasPdf || _busy)" @onclick="DownloadAsync" title="Download the PDF">
-                        <Icon Name="download" Size="16" /> Download
                     </button>
                 </div>
             </div>
@@ -60,14 +54,7 @@
                 </div>
             }
 
-            <div class="output-body">
-                <div id="@($"{_id}-panel-preview")" role="tabpanel" aria-labelledby="@($"{_id}-tab-preview")" hidden="@(_tab != OutputTab.Preview)">
-                    <PdfPreview @ref="_preview" Busy="_busy" />
-                </div>
-                <div id="@($"{_id}-panel-code")" role="tabpanel" aria-labelledby="@($"{_id}-tab-code")" hidden="@(_tab != OutputTab.Code)">
-                    <CodeView Source="@_source" AriaLabel="@($"{ShownSourceFile} source")" />
-                </div>
-            </div>
+            <PdfPreview @ref="_preview" Busy="_busy" Language="@ContentLanguage" />
 
             <div class="status-bar">
                 @if (_result is { } result)
@@ -87,6 +74,11 @@
                     <span class="stale-note">Inputs changed. <button type="button" @onclick="() => GenerateAsync(userStarted: true)">Generate to update</button></span>
                 }
             </div>
+        </section>
+
+        <section class="panel demo-code" aria-labelledby="@($"{_id}-code")">
+            <h2 class="demo-column-title" id="@($"{_id}-code")">C# code</h2>
+            <CodeView Source="@_source" AriaLabel="@($"{ShownSourceFile} source")" />
         </section>
     </div>
 

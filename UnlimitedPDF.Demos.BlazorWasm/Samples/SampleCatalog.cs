@@ -1,7 +1,7 @@
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// The single list of playground demos. The sidebar and the home page both read it, so a new capability (for
+/// The single list of playground demos. The gallery, the home page, and the search all read it, so a new capability (for
 /// example merge or split) is added here as a new category plus its pages.
 /// </summary>
 public static class SampleCatalog
@@ -17,7 +17,7 @@ public static class SampleCatalog
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets the demo categories in sidebar order.
+    /// Gets the demo categories in catalog order.
     /// </summary>
     public static IReadOnlyList<SampleCategory> Categories => _categories ??=
     [
@@ -32,7 +32,7 @@ public static class SampleCatalog
         new SampleCategory(
             "Merge",
             "Join existing PDFs, pick their pages, and build complete document packs. Try your own files.",
-            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, MonthEndPack, EmployeePack, PatientPack],
+            [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, DocumentPacks],
             Id: "merge",
             Icon: "merge",
             Tone: "teal",
@@ -40,7 +40,7 @@ public static class SampleCatalog
             Groups:
             [
                 new SampleGroup("Operations", [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers]),
-                new SampleGroup("Packs", [MonthEndPack, EmployeePack, PatientPack])
+                new SampleGroup("Packs", [DocumentPacks])
             ]),
         new SampleCategory(
             "Split",
@@ -69,9 +69,25 @@ public static class SampleCatalog
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
-            [Invoice, Quotation, PurchaseOrder, DeliveryNote, AccountStatement, Payslip, MedicalReport, Receipt, Certificate, EmployeeDirectory],
-            Id: "documents")
+            [Invoice, BulkInvoices, AccountStatement, InventoryReport, Payslip, Contract, MedicalReport, KpiReport, ShippingLabels],
+            Id: "documents",
+            Icon: "invoice",
+            Tone: "navy",
+            Snippet: "documents")
     ];
+
+    /// <summary>
+    /// Gets the document types the Invoice demo also makes (same shape: parties, line items, totals), in the order its
+    /// choice lists them. They are not demos of their own in the catalog.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> InvoiceTypes => [Quotation, PurchaseOrder, DeliveryNote, Receipt];
+
+    /// <summary>
+    /// Gets every demo page in catalog order, each type the Invoice demo makes right after it: the pages the sitemap
+    /// and llms.txt list, each with its own address, title, and description.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> Pages =>
+        Categories.SelectMany(c => c.Demos).Distinct().SelectMany(d => d == Invoice ? [d, .. InvoiceTypes] : new[] { d }).ToList();
 
     /// <summary>
     /// Gets the Account statement demo.
@@ -83,7 +99,10 @@ public static class SampleCatalog
         "AccountStatementSample.cs",
         "account-statement.pdf",
         "table",
-        PageTitle: "Create a PDF bank statement in C#");
+        PageTitle: "Create a PDF bank statement in C#")
+    {
+        Domains = ["Finance"],
+    };
 
     /// <summary>
     /// Gets the Bookmarks and page numbers merge demo.
@@ -98,16 +117,19 @@ public static class SampleCatalog
         PageTitle: "Merged PDF bookmarks and page numbers in C#");
 
     /// <summary>
-    /// Gets the Certificate demo.
+    /// Gets the Bulk invoices demo: many invoices made in one run and zipped.
     /// </summary>
-    public static SampleDemo Certificate { get; } = new(
-        "Certificate",
-        "A certificate of achievement with a seal and a signature image.",
-        "playground/documents/certificate",
-        "CertificateSample.cs",
-        "certificate.pdf",
-        "award",
-        PageTitle: "Create a PDF certificate in C#");
+    public static SampleDemo BulkInvoices { get; } = new(
+        "Bulk invoices",
+        "Make up to 1,000 invoices in your browser, see the total time and the time per invoice, and download them all as one zip file.",
+        "playground/documents/bulk-invoices",
+        "BulkInvoicesSample.cs",
+        "invoices.zip",
+        "copy",
+        PageTitle: "Generate invoices in bulk in C#: 1,000 PDFs")
+    {
+        Domains = ["Finance"],
+    };
 
     /// <summary>
     /// Gets the Common problems demo: known HTML to PDF problems, each as a small editable document.
@@ -121,6 +143,21 @@ public static class SampleCatalog
         "warning",
         PageTitle: "Common HTML to PDF problems in C#",
         Heading: "Common HTML to PDF problems");
+
+    /// <summary>
+    /// Gets the Contract demo: an agreement converted from HTML.
+    /// </summary>
+    public static SampleDemo Contract { get; } = new(
+        "Contract",
+        "An employment agreement written in HTML: numbered clauses, long paragraphs that wrap across pages, and page X of Y.",
+        "playground/documents/contract",
+        "ContractSample.cs",
+        "contract.pdf",
+        "pen",
+        PageTitle: "Create a PDF contract from HTML in C#")
+    {
+        Domains = ["Legal", "HR"],
+    };
 
     /// <summary>
     /// Gets the Cover and page ranges merge demo.
@@ -140,35 +177,29 @@ public static class SampleCatalog
     public static SampleDemo DeliveryNote { get; } = new(
         "Delivery note",
         "A delivery note that lists ordered and shipped quantities and keeps the signature block together.",
-        "playground/documents/delivery-note",
+        "playground/documents/invoice?type=delivery-note",
         "DeliveryNoteSample.cs",
         "delivery-note.pdf",
         "receipt",
-        PageTitle: "Create a PDF delivery note in C#");
+        PageTitle: "Create a PDF delivery note in C#")
+    {
+        Domains = ["Logistics"],
+    };
 
     /// <summary>
-    /// Gets the Employee directory demo.
+    /// Gets the Document packs merge demo: a finance, HR, or healthcare pack, generated and merged behind a cover page.
     /// </summary>
-    public static SampleDemo EmployeeDirectory { get; } = new(
-        "Employee directory",
-        "A long table that continues across pages, repeats its header row, and numbers every page.",
-        "playground/documents/employee-directory",
-        "EmployeeDirectorySample.cs",
-        "employee-directory.pdf",
-        "users",
-        PageTitle: "Create a PDF employee directory in C#");
-
-    /// <summary>
-    /// Gets the Employee pack merge demo.
-    /// </summary>
-    public static SampleDemo EmployeePack { get; } = new(
-        "Employee pack",
-        "A payslip and a certificate, generated and merged behind a cover page.",
-        "playground/merge/employee-pack",
+    public static SampleDemo DocumentPacks { get; } = new(
+        "Document packs",
+        "Generate a month-end, employee, or patient pack from the other demos and merge it behind a cover page, with a bookmark per document.",
+        "playground/merge/document-packs",
         "MergePackSample.cs",
-        "employee-pack.pdf",
-        "badge",
-        PageTitle: "Employee PDF pack: generate and merge in C#");
+        "document-pack.pdf",
+        "calendar",
+        PageTitle: "Generate and merge PDF document packs in C#")
+    {
+        Domains = ["Finance", "HR", "Healthcare"],
+    };
 
     /// <summary>
     /// Gets the Headers and footers demo.
@@ -187,19 +218,22 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo FontsAndLanguages { get; } = new(
         "Fonts and languages",
-        "Upload your own fonts and make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML. Fonts stay in your browser.",
+        "Make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with free fonts included for the demo or your own. Your fonts stay in your browser.",
         "playground/languages/fonts-and-languages",
         "FontsAndLanguagesSample.cs",
         "fonts-and-languages.pdf",
         "language",
-        PageTitle: "Multilingual PDFs with your own fonts in C#");
+        PageTitle: "Multilingual PDFs with your own fonts in C#")
+    {
+        Domains = ["Finance"],
+    };
 
     /// <summary>
     /// Gets the HTML to PDF demo.
     /// </summary>
     public static SampleDemo HtmlToPdf { get; } = new(
         "HTML to PDF",
-        "Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.",
+        "Pick a template or paste your own HTML, then convert it with the built-in renderer: no engine required, nothing uploaded.",
         "playground/html/html-to-pdf",
         "HtmlToPdfSample.cs",
         "html-to-pdf.pdf",
@@ -219,6 +253,21 @@ public static class SampleCatalog
         PageTitle: "Add JPEG and PNG images to a PDF in C#");
 
     /// <summary>
+    /// Gets the Inventory report demo: a long table grouped with subtotals.
+    /// </summary>
+    public static SampleDemo InventoryReport { get; } = new(
+        "Inventory report",
+        "Stock grouped by warehouse, with a subtotal per warehouse and the header row repeated on every page.",
+        "playground/documents/inventory-report",
+        "InventoryReportSample.cs",
+        "inventory-report.pdf",
+        "table",
+        PageTitle: "Create a grouped PDF inventory report in C#")
+    {
+        Domains = ["Retail"],
+    };
+
+    /// <summary>
     /// Gets the Invoice demo.
     /// </summary>
     public static SampleDemo Invoice { get; } = new(
@@ -228,7 +277,10 @@ public static class SampleCatalog
         "InvoiceSample.cs",
         "invoice.pdf",
         "invoice",
-        PageTitle: "Create a PDF invoice in C#");
+        PageTitle: "Create a PDF invoice in C#")
+    {
+        Domains = ["Finance", "Retail"],
+    };
 
 
     /// <summary>
@@ -244,6 +296,21 @@ public static class SampleCatalog
         PageTitle: "Merge PDF files in C#");
 
     /// <summary>
+    /// Gets the KPI report demo: figures and a bar chart on one page.
+    /// </summary>
+    public static SampleDemo KpiReport { get; } = new(
+        "KPI report",
+        "Headline figures and a bar chart of monthly revenue, drawn from rectangles on one page.",
+        "playground/documents/kpi-report",
+        "KpiReportSample.cs",
+        "kpi-report.pdf",
+        "spark",
+        PageTitle: "Create a PDF KPI report with bar charts in C#")
+    {
+        Domains = ["Management"],
+    };
+
+    /// <summary>
     /// Gets the Medical report demo.
     /// </summary>
     public static SampleDemo MedicalReport { get; } = new(
@@ -253,31 +320,10 @@ public static class SampleCatalog
         "MedicalReportSample.cs",
         "medical-report.pdf",
         "pulse",
-        PageTitle: "Create a PDF medical report in C#");
-
-    /// <summary>
-    /// Gets the Month-end pack merge demo.
-    /// </summary>
-    public static SampleDemo MonthEndPack { get; } = new(
-        "Month-end pack",
-        "An invoice, a receipt, and an account statement, generated and merged behind a cover page.",
-        "playground/merge/month-end-pack",
-        "MergePackSample.cs",
-        "month-end-pack.pdf",
-        "calendar",
-        PageTitle: "Month-end PDF pack: generate and merge in C#");
-
-    /// <summary>
-    /// Gets the Patient pack merge demo.
-    /// </summary>
-    public static SampleDemo PatientPack { get; } = new(
-        "Patient pack",
-        "A medical report and a receipt, generated and merged behind a cover page.",
-        "playground/merge/patient-pack",
-        "MergePackSample.cs",
-        "patient-pack.pdf",
-        "heart",
-        PageTitle: "Patient PDF pack: generate and merge in C#");
+        PageTitle: "Create a PDF medical report in C#")
+    {
+        Domains = ["Healthcare"],
+    };
 
     /// <summary>
     /// Gets the Payslip demo.
@@ -289,7 +335,10 @@ public static class SampleCatalog
         "PayslipSample.cs",
         "payslip.pdf",
         "users",
-        PageTitle: "Create a PDF payslip in C#");
+        PageTitle: "Create a PDF payslip in C#")
+    {
+        Domains = ["HR"],
+    };
 
     /// <summary>
     /// Gets the Pick pages merge demo.
@@ -309,11 +358,14 @@ public static class SampleCatalog
     public static SampleDemo PurchaseOrder { get; } = new(
         "Purchase order",
         "A purchase order whose item table runs across pages, with the totals kept together at the end.",
-        "playground/documents/purchase-order",
+        "playground/documents/invoice?type=purchase-order",
         "PurchaseOrderSample.cs",
         "purchase-order.pdf",
         "invoice",
-        PageTitle: "Create a PDF purchase order in C#");
+        PageTitle: "Create a PDF purchase order in C#")
+    {
+        Domains = ["Retail", "Logistics"],
+    };
 
     /// <summary>
     /// Gets the Quotation demo.
@@ -321,11 +373,14 @@ public static class SampleCatalog
     public static SampleDemo Quotation { get; } = new(
         "Quotation",
         "A services quotation with its own first-page header, a last-page footer, and terms kept with the signature.",
-        "playground/documents/quotation",
+        "playground/documents/invoice?type=quotation",
         "QuotationSample.cs",
         "quotation.pdf",
         "invoice",
-        PageTitle: "Create a PDF quotation in C#");
+        PageTitle: "Create a PDF quotation in C#")
+    {
+        Domains = ["Finance", "Retail"],
+    };
 
     /// <summary>
     /// Gets the Receipt demo.
@@ -333,11 +388,29 @@ public static class SampleCatalog
     public static SampleDemo Receipt { get; } = new(
         "Receipt",
         "A compact A6 store receipt with items, tax, and payment details.",
-        "playground/documents/receipt",
+        "playground/documents/invoice?type=receipt",
         "ReceiptSample.cs",
         "receipt.pdf",
         "receipt",
-        PageTitle: "Create a PDF receipt in C#");
+        PageTitle: "Create a PDF receipt in C#")
+    {
+        Domains = ["Retail"],
+    };
+
+    /// <summary>
+    /// Gets the Shipping labels demo: address labels on a 3 by 7 sheet.
+    /// </summary>
+    public static SampleDemo ShippingLabels { get; } = new(
+        "Shipping labels",
+        "Address labels on A4 sheets of three by seven, outlined for cutting and ready to print.",
+        "playground/documents/shipping-labels",
+        "ShippingLabelsSample.cs",
+        "shipping-labels.pdf",
+        "badge",
+        PageTitle: "Print PDF shipping labels on A4 sheets in C#")
+    {
+        Domains = ["Logistics"],
+    };
 
     /// <summary>
     /// Gets the Every N pages split demo.

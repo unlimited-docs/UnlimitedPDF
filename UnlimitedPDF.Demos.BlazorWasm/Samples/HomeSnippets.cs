@@ -27,6 +27,45 @@ public static class HomeSnippets
     }
 
     /// <summary>
+    /// The Real-life documents sample: a table whose header row repeats on every page it runs onto.
+    /// </summary>
+    /// <param name="output">The stream the PDF is written to.</param>
+    public static void Documents(Stream output)
+    {
+        var document = new PdfDocument();
+        // snippet:documents
+        var table = document.Body.AddTable(500);
+        table.HeaderRowCount = 1;
+        table.RepeatHeaderRows = true;
+        // end
+        table.SetColumnWidths(350, 150);
+        var header = table.AddRow();
+        header.GetCell(0).Text = "Item";
+        header.GetCell(1).Text = "Amount";
+        for (int i = 1; i <= 80; i++)
+        {
+            var row = table.AddRow();
+            row.GetCell(0).Text = $"Item {i}";
+            row.GetCell(1).Text = (i * 10).ToString();
+        }
+
+        document.Save(output);
+    }
+
+    /// <summary>
+    /// The home page's first PDF: a page with a line of text, saved as hello.pdf in a folder.
+    /// </summary>
+    /// <param name="folder">The folder to write hello.pdf to.</param>
+    public static void First(string folder)
+    {
+        // snippet:first
+        var document = new PdfDocument();
+        document.AddPage().AddText("Hello, PDF!", 72, 720, 24);
+        document.Save(Path.Combine(folder, "hello.pdf"));
+        // end
+    }
+
+    /// <summary>
     /// The HTML to PDF sample: HTML converted to a PDF in one call.
     /// </summary>
     /// <param name="output">The stream the PDF is written to.</param>

@@ -1,7 +1,7 @@
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// One playground demo: what the sidebar, the home page, and the demo page show about it.
+/// One playground demo: what the gallery, the home page, the search, and the demo page show about it.
 /// </summary>
 /// <param name="Title">The demo name, for example "Invoice".</param>
 /// <param name="Description">One sentence saying what the demo shows. It is also the page's meta description.</param>
@@ -13,7 +13,7 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 /// The browser tab and search result title before the site name: the task the demo shows, with "PDF" and "C#", for
 /// example "Create a PDF invoice in C#". It is unique and keeps <see cref="DocumentTitle"/> to 60 characters or fewer.
 /// </param>
-/// <param name="Heading">The demo page's heading when it says more than the short sidebar title, or null to use the title.</param>
+/// <param name="Heading">The demo page's heading when it says more than the short title, or null to use the title.</param>
 public sealed record SampleDemo(
     string Title,
     string Description,
@@ -39,6 +39,12 @@ public sealed record SampleDemo(
     /// Gets the full page title: <see cref="PageTitle"/> followed by the site name.
     /// </summary>
     public string DocumentTitle => $"{PageTitle} · {SiteName}";
+
+    /// <summary>
+    /// Gets the business domains the demo's scenario belongs to, for the gallery's domain filter; "General" for demos
+    /// of a capability rather than a business scenario.
+    /// </summary>
+    public IReadOnlyList<string> Domains { get; init; } = ["General"];
 
     #endregion
 }
