@@ -1,6 +1,6 @@
 @* One capability on the home page, as a row (D-026): its tinted icon and name, what it does, a link to each demo, and
    its code sample. *@
-<section id="@Category.Id" class="panel cap-row tone-@Category.Tone" aria-labelledby="@HeadingId">
+<section id="@Category.Id" class="@($"panel cap-row {(Category.Tone is null ? "" : "tone-" + Category.Tone)}".TrimEnd())" aria-labelledby="@HeadingId">
     <div class="cap-intro">
         <div class="cap-head">
             @if (Category.Icon is not null)

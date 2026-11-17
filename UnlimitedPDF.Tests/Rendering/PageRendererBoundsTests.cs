@@ -10,6 +10,7 @@ namespace UnlimitedPDF.Tests.Rendering;
 /// every probe ends in a page that is not drawn, quickly and without an escaping exception (26111701 AC-12, A06,
 /// A10).
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class PageRendererBoundsTests
 {
     #region Methods

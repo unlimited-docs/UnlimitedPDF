@@ -760,7 +760,8 @@ summary:focus-visible,
     color: #04342c;
     font-weight: 650;
 }
-.btn-cta:hover { background: #009a7d; color: #04342c; }
+/* Hover lightens the teal, keeping 5.7:1 with the dark text. */
+.btn-cta:hover { background: #26bc9f; color: #04342c; }
 
 .hero {
     padding: 3.5rem 1.25rem 2.5rem;
@@ -918,6 +919,11 @@ summary:focus-visible,
 
 @media (max-width: 899.98px) {
     .benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* The six popular scenarios: three across from 1,024 px. */
+@media (min-width: 1024px) {
+    .home-section .gallery-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
 /* "How do I...?": two columns of questions, one on a phone. */
@@ -1135,7 +1141,7 @@ summary:focus-visible,
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }
     .breadcrumbs a { min-height: 44px; }
-    .site-search-field { height: 44px; }
+    .site-search .site-search-field { min-height: 44px; }
     .demo-choice-option { min-height: 44px; }
     .form-control, .form-select { min-height: 44px; }
     .field input[type="color"] { height: 44px; }

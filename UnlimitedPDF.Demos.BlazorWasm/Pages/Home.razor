@@ -15,13 +15,13 @@
         <a class="hero-release" href="@LibraryRelease.NotesUrl" target="_blank" rel="noopener">
             <span class="hero-release-version">v@(LibraryRelease.Version)</span>
             <span class="hero-release-text">Merge, split, and HTML to PDF are here</span>
-            <Icon Name="arrow" Size="14" />
+            <Icon Name="arrow" Size="14" /><span class="visually-hidden"> release notes (opens in a new tab)</span>
         </a>
     }
     <h1>The pure .NET <span>PDF library</span></h1>
     <p class="hero-lead">
-        Create, merge, split, and convert HTML to PDF. No engine required: it works everywhere .NET runs, and every demo
-        below runs right here.
+        Create, merge, split, and convert HTML to PDF. No engine required: it runs wherever .NET 6 or later runs, and
+        every demo below runs right here.
     </p>
     <div class="hero-actions">
         <a class="btn btn-lg btn-cta" href="@ScenarioGallery.Route">Browse @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="18" /></a>
@@ -36,7 +36,7 @@
              srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
              sizes="(max-width: 940px) calc(100vw - 2.5rem), 900px"
              width="1200" height="675" fetchpriority="high" decoding="async"
-             alt="Stylized illustration of business documents made with UnlimitedPDF, each with its own logo" />
+             alt="Stylized illustration titled UnlimitedPDF Demos, Explore sample outputs and ready-to-use PDF scenarios, with invoice, medical report, receipt, and certificate cards" />
     </div>
 </section>
 
@@ -53,7 +53,7 @@
 <section class="section home-section first-pdf" aria-labelledby="first-title">
     <div class="first-pdf-text">
         <h2 id="first-title" class="section-title">Three lines to your first PDF</h2>
-        <p class="section-lead">Install the package and write a page.</p>
+        <p class="section-lead">Install the package and write a page. The code runs as shown.</p>
         <InstallCommand />
     </div>
     <div class="first-pdf-code">
@@ -65,7 +65,7 @@
     <div class="section-head">
         <div>
             <h2 id="popular-title" class="section-title">Popular scenarios</h2>
-            <p class="section-lead">Real documents developers build most, ready to run and copy.</p>
+            <p class="section-lead">Six scenarios to start with, each ready to run, change, and copy.</p>
         </div>
         <a class="section-more" href="@ScenarioGallery.Route">See all @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="16" /></a>
     </div>
@@ -119,7 +119,7 @@
     // The six benefits (D-026): each true of the shipped library (PR-012).
     private static readonly (string Title, string Text)[] Benefits =
     [
-        ("Pure .NET", "No engine required and no native libraries: it runs wherever .NET runs."),
+        ("Pure .NET", "No engine required and no native libraries: it runs on .NET 6 and later, on servers, desktops, and in the browser."),
         ("Live in your browser", "Every demo on this site is the library running in your browser."),
         ("Your languages", "Hindi, Telugu, Tamil, French, and more, with your own fonts."),
         ("Merge and split", "Join files, pick pages, split by ranges, and keep bookmarks."),
@@ -133,5 +133,5 @@
     private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories;
 
     /// <inheritdoc />
-    protected override void OnInitialized() => _firstPdf = SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "create");
+    protected override void OnInitialized() => _firstPdf = SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "first");
 }

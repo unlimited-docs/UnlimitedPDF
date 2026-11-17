@@ -10,6 +10,7 @@ namespace UnlimitedPDF.Tests.Rendering;
 /// memory (26111701 AC-12, A06): JPEG data must match its dictionary, masks must be ones it draws exactly, and every
 /// decode and encode is sized by the image before it runs.
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class PageRendererImageBoundsTests
 {
     #region Methods

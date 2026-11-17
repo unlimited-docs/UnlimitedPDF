@@ -195,10 +195,9 @@ public class DemoUsabilityTests
             new[]
             {
                 ".brand", ".topnav-link", ".btn", ".breadcrumbs a", ".viewer-tool", ".form-control", ".row-remove", ".check-field",
-                ".install button", ".cap-link", ".questions-more", ".demo-choice-option"
+                ".install button", ".cap-link", ".questions-more", ".demo-choice-option", ".site-search .site-search-field"
             },
             // The selector starts a rule (line start, after a comma, or after a closing brace), so ".btn" does not match
-            // inside ".tile-actions .btn".
             selector => Assert.Matches(new Regex(@"(^|[,}])\s*" + Regex.Escape(selector) + @"\s*[,{][^}]*min-height: 44px", RegexOptions.Multiline), phone));
     }
 

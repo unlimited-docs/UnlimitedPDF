@@ -1,20 +1,10 @@
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// One document of the home page gallery: what its tile and its quick look show, and how its default PDF is built.
+/// A document demo whose card picture is tracked against its sources: when the sample or its images change, the
+/// picture is captured again (see <c>UnlimitedPDF.Tests/Fixtures/document-gallery.json</c>).
 /// </summary>
-/// <param name="Demo">The document's playground demo.</param>
-/// <param name="Summary">One line on what the document demonstrates, shown on its tile.</param>
-/// <param name="PageCount">The number of pages its demo generates with the default input.</param>
-/// <param name="PageSize">The page size of that PDF.</param>
-/// <param name="Picture">The base name of its pictures in <c>images/gallery/</c>, for example "invoice".</param>
-/// <param name="Images">The built-in image files its default input uses.</param>
-/// <param name="Build">Builds the document from a new default input with the given images.</param>
-public sealed record GalleryDocument(
-    SampleDemo Demo,
-    string Summary,
-    int PageCount,
-    PdfPageSize PageSize,
-    string Picture,
-    IReadOnlyList<string> Images,
-    Func<SampleImages, PdfDocument> Build);
+/// <param name="Demo">The catalogue entry.</param>
+/// <param name="Picture">The base name of its picture in <c>images/gallery/</c>, for example "invoice".</param>
+/// <param name="Images">The images its sample draws, by their file names in <c>wwwroot/images</c>.</param>
+public sealed record GalleryDocument(SampleDemo Demo, string Picture, IReadOnlyList<string> Images);

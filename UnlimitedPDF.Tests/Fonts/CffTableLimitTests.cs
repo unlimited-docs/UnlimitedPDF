@@ -12,6 +12,7 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// once for given coordinates, shared by every outer index that names the same data; and flattening is bounded by the
 /// table's size, with each hint mask byte costing a step (RV-43, RV-45).
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class CffTableLimitTests
 {
     #region Fields and Constants

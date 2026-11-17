@@ -1,8 +1,8 @@
 {
-  "source": "https://chatgpt.com/share/6aeb010e-7d90-83e8-b31b-ae43794edd92",
+  "source": "Image-generation service (shared session, not linked)",
   "downloadedOn": "2026-11-04",
-  "generationTool": "ChatGPT image generation",
-  "notes": "PNG artwork downloaded from the shared chat. On 2026-11-04, the GitHub banner and social card were edited to correct their code windows using the local UnlimitedPDF API, and the demo hero was edited to show the current logo once without a duplicate headline. Edit records contain exact prompts and validation details; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
+  "generationTool": "Image-generation service",
+  "notes": "PNG artwork downloaded from the shared session. On 2026-11-04, the GitHub banner and social card were edited to correct their code windows using the local UnlimitedPDF API, and the demo hero was edited to show the current logo once without a duplicate headline. Edit records contain exact prompts and validation details; the remaining artwork is unchanged. The separately linked resized demo ZIP could not be downloaded.",
   "assets": [
     {
       "path": "originals/invoice-logo.png",

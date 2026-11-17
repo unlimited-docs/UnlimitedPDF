@@ -83,7 +83,10 @@ public static class SampleCatalog
             "Real-life documents",
             "Complete documents you can edit and download.",
             [Invoice, BulkInvoices, AccountStatement, InventoryReport, Payslip, Contract, MedicalReport, KpiReport, ShippingLabels],
-            Id: "documents")
+            Id: "documents",
+            Icon: "invoice",
+            Tone: "navy",
+            Snippet: "documents")
     ];
 
     /// <summary>

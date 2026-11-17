@@ -13,6 +13,7 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// no span; every drawn glyph has a <c>ToUnicode</c> entry, a character glyph always stands for the same character,
 /// and the actual text is written as hex (A05).
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class ActualTextTests
 {
     #region Fields and Constants
