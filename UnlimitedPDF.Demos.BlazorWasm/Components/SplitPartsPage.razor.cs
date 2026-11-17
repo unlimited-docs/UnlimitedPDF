@@ -28,7 +28,6 @@ public partial class SplitPartsPage : IAsyncDisposable
     private int _selected;
     private string _source = "";
     private bool _stale;
-    private OutputTab _tab = OutputTab.Preview;
     private string? _zipUrl;
 
     #endregion
@@ -188,7 +187,6 @@ public partial class SplitPartsPage : IAsyncDisposable
 
             _result = new SplitResult(parts.Count, parts.Sum(part => part.Bytes.Length), stopwatch.ElapsedMilliseconds);
             _stale = false;
-            _tab = OutputTab.Preview;
             _announcement = $"Split into {parts.Count} {(parts.Count == 1 ? "part" : "parts")} in {stopwatch.ElapsedMilliseconds} milliseconds.";
         }
         catch (Exception exception)
@@ -245,12 +243,6 @@ public partial class SplitPartsPage : IAsyncDisposable
     #endregion
 
     #region Nested Types
-
-    private enum OutputTab
-    {
-        Preview,
-        Code
-    }
 
     private sealed record SplitResult(int Parts, int Bytes, long Milliseconds);
 

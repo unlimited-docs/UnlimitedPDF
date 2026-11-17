@@ -63,6 +63,30 @@ internal static class PdfPageRenderer
         }
     }
 
+    /// <summary>
+    /// Returns the size a page is shown at, its rotation applied, so a viewer can hold its place before drawing it.
+    /// </summary>
+    /// <param name="file">The loaded PDF.</param>
+    /// <param name="pageIndex">The 0-based page index.</param>
+    /// <returns>The width and height in points, or null when the page's boxes can't be read.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="pageIndex"/> is not a page of the file.</exception>
+    public static (double Width, double Height)? Size(PdfFile file, int pageIndex)
+    {
+        if (file is null) throw new ArgumentNullException(nameof(file));
+        if (pageIndex < 0 || pageIndex >= file.Pages.Count) throw new ArgumentOutOfRangeException(nameof(pageIndex));
+
+        try
+        {
+            return new PageInterpreter(file.Source, file.Pages.Select(p => p.ObjectNumber), PageRenderLimits.Default, "s")
+                .ShownSize(file.Pages[pageIndex].Inherited);
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            return null;
+        }
+    }
+
     #endregion
 
     #region Private Methods

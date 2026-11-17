@@ -1,24 +1,17 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Routing;
-using Microsoft.JSInterop;
-using UnlimitedPDF.Demos.BlazorWasm.Services;
+using UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Layout;
 
 /// <summary>
-/// The playground layout: a sidebar grouped by capability beside the current demo. On small screens the sidebar
-/// collapses behind a menu button. The current demo's link is kept in view in the sidebar (and in the open menu),
-/// whether the demo was opened from the sidebar, a link, or a reload.
+/// The playground layout: a breadcrumb to the scenario gallery and the current demo's capability, above the demo.
 /// </summary>
 public partial class PlaygroundLayout
 {
     #region Fields and Constants
 
-    private bool _menuOpen;
-
-    private bool _revealActive = true;
-
-    private ElementReference _sidebar;
+    private SampleCategory? _category;
 
     #endregion
 
@@ -27,26 +20,11 @@ public partial class PlaygroundLayout
     #region Protected Override Methods
 
     /// <inheritdoc />
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override void OnInitialized()
     {
-        if (!_revealActive)
-        {
-            return;
-        }
-
-        _revealActive = false;
-        try
-        {
-            await Interop.RevealActiveLinkAsync(_sidebar);
-        }
-        catch (JSDisconnectedException)
-        {
-            // The page is closing; there is no sidebar to scroll.
-        }
+        Navigation.LocationChanged += OnLocationChanged;
+        _category = CategoryOf(Navigation.Uri);
     }
-
-    /// <inheritdoc />
-    protected override void OnInitialized() => Navigation.LocationChanged += OnLocationChanged;
 
     #endregion
 
@@ -59,19 +37,20 @@ public partial class PlaygroundLayout
 
     #region Private Methods
 
-    private void CloseMenu() => _menuOpen = false;
+    // The capability of the demo at an address: its path is a demo's route, or a route without its query.
+    private SampleCategory? CategoryOf(string uri)
+    {
+        string address = Navigation.ToBaseRelativePath(uri).Split('#')[0];
+        string path = address.Split('?')[0];
+        var demo = SampleCatalog.Pages.FirstOrDefault(d => string.Equals(d.Route, address, StringComparison.OrdinalIgnoreCase))
+            ?? SampleCatalog.Pages.FirstOrDefault(d => string.Equals(d.Route, path, StringComparison.OrdinalIgnoreCase));
+        return demo is null ? null : ScenarioGallery.CategoryOf(demo);
+    }
 
     private void OnLocationChanged(object? sender, LocationChangedEventArgs args)
     {
-        // Another demo is current: once it has rendered, bring its link into view.
-        _revealActive = true;
+        _category = CategoryOf(args.Location);
         _ = InvokeAsync(StateHasChanged);
-    }
-
-    private void ToggleMenu()
-    {
-        _menuOpen = !_menuOpen;
-        _revealActive = _menuOpen;
     }
 
     #endregion
@@ -79,8 +58,6 @@ public partial class PlaygroundLayout
     #endregion
 
     #region Properties, Indexers
-
-    [Inject] private BrowserInterop Interop { get; set; } = default!;
 
     [Inject] private NavigationManager Navigation { get; set; } = default!;
 

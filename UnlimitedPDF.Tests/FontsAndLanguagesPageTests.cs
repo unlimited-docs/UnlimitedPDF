@@ -54,7 +54,7 @@ public class FontsAndLanguagesPageTests
         Assert.Contains("FileName=\"@($\"fonts-and-languages-{_input.Language}.pdf\")\"", page, StringComparison.Ordinal);
         Assert.Contains("_source = SampleSource.Read(ShownSourceFile);", frame, StringComparison.Ordinal);
         Assert.Contains("private string ShownSourceFile => SourceFile ?? Demo.SourceFile;", frame, StringComparison.Ordinal);
-        Assert.Contains("DownloadAsync(ShownFileName)", frame, StringComparison.Ordinal);
+        Assert.Contains("await _preview.ShowAsync(pdfBytes, ShownFileName);", frame, StringComparison.Ordinal);
 
         // Both samples are compiled into the site and embedded for the code card.
         Assert.Contains("<EmbeddedResource Include=\"Samples\\*Sample.cs\"", DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj"), StringComparison.Ordinal);

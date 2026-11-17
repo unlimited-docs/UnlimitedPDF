@@ -1,5 +1,6 @@
-@* The page frame of the Split demos: options with Split, the list of parts with preview and download, all parts as one
-   zip, the C# code, and the status line. *@
+@* The page frame of the Split demos (D-023): the visitor's data with Split, the parts with the drawn preview of the
+   chosen part and a download of each or of all as one zip, and the C# code, side by side on wide screens and stacked
+   in that order on phones. *@
 <PageTitle>@Demo.DocumentTitle</PageTitle>
 <PageDescription Text="@Demo.Description" />
 <CanonicalLink Path="@Demo.Route" />
@@ -11,12 +12,13 @@
     </header>
 
     <div class="demo-grid">
-        <section class="panel demo-inputs" id="@($"{_id}-options")" tabindex="-1" @ref="_optionsSection" aria-label="Options">
+        <section class="panel demo-inputs" id="@($"{_id}-options")" tabindex="-1" @ref="_optionsSection" aria-labelledby="@($"{_id}-data")">
+            <h2 class="demo-column-title" id="@($"{_id}-data")">Your data</h2>
             <div class="demo-inputs-body" @oninput="OnInputsChanged" @onchange="OnInputsChanged" @onkeydown="OnInputsKeyDownAsync">
                 @Inputs
             </div>
             <div class="demo-actions">
-                <button type="button" class="btn btn-solid theme-primary btn-generate" disabled="@_busy" @onclick="() => SplitAsync(userStarted: true)">
+                <button type="button" class="btn btn-solid theme-primary btn-generate" aria-disabled="@(_busy ? "true" : null)" @onclick="() => SplitAsync(userStarted: true)">
                     @if (_busy)
                     {
                         <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span>
@@ -27,21 +29,16 @@
                         <span>Split PDF</span>
                     }
                 </button>
-                <button type="button" class="btn btn-text" disabled="@_busy" @onclick="ResetAsync">Reset to defaults</button>
+                <button type="button" class="btn btn-text" aria-disabled="@(_busy ? "true" : null)" @onclick="ResetAsync">Reset to defaults</button>
                 <span class="demo-shortcut"><kbd>Ctrl</kbd> + <kbd>Enter</kbd></span>
             </div>
         </section>
 
-        <section class="panel demo-output" @ref="_outputSection" aria-label="Output">
+        <section class="panel demo-output" @ref="_outputSection" aria-labelledby="@($"{_id}-parts")">
             <div class="output-head">
-                <div class="output-tabs" role="tablist">
-                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-preview")" aria-controls="@($"{_id}-panel-preview")"
-                            aria-selected="@(_tab == OutputTab.Preview ? "true" : "false")" @onclick="() => _tab = OutputTab.Preview">Parts</button>
-                    <button type="button" role="tab" class="output-tab" id="@($"{_id}-tab-code")" aria-controls="@($"{_id}-panel-code")"
-                            aria-selected="@(_tab == OutputTab.Code ? "true" : "false")" @onclick="() => _tab = OutputTab.Code">C# code</button>
-                </div>
+                <h2 class="demo-column-title" id="@($"{_id}-parts")">Parts</h2>
                 <div class="output-actions">
-                    @* Below 1,280 px the options sit above the output; this brings them back in one tap. *@
+                    @* Where the data sits above the parts, this brings it back in one tap. *@
                     <button type="button" class="btn btn-sm btn-text back-to-options" @onclick="BackToOptionsAsync" title="Scroll up to this demo's options">
                         <Icon Name="pen" Size="16" /> Back to options
                     </button>
@@ -59,37 +56,30 @@
                 </div>
             }
 
-            <div class="output-body">
-                <div id="@($"{_id}-panel-preview")" role="tabpanel" aria-labelledby="@($"{_id}-tab-preview")" hidden="@(_tab != OutputTab.Preview)">
-                    @if (_parts.Count > 0)
-                    {
-                        <ol class="split-parts" aria-label="Parts">
-                            @for (int i = 0; i < _parts.Count; i++)
-                            {
-                                int index = i;
-                                var part = _parts[index].Part;
-                                <li class="split-part@(index == _selected ? " is-selected" : string.Empty)">
-                                    <span class="split-part-name">@part.FileName</span>
-                                    <span class="split-part-pages">@PagesText(part)</span>
-                                    <span class="split-part-size">@FormatSize(_parts[index].Bytes.Length)</span>
-                                    <span class="split-part-actions">
-                                        <button type="button" class="btn btn-sm btn-text" disabled="@_busy" aria-pressed="@(index == _selected ? "true" : "false")"
-                                                aria-label="Preview @part.FileName" @onclick="() => SelectAsync(index)">Preview</button>
-                                        <button type="button" class="btn btn-sm btn-outline" disabled="@_busy"
-                                                aria-label="Download @part.FileName" @onclick="() => DownloadPartAsync(index)">
-                                            <Icon Name="download" Size="16" /> Download
-                                        </button>
-                                    </span>
-                                </li>
-                            }
-                        </ol>
-                    }
-                    <PdfPreview @ref="_preview" Busy="_busy" />
-                </div>
-                <div id="@($"{_id}-panel-code")" role="tabpanel" aria-labelledby="@($"{_id}-tab-code")" hidden="@(_tab != OutputTab.Code)">
-                    <CodeView Source="@_source" AriaLabel="@($"{Demo.SourceFile} source")" />
-                </div>
-            </div>
+                @if (_parts.Count > 0)
+                {
+                    <ol class="split-parts" aria-label="Parts">
+                        @for (int i = 0; i < _parts.Count; i++)
+                        {
+                            int index = i;
+                            var part = _parts[index].Part;
+                            <li class="split-part@(index == _selected ? " is-selected" : string.Empty)">
+                                <span class="split-part-name">@part.FileName</span>
+                                <span class="split-part-pages">@PagesText(part)</span>
+                                <span class="split-part-size">@FormatSize(_parts[index].Bytes.Length)</span>
+                                <span class="split-part-actions">
+                                    <button type="button" class="btn btn-sm btn-text" disabled="@_busy" aria-pressed="@(index == _selected ? "true" : "false")"
+                                            aria-label="Preview @part.FileName" @onclick="() => SelectAsync(index)">Preview</button>
+                                    <button type="button" class="btn btn-sm btn-outline" disabled="@_busy"
+                                            aria-label="Download @part.FileName" @onclick="() => DownloadPartAsync(index)">
+                                        <Icon Name="download" Size="16" /> Download
+                                    </button>
+                                </span>
+                            </li>
+                        }
+                    </ol>
+                }
+                <PdfPreview @ref="_preview" Busy="_busy" />
 
             <div class="status-bar">
                 @if (_result is { } result)
@@ -109,6 +99,11 @@
                     <span class="stale-note">Inputs changed. <button type="button" @onclick="() => SplitAsync(userStarted: true)">Split to update</button></span>
                 }
             </div>
+        </section>
+
+        <section class="panel demo-code" aria-labelledby="@($"{_id}-code")">
+            <h2 class="demo-column-title" id="@($"{_id}-code")">C# code</h2>
+            <CodeView Source="@_source" AriaLabel="@($"{Demo.SourceFile} source")" />
         </section>
     </div>
 

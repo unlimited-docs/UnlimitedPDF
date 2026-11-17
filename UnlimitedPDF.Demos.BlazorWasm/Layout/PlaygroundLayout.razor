@@ -2,34 +2,20 @@
 @layout MainLayout
 @implements IDisposable
 
+@* Demo pages (D-023): a breadcrumb back to the scenario gallery and to the demo's capability, then the demo with its
+   data, PDF, and code. Every demo is reached from the gallery or the site-wide search. *@
 <div class="playground">
-    <button type="button" class="playground-menu btn btn-sm btn-outline" @onclick="ToggleMenu"
-            aria-expanded="@(_menuOpen ? "true" : "false")" aria-controls="playground-sidebar">
-        <Icon Name="menu" Size="18" /> All demos
-    </button>
+    <nav class="breadcrumb-nav" aria-label="Breadcrumb">
+        <ol class="breadcrumbs">
+            <li><a href="@ScenarioGallery.Route">Scenarios</a></li>
+            @if (_category is { } category)
+            {
+                <li><a href="@ScenarioGallery.Address(category.Id, null)">@category.Title</a></li>
+            }
+        </ol>
+    </nav>
 
-    <aside id="playground-sidebar" class="playground-sidebar @(_menuOpen ? "is-open" : null)" aria-label="Demos" @ref="_sidebar">
-        @foreach (var category in SampleCatalog.Categories)
-        {
-            <div class="sidebar-group">
-                <div class="sidebar-group-title">@category.Title</div>
-                @if (category.Groups is { Count: > 0 } groups)
-                {
-                    @foreach (var group in groups)
-                    {
-                        <div class="sidebar-subgroup-title">@group.Title</div>
-                        <SidebarDemoList Demos="group.Demos" OnNavigate="CloseMenu" />
-                    }
-                }
-                else
-                {
-                    <SidebarDemoList Demos="category.Demos" OnNavigate="CloseMenu" />
-                }
-            </div>
-        }
-    </aside>
-
-    @* The skip link's destination here: the demo itself, past the sidebar. *@
+    @* The skip link's destination here: the demo itself, past the breadcrumb. *@
     <div class="playground-content" data-skip-target tabindex="-1">
         @Body
     </div>

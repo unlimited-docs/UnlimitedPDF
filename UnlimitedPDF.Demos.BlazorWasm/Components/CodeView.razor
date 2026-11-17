@@ -1,7 +1,9 @@
 <div class="code-view">
-    <button type="button" class="code-copy" @onclick="CopyAsync" aria-label="Copy the code">
+    @* The button's name is its visible text (WCAG 2.5.3); the result of a copy is also announced. *@
+    <button type="button" class="code-copy" @onclick="CopyAsync">
         <Icon Name="@(_copyState == CopyState.Copied ? "check" : "copy")" Size="15" />
-        @(_copyState switch { CopyState.Copied => "Copied", CopyState.Unavailable => "Copy not available", _ => "Copy" })
+        @(_copyState switch { CopyState.Copied => "Copied", CopyState.Unavailable => "Copy not available", _ => "Copy code" })
     </button>
+    <span class="visually-hidden" role="status">@(_copyState switch { CopyState.Copied => "Code copied.", CopyState.Unavailable => "Copy is not available in this browser.", _ => "" })</span>
     <pre tabindex="0" aria-label="@AriaLabel"><code>@Source</code></pre>
 </div>

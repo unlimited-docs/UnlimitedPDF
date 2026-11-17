@@ -12,24 +12,6 @@ export function revokeObjectUrl(url) {
     }
 }
 
-export function canShowPdfInPage() {
-    // Whether a PDF placed in a frame is shown there (QF-26111303). The browser says whether it has a PDF viewer:
-    // Android Chrome has none and would download the file instead, so it gets the ready card. iPhone and iPad browsers
-    // show the PDF in the frame since every page names its font (QF-26111305, QF-26111402). A browser too old to say is
-    // trusted unless it calls itself a phone.
-    if (typeof navigator.pdfViewerEnabled === "boolean") {
-        return navigator.pdfViewerEnabled;
-    }
-    return !/Android|Mobi/i.test(navigator.userAgent);
-}
-
-export function showInFrame(frame, url) {
-    if (frame) {
-        // Fit the page width and hide the viewer's thumbnail pane so the page gets the room.
-        frame.src = url + "#navpanes=0&view=FitH";
-    }
-}
-
 function clickLink(url, configure) {
     const link = document.createElement("a");
     link.href = url;
@@ -70,25 +52,6 @@ export function focusSkipTarget() {
     const target = document.querySelector("[data-skip-target]") ?? document.getElementById("main-content");
     if (target) {
         target.focus({ preventScroll: true });
-    }
-}
-
-export function revealActiveLink(container) {
-    // Brings the current demo's link into the middle of the sidebar (or the open phone menu) when it is out of view.
-    // Only the container scrolls, never the page, and it jumps rather than animates.
-    if (!container || container.offsetParent === null) {
-        return;
-    }
-    // Matched by address, because the links mark themselves active in their own render, possibly after this call.
-    const links = [...container.querySelectorAll(".sidebar-link")];
-    const link = links.find(a => a.pathname === window.location.pathname) ?? links.find(a => a.classList.contains("active"));
-    if (!link) {
-        return;
-    }
-    const box = container.getBoundingClientRect();
-    const item = link.getBoundingClientRect();
-    if (item.top < box.top || item.bottom > box.bottom) {
-        container.scrollTop += item.top - box.top - (container.clientHeight - item.height) / 2;
     }
 }
 
@@ -267,4 +230,223 @@ export function disposeSiteSearch(root) {
         root.removeEventListener("focusout", root.siteSearch.onFocusOut);
         root.siteSearch = null;
     }
+}
+
+// The drawn PDF preview (PdfPreview). The library draws each page as SVG in .NET; this places it in the page, after
+// checking it holds only what the renderer writes: a fixed set of elements and attributes, links to web pages, mail,
+// or another page, and images as PNG or JPEG data. Anything else is dropped, so a page can never run a script or load
+// from another site (A05). Pages are asked for as they come near the view, and the page in view is reported.
+const svgElements = new Set(["svg", "defs", "rect", "path", "clipPath", "g", "text", "use", "image", "a", "title"]);
+const svgAttributes = new Set([
+    "xmlns", "viewBox", "width", "height", "x", "y", "d", "transform", "id", "fill", "fill-opacity", "fill-rule",
+    "clip-path", "clip-rule", "stroke", "stroke-width", "stroke-linecap", "stroke-linejoin", "stroke-miterlimit",
+    "stroke-dasharray", "stroke-dashoffset", "vector-effect", "font-family", "font-size", "font-weight", "font-style",
+    "font-variant", "textLength", "lengthAdjust", "xml:space", "preserveAspectRatio", "href", "aria-label", "target",
+    "rel", "data-pdf-page"]);
+
+function safeHref(element, value) {
+    switch (element.localName) {
+        case "use": return /^#[A-Za-z0-9_-]+$/.test(value);
+        case "image": return /^data:image\/(png|jpeg);base64,[A-Za-z0-9+\/=]+$/.test(value);
+        case "a": return /^#[A-Za-z0-9_-]+$/.test(value) || /^(https?:|mailto:)/i.test(value);
+        default: return false;
+    }
+}
+
+function cleanSvg(text) {
+    const parsed = new DOMParser().parseFromString(text, "image/svg+xml");
+    const root = parsed.documentElement;
+    if (!root || root.localName !== "svg" || root.namespaceURI !== "http://www.w3.org/2000/svg" || parsed.getElementsByTagName("parsererror").length > 0) {
+        return null;
+    }
+    for (const element of [...root.querySelectorAll("*")].concat(root)) {
+        if (!svgElements.has(element.localName) || element.namespaceURI !== "http://www.w3.org/2000/svg") {
+            element.remove();
+            continue;
+        }
+        for (const attribute of [...element.attributes]) {
+            const ok = svgAttributes.has(attribute.name) && (attribute.name !== "href" || safeHref(element, attribute.value))
+                && !/^\s*(javascript|data):/i.test(element.localName === "image" ? "" : attribute.value);
+            if (!ok) {
+                element.removeAttribute(attribute.name);
+            }
+        }
+    }
+    root.removeAttribute("width");
+    root.removeAttribute("height");
+    return document.importNode(root, true);
+}
+
+export function placePage(scroll, number, svg) {
+    const canvas = scroll && scroll.querySelector(`.viewer-page[data-page="${number}"] .viewer-canvas`);
+    if (!canvas) {
+        return false;
+    }
+    const drawing = cleanSvg(svg);
+    if (!drawing) {
+        return false;
+    }
+    canvas.replaceChildren(drawing);
+    canvas.closest(".viewer-page").dataset.drawn = "true";
+    return true;
+}
+
+export function viewerWidth(scroll) {
+    if (!scroll) {
+        return 0;
+    }
+    const style = getComputedStyle(scroll);
+    return scroll.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight);
+}
+
+export function scrollToPage(scroll, number, smooth) {
+    const page = scroll && scroll.querySelector(`.viewer-page[data-page="${number}"]`);
+    if (page) {
+        const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        scroll.scrollTo({ top: page.offsetTop - scroll.offsetTop - 8, behavior: smooth && !reduced ? "smooth" : "auto" });
+    }
+}
+
+export function initViewer(scroll, listener) {
+    if (!scroll || scroll.viewer) {
+        return;
+    }
+    const needed = new Set();
+    let asking = false;
+    let shown = 0;
+
+    // Pages are drawn one at a time, nearest first, so a long document never blocks the page for long.
+    const ask = async () => {
+        if (asking) {
+            return;
+        }
+        asking = true;
+        while (needed.size > 0) {
+            const next = Math.min(...needed);
+            needed.delete(next);
+            try {
+                await listener.invokeMethodAsync("DrawPage", next);
+            } catch {
+                break;
+            }
+        }
+        asking = false;
+    };
+    const near = new IntersectionObserver(entries => {
+        for (const entry of entries) {
+            const number = Number(entry.target.dataset.page);
+            if (entry.isIntersecting && entry.target.dataset.drawn !== "true") {
+                needed.add(number);
+            } else {
+                needed.delete(number);
+            }
+        }
+        ask();
+    }, { root: scroll, rootMargin: "600px 0px" });
+
+    // The page in view: the one covering the line a third of the way down the viewer.
+    const report = () => {
+        const line = scroll.getBoundingClientRect().top + scroll.clientHeight / 3;
+        let current = 1;
+        for (const page of scroll.querySelectorAll(".viewer-page")) {
+            if (page.getBoundingClientRect().top <= line) {
+                current = Number(page.dataset.page);
+            }
+        }
+        if (current !== shown) {
+            shown = current;
+            listener.invokeMethodAsync("PageShown", current).catch(() => { });
+        }
+    };
+    let pending = false;
+    const onScroll = () => {
+        if (!pending) {
+            pending = true;
+            requestAnimationFrame(() => { pending = false; report(); });
+        }
+    };
+
+    // A link to another page of the PDF scrolls there instead of leaving the site.
+    const onClick = event => {
+        const link = event.target.closest && event.target.closest("a[data-pdf-page]");
+        if (link && scroll.contains(link)) {
+            event.preventDefault();
+            event.stopPropagation();
+            scrollToPage(scroll, Number(link.getAttribute("data-pdf-page")), true);
+        }
+    };
+
+    // Two fingers zoom the pages: the drawing scales while the fingers move, and the new zoom is set when they lift.
+    const touches = new Map();
+    let pinchStart = 0;
+    let pinchRatio = 1;
+    const distance = () => {
+        const [a, b] = [...touches.values()];
+        return Math.hypot(a.x - b.x, a.y - b.y);
+    };
+    const onPointerDown = event => {
+        if (event.pointerType !== "touch") {
+            return;
+        }
+        touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (touches.size === 2) {
+            pinchStart = distance();
+            pinchRatio = 1;
+        }
+    };
+    const onPointerMove = event => {
+        if (!touches.has(event.pointerId)) {
+            return;
+        }
+        touches.set(event.pointerId, { x: event.clientX, y: event.clientY });
+        if (touches.size === 2 && pinchStart > 0) {
+            pinchRatio = Math.min(4, Math.max(0.25, distance() / pinchStart));
+            scroll.style.setProperty("--pinch", String(pinchRatio));
+        }
+    };
+    const onPointerEnd = event => {
+        if (!touches.delete(event.pointerId)) {
+            return;
+        }
+        if (touches.size < 2 && pinchStart > 0) {
+            pinchStart = 0;
+            scroll.style.removeProperty("--pinch");
+            if (Math.abs(pinchRatio - 1) > 0.05) {
+                listener.invokeMethodAsync("Pinched", pinchRatio).catch(() => { });
+            }
+        }
+    };
+
+    scroll.addEventListener("scroll", onScroll, { passive: true });
+    scroll.addEventListener("click", onClick);
+    scroll.addEventListener("pointerdown", onPointerDown);
+    scroll.addEventListener("pointermove", onPointerMove);
+    scroll.addEventListener("pointerup", onPointerEnd);
+    scroll.addEventListener("pointercancel", onPointerEnd);
+    scroll.viewer = { near, onScroll, onClick, onPointerDown, onPointerMove, onPointerEnd, report };
+}
+
+export function watchPages(scroll) {
+    // Called after the page list changes: every page that is not drawn yet is watched again.
+    if (!scroll || !scroll.viewer) {
+        return;
+    }
+    scroll.viewer.near.disconnect();
+    scroll.querySelectorAll(".viewer-page").forEach(page => scroll.viewer.near.observe(page));
+    scroll.viewer.report();
+}
+
+export function disposeViewer(scroll) {
+    if (!scroll || !scroll.viewer) {
+        return;
+    }
+    const viewer = scroll.viewer;
+    viewer.near.disconnect();
+    scroll.removeEventListener("scroll", viewer.onScroll);
+    scroll.removeEventListener("click", viewer.onClick);
+    scroll.removeEventListener("pointerdown", viewer.onPointerDown);
+    scroll.removeEventListener("pointermove", viewer.onPointerMove);
+    scroll.removeEventListener("pointerup", viewer.onPointerEnd);
+    scroll.removeEventListener("pointercancel", viewer.onPointerEnd);
+    scroll.viewer = null;
 }

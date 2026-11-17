@@ -26,7 +26,6 @@ public partial class SamplePage
     private GenerationResult? _result;
     private string _source = "";
     private bool _stale;
-    private OutputTab _tab = OutputTab.Preview;
 
     #endregion
 
@@ -84,14 +83,6 @@ public partial class SamplePage
         await Interop.ScrollToElementAsync($"{_id}-options", smooth: true);
     }
 
-    private async Task DownloadAsync()
-    {
-        if (_preview is not null)
-        {
-            await _preview.DownloadAsync(ShownFileName);
-        }
-    }
-
     private async Task GenerateAsync(bool userStarted)
     {
         if (_busy || _preview is null)
@@ -124,7 +115,6 @@ public partial class SamplePage
             int pageCount = PageCount ?? CountPages(pdfBytes);
             _result = new GenerationResult(pageCount, pdfBytes.Length, stopwatch.ElapsedMilliseconds);
             _stale = false;
-            _tab = OutputTab.Preview;
             _announcement = $"PDF ready: {pageCount} {(pageCount == 1 ? "page" : "pages")}, generated in {stopwatch.ElapsedMilliseconds} milliseconds.";
         }
         catch (Exception exception)
@@ -166,14 +156,6 @@ public partial class SamplePage
         }
     }
 
-    private async Task OpenInNewTabAsync()
-    {
-        if (_preview is not null)
-        {
-            await _preview.OpenInNewTabAsync();
-        }
-    }
-
     private async Task ResetAsync()
     {
         await OnReset.InvokeAsync();
@@ -195,8 +177,6 @@ public partial class SamplePage
     /// Gets or sets the demo shown on this page.
     /// </summary>
     [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
-
-    private bool HasPdf => _preview?.HasPdf == true;
 
     /// <summary>
     /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).
@@ -243,12 +223,6 @@ public partial class SamplePage
     #endregion
 
     #region Nested Types
-
-    private enum OutputTab
-    {
-        Preview,
-        Code
-    }
 
     private sealed record GenerationResult(int Pages, int Bytes, long Milliseconds);
 

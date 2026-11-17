@@ -1,38 +1,81 @@
-<div class="preview @(ShowsCard ? "is-card" : null)">
-    @* The frame is always rendered so it can receive the first PDF; it stays hidden until then, and on browsers that
-       don't show a PDF placed in a frame (Android Chrome), where the ready card below takes its place (QF-26111303,
-       QF-26111402). *@
-    <iframe @ref="_frame" class="preview-frame @(_url is null || ShowsCard ? "is-hidden" : null)" title="PDF preview"
-            aria-hidden="@(ShowsCard ? "true" : null)" tabindex="@(ShowsCard ? "-1" : null)"></iframe>
+@* The drawn PDF preview (D-010, D-015, D-016, D-025): the library draws each page in the page itself, on every browser
+   and phone, with no PDF viewer needed. A toolbar above the pages holds the page number with go-to, zoom, fit width,
+   Open PDF, and Download; the pages scroll in one column and are drawn as they come into view. A page the renderer
+   can't draw shows why, with Open PDF at that page. Each drawn page carries the PDF's real text, invisible over the
+   drawing, so it can be selected, found, and read aloud. *@
+<div class="viewer @(_scale is null ? "is-fit" : null)" aria-busy="@(Busy ? "true" : "false")">
+    <div class="viewer-toolbar">
+        <div class="viewer-go">
+            <label for="@($"{_prefix}go")">Page</label>
+            <input id="@($"{_prefix}go")" class="form-control viewer-page-input" type="number" inputmode="numeric" min="1" max="@_pageCount"
+                   value="@_shown" disabled="@(_pageCount == 0)" @onchange="GoToAsync" />
+            <span class="viewer-page-total">of @_pageCount</span>
+        </div>
+        <div class="viewer-zoom">
+            <button type="button" class="btn btn-sm viewer-tool" aria-label="Zoom out" disabled="@(_pageCount == 0)" @onclick="ZoomOutAsync">
+                <span aria-hidden="true">&minus;</span>
+            </button>
+            <span class="viewer-zoom-level">@ZoomLabel</span>
+            <button type="button" class="btn btn-sm viewer-tool" aria-label="Zoom in" disabled="@(_pageCount == 0)" @onclick="ZoomInAsync">
+                <span aria-hidden="true">+</span>
+            </button>
+            <button type="button" class="btn btn-sm viewer-tool" aria-pressed="@(_scale is null ? "true" : "false")" disabled="@(_pageCount == 0)" @onclick="FitWidthAsync">
+                Fit width
+            </button>
+        </div>
+        <div class="viewer-actions">
+            <button type="button" class="btn btn-sm btn-text" disabled="@(!HasPdf)" @onclick="OpenInNewTabAsync">
+                <Icon Name="external" Size="16" /> Open PDF<span class="visually-hidden"> in a new tab</span>
+            </button>
+            <button type="button" class="btn btn-sm btn-outline" disabled="@(!HasPdf)" @onclick="() => DownloadAsync(_fileName)">
+                <Icon Name="download" Size="16" /> Download
+            </button>
+        </div>
+    </div>
 
-    @if (_url is null && !Busy)
-    {
-        <div class="preview-empty">
-            <div>
+    <div class="viewer-scroll" tabindex="0" role="region" aria-label="PDF pages" aria-keyshortcuts="+ - 0" @ref="_scroll" @onkeydown="OnKeyDownAsync"
+         style="@($"--scale: {Format(_scale ?? 1)}; --widest: {Format(_widest)}")">
+        @if (_unreadable is not null)
+        {
+            <div class="viewer-notice" role="note">
+                <strong>The preview can't show this PDF.</strong>
+                <span>@_unreadable</span>
+                <span>Open it in a new tab or download it.</span>
+            </div>
+        }
+        else if (_pageCount == 0 && !Busy)
+        {
+            <div class="viewer-empty">
                 <Icon Name="invoice" Size="44" />
                 <strong>Your PDF appears here</strong>
                 <span>Press Generate PDF to build it in your browser.</span>
             </div>
+        }
+        <div class="viewer-pages">
+            @for (int index = 0; index < _pageCount; index++)
+            {
+                int number = index + 1;
+                var size = _sizes[index];
+                <div @key="(_version, number)" class="viewer-page" id="@($"{_prefix}page-{number}")" data-page="@number" role="group"
+                     aria-label="@($"Page {number} of {_pageCount}")" style="@($"--pw: {Format(size.Width)}; --ph: {Format(size.Height)}")">
+                    @if (_failed.TryGetValue(number, out var reason))
+                    {
+                        <div class="viewer-notice" role="note">
+                            <strong>Page @number can't be drawn here.</strong>
+                            <span>@reason</span>
+                            <button type="button" class="btn btn-sm btn-outline" @onclick="() => OpenAtPageAsync(number)">
+                                <Icon Name="external" Size="16" /> Open PDF at page @number<span class="visually-hidden"> in a new tab</span>
+                            </button>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="viewer-canvas"></div>
+                    }
+                </div>
+            }
         </div>
-    }
-
-    @if (ShowsCard)
-    {
-        <div class="preview-ready">
-            <Icon Name="invoice" Size="44" />
-            <strong>Your PDF is ready</strong>
-            <span>Open it in your device's PDF viewer, or download it.</span>
-            <span class="preview-ready-meta">@_fileName · @FormatSize(_size)</span>
-            <div class="preview-ready-actions">
-                <button type="button" class="btn btn-solid theme-primary" disabled="@Busy" @onclick="OpenInNewTabAsync">
-                    <Icon Name="external" Size="16" /> Open PDF
-                </button>
-                <button type="button" class="btn btn-outline" disabled="@Busy" @onclick="() => DownloadAsync(_fileName)">
-                    <Icon Name="download" Size="16" /> Download
-                </button>
-            </div>
-        </div>
-    }
+    </div>
 
     @if (Busy)
     {

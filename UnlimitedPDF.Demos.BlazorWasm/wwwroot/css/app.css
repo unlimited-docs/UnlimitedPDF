@@ -232,86 +232,17 @@ summary:focus-visible,
 
 /* ---------- Playground shell ---------- */
 
-.playground {
-    max-width: 1440px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 240px minmax(0, 1fr);
-    gap: 0;
-}
+/* Demo pages: a breadcrumb to the scenario gallery and the demo's capability, then the demo across the full width. */
+.playground { max-width: 1600px; margin: 0 auto; }
+.breadcrumb-nav { padding: 1rem 1.75rem 0; }
+.breadcrumbs { display: flex; flex-wrap: wrap; gap: 0.25rem; margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
+.breadcrumbs li + li::before { content: "/"; margin-right: 0.25rem; color: var(--app-muted); }
+.breadcrumbs a { display: inline-flex; align-items: center; min-height: 24px; color: var(--app-accent); }
+.playground-content { padding: 0.75rem 1.75rem 3rem; min-width: 0; }
 
-.playground-menu { display: none; }
-
-.playground-sidebar {
-    position: sticky;
-    top: var(--app-topbar-h);
-    align-self: start;
-    height: calc(100vh - var(--app-topbar-h));
-    overflow-y: auto;
-    padding: 1.5rem 0.75rem 2rem 1.25rem;
-    border-right: 1px solid var(--app-line);
-}
-
-.sidebar-group + .sidebar-group { margin-top: 1.5rem; }
-
-.sidebar-group-title {
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--app-muted);
-    padding: 0 0.6rem 0.5rem;
-}
-
-.sidebar-subgroup-title { font-size: 0.78rem; font-weight: 600; color: var(--app-muted); padding: 0.45rem 0.6rem 0.2rem; }
-
-.sidebar-list { list-style: none; margin: 0; padding: 0; }
-
-.sidebar-link {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    padding: 0.5rem 0.6rem;
-    border-radius: 9px;
-    color: var(--app-ink);
-    text-decoration: none;
-    font-size: 0.93rem;
-    font-weight: 500;
-}
-
-.sidebar-link .icon { color: var(--app-muted); flex: none; }
-.sidebar-link:hover { background: #eef2fa; }
-/* The current demo: tinted, bold, and an accent bar on its left edge (the bar is the 3:1 indicator; the tint alone
-   is 1.08:1 against the sidebar). */
-.sidebar-link.active { background: var(--app-accent-soft); color: var(--app-accent); font-weight: 650; box-shadow: inset 3px 0 0 var(--app-accent); }
-.sidebar-link.active .icon { color: var(--app-accent); }
-
-.playground-content { padding: 1.5rem 1.75rem 3rem; min-width: 0; }
-
-@media (max-width: 1023.98px) {
-    .playground { grid-template-columns: minmax(0, 1fr); }
-
-    .playground-menu {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        margin: 1rem 1.25rem 0;
-        justify-self: start;
-    }
-
-    .playground-sidebar {
-        display: none;
-        position: static;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid var(--app-line);
-        padding: 0.75rem 1.25rem 1rem;
-    }
-
-    /* The open menu is its own scroll box, one screen at most, so the current demo can be brought into view in it
-       (26111103 AC-07). */
-    .playground-sidebar.is-open { display: block; max-height: calc(100dvh - var(--app-topbar-h) - 5rem); overflow-y: auto; }
-    .playground-content { padding: 1rem 1.25rem 2.5rem; }
+@media (max-width: 899.98px) {
+    .breadcrumb-nav { padding: 0.75rem 1.25rem 0; }
+    .playground-content { padding: 0.5rem 1.25rem 2.5rem; }
 }
 
 /* ---------- Demo page ---------- */
@@ -320,17 +251,26 @@ summary:focus-visible,
 .demo-header h1 { font-size: 1.6rem; font-weight: 750; letter-spacing: -0.015em; margin: 0 0 0.35rem; }
 .demo-lead { color: var(--app-muted); margin: 0; max-width: 60rem; }
 
+/* Three columns (D-023): the visitor's data, the PDF, and the C# code. Below 1,280 px the code goes under the data and
+   the PDF; below 900 px all three stack in that order. */
 .demo-grid {
     display: grid;
-    grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1.25fr) minmax(300px, 0.85fr);
     gap: 1.25rem;
     align-items: start;
 }
 
-/* Side by side only when the preview still gets a useful width next to the sidebar and the options. */
 @media (max-width: 1279.98px) {
+    .demo-grid { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
+    .demo-code { grid-column: 1 / -1; }
+}
+
+@media (max-width: 899.98px) {
     .demo-grid { grid-template-columns: minmax(0, 1fr); }
 }
+
+.demo-column-title { margin: 0; padding: 0.85rem 1rem 0.35rem; font-size: 1rem; font-weight: 700; color: var(--app-accent); }
+.output-head .demo-column-title { padding: 0.6rem 0; }
 
 .panel {
     background: var(--app-surface);
@@ -373,7 +313,7 @@ summary:focus-visible,
 .demo-output { scroll-margin-top: calc(var(--app-topbar-h) + 0.5rem); }
 .demo-inputs:focus { outline: none; }
 
-@media (max-width: 1279.98px) {
+@media (max-width: 899.98px) {
     .output-actions .btn.back-to-options { display: inline-flex; align-items: center; gap: 0.35rem; }
 }
 .demo-shortcut kbd {
@@ -398,34 +338,15 @@ summary:focus-visible,
     flex-wrap: wrap;
 }
 
-.output-tabs { display: flex; gap: 0.25rem; }
-
-.output-tab {
-    border: 0;
-    background: none;
-    padding: 0.6rem 0.85rem;
-    font-weight: 600;
-    font-size: 0.92rem;
-    color: var(--app-muted);
-    border-bottom: 2px solid transparent;
-    margin-bottom: -1px;
-}
-
-.output-tab:hover { color: var(--app-ink); }
-.output-tab[aria-selected="true"] { color: var(--app-accent); border-bottom-color: var(--app-accent); }
-
 .output-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; padding-bottom: 0.4rem; }
 .output-actions .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
 
-/* Phones: Back to options, Open, and Download fit on one line at 375 px instead of Download being cut off at the
-   panel's edge; narrower screens wrap (QF-26111303). */
+/* Phones: Back to options and Download all fit on one line at 375 px; narrower screens wrap (QF-26111303). */
 @media (max-width: 575.98px) {
     .output-head { padding-inline: 0.5rem; }
     .output-actions { gap: 0.15rem; }
     .output-actions .btn-sm { padding-inline: 0.5rem; }
 }
-
-.output-body { position: relative; }
 
 /* Split demos: one row per part, above the preview of the selected part. */
 .split-parts { list-style: none; margin: 0 0 0.75rem; padding: 0; display: grid; gap: 0.35rem; max-height: 14rem; overflow-y: auto; }
@@ -482,52 +403,119 @@ summary:focus-visible,
 
 .error-box p { margin: 0; color: #7d1b2d; }
 
-/* ---------- PDF preview ---------- */
+/* ---------- PDF preview (D-015, D-025) ---------- */
 
-.preview {
+/* The drawn preview: a toolbar above the pages, then the pages in one scrolling column on a grey desk. */
+.viewer { position: relative; display: flex; flex-direction: column; background: #e9edf3; border-top: 1px solid var(--app-line); }
+
+.viewer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--app-surface);
+    border-bottom: 1px solid var(--app-line);
+}
+.viewer-go { display: flex; align-items: center; gap: 0.4rem; font-size: 0.9rem; }
+.viewer-go label { font-weight: 600; }
+.viewer-page-input { width: 4.75rem; min-height: 36px; padding: 0.2rem 0.45rem; font-variant-numeric: tabular-nums; }
+.viewer-page-total { color: var(--app-muted); white-space: nowrap; }
+.viewer-zoom { display: flex; align-items: center; gap: 0.25rem; }
+.viewer-tool {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    min-height: 36px;
+    border: 1px solid var(--app-field-border);
+    background: var(--app-surface);
+}
+.viewer-tool[aria-pressed="true"] { border-color: var(--app-accent); background: var(--app-accent-soft); color: var(--app-accent); font-weight: 650; }
+.viewer-zoom-level { min-width: 3.25rem; text-align: center; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.viewer-actions { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-left: auto; }
+.viewer-actions .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* Two fingers pan the pages but don't zoom the whole site: the preview takes the pinch for its own zoom. */
+.viewer-scroll {
     position: relative;
     height: min(78vh, 900px);
     min-height: 420px;
-    background: #eef1f7;
+    overflow: auto;
+    padding: 1rem;
+    touch-action: pan-x pan-y;
+    overscroll-behavior: contain;
+}
+.viewer-scroll:focus-visible { outline-offset: -3px; }
+
+.viewer-pages {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    transform: scale(var(--pinch, 1));
+    transform-origin: top center;
 }
 
-.preview-frame { width: 100%; height: 100%; border: 0; display: block; background: #eef1f7; }
+/* A page at the chosen zoom (1 point is 4/3 CSS pixels at 100%), or, fitting the width, the widest page fills it. The
+   auto margins center a page that fits and let a wider one scroll to both of its edges. */
+.viewer-page {
+    position: relative;
+    flex: none;
+    width: calc(var(--pw) * var(--scale) * 1.3333px);
+    aspect-ratio: var(--pw) / var(--ph);
+    margin-inline: auto;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(15, 27, 51, 0.18), 0 6px 18px rgba(15, 27, 51, 0.08);
+}
+.viewer.is-fit .viewer-page { width: calc(100% * var(--pw) / var(--widest)); }
+.viewer-canvas, .viewer-canvas > svg { display: block; width: 100%; height: 100%; }
 
-.preview-frame.is-hidden { visibility: hidden; }
+.viewer-notice {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+    background: var(--app-warn-soft);
+    color: var(--app-ink);
+    overflow-wrap: anywhere;
+}
+.viewer-page > .viewer-notice { position: absolute; inset: 0; }
+.viewer-notice .btn { display: inline-flex; align-items: center; gap: 0.35rem; }
 
-.preview-empty, .preview-overlay {
+.viewer-empty {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 0.25rem;
+    min-height: 100%;
+    padding: 2rem;
+    text-align: center;
+    color: var(--app-muted);
+}
+.viewer-empty .icon { color: #8f9bb3; margin-bottom: 0.5rem; }
+.viewer-empty strong { color: var(--app-ink); font-size: 1.05rem; }
+
+/* Phones: the page box and the zoom share one row, Open PDF and Download the next; "Page" is still read aloud. */
+@media (max-width: 575.98px) {
+    .viewer-toolbar { gap: 0.4rem 0.6rem; padding: 0.4rem 0.5rem; }
+    .viewer-go label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .viewer-zoom-level { min-width: 2.6rem; }
+    .viewer-scroll { height: 70vh; min-height: 320px; padding: 0.6rem; }
+    .viewer-actions { margin-left: 0; }
+    .viewer-tool, .viewer-page-input { min-height: 44px; min-width: 44px; }
+}
+
+.preview-overlay {
     position: absolute;
     inset: 0;
     display: grid;
     place-items: center;
     text-align: center;
     padding: 2rem;
-}
-
-.preview-empty { color: var(--app-muted); }
-.preview-empty .icon { color: #a8b3cb; margin-bottom: 0.75rem; }
-.preview-empty strong { display: block; color: var(--app-ink); font-size: 1.05rem; margin-bottom: 0.25rem; }
-
-/* Browsers that don't show a PDF placed in a frame get the ready card instead of the frame, and the preview area takes
-   the card's height rather than a tall empty box (QF-26111303). */
-.preview.is-card { height: auto; min-height: 0; }
-.preview.is-card .preview-frame { position: absolute; inset: 0; height: 0; }
-.preview-ready {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 2rem 1.25rem;
-    text-align: center;
-    color: var(--app-muted);
-}
-.preview-ready > .icon { color: var(--app-accent); margin-bottom: 0.5rem; }
-.preview-ready strong { color: var(--app-ink); font-size: 1.05rem; }
-.preview-ready-meta { font-size: 0.85rem; overflow-wrap: anywhere; }
-.preview-ready-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.6rem; margin-top: 1rem; }
-.preview-ready-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
-
-.preview-overlay {
     background: rgba(246, 248, 252, 0.72);
     backdrop-filter: blur(1.5px);
     animation: fade-in 0.15s ease-out;
@@ -568,7 +556,9 @@ summary:focus-visible,
 
 /* ---------- Code view ---------- */
 
-.code-view { position: relative; height: min(78vh, 900px); min-height: 420px; background: #0f1a2e; }
+.code-view { position: relative; height: min(78vh, 900px); min-height: 420px; background: var(--app-code-bg); }
+.demo-code { overflow: hidden; }
+.demo-code .code-view { border-top: 1px solid var(--app-line); }
 
 .code-view pre {
     margin: 0;
@@ -600,13 +590,14 @@ summary:focus-visible,
 
 .code-copy:hover { background: #1b2a47; }
 
-/* Side by side (1,280 px and wider): the preview and code view take the screen height left after the top bar, the demo
-   heading, the output tabs, and the status line, so Generate, the whole preview, and the status line all fit the first
-   screen (26111103 AC-06). On the split demos the parts list above the preview is capped and its room is taken off. */
-@media (min-width: 1280px) {
-    .preview, .code-view { height: clamp(320px, calc(100dvh - 20rem), 900px); min-height: 0; }
+/* Side by side (900 px and wider): the pages and the code take the screen height left after the top bar, the
+   breadcrumb, the demo heading, the toolbar, and the status line, so Generate, the pages, and the status line all fit
+   the first screen (26111103 AC-06). On the split demos the parts list above the preview is capped and its room is
+   taken off. */
+@media (min-width: 900px) {
+    .viewer-scroll, .code-view { height: clamp(320px, calc(100dvh - 22rem), 900px); min-height: 0; }
     .split-parts { max-height: 8rem; }
-    .split-parts + .preview { height: clamp(260px, calc(100dvh - 29rem), 900px); }
+    .split-parts + .viewer .viewer-scroll { height: clamp(260px, calc(100dvh - 31rem), 900px); }
 }
 
 /* ---------- Option sections and fields ---------- */
@@ -1262,7 +1253,7 @@ summary:focus-visible,
     .version-link { min-height: 44px; }
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }
-    .output-tab, .sidebar-link { min-height: 44px; }
+    .breadcrumbs a { min-height: 44px; }
     .demo-choice-option { min-height: 44px; }
     .form-control, .form-select { min-height: 44px; }
     .field input[type="color"] { height: 44px; }

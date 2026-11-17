@@ -45,14 +45,6 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task BlurActiveElementAsync() => InvokeVoidAsync("blurActiveElement");
 
     /// <summary>
-    /// Asks whether the browser shows a PDF placed in a frame. Android Chrome downloads it instead (QF-26111303); iPhone
-    /// and iPad show it (QF-26111402).
-    /// </summary>
-    /// <returns><see langword="true"/> when the browser shows PDFs inside the page, which is also the answer when the
-    /// browser can't be asked.</returns>
-    public Task<bool> CanShowPdfInPageAsync() => InvokeAsync("canShowPdfInPage", true);
-
-    /// <summary>
     /// Closes a dialog opened with <see cref="ShowDialogAsync{T}"/>; the browser returns focus to its opener.
     /// </summary>
     /// <param name="dialog">The <c>dialog</c> element.</param>
@@ -109,6 +101,12 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task DisposeSiteSearchAsync(ElementReference root) => InvokeVoidAsync("disposeSiteSearch", root);
 
     /// <summary>
+    /// Stops a preview's page watching, links, and pinch handling (see <see cref="InitViewerAsync{T}"/>).
+    /// </summary>
+    /// <param name="scroll">The preview's scrolling list of pages.</param>
+    public Task DisposeViewerAsync(ElementReference scroll) => InvokeVoidAsync("disposeViewer", scroll);
+
+    /// <summary>
     /// Saves the content of a blob URL as a file.
     /// </summary>
     /// <param name="url">The blob URL.</param>
@@ -132,6 +130,17 @@ public sealed class BrowserInterop : IAsyncDisposable
         InvokeVoidAsync("initSiteSearch", root, listener);
 
     /// <summary>
+    /// Starts a preview: pages near the view are asked for (<paramref name="listener"/>'s <c>DrawPage</c>), the page in
+    /// view is reported (<c>PageShown</c>), links to other pages scroll there, and a two-finger pinch sets the zoom
+    /// (<c>Pinched</c>).
+    /// </summary>
+    /// <typeparam name="T">The preview component.</typeparam>
+    /// <param name="scroll">The preview's scrolling list of pages.</param>
+    /// <param name="listener">The preview.</param>
+    public Task InitViewerAsync<T>(ElementReference scroll, DotNetObjectReference<T> listener) where T : class =>
+        InvokeVoidAsync("initViewer", scroll, listener);
+
+    /// <summary>
     /// Reports which section is in view, for a page's topic index: on screens 1,024 px and wider, the listener hears the
     /// ID of the last visible section whose top has passed a reading line about a third of the way down the view, each
     /// time it changes. A later call
@@ -151,15 +160,18 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task OpenInNewTabAsync(string url) => InvokeVoidAsync("openInNewTab", url);
 
     /// <summary>
+    /// Places a drawn page in a preview, keeping only the elements and attributes the renderer writes.
+    /// </summary>
+    /// <param name="scroll">The preview's scrolling list of pages.</param>
+    /// <param name="number">The 1-based page number.</param>
+    /// <param name="svg">The page drawing.</param>
+    /// <returns>Whether the page was placed; false when the drawing can't be read or the page is gone.</returns>
+    public Task<bool> PlacePageAsync(ElementReference scroll, int number, string svg) => InvokeAsync("placePage", false, scroll, number, svg);
+
+    /// <summary>
     /// Checks the section in view again after sections were shown or hidden.
     /// </summary>
     public Task RefreshSectionsAsync() => InvokeVoidAsync("refreshSections");
-
-    /// <summary>
-    /// Scrolls a sidebar so its current demo's link is in view, without scrolling the page.
-    /// </summary>
-    /// <param name="container">The scrolling sidebar.</param>
-    public Task RevealActiveLinkAsync(ElementReference container) => InvokeVoidAsync("revealActiveLink", container);
 
     /// <summary>
     /// Releases a blob URL created by <see cref="CreateObjectUrlAsync"/>.
@@ -183,6 +195,14 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task<bool> ScrollToElementAsync(string id, bool smooth) => InvokeAsync("scrollToElement", false, id, smooth);
 
     /// <summary>
+    /// Scrolls a preview so a page's top is at the top of the view.
+    /// </summary>
+    /// <param name="scroll">The preview's scrolling list of pages.</param>
+    /// <param name="number">The 1-based page number.</param>
+    /// <param name="smooth">Whether to scroll smoothly, unless the visitor asks for reduced motion.</param>
+    public Task ScrollToPageAsync(ElementReference scroll, int number, bool smooth) => InvokeVoidAsync("scrollToPage", scroll, number, smooth);
+
+    /// <summary>
     /// Sets the content of the page's one meta description tag, adding the tag if it is missing.
     /// </summary>
     /// <param name="text">The description.</param>
@@ -200,16 +220,22 @@ public sealed class BrowserInterop : IAsyncDisposable
         InvokeVoidAsync("showDialog", dialog, listener, closedMethod, opening);
 
     /// <summary>
-    /// Shows a blob URL in an iframe.
-    /// </summary>
-    /// <param name="frame">The iframe.</param>
-    /// <param name="url">The blob URL.</param>
-    public Task ShowInFrameAsync(ElementReference frame, string url) => InvokeVoidAsync("showInFrame", frame, url);
-
-    /// <summary>
     /// Stops the reports started by <see cref="ObserveSectionsAsync{T}"/>.
     /// </summary>
     public Task StopObservingSectionsAsync() => InvokeVoidAsync("stopObservingSections");
+
+    /// <summary>
+    /// Returns the width a preview's pages can take, in CSS pixels.
+    /// </summary>
+    /// <param name="scroll">The preview's scrolling list of pages.</param>
+    /// <returns>The width, or 0 when it can't be measured.</returns>
+    public Task<double> ViewerWidthAsync(ElementReference scroll) => InvokeAsync("viewerWidth", 0d, scroll);
+
+    /// <summary>
+    /// Watches a preview's pages again after its list of pages changed.
+    /// </summary>
+    /// <param name="scroll">The preview's scrolling list of pages.</param>
+    public Task WatchPagesAsync(ElementReference scroll) => InvokeVoidAsync("watchPages", scroll);
 
     #endregion
 

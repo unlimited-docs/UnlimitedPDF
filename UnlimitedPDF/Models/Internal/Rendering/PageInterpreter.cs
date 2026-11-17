@@ -75,6 +75,19 @@ internal sealed partial class PageInterpreter
     #region Public Methods
 
     /// <summary>
+    /// Returns the size a page is shown at, its rotation applied, without drawing it.
+    /// </summary>
+    /// <param name="inherited">The page's own or inherited media box, crop box, and rotation.</param>
+    /// <returns>The width and height in points.</returns>
+    /// <exception cref="PageRenderException">The page's boxes or rotation can't be used.</exception>
+    public (double Width, double Height) ShownSize(IReadOnlyDictionary<string, PdfReadValue> inherited)
+    {
+        var (box, rotate) = Geometry(inherited);
+        double width = box.X1 - box.X0, height = box.Y1 - box.Y0;
+        return rotate is 90 or 270 ? (height, width) : (width, height);
+    }
+
+    /// <summary>
     /// Draws a page.
     /// </summary>
     /// <param name="page">The page dictionary.</param>
@@ -84,23 +97,8 @@ internal sealed partial class PageInterpreter
     /// <exception cref="PageRenderException">The page holds content the renderer does not draw.</exception>
     public PageRenderResult Draw(PdfReadDictionary page, IReadOnlyDictionary<string, PdfReadValue> inherited, int pageNumber)
     {
-        var media = Box(inherited.TryGetValue("MediaBox", out var mediaValue) ? mediaValue : null)
-            ?? throw new PageRenderException("The page has no media box.");
-
-        // The crop box is the visible part of the media box; viewers clip it to the media box.
-        var box = Box(inherited.TryGetValue("CropBox", out var cropValue) ? cropValue : null) is { } crop
-            ? (X0: Math.Max(crop.X0, media.X0), Y0: Math.Max(crop.Y0, media.Y0), X1: Math.Min(crop.X1, media.X1), Y1: Math.Min(crop.Y1, media.Y1))
-            : media;
-        int rotate = 0;
-        if (inherited.TryGetValue("Rotate", out var rotateValue))
-        {
-            if (_objects.Resolve(rotateValue) is not PdfReadNumber { IsInteger: true } r || r.IntegerValue % 90 != 0)
-                throw new PageRenderException("The page has a rotation that is not a multiple of 90 degrees.");
-            rotate = (int)(((r.IntegerValue % 360) + 360) % 360);
-        }
-
+        var (box, rotate) = Geometry(inherited);
         double width = box.X1 - box.X0, height = box.Y1 - box.Y0;
-        if (width <= 0 || height <= 0) throw new PageRenderException("The page has an empty media box.");
 
         // From PDF user space (y up, origin at the box corner) to SVG (y down), turned by the page rotation.
         var flip = new RenderMatrix(1, 0, 0, -1, -box.X0, box.Y1);
@@ -246,6 +244,28 @@ internal sealed partial class PageInterpreter
         _contentBytes += data.Length;
         if (_contentBytes > _limits.MaxContentBytes) throw new PageRenderException("The page content is too large.");
         return data;
+    }
+
+    // The visible box (the crop box inside the media box) and the rotation in degrees: 0, 90, 180, or 270.
+    private ((double X0, double Y0, double X1, double Y1) Box, int Rotate) Geometry(IReadOnlyDictionary<string, PdfReadValue> inherited)
+    {
+        var media = Box(inherited.TryGetValue("MediaBox", out var mediaValue) ? mediaValue : null)
+            ?? throw new PageRenderException("The page has no media box.");
+
+        // The crop box is the visible part of the media box; viewers clip it to the media box.
+        var box = Box(inherited.TryGetValue("CropBox", out var cropValue) ? cropValue : null) is { } crop
+            ? (X0: Math.Max(crop.X0, media.X0), Y0: Math.Max(crop.Y0, media.Y0), X1: Math.Min(crop.X1, media.X1), Y1: Math.Min(crop.Y1, media.Y1))
+            : media;
+        int rotate = 0;
+        if (inherited.TryGetValue("Rotate", out var rotateValue))
+        {
+            if (_objects.Resolve(rotateValue) is not PdfReadNumber { IsInteger: true } r || r.IntegerValue % 90 != 0)
+                throw new PageRenderException("The page has a rotation that is not a multiple of 90 degrees.");
+            rotate = (int)(((r.IntegerValue % 360) + 360) % 360);
+        }
+
+        if (box.X1 - box.X0 <= 0 || box.Y1 - box.Y0 <= 0) throw new PageRenderException("The page has an empty media box.");
+        return (box, rotate);
     }
 
     private string NewId(string kind) => $"{_idPrefix}{kind}{_nextId++}";
