@@ -79,6 +79,16 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\TablesInput.cs" Link="Demo\Samples\Inputs\TablesInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\ImagesInput.cs" Link="Demo\Samples\Inputs\ImagesInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\InvoiceSample.cs" Link="Demo\Samples\InvoiceSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\BulkInvoicesSample.cs" Link="Demo\Samples\BulkInvoicesSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ContractSample.cs" Link="Demo\Samples\ContractSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\InventoryReportSample.cs" Link="Demo\Samples\InventoryReportSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\KpiReportSample.cs" Link="Demo\Samples\KpiReportSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ShippingLabelsSample.cs" Link="Demo\Samples\ShippingLabelsSample.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\BulkInvoicesInput.cs" Link="Demo\Samples\Inputs\BulkInvoicesInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\ContractInput.cs" Link="Demo\Samples\Inputs\ContractInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\InventoryReportInput.cs" Link="Demo\Samples\Inputs\InventoryReportInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\KpiReportInput.cs" Link="Demo\Samples\Inputs\KpiReportInput.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\ShippingLabelsInput.cs" Link="Demo\Samples\Inputs\ShippingLabelsInput.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MedicalReportSample.cs" Link="Demo\Samples\MedicalReportSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ReceiptSample.cs" Link="Demo\Samples\ReceiptSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleImages.cs" Link="Demo\Samples\SampleImages.cs" />

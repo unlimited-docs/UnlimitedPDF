@@ -134,15 +134,16 @@ public class HomePageTests
     }
 
     [Fact]
-    public void The_gallery_has_one_tile_per_document_in_catalogue_order()
+    public void Each_document_picture_belongs_to_one_document_demo()
     {
-        // The gallery shows every document demo and every type the Invoice demo makes, one tile each.
+        // The pictures of the scenario cards: document demos and the types the Invoice demo makes, one picture each.
+        // A newer document demo without a captured picture shows its capability's icon instead.
         var documents = SampleCatalog.Categories.Single(c => c.Id == "documents").Demos.Concat(SampleCatalog.InvoiceTypes).ToHashSet();
         var tiles = DocumentGallery.Documents.Select(d => d.Demo).ToList();
 
-        Assert.Equal(documents, tiles.ToHashSet());
-        Assert.Equal(documents.Count, tiles.Count);
-        Assert.Equal(documents.Count, DocumentGallery.Documents.Select(d => d.Picture).Distinct(StringComparer.Ordinal).Count());
+        Assert.All(tiles, demo => Assert.Contains(demo, documents));
+        Assert.Equal(tiles.Count, tiles.Distinct().Count());
+        Assert.Equal(tiles.Count, DocumentGallery.Documents.Select(d => d.Picture).Distinct(StringComparer.Ordinal).Count());
         Assert.All(DocumentGallery.Documents, d => Assert.False(string.IsNullOrWhiteSpace(d.Summary)));
         Assert.All(DocumentGallery.Documents, d => Assert.Equal(d.Picture, Path.GetFileNameWithoutExtension(d.Demo.FileName)));
     }

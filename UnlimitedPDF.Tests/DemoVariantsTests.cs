@@ -150,7 +150,7 @@ public class DemoVariantsTests
 
     // The names the packs page generates: each case of its GenerateAsync switch.
     private static List<string> GeneratorNames(string page) =>
-        Regex.Matches(DemosFile(page), "\"([^\"]+)\" => MergeDemoFiles\\.").Select(m => m.Groups[1].Value).ToList();
+        Regex.Matches(DemosFile(page), "\"([^\"]+)\" => (?:Task\\.FromResult\\()?MergeDemoFiles\\.").Select(m => m.Groups[1].Value).ToList();
 
     // The types the invoice page maps to a page: each key of its Pages map.
     private static IEnumerable<string> PageKeys(string page) =>

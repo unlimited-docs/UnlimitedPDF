@@ -158,6 +158,11 @@ public class PageRendererCoverageTests
         yield return ("Account statement", "", One(() => AccountStatementSample.Build(new AccountStatementInput(), images)));
         yield return ("Payslip", "", One(() => PayslipSample.Build(new PayslipInput(), images)));
         yield return ("Medical report", "", One(() => MedicalReportSample.Build(new MedicalReportInput(), images)));
+        yield return ("Bulk invoices", "", () => Task.FromResult(BulkInvoicesSample.Build(new BulkInvoicesInput { Count = 3 }, images).Select(i => i.Bytes)));
+        yield return ("Inventory report", "", One(() => InventoryReportSample.Build(new InventoryReportInput())));
+        yield return ("Contract", "", One(() => ContractSample.Build(new ContractInput())));
+        yield return ("KPI report", "", One(() => KpiReportSample.Build(new KpiReportInput())));
+        yield return ("Shipping labels", "", One(() => ShippingLabelsSample.Build(new ShippingLabelsInput())));
     }
 
     private static string SurfaceFile([CallerFilePath] string source = "") =>

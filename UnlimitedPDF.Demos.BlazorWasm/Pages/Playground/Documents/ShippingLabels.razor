@@ -1,0 +1,26 @@
+@page "/playground/documents/shipping-labels"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.ShippingLabels" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Labels">
+            <div class="field">
+                <label for="lbl-sender">Sender line</label>
+                <input id="lbl-sender" class="form-control" @bind="_input.Sender" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="lbl-count">Labels (1 to @ShippingLabelsInput.MaxCount)</label>
+                <input id="lbl-count" type="number" min="1" max="@ShippingLabelsInput.MaxCount" class="form-control" @bind="_input.Count" />
+                <p class="field-hint">Each A4 sheet holds 21 labels, three across and seven down.</p>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private ShippingLabelsInput _input = new();
+    private SamplePage? _page;
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(ShippingLabelsSample.Build(_input));
+
+    private void Reset() => _input = new();
+}

@@ -116,7 +116,7 @@ public static class AccountStatementSample
     private static IEnumerable<StatementLine> Transactions(AccountStatementInput input)
     {
         foreach (var line in input.Transactions) yield return line;
-        int generated = Math.Clamp(input.GeneratedTransactions, 0, 1000);
+        int generated = Math.Clamp(input.GeneratedTransactions, 0, AccountStatementInput.MaxGeneratedTransactions);
         int days = Math.Max(1, (input.PeriodEnd - input.PeriodStart).Days + 1);
         for (int i = 1; i <= generated; i++)
         {

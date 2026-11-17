@@ -63,7 +63,7 @@
         "Samples/Inputs/AccountStatementInput.cs",
         "Samples/Inputs/StatementLine.cs"
       ],
-      "sha256": "9e83a2eb751a919a8340ac216e54280cbda265689a79d0af1e4a4e24b4e8de1e",
+      "sha256": "f021f1e1517dcfe35282f6c2ef8e6c03bad239898b919c67249d84c71d50f422",
       "images": [
         "account-statement-logo.png"
       ]

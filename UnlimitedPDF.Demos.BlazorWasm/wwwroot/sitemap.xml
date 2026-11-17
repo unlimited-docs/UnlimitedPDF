@@ -23,7 +23,12 @@
   <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=purchase-order</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=delivery-note</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/invoice?type=receipt</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/bulk-invoices</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/account-statement</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/inventory-report</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/payslip</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/contract</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/medical-report</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/kpi-report</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/documents/shipping-labels</loc></url>
 </urlset>

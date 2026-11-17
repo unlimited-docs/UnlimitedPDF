@@ -1,0 +1,30 @@
+@page "/playground/documents/inventory-report"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.InventoryReport" Build="BuildAsync" PageCount="null" OnReset="Reset">
+    <Inputs>
+        <CollapsibleSection Title="Report">
+            <div class="field">
+                <label for="inv-title">Title</label>
+                <input id="inv-title" class="form-control" @bind="_input.Title" @bind:event="oninput" />
+            </div>
+            <div class="field">
+                <label for="inv-warehouses">Warehouses (1 to @InventoryReportInput.MaxWarehouses)</label>
+                <input id="inv-warehouses" type="number" min="1" max="@InventoryReportInput.MaxWarehouses" class="form-control" @bind="_input.Warehouses" />
+            </div>
+            <div class="field">
+                <label for="inv-items">Items per warehouse (1 to @InventoryReportInput.MaxItems)</label>
+                <input id="inv-items" type="number" min="1" max="@InventoryReportInput.MaxItems" class="form-control" @bind="_input.ItemsPerWarehouse" />
+                <p class="field-hint">More items run each warehouse onto more pages; its header row repeats on every one.</p>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@code {
+    private InventoryReportInput _input = new();
+    private SamplePage? _page;
+
+    private Task<PdfDocument> BuildAsync() => Task.FromResult(InventoryReportSample.Build(_input));
+
+    private void Reset() => _input = new();
+}

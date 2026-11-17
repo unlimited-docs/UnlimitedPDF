@@ -1344,3 +1344,6 @@ summary:focus-visible,
 @media (prefers-reduced-motion: reduce) {
     .scenario-card { transition: none; }
 }
+
+/* KPI report: the twelve monthly figures in three columns. */
+.kpi-months { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 0.6rem; }

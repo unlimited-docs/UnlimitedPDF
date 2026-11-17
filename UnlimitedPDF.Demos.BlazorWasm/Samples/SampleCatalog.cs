@@ -82,7 +82,7 @@ public static class SampleCatalog
         new SampleCategory(
             "Real-life documents",
             "Complete documents you can edit and download.",
-            [Invoice, AccountStatement, Payslip, MedicalReport],
+            [Invoice, BulkInvoices, AccountStatement, InventoryReport, Payslip, Contract, MedicalReport, KpiReport, ShippingLabels],
             Id: "documents")
     ];
 
@@ -114,6 +114,21 @@ public static class SampleCatalog
         PageTitle: "Merged PDF bookmarks and page numbers in C#");
 
     /// <summary>
+    /// Gets the Bulk invoices demo: many invoices made in one run and zipped.
+    /// </summary>
+    public static SampleDemo BulkInvoices { get; } = new(
+        "Bulk invoices",
+        "Make up to 1,000 invoices in your browser, see the total time and the time per invoice, and download them all as one zip file.",
+        "playground/documents/bulk-invoices",
+        "BulkInvoicesSample.cs",
+        "invoices.zip",
+        "copy",
+        PageTitle: "Generate invoices in bulk in C#: 1,000 PDFs")
+    {
+        Domains = ["Finance"],
+    };
+
+    /// <summary>
     /// Gets the Common problems demo: known HTML to PDF problems, each as a small editable document.
     /// </summary>
     public static SampleDemo CommonProblems { get; } = new(
@@ -125,6 +140,21 @@ public static class SampleCatalog
         "warning",
         PageTitle: "Common HTML to PDF problems in C#",
         Heading: "Common HTML to PDF problems");
+
+    /// <summary>
+    /// Gets the Contract demo: an agreement converted from HTML.
+    /// </summary>
+    public static SampleDemo Contract { get; } = new(
+        "Contract",
+        "An employment agreement written in HTML: numbered clauses, long paragraphs that wrap across pages, and page X of Y.",
+        "playground/documents/contract",
+        "ContractSample.cs",
+        "contract.pdf",
+        "pen",
+        PageTitle: "Create a PDF contract from HTML in C#")
+    {
+        Domains = ["Legal", "HR"],
+    };
 
     /// <summary>
     /// Gets the Cover and page ranges merge demo.
@@ -220,6 +250,21 @@ public static class SampleCatalog
         PageTitle: "Add JPEG and PNG images to a PDF in C#");
 
     /// <summary>
+    /// Gets the Inventory report demo: a long table grouped with subtotals.
+    /// </summary>
+    public static SampleDemo InventoryReport { get; } = new(
+        "Inventory report",
+        "Stock grouped by warehouse, with a subtotal per warehouse and the header row repeated on every page.",
+        "playground/documents/inventory-report",
+        "InventoryReportSample.cs",
+        "inventory-report.pdf",
+        "table",
+        PageTitle: "Create a grouped PDF inventory report in C#")
+    {
+        Domains = ["Retail"],
+    };
+
+    /// <summary>
     /// Gets the Invoice demo.
     /// </summary>
     public static SampleDemo Invoice { get; } = new(
@@ -246,6 +291,21 @@ public static class SampleCatalog
         "joined.pdf",
         "join",
         PageTitle: "Merge PDF files in C#");
+
+    /// <summary>
+    /// Gets the KPI report demo: figures and a bar chart on one page.
+    /// </summary>
+    public static SampleDemo KpiReport { get; } = new(
+        "KPI report",
+        "Headline figures and a bar chart of monthly revenue, drawn from rectangles on one page.",
+        "playground/documents/kpi-report",
+        "KpiReportSample.cs",
+        "kpi-report.pdf",
+        "spark",
+        PageTitle: "Create a PDF KPI report with bar charts in C#")
+    {
+        Domains = ["Management"],
+    };
 
     /// <summary>
     /// Gets the Medical report demo.
@@ -332,6 +392,21 @@ public static class SampleCatalog
         PageTitle: "Create a PDF receipt in C#")
     {
         Domains = ["Retail"],
+    };
+
+    /// <summary>
+    /// Gets the Shipping labels demo: address labels on a 3 by 7 sheet.
+    /// </summary>
+    public static SampleDemo ShippingLabels { get; } = new(
+        "Shipping labels",
+        "Address labels on A4 sheets of three by seven, outlined for cutting and ready to print.",
+        "playground/documents/shipping-labels",
+        "ShippingLabelsSample.cs",
+        "shipping-labels.pdf",
+        "badge",
+        PageTitle: "Print PDF shipping labels on A4 sheets in C#")
+    {
+        Domains = ["Logistics"],
     };
 
     /// <summary>

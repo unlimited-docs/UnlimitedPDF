@@ -104,15 +104,15 @@ public static class ScenarioGallery
     /// <summary>
     /// Gets the business domains, in the order the gallery's chips show them.
     /// </summary>
-    public static IReadOnlyList<string> Domains { get; } = ["Finance", "HR", "Healthcare", "Retail", "Logistics", "General"];
+    public static IReadOnlyList<string> Domains { get; } = ["Finance", "HR", "Legal", "Healthcare", "Retail", "Logistics", "Management", "General"];
 
     /// <summary>
     /// Gets the scenarios the home page shows first: the documents and tasks developers ask about most.
     /// </summary>
     public static IReadOnlyList<SampleDemo> Popular =>
     [
-        SampleCatalog.Invoice, SampleCatalog.AccountStatement, SampleCatalog.DocumentPacks,
-        SampleCatalog.HtmlToPdf, SampleCatalog.FontsAndLanguages, SampleCatalog.Payslip,
+        SampleCatalog.Invoice, SampleCatalog.BulkInvoices, SampleCatalog.AccountStatement,
+        SampleCatalog.Contract, SampleCatalog.ShippingLabels, SampleCatalog.HtmlToPdf,
     ];
 
     /// <summary>

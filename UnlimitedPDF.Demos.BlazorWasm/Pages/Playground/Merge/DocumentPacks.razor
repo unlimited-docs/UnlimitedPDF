@@ -32,6 +32,7 @@
         "Invoice" => MergeDemoFiles.InvoiceAsync(ImageStore),
         "Receipt" => MergeDemoFiles.ReceiptAsync(ImageStore),
         "Payslip" => MergeDemoFiles.PayslipAsync(ImageStore),
+        "Contract" => Task.FromResult(MergeDemoFiles.Contract()),
         "Medical report" => MergeDemoFiles.MedicalReportAsync(ImageStore),
         "Account statement" => MergeDemoFiles.AccountStatementAsync(ImageStore),
         _ => throw new ArgumentOutOfRangeException(nameof(name), name, "The pack has no such document."),

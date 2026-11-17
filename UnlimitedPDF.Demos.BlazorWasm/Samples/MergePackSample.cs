@@ -50,7 +50,7 @@ public static class MergePackSample
     /// <returns>The cover title and the documents, all included.</returns>
     public static MergePackInput Input(string domain) => domain switch
     {
-        "hr" => new MergePackInput("Employee pack", "Payslip"),
+        "hr" => new MergePackInput("Employee pack", "Payslip", "Contract"),
         "healthcare" => new MergePackInput("Patient pack", "Medical report", "Receipt"),
         _ => new MergePackInput("Month-end pack", "Invoice", "Receipt", "Account statement"),
     };

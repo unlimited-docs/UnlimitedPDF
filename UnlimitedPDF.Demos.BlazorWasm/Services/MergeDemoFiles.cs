@@ -21,6 +21,11 @@ public static class MergeDemoFiles
         Load(AccountStatementSample.Build(new AccountStatementInput(), await images.GetManyAsync("account-statement-logo.png")));
 
     /// <summary>
+    /// Returns the Contract demo's agreement.
+    /// </summary>
+    public static PdfFile Contract() => Load(ContractSample.Build(new ContractInput()));
+
+    /// <summary>
     /// Returns the Headers and footers demo's report: several pages with page numbers, the sample file of the page
     /// picking and splitting demos.
     /// </summary>

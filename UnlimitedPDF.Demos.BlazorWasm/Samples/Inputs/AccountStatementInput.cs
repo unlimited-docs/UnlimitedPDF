@@ -5,6 +5,15 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
 /// </summary>
 public sealed class AccountStatementInput
 {
+    #region Fields and Constants
+
+    /// <summary>
+    /// The most generated transactions a statement adds: about 150 pages.
+    /// </summary>
+    public const int MaxGeneratedTransactions = 5000;
+
+    #endregion
+
     #region Properties, Indexers
 
     /// <summary>
@@ -18,7 +27,8 @@ public sealed class AccountStatementInput
     public string AccountNumber { get; set; } = "XXXX-XXXX-4821";
 
     /// <summary>
-    /// Gets or sets how many generated transactions to add after the listed ones (0 to 1,000), to see the statement run onto more pages.
+    /// Gets or sets how many generated transactions to add after the listed ones (0 to
+    /// <see cref="MaxGeneratedTransactions"/>), to see the statement run onto more pages and how long that takes.
     /// </summary>
     public int GeneratedTransactions { get; set; } = 60;
 
