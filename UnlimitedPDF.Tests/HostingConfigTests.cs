@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using UnlimitedPDF.Demos.BlazorWasm.Build;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 namespace UnlimitedPDF.Tests;
@@ -68,34 +69,71 @@ public class HostingConfigTests
     {
         var headers = Config().GetProperty("globalHeaders");
         string csp = headers.GetProperty("Content-Security-Policy").GetString()!;
-        var directives = csp.Split(';', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .ToDictionary(d => d.Split(' ')[0], d => d.Split(' ').Skip(1).ToArray());
 
-        Assert.Equal(["'self'", "'wasm-unsafe-eval'", "'sha256-IMPORTMAP-HASH'"], directives["script-src"]);
-        Assert.Equal(["'self'"], directives["default-src"]);
-        Assert.Equal(["'self'"], directives["connect-src"]);
-        Assert.Equal(["'none'"], directives["object-src"]);
-        Assert.Equal(["'none'"], directives["frame-ancestors"]);
-        Assert.Equal(["'self'"], directives["base-uri"]);
-        Assert.DoesNotContain("'unsafe-eval'", csp, StringComparison.Ordinal);
+        // The whole policy, directive by directive: nothing broader may slip in.
+        Assert.Equal(
+            "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-IMPORTMAP-HASH'; style-src 'self' 'unsafe-inline'; "
+            + "img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; "
+            + "form-action 'self'; frame-ancestors 'none'",
+            csp);
         Assert.Equal("nosniff", headers.GetProperty("X-Content-Type-Options").GetString());
         Assert.Equal("strict-origin-when-cross-origin", headers.GetProperty("Referrer-Policy").GetString());
         Assert.Equal("DENY", headers.GetProperty("X-Frame-Options").GetString());
-        Assert.False(string.IsNullOrEmpty(headers.GetProperty("Permissions-Policy").GetString()));
+        Assert.Equal("camera=(), microphone=(), geolocation=(), payment=(), usb=()", headers.GetProperty("Permissions-Policy").GetString());
+        Assert.Equal(5, headers.EnumerateObject().Count());
     }
 
     [Fact]
-    public void The_published_config_gets_the_hash_of_the_import_map()
+    public void Unknown_addresses_open_the_app_and_missing_files_stay_missing()
     {
-        // The browser hashes the import map as parsed, with line feeds only; the publish step does the same.
-        string project = DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj");
+        var config = Config();
+        var fallback = config.GetProperty("navigationFallback");
 
-        Assert.Contains("<Target Name=\"WriteImportMapHashAfterPublish\" AfterTargets=\"Publish\">", project, StringComparison.Ordinal);
-        Assert.Contains("<WriteImportMapHash Folder=\"$(PublishDir)wwwroot\" />", project, StringComparison.Ordinal);
-        Assert.Contains("Replace(\"\\r\\n\", \"\\n\").Replace('\\r', '\\n')", project, StringComparison.Ordinal);
-        Assert.Contains("config.Replace(\"IMPORTMAP-HASH\", hash)", project, StringComparison.Ordinal);
-        Assert.Contains("<script type=\"importmap\"></script>", DemosFile("wwwroot/index.html"), StringComparison.Ordinal);
-        Assert.DoesNotContain("<script>", DemosFile("wwwroot/index.html"), StringComparison.Ordinal);
+        Assert.Equal("never", config.GetProperty("trailingSlash").GetString());
+        Assert.Equal("/index.html", fallback.GetProperty("rewrite").GetString());
+        string files = fallback.GetProperty("exclude").EnumerateArray().Last().GetString()!;
+        Assert.All(["wasm", "br", "js", "css", "map", "md", "pdf", "woff2", "ttf", "webmanifest"], extension => Assert.Contains("," + extension, "," + files.Trim('/', '*', '.', '{', '}'), StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void The_import_map_hash_is_the_browsers_and_index_html_has_no_other_inline_script()
+    {
+        const string map = "{\n  \"imports\": {\n    \"./dotnet.js\": \"./dotnet.abc.js\"\n  }\n}";
+        string lf = $"<!DOCTYPE html><html><head><script type=\"importmap\">{map}</script><script src=\"app.js\"></script></head></html>";
+        string crlf = lf.Replace("\n", "\r\n");
+        string expected = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(map)));
+
+        // The browser hashes the text as parsed, where every line break is one line feed.
+        Assert.Equal(expected, ImportMapHash.Compute(lf));
+        Assert.Equal(expected, ImportMapHash.Compute(crlf));
+        Assert.Equal(expected, ImportMapHash.Compute("\uFEFF" + lf));
+        Assert.Equal("47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=", ImportMapHash.Compute("<script type=\"importmap\"></script>"));
+
+        // No import map, or a second inline script, stops the publish: the policy would block it on the host.
+        Assert.Throws<InvalidOperationException>(() => ImportMapHash.Compute("<script src=\"app.js\"></script>"));
+        Assert.Throws<InvalidOperationException>(() => ImportMapHash.Compute(lf + "<script type=\"module\">go()</script>"));
+        Assert.Throws<InvalidOperationException>(() => ImportMapHash.Compute(lf.Replace("importmap", "module")));
+
+        // The source page has exactly the one import map (the build fills it in), so the step accepts it.
+        _ = ImportMapHash.Compute(DemosFile("wwwroot/index.html"));
+    }
+
+    [Fact]
+    public void The_hash_is_written_from_the_source_template_so_publishing_again_works()
+    {
+        string template = DemosFile("wwwroot/staticwebapp.config.json");
+
+        string first = ImportMapHash.Apply(template, "AAA=");
+        string second = ImportMapHash.Apply(template, "BBB=");
+
+        Assert.Contains("'sha256-AAA='", first, StringComparison.Ordinal);
+        Assert.Contains("'sha256-BBB='", second, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => ImportMapHash.Apply(first, "CCC="));
+
+        string project = DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj");
+        Assert.Contains("<Code Type=\"Class\" Language=\"cs\" Source=\"$(MSBuildThisFileDirectory)Build\\WriteImportMapHash.cs\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<WriteImportMapHash Folder=\"$(PublishDir)wwwroot\" Template=\"$(MSBuildThisFileDirectory)wwwroot\\staticwebapp.config.json\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<Compile Remove=\"Build\\**\" />", project, StringComparison.Ordinal);
     }
 
     #endregion

@@ -1,4 +1,5 @@
 {
+  "trailingSlash": "never",
   "routes": [
     {
       "route": "/playground/documents/quotation",
@@ -55,11 +56,11 @@
       "/js/*",
       "/lib/*",
       "/images/*",
-      "/*.{css,js,json,wasm,dat,png,jpg,jpeg,svg,ico,webp,txt,xml,br,gz}"
+      "/*.{css,js,json,wasm,dat,png,jpg,jpeg,svg,ico,webp,txt,xml,br,gz,map,md,html,pdf,woff,woff2,ttf,otf,webmanifest}"
     ]
   },
   "globalHeaders": {
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-IMPORTMAP-HASH'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval' 'sha256-IMPORTMAP-HASH'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
     "X-Content-Type-Options": "nosniff",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "X-Frame-Options": "DENY",

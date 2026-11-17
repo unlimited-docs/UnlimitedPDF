@@ -29,6 +29,14 @@
     <Compile Include="..\UnlimitedPDF.Demo.ConsoleApp\HtmlDemo.cs" Link="Demo\HtmlDemo.cs" />
   </ItemGroup>
 
+  <!-- The demos site's publish step that hashes its import map, compiled here without the MSBuild task class. -->
+  <PropertyGroup>
+    <DefineConstants>$(DefineConstants);IMPORTMAP_HASH_ONLY</DefineConstants>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Build\WriteImportMapHash.cs" Link="Demo\Build\WriteImportMapHash.cs" />
+  </ItemGroup>
+
   <!-- The demos app's document builders and their inputs are compiled here too, so tests can check the demo PDFs. -->
   <ItemGroup>
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\AccountStatementSample.cs" Link="Demo\Samples\AccountStatementSample.cs" />
