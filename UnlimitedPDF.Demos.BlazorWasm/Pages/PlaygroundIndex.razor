@@ -43,28 +43,7 @@
         <ul class="gallery-grid">
             @foreach (var demo in _scenarios)
             {
-                var category = ScenarioGallery.CategoryOf(demo);
-                var picture = ScenarioGallery.PictureOf(demo);
-                <li class="scenario-card">
-                    <div class="scenario-thumb tone-@(category.Tone ?? "navy")">
-                        @if (picture is not null)
-                        {
-                            <img src="images/gallery/@(picture)-320.jpg" alt="" width="320" height="453" loading="lazy" decoding="async" />
-                        }
-                        else
-                        {
-                            <Icon Name="@demo.Icon" Size="40" />
-                        }
-                    </div>
-                    <div class="scenario-body">
-                        <h2 class="scenario-title"><a class="scenario-link" href="@demo.Route">@demo.Title</a></h2>
-                        <p class="scenario-desc">@demo.Description</p>
-                        <p class="scenario-meta">
-                            <span class="scenario-capability">@category.Title</span>
-                            <span class="scenario-tags"><span class="visually-hidden">Domains: </span>@string.Join(" · ", ScenarioGallery.DomainsOf(demo))</span>
-                        </p>
-                    </div>
-                </li>
+                <ScenarioCard Demo="demo" />
             }
         </ul>
     }

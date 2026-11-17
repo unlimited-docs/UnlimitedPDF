@@ -2,12 +2,20 @@
 @layout MainLayout
 
 <PageTitle>Page not found · UnlimitedPDF</PageTitle>
-<PageDescription Text="This page doesn't exist. The UnlimitedPDF playground has every demo." />
+<PageDescription Text="This page doesn't exist. The UnlimitedPDF scenario gallery has every demo." />
 @* A missing page is served with the app's normal response, so this keeps it out of search results. *@
 <HeadContent><meta name="robots" content="noindex" /></HeadContent>
 
+@* A missing page (D-007): what happened, the search, and the ways on. *@
 <section class="not-found">
+    <p class="not-found-code" aria-hidden="true">404</p>
     <h1>Page not found</h1>
-    <p>This page doesn't exist. The playground has every demo.</p>
-    <a class="btn btn-solid theme-primary" href="playground">Open the playground</a>
+    <p>This page doesn't exist, or a demo has moved. Search for it, or open the scenario gallery: it has every demo.</p>
+    <div class="not-found-search">
+        <SiteSearchBox InputId="not-found-search" />
+    </div>
+    <div class="not-found-actions">
+        <a class="btn btn-lg btn-cta" href="@ScenarioGallery.Route">Browse every scenario</a>
+        <a class="btn btn-lg btn-outline" href="">Go to the home page</a>
+    </div>
 </section>

@@ -195,7 +195,7 @@ public class DemoUsabilityTests
             new[]
             {
                 ".brand", ".topnav-link", ".btn", ".breadcrumbs a", ".viewer-tool", ".form-control", ".row-remove", ".check-field",
-                ".install button", ".jump-link", ".questions-more", ".tile-actions .btn", ".ql-icon-button", ".ql-nav .btn", ".demo-choice-option"
+                ".install button", ".cap-link", ".questions-more", ".demo-choice-option"
             },
             // The selector starts a rule (line start, after a comma, or after a closing brace), so ".btn" does not match
             // inside ".tile-actions .btn".

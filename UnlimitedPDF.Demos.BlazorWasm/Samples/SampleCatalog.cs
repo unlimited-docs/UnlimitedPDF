@@ -200,7 +200,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo HtmlToPdf { get; } = new(
         "HTML to PDF",
-        "Pick a template or paste your own HTML, then convert it with the built-in renderer: no browser engine, no upload.",
+        "Pick a template or paste your own HTML, then convert it with the built-in renderer: no engine required, nothing uploaded.",
         "playground/html/html-to-pdf",
         "HtmlToPdfSample.cs",
         "html-to-pdf.pdf",

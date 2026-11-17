@@ -263,7 +263,7 @@ public class FaqPageTests
 
         int questions = home.IndexOf("HomeQuestions.Questions", StringComparison.Ordinal);
         int more = home.IndexOf("<a class=\"questions-more\" href=\"faq\">More questions in the FAQ", StringComparison.Ordinal);
-        int facts = home.IndexOf("class=\"facts\"", StringComparison.Ordinal);
+        int facts = home.IndexOf("class=\"faq-band\"", StringComparison.Ordinal);
         Assert.True(questions >= 0 && questions < more && more < facts, "The FAQ link ends the \"How do I...?\" block.");
     }
 

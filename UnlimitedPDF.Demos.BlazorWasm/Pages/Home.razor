@@ -4,6 +4,9 @@
 <PageDescription Text="Try UnlimitedPDF, the C# PDF library for .NET, in your browser: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF." />
 <CanonicalLink Path="" />
 
+@* The home page as approved (D-026, D-027): a centered hero over the production illustration, the benefits, the first
+   PDF in three lines, popular scenarios, the capabilities as rows with their demos and code, "How do I...?", and the
+   FAQ band. *@
 <section class="hero">
     @* The current release and what it adds (QF-26111209); the version is read from the built library. Update the
        sentence with each release. *@
@@ -15,57 +18,79 @@
             <Icon Name="arrow" Size="14" />
         </a>
     }
-    <h1>Generate PDFs in <span>pure .NET</span></h1>
+    <h1>The pure .NET <span>PDF library</span></h1>
     <p class="hero-lead">
-        UnlimitedPDF builds PDF documents with text, tables, and JPEG or PNG images from plain C#.
-        No native libraries, no server. Every demo below runs right here, and shows the code behind it.
+        Create, merge, split, and convert HTML to PDF. No engine required: it works everywhere .NET runs, and every demo
+        below runs right here.
     </p>
     <div class="hero-actions">
-        <a class="btn btn-lg btn-solid theme-primary" href="playground">Try the playground <Icon Name="arrow" Size="18" /></a>
-        <a class="btn btn-lg btn-outline" href="https://github.com/unlimited-docs/UnlimitedPDF" target="_blank" rel="noopener">View on GitHub</a>
+        <a class="btn btn-lg btn-cta" href="@ScenarioGallery.Route">Browse @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="18" /></a>
+        <a class="btn btn-lg btn-outline" href="https://github.com/unlimited-docs/UnlimitedPDF" target="_blank" rel="noopener">
+            View on GitHub<span class="visually-hidden"> (opens in a new tab)</span>
+        </a>
     </div>
-    <InstallCommand />
+    <div class="showcase">
+        @* The production illustration (D-027); the phone-sized copy is chosen by srcset. It is in the first screen at
+           every width and is the page's largest picture, so it loads at once, ahead of other images. *@
+        <img src="images/unlimitedpdf-demos-hero-1200.jpg"
+             srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
+             sizes="(max-width: 940px) calc(100vw - 2.5rem), 900px"
+             width="1200" height="675" fetchpriority="high" decoding="async"
+             alt="Stylized illustration of business documents made with UnlimitedPDF, each with its own logo" />
+    </div>
 </section>
 
-<nav class="jump-links" aria-label="Sections on this page">
-    @foreach (var category in Capabilities)
-    {
-        <a class="jump-link tone-@category.Tone" href="#@category.Id"><Icon Name="@(category.Icon!)" Size="16" /> @category.Title</a>
-    }
-    <a class="jump-link" href="#documents"><Icon Name="invoice" Size="16" /> Documents</a>
-    <a class="jump-link" href="#how-do-i"><Icon Name="arrow" Size="16" /> How do I...?</a>
-</nav>
-
-<section class="showcase">
-    @* A stylized illustration of business documents made with the library; the phone-sized copy is chosen by srcset. It is in the
-       first screen at every width and is the page's largest picture, so it loads at once, ahead of other images. *@
-    <img src="images/unlimitedpdf-demos-hero-1200.jpg"
-         srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
-         sizes="(max-width: 1240px) calc(100vw - 2.5rem), 1200px"
-         width="1200" height="675" fetchpriority="high" decoding="async"
-         alt="Stylized illustration of business documents made with UnlimitedPDF, each with its own logo" />
+<section class="section home-section" aria-labelledby="why-title">
+    <h2 id="why-title" class="section-title is-centered">Why UnlimitedPDF</h2>
+    <ul class="benefits">
+        @foreach (var (title, text) in Benefits)
+        {
+            <li class="panel benefit"><h3>@title</h3><p>@text</p></li>
+        }
+    </ul>
 </section>
 
-<div class="cap-rows">
-    @foreach (var category in Capabilities)
-    {
-        <CapabilityRow Category="category" />
-    }
-</div>
+<section class="section home-section first-pdf" aria-labelledby="first-title">
+    <div class="first-pdf-text">
+        <h2 id="first-title" class="section-title">Three lines to your first PDF</h2>
+        <p class="section-lead">Install the package and write a page.</p>
+        <InstallCommand />
+    </div>
+    <div class="first-pdf-code">
+        <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
+    </div>
+</section>
 
-<section id="documents" class="section home-section" aria-labelledby="documents-title">
+<section class="section home-section" aria-labelledby="popular-title">
     <div class="section-head">
-        <h2 id="documents-title">@Documents.Title</h2>
-        <p>@Documents.Description</p>
+        <div>
+            <h2 id="popular-title" class="section-title">Popular scenarios</h2>
+            <p class="section-lead">Real documents developers build most, ready to run and copy.</p>
+        </div>
+        <a class="section-more" href="@ScenarioGallery.Route">See all @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="16" /></a>
     </div>
-    <DocumentTiles />
+    <ul class="gallery-grid">
+        @foreach (var demo in ScenarioGallery.Popular)
+        {
+            <ScenarioCard Demo="demo" HeadingLevel="3" />
+        }
+    </ul>
+</section>
+
+<section class="section home-section" aria-labelledby="capabilities-title">
+    <h2 id="capabilities-title" class="section-title">Capabilities</h2>
+    <p class="section-lead">Each one is a few lines of C#. Open a demo to change the data and see the PDF.</p>
+    <div class="cap-rows">
+        @foreach (var category in Capabilities)
+        {
+            <CapabilityRow Category="category" />
+        }
+    </div>
 </section>
 
 <section id="how-do-i" class="section home-section" aria-labelledby="how-do-i-title">
-    <div class="section-head">
-        <h2 id="how-do-i-title">How do I...?</h2>
-        <p>Common tasks, each answered by a demo you can run and edit.</p>
-    </div>
+    <h2 id="how-do-i-title" class="section-title">How do I...?</h2>
+    <p class="section-lead">Common tasks, each answered by a demo you can run and edit.</p>
     <ul class="questions">
         @foreach (var question in HomeQuestions.Questions)
         {
@@ -80,18 +105,33 @@
     <a class="questions-more" href="faq">More questions in the FAQ <Icon Name="arrow" Size="16" /></a>
 </section>
 
-<section class="section">
-    <div class="facts">
-        <div class="panel fact"><strong>Pure managed .NET</strong><span>No native or third-party engine to install.</span></div>
-        <div class="panel fact"><strong>.NET 6, 8, 9, 10, and 11</strong><span>One package for every supported target.</span></div>
-        <div class="panel fact"><strong>Runs anywhere .NET runs</strong><span>Servers, desktops, and WebAssembly in the browser.</span></div>
-        <div class="panel fact"><strong>Open source</strong><span>Apache-2.0 licensed, developed on GitHub.</span></div>
+<section class="section home-section" aria-labelledby="faq-band-title">
+    <div class="faq-band">
+        <div>
+            <h2 id="faq-band-title">Questions before you start?</h2>
+            <p>Install, .NET versions, Blazor WebAssembly, fonts and languages, tables, merge and split, HTML to PDF, and the license.</p>
+        </div>
+        <a class="btn btn-lg btn-cta" href="faq">Read the FAQ</a>
     </div>
 </section>
 
 @code {
-    // The four capability rows, in catalogue order: the categories with a code sample.
-    private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories.Where(category => category.Snippet is not null);
+    // The six benefits (D-026): each true of the shipped library (PR-012).
+    private static readonly (string Title, string Text)[] Benefits =
+    [
+        ("Pure .NET", "No engine required and no native libraries: it runs wherever .NET runs."),
+        ("Live in your browser", "Every demo on this site is the library running in your browser."),
+        ("Your languages", "Hindi, Telugu, Tamil, French, and more, with your own fonts."),
+        ("Merge and split", "Join files, pick pages, split by ranges, and keep bookmarks."),
+        ("HTML to PDF", "Turn HTML and CSS into PDF with the built-in renderer."),
+        ("Free and open", "Apache-2.0 licensed, on NuGet and GitHub."),
+    ];
 
-    private static SampleCategory Documents => SampleCatalog.Categories.Single(category => category.Id == "documents");
+    private string _firstPdf = string.Empty;
+
+    // The capability rows, in catalogue order: every category, so every demo is one click from the home page.
+    private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories;
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _firstPdf = SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "create");
 }

@@ -13,6 +13,7 @@
     --app-accent-soft: #e8eef8;
     --app-teal: #00ac8c;
     --app-teal-ink: #00694f;
+    --app-teal-soft: #e6f6f2;
     --app-focus: #007a64;
     --app-code-bg: #0f1b33;
     --app-mark: #fff3b0;
@@ -747,99 +748,109 @@ summary:focus-visible,
 .upload-error { font-size: 0.82rem; color: var(--app-danger); }
 .upload-reading { display: flex; align-items: center; gap: 0.6rem; font-size: 0.85rem; }
 
-/* ---------- Home ---------- */
+/* ---------- Home (D-026, D-027) ---------- */
+
+/* The call to action: brand teal with dark teal text, 4.75:1. */
+.btn-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 0;
+    background: var(--app-teal);
+    color: #04342c;
+    font-weight: 650;
+}
+.btn-cta:hover { background: #009a7d; color: #04342c; }
 
 .hero {
-    background: radial-gradient(70rem 32rem at 50% -20%, #e1eaff 0%, rgba(246, 248, 252, 0) 65%);
-    padding: 4.5rem 1.25rem 3rem;
+    padding: 3.5rem 1.25rem 2.5rem;
     text-align: center;
+    background: var(--app-surface);
+    border-bottom: 1px solid var(--app-line);
 }
+.hero h1 {
+    max-width: 52rem;
+    margin: 0.9rem auto 0.75rem;
+    color: var(--app-accent);
+    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.12;
+}
+/* Large text in dark teal, 5.3:1 (brand teal itself is under 3:1 on white). */
+.hero h1 span { color: var(--app-focus); }
+.hero-lead { max-width: 40rem; margin: 0 auto; color: var(--app-muted); font-size: 1.1rem; line-height: 1.6; }
+.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 2rem; }
+.hero-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
 
 /* The release announcement above the headline (QF-26111209): a filled version pill, then what the release adds. */
 .hero-release {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    max-width: 100%;
+    padding: 0.25rem 0.75rem 0.25rem 0.3rem;
+    border-radius: 999px;
+    background: var(--app-teal-soft);
+    color: var(--app-teal-ink);
     font-size: 0.85rem;
-    font-weight: 550;
-    color: var(--app-ink);
+    font-weight: 600;
     text-decoration: none;
-    background: var(--app-surface);
-    border: 1px solid var(--app-line);
-    border-radius: 999px;
-    padding: 0.25rem 0.8rem 0.25rem 0.25rem;
-    margin-bottom: 1.25rem;
 }
-.hero-release:hover { border-color: var(--app-accent); }
-.hero-release-text { text-wrap: balance; } /* two even lines on a phone, not one word alone */
-.hero-release .icon { color: var(--app-accent); flex: none; }
-.hero-release-version {
-    flex: none;
-    font-size: 0.78rem;
-    font-weight: 650;
-    color: #fff;
-    background: var(--app-accent);
-    border-radius: 999px;
-    padding: 0.15rem 0.6rem;
-    font-variant-numeric: tabular-nums;
-}
+.hero-release-version { padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--app-teal-ink); color: #ffffff; font-variant-numeric: tabular-nums; }
+.hero-release:hover .hero-release-text { text-decoration: underline; }
 
-.hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; margin: 0 auto 1rem; max-width: 52rem; }
-.hero h1 span { background: linear-gradient(90deg, var(--app-accent), var(--app-teal)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.hero-lead { font-size: 1.15rem; color: var(--app-muted); max-width: 40rem; margin: 0 auto 2rem; line-height: 1.55; }
-.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin-bottom: 1.75rem; }
-.hero-actions .btn { display: inline-flex; align-items: center; gap: 0.45rem; }
-
-.install {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    max-width: 100%;
-    background: #0f1a2e;
-    color: #dbe5ff;
-    border-radius: 12px;
-    padding: 0.55rem 0.6rem 0.55rem 1rem;
-    font-family: var(--app-mono);
-    font-size: 0.9rem;
-}
-
-.install code { color: inherit; white-space: nowrap; overflow: auto; }
-.install code::before { content: "$ "; color: #7f8db0; }
-.install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
-.install button:hover { background: #1b2a47; }
-
-/* On a phone the whole command fits beside its Copy button, and "pure .NET" stays on one line. */
-@media (max-width: 575.98px) {
-    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.75rem; }
-    .install button { padding: 0.3rem 0.5rem; min-height: 36px; }
-    .hero h1 span { white-space: nowrap; }
-}
-
-/* The narrowest phones (320 px): the command keeps fitting beside Copy. */
-@media (max-width: 359.98px) {
-    .install { font-size: 0.64rem; gap: 0.35rem; padding-left: 0.6rem; }
-}
-
-/* Showcase illustration under the hero; width and height attributes reserve its 16:9 box before it loads. */
-.showcase { max-width: 1240px; margin: 0 auto; padding: 0 1.25rem 1rem; }
+/* The production illustration; width and height attributes reserve its 16:9 box before it loads. */
+.showcase { max-width: 900px; margin: 0 auto; }
 .showcase img {
     display: block;
     width: 100%;
     height: auto;
     border-radius: 16px;
     border: 1px solid var(--app-line);
-    box-shadow: 0 18px 40px -24px rgba(18, 33, 61, 0.35);
+    box-shadow: 0 10px 30px rgba(0, 42, 115, 0.12);
     background: var(--app-canvas);
 }
 
-.section { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem; }
-.section-head { text-align: center; margin-bottom: 1.75rem; }
-.section-head h2 { font-size: 1.75rem; font-weight: 750; letter-spacing: -0.02em; margin: 0 0 0.4rem; }
-.section-head p { color: var(--app-muted); margin: 0; }
+.section { max-width: 1200px; margin: 0 auto; padding: 2.75rem 1.25rem 0.5rem; }
+.home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+.section-title { margin: 0 0 0.35rem; color: var(--app-accent); font-size: 1.65rem; font-weight: 750; letter-spacing: -0.015em; }
+.section-title.is-centered { text-align: center; }
+.section-lead { margin: 0 0 1.25rem; color: var(--app-muted); }
+.section-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 0.5rem 1.5rem; margin-bottom: 1.25rem; }
+.section-head .section-lead { margin-bottom: 0; }
+.section-more { display: inline-flex; align-items: center; gap: 0.35rem; min-height: 44px; font-weight: 700; text-decoration: none; }
+.section-more:hover { text-decoration: underline; }
 
-/* Capability colors: an icon color and its soft background. Text keeps the ink color; each icon color has at least
-   3:1 contrast against its soft background (26111101 AC-20). */
+/* Why UnlimitedPDF: six tiles, three across from 900 px, two from 576 px. */
+.benefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.25rem 0 0; padding: 0; list-style: none; }
+.benefit { padding: 1.1rem 1.2rem; }
+.benefit h3 { margin: 0 0 0.3rem; color: var(--app-accent); font-size: 1.05rem; font-weight: 700; }
+.benefit p { margin: 0; color: var(--app-muted); font-size: 0.92rem; }
+
+/* Three lines to your first PDF: the words and the install command beside the code. */
+.first-pdf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; align-items: center; }
+.first-pdf-code .code-view { height: auto; min-height: 0; border-radius: 14px; overflow: hidden; }
+.first-pdf-code .code-view pre { height: auto; padding-top: 2.9rem; }
+
+.install {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 100%;
+    background: var(--app-code-bg);
+    color: #dbe5ff;
+    border-radius: 12px;
+    padding: 0.55rem 0.6rem 0.55rem 1rem;
+    font-family: var(--app-mono);
+    font-size: 0.9rem;
+}
+.install code { color: inherit; white-space: nowrap; overflow: auto; }
+.install code::before { content: "$ "; color: #9aa7c4; }
+.install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
+.install button:hover { background: #1b2a47; }
+
+/* Capability colors: an icon color and its soft background. Each icon color has at least 3:1 against its soft
+   background (26111101 AC-20). */
 :root {
     --cap-create: #2357e8;
     --cap-create-soft: #e8efff;
@@ -859,251 +870,123 @@ summary:focus-visible,
 .tone-purple { --tone: var(--cap-html); --tone-soft: var(--cap-html-soft); }
 .tone-green { --tone: var(--cap-languages); --tone-soft: var(--cap-languages-soft); }
 
-/* A jump keeps the section's heading below the sticky top bar. */
-.cap-row, .home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
-
-/* Jump links between the hero and the illustration. */
-.jump-links {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-    max-width: 1200px;
-    margin: -1rem auto 1.75rem;
-    padding: 0 1.25rem;
+/* Capability rows (D-026): the icon, name, description, and every demo beside the code sample; one column below
+   1,024 px, in the order name, description, demos, sample. */
+.cap-rows { display: grid; gap: 1rem; }
+.cap-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    grid-template-areas: "intro code" "demos code";
+    gap: 0.75rem 1.5rem;
+    align-items: start;
+    padding: 1.25rem 1.4rem;
+    scroll-margin-top: calc(var(--app-topbar-h) + 1rem);
 }
-
-.jump-link {
+.cap-intro { grid-area: intro; }
+.cap-code { grid-area: code; }
+.cap-demos { grid-area: demos; }
+.cap-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.35rem; }
+.cap-icon { width: 44px; height: 44px; flex: none; border-radius: 12px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
+.cap-head h3 { margin: 0; color: var(--app-accent); font-size: 1.25rem; font-weight: 750; }
+.cap-lead { margin: 0; color: var(--app-muted); }
+.cap-group-title { margin: 0.6rem 0 0.3rem; color: var(--app-muted); font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.cap-links { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.cap-link {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    padding: 0.4rem 0.85rem;
+    gap: 0.35rem;
+    min-height: 36px;
+    padding: 0.25rem 0.75rem 0.25rem 0.45rem;
     border: 1px solid var(--app-line);
     border-radius: 999px;
-    background: var(--app-surface);
-    color: var(--app-ink);
+    color: var(--app-accent);
     font-size: 0.9rem;
     font-weight: 600;
     text-decoration: none;
 }
-
-.jump-link .icon { color: var(--tone, var(--app-muted)); }
-.jump-link:hover { border-color: #c9d6f5; background: #f3f6fd; }
-
-/* On a phone the six links are two even rows of three, each a 40 px tap target; the icons give way to the words. */
-@media (max-width: 575.98px) {
-    .jump-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; padding: 0 1rem; margin-bottom: 1.25rem; }
-    .jump-link { justify-content: center; min-height: 40px; padding: 0.35rem 0.4rem; font-size: 0.8rem; text-align: center; white-space: nowrap; }
-    .jump-link .icon { display: none; }
-}
-
-/* Capability rows: the name and description beside the code sample, the demos across the full width below; one
-   column below 1,024 px, in the order name, description, sample, demos (AC-09). */
-.cap-rows { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem 1rem; display: grid; gap: 1.25rem; }
-
-.cap-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: "intro code" "demos demos";
-    gap: 1rem 1.5rem;
-    align-items: start;
-    padding: 1.5rem;
-}
-
-.cap-intro { grid-area: intro; }
-.cap-code { grid-area: code; }
-.cap-demos { grid-area: demos; }
-
-.cap-head { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.4rem; }
-.cap-icon { width: 42px; height: 42px; flex: none; border-radius: 11px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
-.cap-head h2 { font-size: 1.45rem; font-weight: 750; letter-spacing: -0.02em; margin: 0; }
-.cap-lead { color: var(--app-muted); margin: 0; }
-
-.cap-group-title { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--app-muted); margin: 0.9rem 0 0.4rem; }
-.cap-group-title:first-child { margin-top: 0; }
-
-.cap-links { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; }
-
-.cap-link {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.6rem;
-    height: 100%;
-    padding: 0.55rem 0.65rem;
-    border: 1px solid var(--app-line);
-    border-radius: 10px;
-    color: var(--app-ink);
-    text-decoration: none;
-}
-
-.cap-link:hover { border-color: #c9d6f5; background: #f8faff; }
-.cap-link-icon { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--tone-soft); color: var(--tone); }
-.cap-link-text { display: grid; gap: 0.1rem; min-width: 0; }
-.cap-link-title { font-weight: 650; font-size: 0.92rem; }
-.cap-link-desc { color: var(--app-muted); font-size: 0.8rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-
-/* The row's code sample: the code view at its content's height, scrolling sideways inside itself. */
+.cap-link:hover { border-color: var(--app-accent); background: var(--app-accent-soft); }
+.cap-link-icon { display: inline-flex; color: var(--tone, var(--app-accent)); }
+/* The row keeps to names; each description is on its demo's page and read with the link. */
+.cap-link-desc { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .cap-code .code-view { height: auto; min-height: 0; border-radius: 12px; overflow: hidden; }
-.cap-code .code-view pre { height: auto; padding: 2.6rem 1.1rem 1.1rem; overflow-x: auto; }
+.cap-code .code-view pre { height: auto; max-height: 14rem; padding-top: 2.9rem; }
 
 @media (max-width: 1023.98px) {
-    .cap-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "code" "demos"; padding: 1.25rem; }
-    .cap-links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .cap-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "demos" "code"; }
+    .first-pdf { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
 }
 
-/* On a phone a demo link is its icon and name in two columns; its description is on its page. The rows stay short
-   enough to scan, and each link is a 48 px tap target. */
-@media (max-width: 575.98px) {
-    .cap-row { padding: 1rem; gap: 0.85rem; }
-    .cap-head h2 { font-size: 1.3rem; }
-    .cap-icon { width: 38px; height: 38px; }
-    .cap-link { align-items: center; min-height: 48px; padding: 0.45rem 0.55rem; gap: 0.5rem; }
-    .cap-link-icon { width: 28px; height: 28px; }
-    .cap-link-title { font-size: 0.86rem; line-height: 1.25; }
-    .cap-link-desc { display: none; }
-    .cap-code .code-view pre { font-size: 0.76rem; padding: 2.5rem 0.9rem 0.9rem; }
-}
-
-/* Real-life documents: five tiles per row from 1,024 px, three from 576 px, two below. A short last row is
-   centered, so ten tiles in rows of three end on one centered tile instead of one at the left. */
-.tiles { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 1rem; --tiles-per-row: 5; }
-.tiles > li { flex: 0 0 calc((100% - (var(--tiles-per-row) - 1) * 1rem) / var(--tiles-per-row)); min-width: 0; }
-.tile { display: flex; flex-direction: column; overflow: hidden; }
-.tile-picture { display: block; width: 100%; height: auto; aspect-ratio: 320 / 453; object-fit: cover; object-position: top; background: #fff; border-bottom: 1px solid var(--app-line); cursor: zoom-in; }
-.tile-body { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.75rem 0.85rem 0.85rem; flex: 1; }
-.tile-title { font-size: 0.98rem; font-weight: 700; margin: 0; }
-.tile-summary { color: var(--app-muted); font-size: 0.8rem; line-height: 1.4; margin: 0; }
-.tile-facts { color: var(--app-muted); font-size: 0.78rem; font-weight: 600; margin: 0; }
-.tile-actions { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.4rem; }
-
-@media (max-width: 1023.98px) {
-    .tiles { --tiles-per-row: 3; }
-}
-
-/* On a phone the two actions sit one above the other at the tile's full width, and the summary keeps to two lines. */
-@media (max-width: 575.98px) {
-    .tiles { --tiles-per-row: 2; gap: 0.75rem; }
-    .tiles > li { flex-basis: calc((100% - 0.75rem) / 2); }
-    .tile-body { padding: 0.6rem 0.65rem 0.7rem; gap: 0.25rem; }
-    .tile-title { font-size: 0.9rem; }
-    .tile-summary { font-size: 0.76rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    .tile-actions { flex-direction: column; gap: 0.35rem; }
-    .tile-actions .btn { width: 100%; min-height: 40px; justify-content: center; display: inline-flex; align-items: center; }
-}
-
-/* Quick look: the browser's modal dialog, the picture beside its facts; full width on a phone, picture first. */
-.quick-look {
-    width: min(1040px, calc(100vw - 2rem));
-    max-height: calc(100vh - 2rem);
-    padding: 0;
-    border: 1px solid var(--app-line);
-    border-radius: var(--app-radius);
-    background: var(--app-surface);
-    color: var(--app-ink);
-    box-shadow: 0 24px 60px -20px rgba(18, 33, 61, 0.45);
-}
-
-.quick-look::backdrop { background: rgba(15, 26, 46, 0.55); }
-
-.ql-layout { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
-.ql-picture { margin: 0; padding: 1rem; background: #eef1f7; display: grid; justify-items: center; align-content: start; gap: 0.5rem; }
-/* The tile's small picture (already loaded when its tile has been on screen) shows behind the large one until it arrives. */
-.ql-picture img { display: block; width: auto; max-width: 100%; height: auto; max-height: calc(100vh - 6.5rem); background: #fff center / 100% 100% no-repeat; box-shadow: 0 2px 10px rgba(18, 33, 61, 0.18); aspect-ratio: 960 / 1358; }
-.ql-page { font-size: 0.8rem; color: var(--app-muted); font-weight: 600; }
-.ql-side { display: flex; flex-direction: column; gap: 0.75rem; padding: 1.25rem 1.4rem; min-width: 0; }
-.ql-top { display: flex; align-items: center; justify-content: space-between; }
-.ql-position { font-size: 0.8rem; font-weight: 650; color: var(--app-muted); }
-.ql-icon-button { border: 1px solid var(--app-line); background: var(--app-surface); color: var(--app-ink); border-radius: 8px; padding: 0.3rem; line-height: 0; }
-.ql-icon-button:hover { background: var(--app-canvas); }
-.ql-title { font-size: 1.4rem; font-weight: 750; letter-spacing: -0.015em; margin: 0; }
-.ql-description { color: var(--app-muted); margin: 0; }
-.ql-facts { display: flex; gap: 1.5rem; margin: 0; }
-.ql-facts dt { font-size: 0.75rem; font-weight: 600; color: var(--app-muted); }
-.ql-facts dd { margin: 0; font-weight: 650; }
-.ql-actions, .ql-nav { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-.ql-actions .btn, .ql-nav .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
-/* While a download builds, the download button and the steps it holds look unavailable. */
-.ql-actions .btn[aria-disabled="true"], .ql-nav .btn[aria-disabled="true"] { opacity: 0.55; cursor: progress; }
-.ql-nav { margin-top: auto; justify-content: space-between; }
-.ql-error { margin: 0; padding: 0.6rem 0.8rem; border-radius: 10px; background: var(--app-danger-soft); color: #7d1b2d; font-size: 0.88rem; }
-.icon-flip { transform: scaleX(-1); }
-
-@media (max-width: 767.98px) {
-    .ql-layout { grid-template-columns: minmax(0, 1fr); }
-    .ql-picture img { max-height: 60vh; }
-}
-
-/* On a phone the position and Close stay at the top and Previous and Next at the bottom while the picture and the
-   details scroll between them, so Close and the steps are always one tap away. */
-@media (max-width: 575.98px) {
-    /* The scroll padding keeps a focused control clear of the two sticky bars. */
-    .quick-look { width: 100vw; max-width: 100vw; max-height: 100vh; height: 100%; margin: 0; border-radius: 0; border: 0; scroll-padding-block: 3.75rem 4rem; }
-    .ql-layout { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; }
-    .ql-side { display: contents; }
-    .ql-top { order: -1; position: sticky; top: 0; z-index: 1; padding: 0.5rem 1rem; background: var(--app-surface); border-bottom: 1px solid var(--app-line); }
-    .ql-icon-button { padding: 0.5rem; min-width: 44px; min-height: 44px; display: inline-grid; place-items: center; }
-    .ql-picture { padding: 0.75rem; }
-    .ql-picture img { max-height: 48vh; }
-    .ql-title, .ql-description, .ql-facts, .ql-actions, .ql-error { margin-inline: 1rem; }
-    .ql-actions .btn { flex: 1 1 auto; justify-content: center; min-height: 44px; }
-    .ql-nav { position: sticky; bottom: 0; margin-top: auto; padding: 0.5rem 1rem; background: var(--app-surface); border-top: 1px solid var(--app-line); }
-    .ql-nav .btn { min-height: 44px; }
+@media (max-width: 899.98px) {
+    .benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* "How do I...?": two columns of questions, one on a phone. */
-.questions { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-
+.questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
 .question {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 1rem;
-    height: 100%;
-    padding: 0.9rem 1.1rem;
-    color: var(--app-ink);
+    gap: 0.35rem 1rem;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    color: var(--app-accent);
+    font-weight: 600;
     text-decoration: none;
 }
+.question:hover { border-color: var(--app-accent); }
+.question-demo { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--app-muted); font-size: 0.85rem; font-weight: 500; }
 
-.question:hover { border-color: #c9d6f5; }
-.question-text { font-weight: 650; }
-.question-demo { display: inline-flex; align-items: center; gap: 0.35rem; flex: none; color: var(--app-accent); font-size: 0.85rem; font-weight: 600; }
+/* "More questions in the FAQ" at the end of "How do I...?". */
+.questions-more { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; font-weight: 600; text-decoration: none; }
+.questions-more:hover { text-decoration: underline; }
 
-/* Below 1,024 px the demo's name goes under its question, so a question never wraps beside it. */
-@media (max-width: 1023.98px) {
-    .question { flex-direction: column; align-items: flex-start; justify-content: center; gap: 0.35rem; }
+/* The FAQ band: white on brand navy, 13.3:1. */
+.faq-band {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 2rem;
+    margin-bottom: 2.5rem;
+    padding: 1.75rem 2rem;
+    border-radius: 16px;
+    background: var(--app-accent);
+    color: #ffffff;
 }
+.faq-band h2 { margin: 0 0 0.35rem; font-size: 1.4rem; font-weight: 750; }
+.faq-band p { margin: 0; max-width: 44rem; color: #dce5f5; }
+.faq-band .btn-cta:focus-visible { outline-color: #ffffff; }
 
 @media (max-width: 575.98px) {
-    .questions { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
-    .question { padding: 0.8rem 1rem; }
+    .hero { padding: 2.25rem 1rem 1.75rem; }
+    .section { padding: 2rem 1rem 0.5rem; }
+    .benefits, .questions { grid-template-columns: minmax(0, 1fr); }
+    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.75rem; }
+    .install button { padding: 0.3rem 0.5rem; min-height: 36px; }
+    .hero h1 span { white-space: nowrap; }
+    .faq-band { padding: 1.4rem 1.25rem; }
 }
 
-/* The four facts: one row from 1,024 px, two by two from 576 px, one column below. */
-.facts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; }
-
-@media (max-width: 1023.98px) {
-    .facts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* The narrowest phones (320 px): the command keeps fitting beside Copy. */
+@media (max-width: 359.98px) {
+    .install { font-size: 0.64rem; gap: 0.35rem; padding-left: 0.6rem; }
 }
-
-@media (max-width: 575.98px) {
-    .facts { grid-template-columns: minmax(0, 1fr); gap: 0.6rem; }
-}
-.fact { padding: 1.1rem 1.25rem; }
-.fact strong { display: block; font-size: 1rem; margin-bottom: 0.2rem; }
-.fact span { color: var(--app-muted); font-size: 0.9rem; }
 
 /* The site footer, on every page (MainLayout): the credit line, then the platform, license, and demo-data notes. */
-.footer { border-top: 1px solid var(--app-line); padding: 1.5rem 1.25rem; text-align: center; color: var(--app-muted); font-size: 0.85rem; }
+.footer { border-top: 1px solid var(--app-line); padding: 1.5rem 1.25rem; text-align: center; color: var(--app-muted); font-size: 0.85rem; background: var(--app-surface); }
 .footer p { margin: 0; }
 .footer p + p { margin-top: 0.35rem; }
 .footer a { text-decoration: underline; text-underline-offset: 2px; }
 .footer-heart { fill: currentColor; color: var(--app-danger); vertical-align: -2px; }
 
-.not-found { max-width: 32rem; margin: 5rem auto; text-align: center; padding: 0 1.25rem; }
-
-/* "More questions in the FAQ" at the end of "How do I...?". */
-.questions-more { display: inline-flex; align-items: center; gap: 0.35rem; margin-top: 1rem; font-weight: 600; text-decoration: none; }
-.questions-more:hover { text-decoration: underline; }
+/* A missing page: the code, what happened, the search, and the ways on. */
+.not-found { max-width: 36rem; margin: 4rem auto; padding: 0 1.25rem; text-align: center; }
+.not-found .not-found-code { margin: 0; color: var(--app-focus); font-size: 3.5rem; font-weight: 800; letter-spacing: -0.03em; }
+.not-found h1 { margin: 0 0 0.5rem; color: var(--app-accent); font-size: 1.9rem; font-weight: 750; }
+.not-found p { color: var(--app-muted); }
+.not-found-search { margin: 1.5rem 0; text-align: left; }
+.not-found-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; }
 
 /* ---------- FAQ page ---------- */
 
@@ -1266,15 +1149,13 @@ summary:focus-visible,
     .code-copy::before { content: ""; position: absolute; inset: -7px -4px; }
 }
 
-/* Home's own phone tap targets: the install Copy button, the jump links, the document tiles' Quick look and Open, and
-   the link to the FAQ (26111103 AC-05), and the release announcement (QF-26111209). The Quick look dialog's own
-   buttons are sized in its phone block above. */
+/* Home's own phone tap targets: the install Copy button, the demo links of the capability rows, and the link to the
+   FAQ (26111103 AC-05), and the release announcement (QF-26111209). */
 @media (max-width: 575.98px) {
     .hero-release { min-height: 44px; }
     .install button { min-height: 44px; }
-    .jump-link { min-height: 44px; }
+    .cap-link { min-height: 44px; }
     .questions-more { min-height: 44px; }
-    .tile-actions .btn { min-height: 44px; }
 }
 
 /* A demo's variants (a document type, a pack's domain): a labelled row of links, the current one filled. */

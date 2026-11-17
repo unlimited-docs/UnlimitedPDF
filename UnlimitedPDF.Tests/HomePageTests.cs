@@ -245,33 +245,44 @@ public class HomePageTests
     }
 
     [Fact]
-    public void The_capability_rows_and_the_gallery_together_hold_every_demo_once()
+    public void The_capability_rows_hold_every_demo_once_and_the_popular_scenarios_are_six_of_them()
     {
-        var onPage = CapabilityDemos().Concat(DocumentGallery.Documents.Select(d => d.Demo)).ToList();
-        var all = SampleCatalog.Pages;
+        // D-026: a row per capability, so every demo is one click from the home page; six popular scenarios above them.
+        var rows = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
+        var popular = ScenarioGallery.Popular;
 
-        Assert.Equal(all.Count, onPage.Count);
-        Assert.Equal(all.ToHashSet(), onPage.ToHashSet());
+        Assert.Equal(ScenarioGallery.Scenarios.Count, rows.Count);
+        Assert.Equal(ScenarioGallery.Scenarios.ToHashSet(), rows.ToHashSet());
+        Assert.Equal(6, popular.Count);
+        Assert.Equal(popular.Count, popular.Distinct().Count());
+        Assert.All(popular, demo => Assert.Contains(demo, ScenarioGallery.Scenarios));
     }
 
     [Fact]
-    public void The_home_page_links_each_row_demo_and_each_tile_to_its_demo()
+    public void The_home_page_links_each_row_demo_and_each_popular_card_to_its_demo()
     {
-        // A guard against removal: the page renders the capability rows and the gallery, a row links its demos, and a
-        // tile links its document's demo. Only the component tags and link attributes are matched, so renaming a
-        // variable does not fail it. That the rows and the gallery hold every demo is checked above.
+        // A guard against removal: the page renders every capability row and the popular scenarios as cards, a row
+        // links its demos, and a card links its demo. That the rows hold every demo is checked above.
         var home = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/Home.razor"));
         var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
-        var tiles = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/DocumentTiles.razor"));
+        var card = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/ScenarioCard.razor"));
 
         Assert.Contains("<CapabilityRow ", home, StringComparison.Ordinal);
-        Assert.Contains("<DocumentTiles", home, StringComparison.Ordinal);
+        Assert.Contains("private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories;", home, StringComparison.Ordinal);
+        Assert.Contains("@foreach (var demo in ScenarioGallery.Popular)", home, StringComparison.Ordinal);
+        Assert.Contains("<ScenarioCard Demo=\"demo\" HeadingLevel=\"3\" />", home, StringComparison.Ordinal);
         // The row calls its link fragment for a category's demos and for each group's (F-23): the link attribute alone
         // also sits in the fragment's definition, so it would pass a row that never shows its links.
         Assert.Contains(".Route\"", row, StringComparison.Ordinal);
         Assert.Equal(2, Regex.Matches(row, @"@DemoLinks\(\w+\.Demos\)").Count);
-        Assert.Contains("DocumentGallery.Documents", tiles, StringComparison.Ordinal);
-        Assert.Contains(".Demo.Route\"", tiles, StringComparison.Ordinal);
+        Assert.Equal(2, Regex.Matches(card, "<a class=\"scenario-link\" href=\"@Demo.Route\">").Count);
+
+        // The approved order (D-026): hero and illustration, benefits, first PDF, popular, capabilities, How do I, FAQ band.
+        string[] order = ["class=\"hero\"", "class=\"showcase\"", "class=\"benefits\"", "first-pdf", "ScenarioGallery.Popular", "<CapabilityRow ", "id=\"how-do-i\"", "class=\"faq-band\""];
+        var positions = order.Select(marker => home.IndexOf(marker, StringComparison.Ordinal)).ToList();
+        Assert.All(positions, position => Assert.True(position >= 0));
+        Assert.Equal(positions.Order(), positions);
+        Assert.Contains("No engine required", home, StringComparison.Ordinal);
     }
 
     [Fact]
