@@ -89,11 +89,12 @@ public static class ScenarioGallery
         Domains.FirstOrDefault(d => string.Equals(d, value?.Trim(), StringComparison.OrdinalIgnoreCase));
 
     /// <summary>
-    /// Returns the base name of a scenario's picture in <c>images/gallery/</c>, the first page of the PDF it makes.
+    /// Returns the base name of a scenario's picture in <c>images/gallery/</c>: the first page of the PDF it makes with
+    /// its default data, named after the file it downloads (for example "invoice" for "invoice.pdf").
     /// </summary>
     /// <param name="demo">A scenario.</param>
-    /// <returns>The picture's base name, or null for a scenario without one, which shows its capability's icon.</returns>
-    public static string? PictureOf(SampleDemo demo) => DocumentGallery.Documents.FirstOrDefault(d => d.Demo == demo)?.Picture;
+    /// <returns>The picture's base name.</returns>
+    public static string PictureOf(SampleDemo demo) => Path.GetFileNameWithoutExtension(demo.FileName);
 
     #endregion
 

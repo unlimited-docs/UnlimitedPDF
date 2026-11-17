@@ -7,7 +7,7 @@
     <div class="viewer-toolbar">
         <div class="viewer-go">
             <label for="@($"{_prefix}go")">Page</label>
-            <input id="@($"{_prefix}go")" class="form-control viewer-page-input" type="number" inputmode="numeric" min="1" max="@_pageCount"
+            <input @key="_goVersion" id="@($"{_prefix}go")" class="form-control viewer-page-input" type="number" inputmode="numeric" min="1" max="@_pageCount"
                    value="@_shown" disabled="@(_pageCount == 0)" @onchange="GoToAsync" />
             <span class="viewer-page-total">of @_pageCount</span>
         </div>
@@ -15,7 +15,7 @@
             <button type="button" class="btn btn-sm viewer-tool" aria-label="Zoom out" disabled="@(_pageCount == 0)" @onclick="ZoomOutAsync">
                 <span aria-hidden="true">&minus;</span>
             </button>
-            <span class="viewer-zoom-level">@ZoomLabel</span>
+            <span class="viewer-zoom-level" role="status">@ZoomLabel</span>
             <button type="button" class="btn btn-sm viewer-tool" aria-label="Zoom in" disabled="@(_pageCount == 0)" @onclick="ZoomInAsync">
                 <span aria-hidden="true">+</span>
             </button>
@@ -33,11 +33,11 @@
         </div>
     </div>
 
-    <div class="viewer-scroll" tabindex="0" role="region" aria-label="PDF pages" aria-keyshortcuts="+ - 0" @ref="_scroll" @onkeydown="OnKeyDownAsync"
+    <div class="viewer-scroll" tabindex="0" role="region" aria-label="PDF pages" aria-keyshortcuts="Plus Minus 0" @ref="_scroll" @onkeydown="OnKeyDownAsync"
          style="@($"--scale: {Format(_scale ?? 1)}; --widest: {Format(_widest)}")">
         @if (_unreadable is not null)
         {
-            <div class="viewer-notice" role="note">
+            <div class="viewer-notice" role="alert">
                 <strong>The preview can't show this PDF.</strong>
                 <span>@_unreadable</span>
                 <span>Open it in a new tab or download it.</span>

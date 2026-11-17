@@ -8,7 +8,7 @@ using UnlimitedPDF.Demos.BlazorWasm.Services;
 namespace UnlimitedPDF.Demos.BlazorWasm.Components;
 
 /// <summary>
-/// The page frame every playground demo shares: options with Generate, a Preview and C# code card, and the status
+/// The page frame every playground demo shares: options with Generate, the drawn PDF and the C# code, and the status
 /// line. It generates the default PDF when the demo opens, runs one generation at a time, and keeps the last good
 /// preview visible while a new one is built or when generation fails.
 /// </summary>
@@ -158,6 +158,7 @@ public partial class SamplePage
 
     private async Task ResetAsync()
     {
+        if (_busy) return;
         await OnReset.InvokeAsync();
         NotifyInputsChanged();
     }

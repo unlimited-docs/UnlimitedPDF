@@ -88,6 +88,20 @@ public class ScenarioGalleryTests
         Assert.Contains(SampleCatalog.Invoice, ScenarioGallery.Filter("documents", "Logistics"));
     }
 
+    [Fact]
+    public void Every_scenario_card_has_a_first_page_picture_and_its_original()
+    {
+        // Each card shows the first page its demo makes, not an icon; the copy is made from a capture kept in assets.
+        Assert.All(ScenarioGallery.Scenarios, demo =>
+        {
+            string picture = ScenarioGallery.PictureOf(demo);
+            Assert.True(File.Exists(RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{picture}-320.jpg")), $"{demo.Title}: {picture}-320.jpg");
+            Assert.True(File.Exists(RepositoryFile($"assets/originals/gallery/{picture}.png")), $"{demo.Title}: {picture}.png");
+        });
+        Assert.Equal(ScenarioGallery.Scenarios.Count, ScenarioGallery.Scenarios.Select(ScenarioGallery.PictureOf).Distinct(StringComparer.Ordinal).Count());
+        Assert.DoesNotContain("<Icon ", DemosFile("Components/ScenarioCard.razor"), StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("")]
@@ -108,6 +122,9 @@ public class ScenarioGalleryTests
 
     private static string DemosFile(string relative, [CallerFilePath] string source = "") =>
         File.ReadAllText(Path.Combine(Path.GetDirectoryName(source)!, "..", "UnlimitedPDF.Demos.BlazorWasm", relative));
+
+    private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>
+        Path.Combine(Path.GetDirectoryName(source)!, "..", relative);
 
     private static string? Query(string address, string name)
     {

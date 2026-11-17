@@ -58,6 +58,25 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 | `originals/gallery/payslip.png` | 1479 x 2092 | Payslip (`playground/documents/payslip`) |
 | `originals/gallery/medical-report.png` | 1479 x 2092 | Medical report (`playground/documents/medical-report`) |
 | `originals/gallery/receipt.png` | 1460 x 2058 | Receipt (`playground/documents/invoice?type=receipt`) |
+| `originals/gallery/bookmarks-and-numbers.png` | 1479 x 2092 | Bookmarks & numbers (`playground/merge/bookmarks-and-numbers`) |
+| `originals/gallery/invoices.png` | 1479 x 2092 | Bulk invoices (first invoice) (`playground/documents/bulk-invoices`) |
+| `originals/gallery/common-html-to-pdf-problems.png` | 1479 x 2092 | Common problems (`playground/html/common-problems`) |
+| `originals/gallery/contract.png` | 1479 x 2092 | Contract (`playground/documents/contract`) |
+| `originals/gallery/cover-and-ranges.png` | 1479 x 2092 | Cover + ranges (`playground/merge/cover-and-ranges`) |
+| `originals/gallery/document-pack.png` | 1479 x 2092 | Document packs (`playground/merge/document-packs`) |
+| `originals/gallery/headers-and-footers.png` | 1479 x 2092 | Headers and footers (`playground/create/headers-and-footers`) |
+| `originals/gallery/fonts-and-languages.png` | 1479 x 2092 | Fonts and languages (French) (`playground/languages/fonts-and-languages`) |
+| `originals/gallery/html-to-pdf.png` | 1479 x 2092 | HTML to PDF (`playground/html/html-to-pdf`) |
+| `originals/gallery/images.png` | 1479 x 2092 | Images (`playground/create/images`) |
+| `originals/gallery/inventory-report.png` | 1479 x 2092 | Inventory report (`playground/documents/inventory-report`) |
+| `originals/gallery/joined.png` | 1479 x 2092 | Join files (`playground/merge/join-files`) |
+| `originals/gallery/kpi-report.png` | 1479 x 2092 | KPI report (`playground/documents/kpi-report`) |
+| `originals/gallery/picked-pages.png` | 1479 x 2092 | Pick pages (`playground/merge/pick-pages`) |
+| `originals/gallery/shipping-labels.png` | 1479 x 2092 | Shipping labels (`playground/documents/shipping-labels`) |
+| `originals/gallery/every-n-pages.png` | 1479 x 2092 | Every N pages (first part) (`playground/split/every-n-pages`) |
+| `originals/gallery/page-ranges.png` | 1479 x 2092 | Page ranges (first part) (`playground/split/page-ranges`) |
+| `originals/gallery/tables.png` | 1479 x 2092 | Tables (`playground/create/tables`) |
+| `originals/gallery/text-and-pages.png` | 1479 x 2092 | Text and pages (`playground/create/text-and-pages`) |
 
 On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the gallery copies below were added. Two runs there produce byte-identical gallery copies.
 
@@ -129,6 +148,25 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/medical-report-960.jpg` | `originals/gallery/medical-report.png` | 960 x 1358, JPEG quality 90 | 123,626 | App home quick look |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-320.jpg` | `originals/gallery/receipt.png` | 320 x 451, JPEG quality 90 | 29,084 | App home gallery tile |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/receipt-960.jpg` | `originals/gallery/receipt.png` | 960 x 1353, JPEG quality 90 | 134,964 | App home quick look |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/bookmarks-and-numbers-320.jpg` | `originals/gallery/bookmarks-and-numbers.png` | 320 x 453 | 4,357 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/invoices-320.jpg` | `originals/gallery/invoices.png` | 320 x 453 | 19,443 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/common-html-to-pdf-problems-320.jpg` | `originals/gallery/common-html-to-pdf-problems.png` | 320 x 453 | 30,188 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/contract-320.jpg` | `originals/gallery/contract.png` | 320 x 453 | 34,219 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/cover-and-ranges-320.jpg` | `originals/gallery/cover-and-ranges.png` | 320 x 453 | 5,625 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/document-pack-320.jpg` | `originals/gallery/document-pack.png` | 320 x 453 | 5,905 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/headers-and-footers-320.jpg` | `originals/gallery/headers-and-footers.png` | 320 x 453 | 37,977 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/fonts-and-languages-320.jpg` | `originals/gallery/fonts-and-languages.png` | 320 x 453 | 14,635 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/html-to-pdf-320.jpg` | `originals/gallery/html-to-pdf.png` | 320 x 453 | 16,800 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/images-320.jpg` | `originals/gallery/images.png` | 320 x 453 | 10,934 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/inventory-report-320.jpg` | `originals/gallery/inventory-report.png` | 320 x 453 | 37,913 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/joined-320.jpg` | `originals/gallery/joined.png` | 320 x 453 | 6,857 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/kpi-report-320.jpg` | `originals/gallery/kpi-report.png` | 320 x 453 | 17,992 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/picked-pages-320.jpg` | `originals/gallery/picked-pages.png` | 320 x 453 | 35,840 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/shipping-labels-320.jpg` | `originals/gallery/shipping-labels.png` | 320 x 453 | 32,603 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/every-n-pages-320.jpg` | `originals/gallery/every-n-pages.png` | 320 x 453 | 39,565 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/page-ranges-320.jpg` | `originals/gallery/page-ranges.png` | 320 x 453 | 39,565 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/tables-320.jpg` | `originals/gallery/tables.png` | 320 x 453 | 11,592 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/text-and-pages-320.jpg` | `originals/gallery/text-and-pages.png` | 320 x 453 | 6,857 | Scenario card |
 | `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/invoice.jpg` | `originals/readme/invoice.png` | 1172 x 945, JPEG quality 90 | 114,508 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/images.jpg` | `originals/readme/images.png` | 832 x 1148, JPEG quality 90 | 50,537 | README.md and nuget/README.md screenshot |

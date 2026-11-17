@@ -34,6 +34,7 @@ public partial class PdfPreview : IAsyncDisposable
     private IReadOnlyList<(double Width, double Height)> _sizes = [];
     private string? _unreadable;
     private string? _url;
+    private int _goVersion;
     private int _version;
     private double _widest = 595;
 
@@ -101,10 +102,14 @@ public partial class PdfPreview : IAsyncDisposable
         if (_file is null || number < 1 || number > _pageCount || _drawn.Contains(number) || _failed.ContainsKey(number)) return;
 
         int version = _version;
-        var page = PdfPageRenderer.Render(_file, number - 1, $"{_prefix}v{version}-");
+        // Every page has its own id prefix: the pages share one document, where a reference to an id finds the first
+        // element with it.
+        var page = PdfPageRenderer.Render(_file, number - 1, PagePrefix(version, number));
         if (version != _version) return;
 
-        if (page.Svg is not null && await Interop.PlacePageAsync(_scroll, number, page.Svg))
+        bool placed = page.Svg is not null && await Interop.PlacePageAsync(_scroll, number, page.Svg);
+        if (version != _version) return;
+        if (placed)
         {
             _drawn.Add(number);
             return;
@@ -143,8 +148,9 @@ public partial class PdfPreview : IAsyncDisposable
     public async Task Pinched(double ratio)
     {
         if (_pageCount == 0 || !double.IsFinite(ratio) || ratio <= 0) return;
-        double scale = await CurrentScaleAsync() * ratio;
-        await SetScaleAsync(Math.Round(Math.Clamp(scale, Steps[0], Steps[^1]) * 20) / 20);
+        double fit = await FitScaleAsync();
+        double scale = Math.Clamp(await CurrentScaleAsync() * ratio, Math.Min(Steps[0], fit), Steps[^1]);
+        await SetScaleAsync(scale <= fit + 0.01 && fit < Steps[0] ? null : Math.Round(scale * 20) / 20);
     }
 
     /// <summary>
@@ -171,7 +177,7 @@ public partial class PdfPreview : IAsyncDisposable
             _pageCount = _sizes.Count;
             _widest = _sizes.Count == 0 ? 595 : _sizes.Max(s => s.Width);
         }
-        catch (PdfFileException exception)
+        catch (Exception exception) when (exception is not OperationCanceledException)
         {
             _file = null;
             _sizes = [];
@@ -190,10 +196,17 @@ public partial class PdfPreview : IAsyncDisposable
 
     private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
-    // The zoom in use: the set one, or the one that makes the widest page fill the viewer.
-    private async Task<double> CurrentScaleAsync()
+    /// <summary>
+    /// Returns the id prefix of a drawn page: the preview, the PDF shown, and the page, so no two pages share an id.
+    /// </summary>
+    private string PagePrefix(int version, int number) => $"{_prefix}v{version}p{number}-";
+
+    // The zoom in use: the set one, or the fit.
+    private async Task<double> CurrentScaleAsync() => _scale ?? await FitScaleAsync();
+
+    // The zoom that makes the widest page fill the viewer.
+    private async Task<double> FitScaleAsync()
     {
-        if (_scale is { } scale) return scale;
         double width = await Interop.ViewerWidthAsync(_scroll);
         return width > 0 ? width / (_widest * 4 / 3) : 1;
     }
@@ -205,6 +218,7 @@ public partial class PdfPreview : IAsyncDisposable
         if (!int.TryParse(args.Value?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out int number)) return;
         number = Math.Clamp(number, 1, Math.Max(1, _pageCount));
         _shown = number;
+        _goVersion++; // the box shows the page reached, not a number out of range that was typed
         await Interop.ScrollToPageAsync(_scroll, number, smooth: true);
     }
 
@@ -240,10 +254,14 @@ public partial class PdfPreview : IAsyncDisposable
         await SetScaleAsync(Steps.FirstOrDefault(step => step > scale + 0.01, Steps[^1]));
     }
 
+    // Below the smallest step, zooming out goes back to the fit, never to a larger page.
     private async Task ZoomOutAsync()
     {
         double scale = await CurrentScaleAsync();
-        await SetScaleAsync(Steps.LastOrDefault(step => step < scale - 0.01, Steps[0]));
+        double fit = await FitScaleAsync();
+        double? next = Steps.Where(step => step < scale - 0.01).Select(step => (double?)step).LastOrDefault();
+        if (next is null && fit < scale - 0.01) await SetScaleAsync(null);
+        else if (next is { } step) await SetScaleAsync(step);
     }
 
     #endregion

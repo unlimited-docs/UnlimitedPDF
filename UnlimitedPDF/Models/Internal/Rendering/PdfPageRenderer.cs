@@ -78,7 +78,8 @@ internal static class PdfPageRenderer
 
         try
         {
-            return new PageInterpreter(file.Source, file.Pages.Select(p => p.ObjectNumber), PageRenderLimits.Default, "s")
+            // The size needs no page list: that is only for link destinations.
+            return new PageInterpreter(file.Source, Array.Empty<int>(), PageRenderLimits.Default, "s")
                 .ShownSize(file.Pages[pageIndex].Inherited);
         }
         catch (Exception exception) when (exception is not OperationCanceledException)

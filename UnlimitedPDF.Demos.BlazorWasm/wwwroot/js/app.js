@@ -284,8 +284,13 @@ function cleanSvg(text) {
             continue;
         }
         for (const attribute of [...element.attributes]) {
-            const ok = svgAttributes.has(attribute.name) && (attribute.name !== "href" || safeHref(element, attribute.value))
-                && !/^\s*(javascript|data):/i.test(element.localName === "image" ? "" : attribute.value);
+            // A reference to anything but an element of the drawing (url(...) in a paint or clip) is dropped, so the
+            // page can't load from anywhere; ids keep to the renderer's letters, digits, hyphens, and underscores.
+            const value = attribute.value;
+            const ok = svgAttributes.has(attribute.name) && (attribute.name !== "href" || safeHref(element, value))
+                && !/^\s*(javascript|data):/i.test(element.localName === "image" ? "" : value)
+                && (!/url\s*\(/i.test(value) || /^url\(#[A-Za-z0-9_-]+\)$/.test(value))
+                && (attribute.name !== "id" || /^[A-Za-z0-9_-]+$/.test(value));
             if (!ok) {
                 element.removeAttribute(attribute.name);
             }
@@ -322,7 +327,8 @@ export function scrollToPage(scroll, number, smooth) {
     const page = scroll && scroll.querySelector(`.viewer-page[data-page="${number}"]`);
     if (page) {
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-        scroll.scrollTo({ top: page.offsetTop - scroll.offsetTop - 8, behavior: smooth && !reduced ? "smooth" : "auto" });
+        const top = scroll.scrollTop + page.getBoundingClientRect().top - scroll.getBoundingClientRect().top - 8;
+        scroll.scrollTo({ top, behavior: smooth && !reduced ? "smooth" : "auto" });
     }
 }
 
@@ -436,13 +442,21 @@ export function initViewer(scroll, listener) {
         }
     };
 
+    // While two fingers are down the browser must not pan or zoom the page itself, or it cancels the pinch.
+    const onTouchMove = event => {
+        if (event.touches.length === 2) {
+            event.preventDefault();
+        }
+    };
+
     scroll.addEventListener("scroll", onScroll, { passive: true });
+    scroll.addEventListener("touchmove", onTouchMove, { passive: false });
     scroll.addEventListener("click", onClick);
     scroll.addEventListener("pointerdown", onPointerDown);
     scroll.addEventListener("pointermove", onPointerMove);
     scroll.addEventListener("pointerup", onPointerEnd);
     scroll.addEventListener("pointercancel", onPointerEnd);
-    scroll.viewer = { near, onScroll, onClick, onPointerDown, onPointerMove, onPointerEnd, report };
+    scroll.viewer = { near, onScroll, onClick, onPointerDown, onPointerMove, onPointerEnd, onTouchMove, report };
 }
 
 export function watchPages(scroll) {
@@ -467,5 +481,6 @@ export function disposeViewer(scroll) {
     scroll.removeEventListener("pointermove", viewer.onPointerMove);
     scroll.removeEventListener("pointerup", viewer.onPointerEnd);
     scroll.removeEventListener("pointercancel", viewer.onPointerEnd);
+    scroll.removeEventListener("touchmove", viewer.onTouchMove);
     scroll.viewer = null;
 }

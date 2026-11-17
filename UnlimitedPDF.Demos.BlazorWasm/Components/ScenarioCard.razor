@@ -1,16 +1,8 @@
-@* One scenario as a card (the gallery and the home page's popular scenarios): the first page of its PDF or its
-   capability's icon, its name as the link that the whole card opens, what it shows, its capability, and its business
-   domains. *@
+@* One scenario as a card (the gallery and the home page's popular scenarios): the first page of its PDF, its name as
+   the link that the whole card opens, what it shows, its capability, and its business domains. *@
 <li class="scenario-card">
     <div class="scenario-thumb tone-@(Category.Tone ?? "navy")">
-        @if (ScenarioGallery.PictureOf(Demo) is { } picture)
-        {
-            <img src="images/gallery/@(picture)-320.jpg" alt="" width="320" height="453" loading="lazy" decoding="async" />
-        }
-        else
-        {
-            <Icon Name="@Demo.Icon" Size="40" />
-        }
+        <img src="images/gallery/@(ScenarioGallery.PictureOf(Demo))-320.jpg" alt="" width="320" height="453" loading="lazy" decoding="async" />
     </div>
     <div class="scenario-body">
         @if (HeadingLevel == 3)

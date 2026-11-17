@@ -149,6 +149,7 @@ public partial class SplitPartsPage : IAsyncDisposable
 
     private async Task ResetAsync()
     {
+        if (_busy) return;
         await OnReset.InvokeAsync();
         NotifyInputsChanged();
     }

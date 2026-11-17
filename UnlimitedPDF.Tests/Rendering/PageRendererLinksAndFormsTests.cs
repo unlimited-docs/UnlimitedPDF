@@ -9,6 +9,7 @@ namespace UnlimitedPDF.Tests.Rendering;
 /// content the renderer doesn't know left undrawn one by one, and the PDF bytes untouched (26111701 AC-12, V-06,
 /// V-09, V-11).
 /// </summary>
+[Collection(nameof(TimingTestsCollection))]
 public class PageRendererLinksAndFormsTests
 {
     #region Methods

@@ -37,6 +37,32 @@ public class PageRendererCoverageTests
     }
 
     [Fact]
+    public async Task Every_element_and_attribute_the_demos_draw_passes_the_browser_allowlist()
+    {
+        // The browser drops anything outside its allowlist (A05), so a name the renderer starts to write but the list
+        // lacks would vanish from the preview without a sound. Every demo output is checked against the list.
+        var (elements, attributes) = PageRendererSizeTests.Allowlist();
+        var seenElements = new HashSet<string>(StringComparer.Ordinal);
+        var seenAttributes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var output in Outputs())
+        {
+            foreach (byte[] pdf in await output.Build())
+            {
+                foreach (var page in RenderTestFiles.RenderAll(pdf).Where(p => p.Svg is not null))
+                {
+                    seenElements.UnionWith(System.Text.RegularExpressions.Regex.Matches(page.Svg!, "<([A-Za-z]+)[ />]").Select(m => m.Groups[1].Value));
+                    seenAttributes.UnionWith(System.Text.RegularExpressions.Regex.Matches(page.Svg!, " ([A-Za-z:-]+)=\"").Select(m => m.Groups[1].Value));
+                }
+            }
+        }
+
+        Assert.Empty(seenElements.Except(elements));
+        Assert.Empty(seenAttributes.Except(attributes));
+        Assert.Contains("image", seenElements);
+        Assert.Contains("clipPath", seenElements);
+    }
+
+    [Fact]
     public void The_library_names_only_the_tests_and_the_demos_site_as_friends()
     {
         var friends = typeof(PdfDocument).Assembly.GetCustomAttributes<InternalsVisibleToAttribute>()
