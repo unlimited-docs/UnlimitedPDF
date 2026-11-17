@@ -1,6 +1,6 @@
 @inherits LayoutComponentBase
 
-@* The first Tab stop on every page: skips the top bar (and the playground sidebar) to the page's own content. The
+@* The first Tab stop on every page: skips the top bar (and a demo's breadcrumb) to the page's own content. The
    click moves focus in code, because a bare "#main-content" link resolves against the base href and would open Home. *@
 <a class="skip-link" href="#main-content" @onclick="SkipToContentAsync" @onclick:preventDefault>Skip to content</a>
 

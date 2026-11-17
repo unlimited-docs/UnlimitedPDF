@@ -1,8 +1,9 @@
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// The document demos whose card pictures are tracked against their sources and images, in catalogue order. The
-/// captures of the other scenarios are listed in assets/ARTWORK.md.
+/// The document demos whose card pictures are tracked against their sources and images, in catalogue order (tests
+/// only; the site finds every picture by its scenario's file name). The captures of the other scenarios are listed in
+/// assets/ARTWORK.md.
 /// </summary>
 public static class DocumentGallery
 {

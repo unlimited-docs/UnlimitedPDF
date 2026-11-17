@@ -2,7 +2,7 @@
 
 Released under Apache-2.0 with the rest of the repository (PR-008, PR-011).
 
-Created with an image-generation service for the project owner and downloaded on 2026-11-04. This folder contains 12 PNG artwork files from that chat, plus the five demo logos described under [Demo logos added 2026-11-06](#demo-logos-added-2026-11-06). On 2026-11-04, the GitHub banner and social card were edited with the built-in image generation tool to replace unsupported API examples in their code windows. Their surrounding designs and original dimensions were retained. The demo hero was also edited to use the current UnlimitedPDF Demos logo once, replacing the stacked logo and duplicate headline while retaining the subtitle and four document illustrations. Its 800- and 1200-pixel responsive copies were regenerated with `New-DerivedImages.ps1`. The remaining 9 files are unchanged originals. The separate download for the resized seven-file demo pack was unavailable, so original dimensions and sizes differ from those advertised for that ZIP.
+Created with an image-generation service for the project owner and downloaded on 2026-11-04. This folder contains 12 PNG artwork files from that service, plus the five demo logos described under [Demo logos added 2026-11-06](#demo-logos-added-2026-11-06). On 2026-11-04, the GitHub banner and social card were edited with the built-in image generation tool to replace unsupported API examples in their code windows. Their surrounding designs and original dimensions were retained. The demo hero was also edited to use the current UnlimitedPDF Demos logo once, replacing the stacked logo and duplicate headline while retaining the subtitle and four document illustrations. Its 800- and 1200-pixel responsive copies were regenerated with `New-DerivedImages.ps1`. The remaining 9 files are unchanged originals. The separate download for the resized seven-file demo pack was unavailable, so original dimensions and sizes differ from those advertised for that ZIP.
 
 These are source files. They live here, outside every served or packed folder, so no published site or package carries them (PR-013). The demo app, the package, and the readmes use the smaller copies listed under [Derived copies](#derived-copies). `generated-assets-manifest.json` records dimensions, sizes, source asset identifiers, and SHA-256 checksums. The two corrected banners also have edit records containing the exact generation prompts and displayed C# snippets. Both snippets were compiled and executed against the local `UnlimitedPDF.csproj` with .NET SDK 10.0.403, and their rendered text was visually checked. They use `AddPage()`, `AddText(...)`, and `Save(...)` as implemented in `PdfDocument.cs` and `PdfPageBuilder.cs`.
 
@@ -69,11 +69,11 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 | `originals/gallery/html-to-pdf.png` | 1479 x 2092 | HTML to PDF (`playground/html/html-to-pdf`) |
 | `originals/gallery/images.png` | 1479 x 2092 | Images (`playground/create/images`) |
 | `originals/gallery/inventory-report.png` | 1479 x 2092 | Inventory report (`playground/documents/inventory-report`) |
-| `originals/gallery/joined.png` | 1479 x 2092 | Join files (`playground/merge/join-files`) |
+| `originals/gallery/joined.png` | 1479 x 2092 | Join files, the two joined files' first pages laid over each other (`playground/merge/join-files`) |
 | `originals/gallery/kpi-report.png` | 1479 x 2092 | KPI report (`playground/documents/kpi-report`) |
 | `originals/gallery/picked-pages.png` | 1479 x 2092 | Pick pages (`playground/merge/pick-pages`) |
 | `originals/gallery/shipping-labels.png` | 1479 x 2092 | Shipping labels (`playground/documents/shipping-labels`) |
-| `originals/gallery/every-n-pages.png` | 1479 x 2092 | Every N pages (first part) (`playground/split/every-n-pages`) |
+| `originals/gallery/every-n-pages.png` | 1479 x 2092 | Every N pages, the second page of the first part (`playground/split/every-n-pages`) |
 | `originals/gallery/page-ranges.png` | 1479 x 2092 | Page ranges (first part) (`playground/split/page-ranges`) |
 | `originals/gallery/tables.png` | 1479 x 2092 | Tables (`playground/create/tables`) |
 | `originals/gallery/text-and-pages.png` | 1479 x 2092 | Text and pages (`playground/create/text-and-pages`) |
@@ -151,11 +151,11 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/html-to-pdf-320.jpg` | `originals/gallery/html-to-pdf.png` | 320 x 453 | 16,800 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/images-320.jpg` | `originals/gallery/images.png` | 320 x 453 | 10,934 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/inventory-report-320.jpg` | `originals/gallery/inventory-report.png` | 320 x 453 | 37,913 | Scenario card |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/joined-320.jpg` | `originals/gallery/joined.png` | 320 x 453 | 6,857 | Scenario card |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/kpi-report-320.jpg` | `originals/gallery/kpi-report.png` | 320 x 453 | 17,992 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/joined-320.jpg` | `originals/gallery/joined.png` | 320 x 453 | 14,042 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/kpi-report-320.jpg` | `originals/gallery/kpi-report.png` | 320 x 453 | 18,820 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/picked-pages-320.jpg` | `originals/gallery/picked-pages.png` | 320 x 453 | 35,840 | Scenario card |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/shipping-labels-320.jpg` | `originals/gallery/shipping-labels.png` | 320 x 453 | 32,603 | Scenario card |
-| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/every-n-pages-320.jpg` | `originals/gallery/every-n-pages.png` | 320 x 453 | 39,565 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/shipping-labels-320.jpg` | `originals/gallery/shipping-labels.png` | 320 x 453 | 32,639 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/every-n-pages-320.jpg` | `originals/gallery/every-n-pages.png` | 320 x 453 | 36,585 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/page-ranges-320.jpg` | `originals/gallery/page-ranges.png` | 320 x 453 | 39,565 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/tables-320.jpg` | `originals/gallery/tables.png` | 320 x 453 | 11,592 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/text-and-pages-320.jpg` | `originals/gallery/text-and-pages.png` | 320 x 453 | 6,857 | Scenario card |

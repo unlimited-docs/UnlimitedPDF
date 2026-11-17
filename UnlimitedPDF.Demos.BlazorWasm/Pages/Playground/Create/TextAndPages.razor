@@ -1,6 +1,6 @@
 @page "/playground/create/text-and-pages"
 
-<SamplePage Demo="SampleCatalog.TextAndPages" Build="BuildAsync" PageCount="Math.Max(1, _input.PageCount)" OnReset="Reset">
+<SamplePage Demo="SampleCatalog.TextAndPages" Build="BuildAsync" PageCount="Math.Clamp(_input.PageCount, 1, 100)" OnReset="Reset">
     <Inputs>
         <CollapsibleSection Title="Page">
             <div class="field-row">

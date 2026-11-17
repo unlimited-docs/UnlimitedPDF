@@ -55,8 +55,8 @@ export function focusFirstControl(id) {
 }
 
 export function focusSkipTarget() {
-    // The skip link's destination: the element a page marks with data-skip-target (the playground's demo, past its
-    // sidebar), otherwise the main content. Only focus moves; the next Tab stop brings itself into view.
+    // The skip link's destination: the element a page marks with data-skip-target (a demo, past its
+    // breadcrumb), otherwise the main content. Only focus moves; the next Tab stop brings itself into view.
     const target = document.querySelector("[data-skip-target]") ?? document.getElementById("main-content");
     if (target) {
         target.focus({ preventScroll: true });
@@ -70,16 +70,14 @@ export function blurActiveElement() {
     }
 }
 
-export function showDialog(dialog, listener, closedMethod, opening) {
+export function showDialog(dialog, listener, closedMethod) {
     // A modal dialog keeps focus inside, closes on Escape, and returns focus to the opener when it closes. The
-    // listener is told when it closes, however that happens, with the latest opening: a second opening while the
-    // dialog is already open replaces the number the close reports.
+    // listener is told when it closes, however that happens.
     if (!dialog) {
         return;
     }
-    dialog.quickLookOpening = opening;
     if (!dialog.open) {
-        dialog.addEventListener("close", () => listener.invokeMethodAsync(closedMethod, dialog.quickLookOpening), { once: true });
+        dialog.addEventListener("close", () => listener.invokeMethodAsync(closedMethod), { once: true });
         dialog.showModal();
     }
 }
@@ -305,8 +303,9 @@ function cleanSvg(text) {
     return document.importNode(root, true);
 }
 
-export function placePage(scroll, number, svg) {
-    const canvas = scroll && scroll.querySelector(`.viewer-page[data-page="${number}"] .viewer-canvas`);
+export function placePage(scroll, version, number, svg) {
+    // Only the page of the PDF the drawing was made from: a drawing that arrives after a new PDF is dropped.
+    const canvas = scroll && scroll.querySelector(`.viewer-page[data-version="${version}"][data-page="${number}"] .viewer-canvas`);
     if (!canvas) {
         return false;
     }

@@ -35,7 +35,10 @@ public static class ShippingLabelsSample
     {
         int count = Math.Clamp(input.Count, 1, ShippingLabelsInput.MaxCount);
         var (pageWidth, pageHeight) = PdfPageSize.A4.ToDimensions();
-        double width = pageWidth / Columns, height = pageHeight / Rows;
+        // The sheet keeps a margin printers can reach: 20 pt at the sides and 40 pt at the top and bottom.
+        const double side = 20, edge = 40;
+        double width = (pageWidth - 2 * side) / Columns, height = (pageHeight - 2 * edge) / Rows;
+        string sender = input.Sender.Length > 48 ? input.Sender[..47] + "…" : input.Sender;
 
         var document = new PdfDocument();
         PdfPage? page = null;
@@ -44,11 +47,11 @@ public static class ShippingLabelsSample
             int slot = i % (Columns * Rows);
             if (slot == 0) page = document.AddPage();
 
-            double x = slot % Columns * width;
-            double top = pageHeight - slot / Columns * height;
+            double x = side + slot % Columns * width;
+            double top = pageHeight - edge - slot / Columns * height;
             Outline(page!, x, top - height, width, height);
 
-            page!.AddText(input.Sender, x + 12, top - 18, 6);
+            page!.AddText(sender, x + 12, top - 18, 6);
             page.AddText(Names[i % Names.Length], x + 12, top - 42, 12);
             page.AddText(Streets[i % Streets.Length], x + 12, top - 58, 9);
             page.AddText(Cities[i % Cities.Length], x + 12, top - 71, 9);

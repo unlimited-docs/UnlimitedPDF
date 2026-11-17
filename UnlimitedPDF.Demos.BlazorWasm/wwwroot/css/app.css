@@ -627,7 +627,7 @@ summary:focus-visible,
 /* Columns may shrink below a field's built-in width, so nothing scrolls sideways at 320 px (WCAG 1.4.10). */
 .field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
 .field-row-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
-.form-control, .form-select { min-width: 0; max-width: 100%; }
+.form-control { min-width: 0; max-width: 100%; }
 input[type="file"] { max-width: 100%; }
 .field { min-width: 0; }
 .field-row .btn { min-width: 0; white-space: normal; }

@@ -2,6 +2,7 @@ using System.Globalization;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
+using UnlimitedPDF.Demos.BlazorWasm.Samples;
 using UnlimitedPDF.Demos.BlazorWasm.Services;
 using UnlimitedPDF.Models.Internal.Rendering;
 
@@ -25,6 +26,7 @@ public partial class PdfPreview : IAsyncDisposable
     private readonly string _prefix = $"pv{Interlocked.Increment(ref s_instances)}-";
     private PdfFile? _file;
     private string _fileName = string.Empty;
+    private int _goVersion;
     private DotNetObjectReference<PdfPreview>? _listener;
     private int _pageCount;
     private bool _rewatch;
@@ -34,7 +36,6 @@ public partial class PdfPreview : IAsyncDisposable
     private IReadOnlyList<(double Width, double Height)> _sizes = [];
     private string? _unreadable;
     private string? _url;
-    private int _goVersion;
     private int _version;
     private double _widest = 595;
 
@@ -107,7 +108,7 @@ public partial class PdfPreview : IAsyncDisposable
         var page = PdfPageRenderer.Render(_file, number - 1, PagePrefix(version, number));
         if (version != _version) return;
 
-        bool placed = page.Svg is not null && await Interop.PlacePageAsync(_scroll, number, page.Svg);
+        bool placed = page.Svg is not null && await Interop.PlacePageAsync(_scroll, version, number, page.Svg);
         if (version != _version) return;
         if (placed)
         {
@@ -115,7 +116,6 @@ public partial class PdfPreview : IAsyncDisposable
             return;
         }
 
-        if (version != _version) return;
         _failed[number] = page.Reason ?? "The drawing can't be shown.";
         StateHasChanged();
     }
@@ -162,8 +162,9 @@ public partial class PdfPreview : IAsyncDisposable
     {
         ArgumentNullException.ThrowIfNull(pdfBytes);
 
+        string url = await Interop.CreateObjectUrlAsync(pdfBytes, "application/pdf");
         var previous = _url;
-        _url = await Interop.CreateObjectUrlAsync(pdfBytes, "application/pdf");
+        _url = url;
         _fileName = fileName;
         _version++;
         _drawn.Clear();
@@ -182,12 +183,12 @@ public partial class PdfPreview : IAsyncDisposable
             _file = null;
             _sizes = [];
             _pageCount = 0;
-            _unreadable = exception.Message;
+            _unreadable = ErrorText.Plain(exception);
         }
 
         _rewatch = true;
-        await Interop.RevokeObjectUrlAsync(previous);
         StateHasChanged();
+        await Interop.RevokeObjectUrlAsync(previous);
     }
 
     #endregion
@@ -195,11 +196,6 @@ public partial class PdfPreview : IAsyncDisposable
     #region Private Methods
 
     private static string Format(double value) => value.ToString("0.###", CultureInfo.InvariantCulture);
-
-    /// <summary>
-    /// Returns the id prefix of a drawn page: the preview, the PDF shown, and the page, so no two pages share an id.
-    /// </summary>
-    private string PagePrefix(int version, int number) => $"{_prefix}v{version}p{number}-";
 
     // The zoom in use: the set one, or the fit.
     private async Task<double> CurrentScaleAsync() => _scale ?? await FitScaleAsync();
@@ -238,6 +234,11 @@ public partial class PdfPreview : IAsyncDisposable
     {
         if (_url is not null) await Interop.OpenInNewTabAsync($"{_url}#page={number}");
     }
+
+    /// <summary>
+    /// Returns the id prefix of a drawn page: the preview, the PDF shown, and the page, so no two pages share an id.
+    /// </summary>
+    private string PagePrefix(int version, int number) => $"{_prefix}v{version}p{number}-";
 
     // A new zoom keeps the page in view at the top.
     private async Task SetScaleAsync(double? scale)

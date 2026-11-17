@@ -175,14 +175,10 @@ public partial class SamplePage
     [Parameter, EditorRequired] public Func<Task<PdfDocument>> Build { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the demo shown on this page.
+    /// Gets or sets the choice among the demo's variants that a host page gives, shown above the options (a
+    /// document type, a pack's domain); null when the demo has none.
     /// </summary>
-    [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
-
-    /// <summary>
-    /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).
-    /// </summary>
-    [Parameter] public string? FileName { get; set; }
+    [CascadingParameter(Name = "DemoChoice")] public RenderFragment? Choice { get; set; }
 
     /// <summary>
     /// Gets or sets the language tag of the PDF's text when it isn't English, for the drawn pages' <c>lang</c>
@@ -191,10 +187,14 @@ public partial class SamplePage
     [Parameter] public string? ContentLanguage { get; set; }
 
     /// <summary>
-    /// Gets or sets the choice among the demo's variants that a host page gives, shown above the options (a
-    /// document type, a pack's domain); null when the demo has none.
+    /// Gets or sets the demo shown on this page.
     /// </summary>
-    [CascadingParameter(Name = "DemoChoice")] public RenderFragment? Choice { get; set; }
+    [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).
+    /// </summary>
+    [Parameter] public string? FileName { get; set; }
 
     /// <summary>
     /// Gets or sets the demo's option fields.

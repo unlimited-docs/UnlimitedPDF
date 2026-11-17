@@ -31,7 +31,7 @@ public static partial class ErrorText
 
         if (exception is ArgumentException { ParamName: { Length: > 0 } name })
         {
-            message = $"{Words(name)}: {char.ToLowerInvariant(message[0])}{message[1..]}";
+            message = message.Length == 0 ? $"{Words(name)} isn't valid" : $"{Words(name)}: {char.ToLowerInvariant(message[0])}{message[1..]}";
         }
 
         if (message.Length == 0) message = "A value isn't valid.";

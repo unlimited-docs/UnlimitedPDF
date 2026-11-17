@@ -54,6 +54,8 @@ public class AccessibilityAuditTests
     [InlineData("fontSize", "The value must be greater than zero. Arg_ParamName_Name, fontSize ArgumentOutOfRange_ActualValue, 0", "Font size: the value must be greater than zero.")]
     [InlineData("pagesPerPart", "Parts must have at least one page. (Parameter 'pagesPerPart')", "Pages per part: parts must have at least one page.")]
     [InlineData(null, "Choose at least one document.", "Choose at least one document.")]
+    [InlineData("rows", "Arg_ArgumentOutOfRangeException", "Rows isn't valid.")]
+    [InlineData("fontSize", "", "Font size isn't valid.")]
     public void Errors_read_as_sentences_that_name_the_value(string? parameter, string message, string expected)
     {
         Exception exception = parameter is null ? new InvalidOperationException(message) : new ArgumentException(message, parameter);

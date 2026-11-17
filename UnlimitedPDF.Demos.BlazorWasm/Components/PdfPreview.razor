@@ -56,7 +56,7 @@
             {
                 int number = index + 1;
                 var size = _sizes[index];
-                <div @key="(_version, number)" class="viewer-page" id="@($"{_prefix}page-{number}")" data-page="@number" role="group"
+                <div @key="(_version, number)" data-version="@_version" class="viewer-page" id="@($"{_prefix}page-{number}")" data-page="@number" role="group"
                      aria-label="@($"Page {number} of {_pageCount}")" style="@($"--pw: {Format(size.Width)}; --ph: {Format(size.Height)}")">
                     @if (_failed.TryGetValue(number, out var reason))
                     {

@@ -38,7 +38,9 @@ public static class KpiReportSample
 
         var document = new PdfDocument();
         var page = document.AddPage();
-        page.AddRectangle(0, 772, 595, 70, _navy);
+        // A light band with a navy rule under it: the text is drawn in black, so the band stays light.
+        page.AddRectangle(0, 772, 595, 70, _tile);
+        page.AddRectangle(0, 770, 595, 3, _navy);
         page.AddText(input.Company, 50, 806, 20);
         page.AddText($"Key performance indicators, {input.Period}", 50, 784, 11);
 

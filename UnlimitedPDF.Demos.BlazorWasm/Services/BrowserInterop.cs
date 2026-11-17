@@ -169,10 +169,11 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// Places a drawn page in a preview, keeping only the elements and attributes the renderer writes.
     /// </summary>
     /// <param name="scroll">The preview's scrolling list of pages.</param>
+    /// <param name="version">The PDF the drawing belongs to; a page of another PDF is never filled with it.</param>
     /// <param name="number">The 1-based page number.</param>
     /// <param name="svg">The page drawing.</param>
     /// <returns>Whether the page was placed; false when the drawing can't be read or the page is gone.</returns>
-    public Task<bool> PlacePageAsync(ElementReference scroll, int number, string svg) => InvokeAsync("placePage", false, scroll, number, svg);
+    public Task<bool> PlacePageAsync(ElementReference scroll, int version, int number, string svg) => InvokeAsync("placePage", false, scroll, version, number, svg);
 
     /// <summary>
     /// Checks the section in view again after sections were shown or hidden.
@@ -221,9 +222,8 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// <param name="dialog">The <c>dialog</c> element.</param>
     /// <param name="listener">The component told when the dialog closes, by Escape or otherwise.</param>
     /// <param name="closedMethod">The name of the listener's <see cref="JSInvokableAttribute"/> method to call; it receives <paramref name="opening"/>.</param>
-    /// <param name="opening">A number identifying this opening, passed back when it closes.</param>
-    public Task ShowDialogAsync<T>(ElementReference dialog, DotNetObjectReference<T> listener, string closedMethod, int opening) where T : class =>
-        InvokeVoidAsync("showDialog", dialog, listener, closedMethod, opening);
+    public Task ShowDialogAsync<T>(ElementReference dialog, DotNetObjectReference<T> listener, string closedMethod) where T : class =>
+        InvokeVoidAsync("showDialog", dialog, listener, closedMethod);
 
     /// <summary>
     /// Stops the reports started by <see cref="ObserveSectionsAsync{T}"/>.

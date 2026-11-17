@@ -50,9 +50,8 @@ public partial class MainLayout : IDisposable
     /// <summary>
     /// Notes that the menu drawer closed, however it closed (Close, Escape, or a link). Called from <c>js/app.js</c>.
     /// </summary>
-    /// <param name="opening">Unused here: the dialog helper reports it for dialogs opened more than once at a time.</param>
     [JSInvokable]
-    public void MenuClosed(int opening) => _menuOpen = false;
+    public void MenuClosed() => _menuOpen = false;
 
     #endregion
 
@@ -77,11 +76,11 @@ public partial class MainLayout : IDisposable
     {
         _listener ??= DotNetObjectReference.Create(this);
         _menuOpen = true;
-        await Interop.ShowDialogAsync(_menu, _listener, nameof(MenuClosed), 0);
+        await Interop.ShowDialogAsync(_menu, _listener, nameof(MenuClosed));
     }
 
     /// <summary>
-    /// Moves keyboard focus past the top bar (and the playground sidebar) to the page's own content, so the next Tab
+    /// Moves keyboard focus past the top bar (and a demo's breadcrumb) to the page's own content, so the next Tab
     /// press continues there.
     /// </summary>
     private async Task SkipToContentAsync() => await Interop.FocusSkipTargetAsync();

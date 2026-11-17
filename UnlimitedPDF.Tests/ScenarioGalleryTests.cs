@@ -100,6 +100,12 @@ public class ScenarioGalleryTests
         });
         Assert.Equal(ScenarioGallery.Scenarios.Count, ScenarioGallery.Scenarios.Select(ScenarioGallery.PictureOf).Distinct(StringComparer.Ordinal).Count());
         Assert.DoesNotContain("<Icon ", DemosFile("Components/ScenarioCard.razor"), StringComparison.Ordinal);
+
+        // No two cards show the same picture, so each card tells its scenario apart at a glance.
+        var hashes = ScenarioGallery.Scenarios
+            .Select(demo => Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(File.ReadAllBytes(RepositoryFile($"UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/{ScenarioGallery.PictureOf(demo)}-320.jpg")))))
+            .ToList();
+        Assert.Equal(hashes.Count, hashes.Distinct().Count());
     }
 
     [Theory]

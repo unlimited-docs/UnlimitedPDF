@@ -1,7 +1,7 @@
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
-/// The single list of playground demos. The sidebar and the home page both read it, so a new capability (for
+/// The single list of playground demos. The gallery, the home page, and the search all read it, so a new capability (for
 /// example merge or split) is added here as a new category plus its pages.
 /// </summary>
 public static class SampleCatalog
@@ -17,20 +17,7 @@ public static class SampleCatalog
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets the document types the Invoice demo also makes (same shape: parties, line items, totals), in the order its
-    /// choice lists them. They are not demos of their own in the catalog.
-    /// </summary>
-    public static IReadOnlyList<SampleDemo> InvoiceTypes => [Quotation, PurchaseOrder, DeliveryNote, Receipt];
-
-    /// <summary>
-    /// Gets every demo page in sidebar order, each type the Invoice demo makes right after it: the pages the sitemap
-    /// and llms.txt list, each with its own address, title, and description.
-    /// </summary>
-    public static IReadOnlyList<SampleDemo> Pages =>
-        Categories.SelectMany(c => c.Demos).Distinct().SelectMany(d => d == Invoice ? [d, .. InvoiceTypes] : new[] { d }).ToList();
-
-    /// <summary>
-    /// Gets the demo categories in sidebar order.
+    /// Gets the demo categories in catalog order.
     /// </summary>
     public static IReadOnlyList<SampleCategory> Categories => _categories ??=
     [
@@ -88,6 +75,19 @@ public static class SampleCatalog
             Tone: "navy",
             Snippet: "documents")
     ];
+
+    /// <summary>
+    /// Gets the document types the Invoice demo also makes (same shape: parties, line items, totals), in the order its
+    /// choice lists them. They are not demos of their own in the catalog.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> InvoiceTypes => [Quotation, PurchaseOrder, DeliveryNote, Receipt];
+
+    /// <summary>
+    /// Gets every demo page in catalog order, each type the Invoice demo makes right after it: the pages the sitemap
+    /// and llms.txt list, each with its own address, title, and description.
+    /// </summary>
+    public static IReadOnlyList<SampleDemo> Pages =>
+        Categories.SelectMany(c => c.Demos).Distinct().SelectMany(d => d == Invoice ? [d, .. InvoiceTypes] : new[] { d }).ToList();
 
     /// <summary>
     /// Gets the Account statement demo.

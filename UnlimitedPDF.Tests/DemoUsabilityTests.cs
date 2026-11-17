@@ -5,7 +5,7 @@ namespace UnlimitedPDF.Tests;
 
 /// <summary>
 /// Usability guarantees of the demos Home page, Playground, and FAQ that markup and styles can prove: the skip link,
-/// the keyboard focus ring, phone tap targets, the current demo kept in view in the sidebar, and "Back to options"
+/// the keyboard focus ring, phone tap targets, the demo pages' breadcrumb, and "Back to options"
 /// (26111103 V-03); the FAQ search field border, the copy-link icon, the FAQ phone sizes, the scenario list's inset
 /// ring, and the gap above Remove buttons (26111201 V-03). Contrast, sizes, and fit are measured in the browser
 /// (26111103 V-01, V-02; 26111201 V-01, V-02).
@@ -148,7 +148,10 @@ public class DemoUsabilityTests
 
         var code = Read("Components/PdfPreview.razor.cs");
         Assert.Contains("PdfPageRenderer.Render(_file, number - 1, ", code, StringComparison.Ordinal);
-        Assert.Contains("await Interop.PlacePageAsync(_scroll, number, page.Svg)", code, StringComparison.Ordinal);
+        Assert.Contains("await Interop.PlacePageAsync(_scroll, version, number, page.Svg)", code, StringComparison.Ordinal);
+        // A drawing fills only a page of the PDF it was made from, so one that arrives after a new PDF is dropped.
+        Assert.Contains("`.viewer-page[data-version=\"${version}\"][data-page=\"${number}\"] .viewer-canvas`", script, StringComparison.Ordinal);
+        Assert.Contains("data-version=\"@_version\"", Read("Components/PdfPreview.razor"), StringComparison.Ordinal);
         Assert.Contains("_failed[number] = page.Reason", code, StringComparison.Ordinal);
 
         // A page that can't be drawn says why and opens the PDF at that page; Open PDF and Download use the exact bytes.
@@ -158,7 +161,9 @@ public class DemoUsabilityTests
         Assert.Contains("@onclick=\"() => OpenAtPageAsync(number)\"", markup, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"OpenInNewTabAsync\"", markup, StringComparison.Ordinal);
         Assert.Contains("@onclick=\"() => DownloadAsync(_fileName)\"", markup, StringComparison.Ordinal);
-        Assert.Contains("_url = await Interop.CreateObjectUrlAsync(pdfBytes, \"application/pdf\");", code, StringComparison.Ordinal);
+        Assert.Contains("string url = await Interop.CreateObjectUrlAsync(pdfBytes, \"application/pdf\");", code, StringComparison.Ordinal);
+        // The URL replaced is read after the new one exists, so two quick calls never revoke the same one twice.
+        Assert.Matches(@"string url = await Interop\.CreateObjectUrlAsync\(pdfBytes, ""application/pdf""\);\s*var previous = _url;\s*_url = url;", code);
     }
 
     [Fact]

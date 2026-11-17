@@ -104,8 +104,6 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\MedicalReportSample.cs" Link="Demo\Samples\MedicalReportSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ReceiptSample.cs" Link="Demo\Samples\ReceiptSample.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\SampleImages.cs" Link="Demo\Samples\SampleImages.cs" />
-    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\DocumentGallery.cs" Link="Demo\Samples\DocumentGallery.cs" />
-    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\GalleryDocument.cs" Link="Demo\Samples\GalleryDocument.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeQuestion.cs" Link="Demo\Samples\HomeQuestion.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeQuestions.cs" Link="Demo\Samples\HomeQuestions.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\HomeSnippets.cs" Link="Demo\Samples\HomeSnippets.cs" />

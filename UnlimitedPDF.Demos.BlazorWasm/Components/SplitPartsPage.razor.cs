@@ -156,7 +156,7 @@ public partial class SplitPartsPage : IAsyncDisposable
 
     private async Task SelectAsync(int index)
     {
-        if (_preview is null || index >= _parts.Count)
+        if (_busy || _preview is null || index >= _parts.Count)
         {
             return;
         }
