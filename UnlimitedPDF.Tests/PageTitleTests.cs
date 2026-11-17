@@ -32,6 +32,7 @@ public class PageTitleTests
             Assert.Contains("PDF", d.PageTitle, StringComparison.Ordinal);
             Assert.EndsWith(" · UnlimitedPDF", d.DocumentTitle, StringComparison.Ordinal);
             Assert.True(d.DocumentTitle.Length <= MaxTitleLength, $"'{d.DocumentTitle}' is {d.DocumentTitle.Length} characters.");
+            Assert.True(d.Description.Length <= MaxDescriptionLength, $"The description of '{d.PageTitle}' is {d.Description.Length} characters.");
         });
         Assert.Equal(demos.Count, demos.Select(d => d.PageTitle).Distinct(StringComparer.OrdinalIgnoreCase).Count());
     }
@@ -119,8 +120,9 @@ public class PageTitleTests
         Assert.Contains($"]({SiteLinks.For("faq")})", text, StringComparison.Ordinal);
 
         // Every link is absolute, because agents often keep the text without the file's own address (QF-26111204).
-        // Site links are pages the app has; the rest point at the project's own GitHub and NuGet pages.
-        var routes = AllDemos().Select(d => d.Route).Concat(["faq", "playground", ""]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
+        // Site links are pages the app has or its Markdown site map; the rest point at the project's own GitHub and
+        // NuGet pages.
+        var routes = AllDemos().Select(d => d.Route).Concat(["faq", "playground", "", "sitemap.md"]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
         foreach (Match link in Regex.Matches(text, @"\]\(([^)]+)\)"))
         {
             var target = link.Groups[1].Value;

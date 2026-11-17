@@ -6,7 +6,8 @@ namespace UnlimitedPDF.Tests;
 
 /// <summary>
 /// The demos site's <c>sitemap.xml</c> and <c>robots.txt</c>: the sitemap lists every page once on the site's own
-/// address, and robots.txt lets crawlers in and points them at it (QF-26111203).
+/// address, and robots.txt lets crawlers in and points them at it (QF-26111203); <c>sitemap.md</c> lists the same pages
+/// for people and agents, and index.html gives link previews their title, description, and picture (QF-26111702).
 /// </summary>
 public class SitemapTests
 {
@@ -64,6 +65,60 @@ public class SitemapTests
         Assert.DoesNotContain(
             Directory.GetFiles(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm"), "*.razor.css", SearchOption.AllDirectories),
             f => !f.Contains(obj, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Sitemap_md_lists_every_sitemap_page_once_with_its_title_and_description()
+    {
+        // The Markdown site map is for people and agents: the same pages as sitemap.xml, in the same order, each as
+        // "- [title](address): description", with each demo's own title and description (QF-26111702).
+        var sitemap = XDocument.Parse(DemosFile("wwwroot/sitemap.xml"));
+        var urls = sitemap.Root!.Elements(Sitemaps + "url").Select(u => u.Element(Sitemaps + "loc")!.Value).ToList();
+        var entries = System.Text.RegularExpressions.Regex.Matches(DemosFile("wwwroot/sitemap.md"), @"^- \[([^\]]+)\]\(([^)]+)\): (.+?)\r?$", System.Text.RegularExpressions.RegexOptions.Multiline)
+            .Select(m => (Title: m.Groups[1].Value, Url: m.Groups[2].Value, Description: m.Groups[3].Value))
+            .ToList();
+
+        Assert.Equal(urls, entries.Select(e => e.Url));
+        foreach (var demo in SampleCatalog.Pages)
+        {
+            var entry = entries.Single(e => e.Url == SiteLinks.For(demo.Route));
+            Assert.Equal(demo.PageTitle, entry.Title);
+            Assert.Equal(demo.Description, entry.Description);
+        }
+        foreach (var (path, page) in new[] { ("", "Pages/Home.razor"), ("playground", "Pages/PlaygroundIndex.razor"), ("faq", "Pages/Faq.razor") })
+        {
+            var entry = entries.Single(e => e.Url == SiteLinks.For(path));
+            Assert.Contains($"<PageDescription Text=\"{entry.Description}\" />", DemosFile(page), StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Robots_txt_llms_txt_and_index_html_point_at_the_markdown_site_map()
+    {
+        Assert.Contains("# Every page as a Markdown list with titles and descriptions: " + SiteLinks.For("sitemap.md"), DemosFile("wwwroot/robots.txt"), StringComparison.Ordinal);
+        Assert.Contains("- [Site map](" + SiteLinks.For("sitemap.md") + "):", DemosFile("wwwroot/llms.txt"), StringComparison.Ordinal);
+        Assert.Contains("<a href=\"sitemap.md\">Site map</a>", DemosFile("wwwroot/index.html"), StringComparison.Ordinal);
+        Assert.Contains("\".md\": \"text/markdown; charset=utf-8\"", DemosFile("wwwroot/staticwebapp.config.json"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Index_html_gives_link_previews_the_home_page_title_description_and_picture()
+    {
+        // Link previews read index.html only; they show the home page's own title and description and its picture.
+        var index = DemosFile("wwwroot/index.html");
+        string Meta(string attribute, string name) =>
+            System.Text.RegularExpressions.Regex.Match(index, $"<meta {attribute}=\"{name}\" content=\"([^\"]*)\" />").Groups[1].Value;
+        string title = System.Text.RegularExpressions.Regex.Match(index, "<title>([^<]*)</title>").Groups[1].Value;
+
+        Assert.Equal(title, Meta("property", "og:title"));
+        Assert.Equal(Meta("name", "description"), Meta("property", "og:description"));
+        Assert.Equal("website", Meta("property", "og:type"));
+        Assert.Equal("summary_large_image", Meta("name", "twitter:card"));
+        string image = Meta("property", "og:image");
+        Assert.StartsWith(SiteLinks.Address, image, StringComparison.Ordinal);
+        Assert.True(File.Exists(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/wwwroot/" + image[SiteLinks.Address.Length..])), image);
+        Assert.Contains($"alt=\"{Meta("property", "og:image:alt")}\"", DemosFile("Pages/Home.razor"), StringComparison.Ordinal);
+        Assert.DoesNotContain("og:url", index, StringComparison.Ordinal);
     }
 
     #endregion

@@ -3,5 +3,6 @@ User-agent: *
 Allow: /
 
 # A summary of the site and the library for agents: https://unlimitedpdf.dev/llms.txt
+# Every page as a Markdown list with titles and descriptions: https://unlimitedpdf.dev/sitemap.md
 
 Sitemap: https://unlimitedpdf.dev/sitemap.xml

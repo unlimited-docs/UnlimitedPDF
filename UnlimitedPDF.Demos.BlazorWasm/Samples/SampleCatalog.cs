@@ -136,7 +136,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo CommonProblems { get; } = new(
         "Common problems",
-        "Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.",
+        "Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, and print styles: open a problem, see the PDF, edit the HTML.",
         "playground/html/common-problems",
         "HtmlToPdfSample.cs",
         "common-html-to-pdf-problems.pdf",
@@ -218,7 +218,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo FontsAndLanguages { get; } = new(
         "Fonts and languages",
-        "Make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with free fonts included for the demo or your own. Your fonts stay in your browser.",
+        "An invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with included free fonts or your own, which stay in your browser.",
         "playground/languages/fonts-and-languages",
         "FontsAndLanguagesSample.cs",
         "fonts-and-languages.pdf",

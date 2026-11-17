@@ -54,11 +54,11 @@ pdfDocument.Save("sample.pdf");
 ## HTML to PDF
 
 - [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no engine required, nothing uploaded.
-- [Common HTML to PDF problems in C#](https://unlimitedpdf.dev/playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, images, links, and print styles: open a problem, see the PDF, and edit the HTML.
+- [Common HTML to PDF problems in C#](https://unlimitedpdf.dev/playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, and print styles: open a problem, see the PDF, edit the HTML.
 
 ## Languages
 
-- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): Make an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with free fonts included for the demo or your own. Your fonts stay in your browser.
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with included free fonts or your own, which stay in your browser.
 
 ## Complete business documents
 
@@ -78,6 +78,7 @@ pdfDocument.Save("sample.pdf");
 
 ## Optional
 
+- [Site map](https://unlimitedpdf.dev/sitemap.md): every page of the site with its title and description.
 - [Source code](https://github.com/unlimited-docs/UnlimitedPDF): the library, this playground, and their tests.
 - [Home](https://unlimitedpdf.dev/): an overview of what the library does, with short code samples.
 - [Scenarios](https://unlimitedpdf.dev/playground): every demo, filtered by capability and business domain.
