@@ -13,7 +13,7 @@ public class HomePageTests
 {
     #region Fields and Constants
 
-    private static readonly string[] Capabilities = ["Create", "Merge", "Split", "HTML to PDF", "Languages"];
+    private static readonly string[] Capabilities = ["Create", "Merge", "Split and extract", "HTML to PDF", "Languages"];
 
     #endregion
 
@@ -45,7 +45,10 @@ public class HomePageTests
         Assert.Equal(new[] { "Operations", "Packs" }, merge.Groups.Select(g => g.Title));
         Assert.Equal(new[] { "Join files", "Cover + ranges", "Pick pages", "Bookmarks & numbers" }, merge.Groups[0].Demos.Select(d => d.Title));
         Assert.Equal(merge.Demos, merge.Groups.SelectMany(g => g.Demos));
-        Assert.All(SampleCatalog.Categories.Where(c => c.Title != "Merge"), c => Assert.Null(c.Groups));
+        // Split and extract groups its cards the same way (D-018); no other tab does.
+        var split = SampleCatalog.Categories.Single(c => c.Id == "split");
+        Assert.Equal(split.Demos, split.Groups!.SelectMany(g => g.Demos));
+        Assert.All(SampleCatalog.Categories.Where(c => c.Id is not ("merge" or "split")), c => Assert.Null(c.Groups));
     }
 
     [Fact]
@@ -56,7 +59,7 @@ public class HomePageTests
             .Select(m => m.Groups[1].Value)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(14, capabilityDemos.Count);
+        Assert.Equal(16, capabilityDemos.Count);
         Assert.Equal(capabilityDemos.Count, capabilityDemos.Select(d => d.Icon).Distinct(StringComparer.Ordinal).Count());
         Assert.All(SampleCatalog.Categories.SelectMany(c => c.Demos), d => Assert.Contains(d.Icon, drawn));
         Assert.All(SampleCatalog.Categories.Where(c => c.Icon is not null), c => Assert.Contains(c.Icon!, drawn));

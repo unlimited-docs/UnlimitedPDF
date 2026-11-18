@@ -23,10 +23,12 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 - [Merged PDF bookmarks and page numbers in C#](https://unlimitedpdf.dev/playground/merge/bookmarks-and-numbers): Name each file's bookmark; the contents and closing pages show page numbers that count every merged page.
 - [Generate and merge PDF document packs in C#](https://unlimitedpdf.dev/playground/merge/document-packs): Generate a month-end, employee, or patient pack from the other demos and merge it behind a cover page, with a bookmark per document.
 
-## Split PDFs
+## Split, extract, and remove PDF pages
 
 - [Split a PDF every N pages in C#](https://unlimitedpdf.dev/playground/split/every-n-pages): Split a PDF into parts of the same number of pages, such as one file per page or every 10 pages.
 - [Split a PDF by page ranges in C#](https://unlimitedpdf.dev/playground/split/page-ranges): Make one PDF per page range you choose, such as 1-2, 3, 2-4. Ranges may overlap and leave pages out.
+- [Extract pages from a PDF in C#](https://unlimitedpdf.dev/playground/split/extract-pages): Copy the pages you choose, in your order, into one new PDF, such as 4, 1-2. A page can appear more than once.
+- [Remove pages from a PDF in C#](https://unlimitedpdf.dev/playground/split/remove-pages): Write the PDF without the pages you choose, such as 1-4. The pages left keep their order.
 
 ## HTML to PDF
 

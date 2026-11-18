@@ -5,7 +5,7 @@
 <h3 align="center">UnlimitedPDF Library</h3>
 
 <p align="center">
-UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, images, headers, and footers, merging and splitting existing PDFs, and converting HTML to PDF, saved to a file or a stream.
+UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF documents with text, tables, images, headers, and footers, merging, splitting, and extracting or removing pages of existing PDFs, and converting HTML to PDF, saved to a file or a stream.
 </p>
 
 <p align="center">
@@ -28,6 +28,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 - [Headers, footers & flow](#headers-footers--flow)
 - [Merge PDFs](#merge-pdfs)
 - [Split PDFs](#split-pdfs)
+- [Extract and remove pages](#extract-and-remove-pages)
 - [HTML to PDF](#html-to-pdf)
 - [Fonts and languages](#fonts-and-languages)
 - [Upgrading to 1.0.0](#upgrading-to-100)
@@ -51,7 +52,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 ## Demos
 
-`UnlimitedPDF.Demos.BlazorWasm` is an interactive site that runs entirely in the browser: no engine required, nothing uploaded. Its scenario gallery lists 23 scenarios by capability and business domain, and each scenario shows your data, the PDF drawn in the page, and the C# code side by side. Create: text and pages, tables, images, and headers and footers. Merge: join files, cover and ranges, pick pages, bookmarks and numbers, and document packs for finance, HR, and healthcare. Split: every N pages and page ranges. HTML to PDF: templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit. Languages (Fonts and languages, with text calls or HTML): an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with free fonts included for the demo or fonts you upload. Real-life documents: invoice (also quotation, purchase order, delivery note, and receipt), bulk invoices (up to 1,000, zipped), account statement (up to 5,000 rows), inventory report, payslip, contract, medical report, KPI report, and shipping labels. Each scenario has editable data, a download, and the C# code that builds it.
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive site that runs entirely in the browser: no engine required, nothing uploaded. Its scenario gallery lists 25 scenarios by capability and business domain, and each scenario shows your data, the PDF drawn in the page, and the C# code side by side. Create: text and pages, tables, images, and headers and footers. Merge: join files, cover and ranges, pick pages, bookmarks and numbers, and document packs for finance, HR, and healthcare. Split and extract: every N pages, page ranges, extract pages, and remove pages. HTML to PDF: templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit. Languages (Fonts and languages, with text calls or HTML): an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with free fonts included for the demo or fonts you upload. Real-life documents: invoice (also quotation, purchase order, delivery note, and receipt), bulk invoices (up to 1,000, zipped), account statement (up to 5,000 rows), inventory report, payslip, contract, medical report, KPI report, and shipping labels. Each scenario has editable data, a download, and the C# code that builds it.
 
 Try it live at [unlimitedpdf.dev](https://unlimitedpdf.dev/), or run it locally:
 
@@ -400,6 +401,36 @@ using (var zip = new ZipArchive(File.Create("report-parts.zip"), ZipArchiveMode.
 - Parts are written one at a time. If a part can't be written, the parts before it are kept, its half-written file is removed, and `PdfSplitException` says which part failed (`PartNumber`) and how many were written (`PartsWritten`). An existing file with the failed part's name is removed too. A cancelled `SplitAsync` keeps the finished parts in the same way.
 - Each page's fonts and images are copied as the file lists them. A file that lists all of its fonts and images for every page gives large parts.
 
+## Extract and remove pages
+
+Write the pages you choose to a new PDF, in your order, or write a PDF without them. Page lists such as `10, 1-3` are read with `PdfPageRange.Parse`, so text your users type can be passed straight in.
+
+```cs
+using UnlimitedPDF;
+
+var report = PdfFile.FromFile("report.pdf");
+
+// The pages you choose, in the order written: pages 10, 1, 2, and 3. A page can be chosen more than once.
+PdfOperations.Extract(report, PdfPageRange.Parse("10, 1-3"), "summary.pdf");
+
+// The PDF without the pages you choose; the pages left keep their order: pages 1 and 10.
+PdfOperations.Remove(report, PdfPageRange.Parse("2-9"), "cover-and-sign-off.pdf");
+
+// Or add the chosen pages to a document you build, under one bookmark.
+var pack = new PdfDocument();
+pack.AddPages(report, PdfPageRange.Parse("1, 10"), "Report");
+pack.Save("pack.pdf");
+```
+
+![summary.pdf with pages 10, 1, 2, and 3 of a 10-page report, and cover-and-sign-off.pdf with pages 1 and 10](https://raw.githubusercontent.com/unlimited-docs/UnlimitedPDF/main/assets/derived/readme/extract.jpg)
+
+- `Extract` writes the chosen pages in the order given; a page chosen more than once is copied each time, and links and bookmarks to it go to its first copy. `Remove` writes the pages not chosen, in their original order. Both take a path or a `Stream`, and `ExtractAsync` and `RemoveAsync` take a `CancellationToken`. The loaded file is not changed.
+- `PdfPageRange.Parse` reads page numbers and ranges separated by commas, with spaces allowed; `9-7` gives pages 9, 8, and 7. Anything else, such as `7-` or `last`, throws `FormatException` naming the item, as does text that describes more than 1,000,000 pages. `Split` takes the same ranges.
+- The new PDF keeps each page's look, the links between its pages, comments, and layers, the bookmarks that point at its pages at their own levels, and the file's title, author, subject, keywords, and XMP metadata. Filled form fields keep their look but are no longer editable; attachments, scripts, and page labels are not copied.
+- Each page takes only the fonts, images, and other resources its content uses, so a few pages of a large file make a small file. A page whose content can't be read takes all of them, so the new PDF is always complete.
+- A page past the last page, an empty list, and removing every page throw before anything is written, so an existing file stays as it was.
+- `PdfDocument.AddPages(file, ranges, bookmarkTitle)` adds the chosen pages as one import with one bookmark, also with only the resources they use. A call that passes `null` as a page number by position, such as `AddPages(file, null, 7)`, no longer compiles; name the argument instead: `AddPages(file, lastPage: 7)`.
+
 ## HTML to PDF
 
 Convert HTML into PDF with the library's own renderer: no browser, no extra package, and it runs wherever .NET runs, including Blazor WebAssembly. Load the HTML once with `PdfHtml`, then convert it in one call or add it to a document next to other content.
@@ -527,9 +558,12 @@ PdfOperations.ConvertHtml(html, "total.pdf");
 - New: your own fonts and more languages (`PdfFont`, `PdfFontLoadOptions`, `PdfFontException`, `PdfFontErrorReason`): text in Hindi, Telugu, Tamil, and languages written in Latin letters, shaped by the font's rules, on every text call (`PdfPage.AddText`, headers, footers, the body flow, flow blocks, and table cells with `PdfCellText` and `PdfTable.SetText`). PDFs embed only the glyphs they use. See [Fonts and languages](#fonts-and-languages).
 - New: fallback fonts and missing characters (`PdfDocument.FontFallback`, `PdfDocument.FindMissingCharacters`, `PdfDocument.FailOnMissingCharacters`, `PdfTextException`).
 - New: fonts in HTML (`PdfHtmlLoadOptions.Fonts`, `PdfHtmlFontCollection`, `PdfHtmlLoadOptions.SynthesizeMissingStyles`, `PdfHtmlConvertOptions.FontFallback`), and the warning kinds `MissingCharacter`, `MissingFontFace`, and `FontFaceIgnored`.
+- New: extract and remove pages (`PdfOperations.Extract`, `ExtractAsync`, `Remove`, `RemoveAsync`): write the pages you choose to a new PDF in your order, or write a PDF without them, keeping bookmarks, links between the kept pages, and the file's title and author, with only the fonts and images those pages use. See [Extract and remove pages](#extract-and-remove-pages).
+- New: page lists as text (`PdfPageRange.Parse`), such as `2, 5, 7-9` or `9-7`, for `Extract`, `Remove`, and `Split`, and `PdfDocument.AddPages(file, ranges, bookmarkTitle)`, which adds the chosen pages to a document under one bookmark.
 - Changed: text drawn without a font now shows Western European characters such as `é`, `ü`, `€`, dashes, and curly quotes instead of `?`. Documents with only ASCII text are written exactly as before.
 - Changed: HTML reports each character it draws as `?` with a `MissingCharacter` warning, so `FailOnWarning` now fails on such characters, and reports `@font-face` as `FontFaceIgnored` instead of `UnsupportedProperty`.
 - Changed: in HTML, a word wider than its line is split only between whole characters, so an emoji or a letter with its accent stays together.
+- Changed: a call that passes `null` as a page number by position, such as `AddPages(file, null, 7)`, no longer compiles because of the new `AddPages` overload; name the argument instead: `AddPages(file, lastPage: 7)`. Built apps keep working.
 - Fixed: table cell positions, sizes, and border widths are always written as plain decimal numbers. A very small or very large value used to be written in exponent form, such as `1E-05`, which PDF readers don't accept.
 - Fixed: loading a damaged PDF to merge or split stays fast and small. Compressed data with out-of-range predictor settings is reported as a damaged file, and oversized named-destination names are skipped, instead of taking large amounts of memory and time.
 - The package includes `THIRD-PARTY-NOTICES.txt`, the license of the Unicode data the script tables are built from.

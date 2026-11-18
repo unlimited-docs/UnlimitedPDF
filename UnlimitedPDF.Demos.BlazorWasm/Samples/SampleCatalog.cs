@@ -43,13 +43,18 @@ public static class SampleCatalog
                 new SampleGroup("Packs", [DocumentPacks])
             ]),
         new SampleCategory(
-            "Split",
-            "Split a PDF into parts: every few pages, or the page ranges you choose. Try your own file.",
-            [SplitEveryN, SplitRanges],
+            "Split and extract",
+            "Split a PDF into parts, every few pages or by the page ranges you choose, or extract or remove the pages you choose. Try your own file.",
+            [SplitEveryN, SplitRanges, ExtractPages, RemovePages],
             Id: "split",
             Icon: "split",
             Tone: "amber",
-            Snippet: "split"),
+            Snippet: "split",
+            Groups:
+            [
+                new SampleGroup("Split", [SplitEveryN, SplitRanges]),
+                new SampleGroup("Extract and remove", [ExtractPages, RemovePages])
+            ]),
         new SampleCategory(
             "HTML to PDF",
             "Convert HTML with CSS, tables, lists, and images into PDF in your browser. Edit a template, try your own file, or see how known HTML to PDF problems come out.",
@@ -200,6 +205,18 @@ public static class SampleCatalog
     {
         Domains = ["Finance", "HR", "Healthcare"],
     };
+
+    /// <summary>
+    /// Gets the Extract pages demo: the chosen pages of one PDF, in the order written, in a new PDF.
+    /// </summary>
+    public static SampleDemo ExtractPages { get; } = new(
+        "Extract pages",
+        "Copy the pages you choose, in your order, into one new PDF, such as 4, 1-2. A page can appear more than once.",
+        "playground/split/extract-pages",
+        "ExtractPagesSample.cs",
+        "extracted-pages.pdf",
+        "extract",
+        PageTitle: "Extract pages from a PDF in C#");
 
     /// <summary>
     /// Gets the Headers and footers demo.
@@ -396,6 +413,18 @@ public static class SampleCatalog
     {
         Domains = ["Retail"],
     };
+
+    /// <summary>
+    /// Gets the Remove pages demo: one PDF without the chosen pages.
+    /// </summary>
+    public static SampleDemo RemovePages { get; } = new(
+        "Remove pages",
+        "Write the PDF without the pages you choose, such as 1-4. The pages left keep their order.",
+        "playground/split/remove-pages",
+        "RemovePagesSample.cs",
+        "remaining-pages.pdf",
+        "remove",
+        PageTitle: "Remove pages from a PDF in C#");
 
     /// <summary>
     /// Gets the Shipping labels demo: address labels on a 3 by 7 sheet.

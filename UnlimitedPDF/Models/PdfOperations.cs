@@ -94,6 +94,118 @@ public static class PdfOperations
     }
 
     /// <summary>
+    /// Writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/> choose, in the
+    /// order given with repeats kept (links and bookmarks to a repeated page go to its first copy), to
+    /// <paramref name="output"/> from its current position. The stream is left open. Everything is checked before
+    /// anything is written.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to keep, in order; ranges may overlap and repeat. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>2, 5, 7-9</c>.</param>
+    /// <param name="output">The stream to write the new PDF to.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="output"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Writes the chosen pages of a PDF, in the order given, to a stream as a new PDF.")]
+    public static void Extract(PdfFile file, IEnumerable<PdfPageRange> ranges, Stream output)
+    {
+        if (output is null) throw new ArgumentNullException(nameof(output));
+        ExtractDocument(file, ranges).Save(output);
+    }
+
+    /// <summary>
+    /// Writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/> choose, in the
+    /// order given with repeats kept (links and bookmarks to a repeated page go to its first copy), to
+    /// <paramref name="outputPath"/>. Everything is checked before the file is opened, so a failure leaves an existing
+    /// file unchanged.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to keep, in order; ranges may overlap and repeat. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>2, 5, 7-9</c>.</param>
+    /// <param name="outputPath">The path of the file to create or overwrite.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="outputPath"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Writes the chosen pages of a PDF, in the order given, to a file as a new PDF.")]
+    public static void Extract(PdfFile file, IEnumerable<PdfPageRange> ranges, string outputPath)
+    {
+        if (outputPath is null) throw new ArgumentNullException(nameof(outputPath));
+        ExtractDocument(file, ranges).Save(outputPath);
+    }
+
+    /// <summary>
+    /// Asynchronously writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/>
+    /// choose, in the order given with repeats kept (links and bookmarks to a repeated page go to its first copy), to
+    /// <paramref name="output"/> from its current position. The stream is left open. Everything is checked before
+    /// anything is written.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to keep, in order; ranges may overlap and repeat. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>2, 5, 7-9</c>.</param>
+    /// <param name="output">The stream to write the new PDF to.</param>
+    /// <param name="cancellationToken">A token to cancel the write.</param>
+    /// <returns>A task that completes when the file is written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="output"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Asynchronously writes the chosen pages of a PDF, in the order given, to a stream as a new PDF.")]
+    public static Task ExtractAsync(PdfFile file, IEnumerable<PdfPageRange> ranges, Stream output, CancellationToken cancellationToken = default)
+    {
+        if (output is null) throw new ArgumentNullException(nameof(output));
+        return ExtractDocument(file, ranges).SaveAsync(output, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/>
+    /// choose, in the order given with repeats kept (links and bookmarks to a repeated page go to its first copy), to
+    /// <paramref name="outputPath"/>. Everything is checked before the file is opened, so a failure leaves an existing
+    /// file unchanged.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to keep, in order; ranges may overlap and repeat. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>2, 5, 7-9</c>.</param>
+    /// <param name="outputPath">The path of the file to create or overwrite.</param>
+    /// <param name="cancellationToken">A token to cancel the write.</param>
+    /// <returns>A task that completes when the file is written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="outputPath"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Asynchronously writes the chosen pages of a PDF, in the order given, to a file as a new PDF.")]
+    public static Task ExtractAsync(PdfFile file, IEnumerable<PdfPageRange> ranges, string outputPath, CancellationToken cancellationToken = default)
+    {
+        if (outputPath is null) throw new ArgumentNullException(nameof(outputPath));
+        return ExtractDocument(file, ranges).SaveAsync(outputPath, cancellationToken);
+    }
+
+    /// <summary>
     /// Joins whole PDF files, in the order given, into one file at <paramref name="outputPath"/>. Each input adds one
     /// top-level bookmark. Everything is checked before the file is opened, so a failure leaves an existing file
     /// unchanged.
@@ -163,6 +275,115 @@ public static class PdfOperations
     {
         if (output is null) throw new ArgumentNullException(nameof(output));
         return Build(inputs, nameof(inputs)).SaveAsync(output, cancellationToken);
+    }
+
+    /// <summary>
+    /// Writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/> do not choose, in
+    /// their original order (a page chosen more than once is removed once), to <paramref name="output"/> from its
+    /// current position. The stream is left open. Everything is checked before anything is written.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to remove; order and repeats do not matter. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>1, 10</c>.</param>
+    /// <param name="output">The stream to write the new PDF to.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="output"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty, or chooses every page.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Writes the pages of a PDF that are not chosen to a stream as a new PDF.")]
+    public static void Remove(PdfFile file, IEnumerable<PdfPageRange> ranges, Stream output)
+    {
+        if (output is null) throw new ArgumentNullException(nameof(output));
+        RemoveDocument(file, ranges).Save(output);
+    }
+
+    /// <summary>
+    /// Writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/> do not choose, in
+    /// their original order (a page chosen more than once is removed once), to <paramref name="outputPath"/>.
+    /// Everything is checked before the file is opened, so a failure leaves an existing file unchanged.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to remove; order and repeats do not matter. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>1, 10</c>.</param>
+    /// <param name="outputPath">The path of the file to create or overwrite.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="outputPath"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty, or chooses every page.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Writes the pages of a PDF that are not chosen to a file as a new PDF.")]
+    public static void Remove(PdfFile file, IEnumerable<PdfPageRange> ranges, string outputPath)
+    {
+        if (outputPath is null) throw new ArgumentNullException(nameof(outputPath));
+        RemoveDocument(file, ranges).Save(outputPath);
+    }
+
+    /// <summary>
+    /// Asynchronously writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/> do
+    /// not choose, in their original order (a page chosen more than once is removed once), to <paramref name="output"/>
+    /// from its current position. The stream is left open. Everything is checked before anything is written.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to remove; order and repeats do not matter. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>1, 10</c>.</param>
+    /// <param name="output">The stream to write the new PDF to.</param>
+    /// <param name="cancellationToken">A token to cancel the write.</param>
+    /// <returns>A task that completes when the file is written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="output"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty, or chooses every page.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Asynchronously writes the pages of a PDF that are not chosen to a stream as a new PDF.")]
+    public static Task RemoveAsync(PdfFile file, IEnumerable<PdfPageRange> ranges, Stream output, CancellationToken cancellationToken = default)
+    {
+        if (output is null) throw new ArgumentNullException(nameof(output));
+        return RemoveDocument(file, ranges).SaveAsync(output, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asynchronously writes a new PDF holding the pages of <paramref name="file"/> that <paramref name="ranges"/> do
+    /// not choose, in their original order (a page chosen more than once is removed once), to
+    /// <paramref name="outputPath"/>. Everything is checked before the file is opened, so a failure leaves an existing
+    /// file unchanged.
+    /// The new PDF keeps each page's look, the links between its pages, comments, and layers; filled form fields keep
+    /// their look but are no longer editable; bookmarks that point at its pages are kept at their own levels; the
+    /// file's document information and XMP metadata are kept. Each page takes only the fonts, images, and other
+    /// resources its content uses; a page whose content cannot be read takes all of them. The loaded file is not
+    /// changed (WR-040).
+    /// </summary>
+    /// <param name="file">The loaded file to take pages from.</param>
+    /// <param name="ranges">The pages to remove; order and repeats do not matter. Use
+    /// <see cref="PdfPageRange.Parse(string)"/> for text such as <c>1, 10</c>.</param>
+    /// <param name="outputPath">The path of the file to create or overwrite.</param>
+    /// <param name="cancellationToken">A token to cancel the write.</param>
+    /// <returns>A task that completes when the file is written.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="file"/>, <paramref name="ranges"/>, a range, or
+    /// <paramref name="outputPath"/> is null.</exception>
+    /// <exception cref="ArgumentException"><paramref name="ranges"/> is empty, or chooses every page.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
+    [AddedVersion("1.1.0")]
+    [Description("Asynchronously writes the pages of a PDF that are not chosen to a file as a new PDF.")]
+    public static Task RemoveAsync(PdfFile file, IEnumerable<PdfPageRange> ranges, string outputPath, CancellationToken cancellationToken = default)
+    {
+        if (outputPath is null) throw new ArgumentNullException(nameof(outputPath));
+        return RemoveDocument(file, ranges).SaveAsync(outputPath, cancellationToken);
     }
 
     /// <summary>
@@ -483,6 +704,13 @@ public static class PdfOperations
         RemoveHalfWritten(path);
     }
 
+    // A new document holding the chosen pages, in the order given with repeats kept (WR-040).
+    private static PdfDocument ExtractDocument(PdfFile? file, IEnumerable<PdfPageRange>? ranges)
+    {
+        if (file is null) throw new ArgumentNullException(nameof(file));
+        return PageDocument(file, PageSelection.Expand(file, ranges, nameof(ranges)));
+    }
+
     private static PdfSplitException Failure(PdfSplitPart part, int partCount, Exception cause) => new(
         string.Create(CultureInfo.InvariantCulture,
             $"Part {part.Number} of {partCount} (pages {part.FirstPage} to {part.LastPage}) could not be written; {part.Number - 1} parts were written. {cause.Message}"),
@@ -511,6 +739,15 @@ public static class PdfOperations
 
     private static Stream OpenFile(string path) => new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
 
+    // One new document holding the pages at the given indexes, as a split part (bookmarks at their own levels, no
+    // wrapper), keeping the file's metadata and only the resources each page uses (WR-037, WR-040).
+    private static PdfDocument PageDocument(PdfFile file, IReadOnlyList<int> pageIndexes)
+    {
+        var document = new PdfDocument { WrapImportBookmarks = false, MetadataSource = file };
+        document.AddPagesCore(file, pageIndexes, null, trimResources: true);
+        return document;
+    }
+
     // Numbers the parts and names them <base>-<number>.pdf, the number zero-padded to the part count's width (WR-037).
     private static List<PdfSplitPart> Parts(PdfFile file, List<(int First, int Last)> ranges)
     {
@@ -529,19 +766,7 @@ public static class PdfOperations
     private static List<PdfSplitPart> Plan(PdfFile? file, IEnumerable<PdfPageRange>? ranges)
     {
         if (file is null) throw new ArgumentNullException(nameof(file));
-        if (ranges is null) throw new ArgumentNullException(nameof(ranges));
-
-        var list = ranges.ToList();
-        if (list.Count == 0) throw new ArgumentException("At least one page range is needed.", nameof(ranges));
-        for (int i = 0; i < list.Count; i++)
-        {
-            var range = list[i];
-            if (range is null)
-                throw new ArgumentNullException(nameof(ranges), string.Create(CultureInfo.InvariantCulture, $"Page range {i + 1} is null."));
-            if (range.LastPage > file.PageCount)
-                throw new ArgumentOutOfRangeException(nameof(ranges), range.ToString(),
-                    string.Create(CultureInfo.InvariantCulture, $"Page range {i + 1} ({range}) goes past the file's last page, {file.PageCount}."));
-        }
+        var list = PageSelection.Check(file, ranges, nameof(ranges));
         return Parts(file, list.Select(range => (range.FirstPage, range.LastPage)).ToList());
     }
 
@@ -556,6 +781,17 @@ public static class PdfOperations
         for (long first = 1; first <= file.PageCount; first += pagesPerPart)
             ranges.Add(((int)first, (int)Math.Min(first + pagesPerPart - 1, file.PageCount)));
         return Parts(file, ranges);
+    }
+
+    // A new document holding the pages not chosen, in their original order; a page chosen more than once is removed
+    // once, and choosing every page fails (WR-040).
+    private static PdfDocument RemoveDocument(PdfFile? file, IEnumerable<PdfPageRange>? ranges)
+    {
+        if (file is null) throw new ArgumentNullException(nameof(file));
+        var chosen = new HashSet<int>(PageSelection.Expand(file, ranges, nameof(ranges)));
+        var kept = Enumerable.Range(0, file.PageCount).Where(index => !chosen.Contains(index)).ToList();
+        if (kept.Count == 0) throw new ArgumentException("Removing these pages leaves no pages.", nameof(ranges));
+        return PageDocument(file, kept);
     }
 
     // Deletes the half-written part this call created; an error here must not hide the failure that caused it.

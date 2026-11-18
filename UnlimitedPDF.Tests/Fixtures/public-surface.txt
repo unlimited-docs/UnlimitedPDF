@@ -101,6 +101,7 @@ class UnlimitedPDF.PdfDocument
   public System.Collections.Generic.IReadOnlyList<System.String> FindMissingCharacters(System.String text, UnlimitedPDF.PdfFont? font = null)
   public System.Threading.Tasks.Task SaveAsync(System.IO.Stream stream, System.Threading.CancellationToken cancellationToken = null)
   public System.Threading.Tasks.Task SaveAsync(System.String path, System.Threading.CancellationToken cancellationToken = null)
+  public System.Void AddPages(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String? bookmarkTitle = null)
   public System.Void AddPages(UnlimitedPDF.PdfFile file, System.Nullable<System.Int32> firstPage = null, System.Nullable<System.Int32> lastPage = null, System.String? bookmarkTitle = null)
   public System.Void Save(System.IO.Stream stream)
   public System.Void Save(System.String path)
@@ -273,16 +274,24 @@ static class UnlimitedPDF.PdfOperations
   public static System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart> Split(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.String outputFolder)
   public static System.Threading.Tasks.Task ConvertHtmlAsync(UnlimitedPDF.PdfHtml html, System.IO.Stream output, UnlimitedPDF.PdfHtmlConvertOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task ConvertHtmlAsync(UnlimitedPDF.PdfHtml html, System.String outputPath, UnlimitedPDF.PdfHtmlConvertOptions? options = null, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task ExtractAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.IO.Stream output, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task ExtractAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputPath, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task MergeAsync(System.IO.Stream output, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfFile> inputs, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task MergeAsync(System.String outputPath, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfFile> inputs, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task RemoveAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.IO.Stream output, System.Threading.CancellationToken cancellationToken = null)
+  public static System.Threading.Tasks.Task RemoveAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputPath, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.Func<UnlimitedPDF.PdfSplitPart, System.IO.Stream> openPart, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputFolder, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.Func<UnlimitedPDF.PdfSplitPart, System.IO.Stream> openPart, System.Threading.CancellationToken cancellationToken = null)
   public static System.Threading.Tasks.Task<System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfSplitPart>> SplitAsync(UnlimitedPDF.PdfFile file, System.Int32 pagesPerPart, System.String outputFolder, System.Threading.CancellationToken cancellationToken = null)
   public static System.Void ConvertHtml(UnlimitedPDF.PdfHtml html, System.IO.Stream output, UnlimitedPDF.PdfHtmlConvertOptions? options = null)
   public static System.Void ConvertHtml(UnlimitedPDF.PdfHtml html, System.String outputPath, UnlimitedPDF.PdfHtmlConvertOptions? options = null)
+  public static System.Void Extract(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.IO.Stream output)
+  public static System.Void Extract(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputPath)
   public static System.Void Merge(System.IO.Stream output, params UnlimitedPDF.PdfFile[] inputs)
   public static System.Void Merge(System.String outputPath, params UnlimitedPDF.PdfFile[] inputs)
+  public static System.Void Remove(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.IO.Stream output)
+  public static System.Void Remove(UnlimitedPDF.PdfFile file, System.Collections.Generic.IEnumerable<UnlimitedPDF.PdfPageRange> ranges, System.String outputPath)
 class UnlimitedPDF.PdfPage
   public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Double x, System.Double y, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, UnlimitedPDF.PdfImagePlacementOptions? options = null)
   public System.Void AddRectangle(System.Double x, System.Double y, System.Double width, System.Double height, UnlimitedPDF.PdfColor color)
@@ -299,6 +308,7 @@ sealed class UnlimitedPDF.PdfPageRange
   System.Int32 LastPage { public get }
   public .ctor(System.Int32 firstPage, System.Int32 lastPage)
   public override System.String ToString()
+  public static System.Collections.Generic.IReadOnlyList<UnlimitedPDF.PdfPageRange> Parse(System.String text)
 sealed class UnlimitedPDF.PdfPageSection : UnlimitedPDF.PdfSectionContent
   System.Boolean IsHidden { public get; public set }
   System.Double Height { public get; public set }

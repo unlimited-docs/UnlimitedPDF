@@ -280,7 +280,7 @@ $copies = @(
 # originals are captures; see ARTWORK.md.
 New-Item -ItemType Directory -Force -Path (Join-Path $images 'gallery') | Out-Null
 $gallery = 'invoice', 'quotation', 'purchase-order', 'delivery-note', 'account-statement', 'payslip', 'medical-report', 'receipt',
-    'bookmarks-and-numbers', 'invoices', 'common-html-to-pdf-problems', 'contract', 'cover-and-ranges', 'document-pack', 'headers-and-footers', 'fonts-and-languages', 'html-to-pdf', 'images', 'inventory-report', 'joined', 'kpi-report', 'picked-pages', 'shipping-labels', 'every-n-pages', 'page-ranges', 'tables', 'text-and-pages'
+    'bookmarks-and-numbers', 'invoices', 'common-html-to-pdf-problems', 'contract', 'cover-and-ranges', 'document-pack', 'headers-and-footers', 'fonts-and-languages', 'html-to-pdf', 'images', 'inventory-report', 'joined', 'kpi-report', 'picked-pages', 'shipping-labels', 'every-n-pages', 'page-ranges', 'extracted-pages', 'remaining-pages', 'tables', 'text-and-pages'
 $copies += foreach ($name in $gallery) {
     @{ Out = "UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\gallery\$name-320.jpg"; From = "originals\gallery\$name.png"; Use = 'Scenario card'; Make = { param($i, $o) [ArtworkCopies]::WidthJpeg($i, $o, 320, 40000) } }
 }
@@ -288,7 +288,7 @@ $copies += foreach ($name in $gallery) {
 # The readme screenshots: what the README.md and nuget/README.md examples produce, at each capture's own width
 # (QF-26111208). The originals are captures; see ARTWORK.md.
 New-Item -ItemType Directory -Force -Path (Join-Path $derived 'readme') | Out-Null
-$readme = [ordered]@{ 'sample' = 1172; 'invoice' = 1172; 'images' = 832; 'tables-across-pages' = 1224; 'headers-footers' = 1336; 'merge' = 1448; 'split' = 1672; 'html-to-pdf' = 832 }
+$readme = [ordered]@{ 'sample' = 1172; 'invoice' = 1172; 'images' = 832; 'tables-across-pages' = 1224; 'headers-footers' = 1336; 'merge' = 1448; 'split' = 1672; 'extract' = 1672; 'html-to-pdf' = 832 }
 $copies += foreach ($name in $readme.Keys) {
     $make = [scriptblock]::Create("param(`$i, `$o) [ArtworkCopies]::WidthJpeg(`$i, `$o, $($readme[$name]), 250000)")
     @{ Out = "assets\derived\readme\$name.jpg"; From = "originals\readme\$name.png"; Use = 'README.md and nuget/README.md screenshot'; Make = $make }
