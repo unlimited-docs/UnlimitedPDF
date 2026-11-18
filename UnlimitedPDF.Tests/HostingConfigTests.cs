@@ -131,9 +131,25 @@ public class HostingConfigTests
         Assert.Throws<InvalidOperationException>(() => ImportMapHash.Apply(first, "CCC="));
 
         string project = DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj");
-        Assert.Contains("<Code Type=\"Class\" Language=\"cs\" Source=\"$(MSBuildThisFileDirectory)Build\\WriteImportMapHash.cs\" />", project, StringComparison.Ordinal);
-        Assert.Contains("<WriteImportMapHash Folder=\"$(PublishDir)wwwroot\" Template=\"$(MSBuildThisFileDirectory)wwwroot\\staticwebapp.config.json\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<Code Type=\"Class\" Language=\"cs\" Source=\"$(MSBuildThisFileDirectory)Build/WriteImportMapHash.cs\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<WriteImportMapHash Folder=\"$(PublishDir)wwwroot\" Template=\"$(MSBuildThisFileDirectory)wwwroot/staticwebapp.config.json\" />", project, StringComparison.Ordinal);
         Assert.Contains("<Compile Remove=\"Build\\**\" />", project, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_publish_step_paths_work_on_linux()
+    {
+        // The site is published on a Linux runner, where a backslash is part of a file name. The task's source file and
+        // its template reach file reads as plain strings, so they must use forward slashes (QF-26111801).
+        var project = System.Xml.Linq.XDocument.Parse(DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj"));
+        string[] paths =
+        [
+            project.Descendants("Code").Single().Attribute("Source")!.Value,
+            project.Descendants("WriteImportMapHash").Single().Attribute("Template")!.Value,
+            project.Descendants("WriteImportMapHash").Single().Attribute("Folder")!.Value,
+        ];
+
+        Assert.All(paths, path => Assert.DoesNotContain('\\', path));
     }
 
     #endregion
