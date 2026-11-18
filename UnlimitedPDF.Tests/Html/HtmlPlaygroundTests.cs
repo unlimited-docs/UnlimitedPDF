@@ -55,7 +55,7 @@ public class HtmlPlaygroundTests
     public void The_catalog_lists_html_to_pdf_after_split()
     {
         var names = SampleCatalog.Categories.Select(c => c.Title).ToList();
-        Assert.Equal(names.IndexOf("Split") + 1, names.IndexOf("HTML to PDF"));
+        Assert.Equal(names.IndexOf("Split and extract") + 1, names.IndexOf("HTML to PDF"));
         // The templates page first, then the known-problem scenarios (14-html-to-pdf AC-28).
         var demos = SampleCatalog.Categories.Single(c => c.Title == "HTML to PDF").Demos;
         Assert.Equal(new[] { "HTML to PDF", "Common problems" }, demos.Select(d => d.Title));

@@ -121,6 +121,11 @@ internal sealed class PdfObjectTable
     #region Properties, Indexers
 
     /// <summary>
+    /// Gets the limits the file was loaded with.
+    /// </summary>
+    public PdfReadLimits Limits => _limits;
+
+    /// <summary>
     /// Gets the object numbers that are in use.
     /// </summary>
     public IEnumerable<int> ObjectNumbers => _entries.Where(e => e.Value.Kind != CrossReferenceEntryKind.Free).Select(e => e.Key);

@@ -44,7 +44,12 @@ public partial class SamplePage
     }
 
     /// <inheritdoc />
-    protected override void OnParametersSet() => _source = SampleSource.Read(ShownSourceFile);
+    protected override void OnParametersSet()
+    {
+        if ((Build is null) == (BuildFile is null))
+            throw new InvalidOperationException($"{nameof(SamplePage)} needs exactly one of {nameof(Build)} and {nameof(BuildFile)}.");
+        _source = SampleSource.Read(ShownSourceFile);
+    }
 
     #endregion
 
@@ -101,10 +106,15 @@ public partial class SamplePage
         var stopwatch = Stopwatch.StartNew();
         try
         {
-            var document = await Build();
             byte[] pdfBytes;
-            using (var stream = new MemoryStream())
+            if (BuildFile is not null)
             {
+                pdfBytes = await BuildFile();
+            }
+            else
+            {
+                var document = await Build!();
+                using var stream = new MemoryStream();
                 await document.SaveAsync(stream);
                 pdfBytes = stream.ToArray();
             }
@@ -170,9 +180,16 @@ public partial class SamplePage
     #region Properties, Indexers
 
     /// <summary>
-    /// Gets or sets the function that builds the demo's document from its current inputs.
+    /// Gets or sets the function that builds the demo's document from its current inputs, which the page saves; a demo
+    /// whose library call writes the PDF itself sets <see cref="BuildFile"/> instead.
     /// </summary>
-    [Parameter, EditorRequired] public Func<Task<PdfDocument>> Build { get; set; } = default!;
+    [Parameter] public Func<Task<PdfDocument>>? Build { get; set; }
+
+    /// <summary>
+    /// Gets or sets the function that writes the demo's PDF from its current inputs and returns its bytes (one-call
+    /// operations such as extract and remove), or null when <see cref="Build"/> builds a document.
+    /// </summary>
+    [Parameter] public Func<Task<byte[]>>? BuildFile { get; set; }
 
     /// <summary>
     /// Gets or sets the choice among the demo's variants that a host page gives, shown above the options (a

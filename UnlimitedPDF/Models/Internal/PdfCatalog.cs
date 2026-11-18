@@ -11,6 +11,11 @@ internal sealed class PdfCatalog
     }
 
     /// <summary>
+    /// Gets or sets the copied XMP metadata stream, or null when the document has none (WR-040).
+    /// </summary>
+    public PdfIndirectReference? Metadata { get; set; }
+
+    /// <summary>
     /// Gets or sets the bookmark tree root, or null when the document has no bookmarks (WR-036).
     /// </summary>
     public PdfIndirectReference? Outlines { get; set; }
@@ -37,6 +42,7 @@ internal sealed class PdfCatalog
         sb.AppendLine("/Type /Catalog");
         sb.AppendLine($"/Pages {Pages}");
         if (Outlines is not null) sb.AppendLine($"/Outlines {Outlines}");
+        if (Metadata is not null) sb.AppendLine($"/Metadata {Metadata}");
         if (OptionalContent is not null) sb.AppendLine($"/OCProperties {OptionalContent}");
         sb.AppendLine(">>");
         return sb.ToString();

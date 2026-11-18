@@ -154,6 +154,8 @@ public class PageRendererCoverageTests
         }
         yield return ("Every N pages", "", () => Task.FromResult(SplitEveryNSample.Build(new SplitInput { File = new MergeFileInput("report.pdf", Generated(5)), PagesPerPart = 2 }).Select(p => p.Bytes)));
         yield return ("Page ranges", "", () => Task.FromResult(SplitRangesSample.Build(new SplitInput { File = new MergeFileInput("report.pdf", Generated(5)) }).Select(p => p.Bytes)));
+        yield return ("Extract pages", "", () => Task.FromResult<IEnumerable<byte[]>>(new[] { ExtractPagesSample.Build(new PageSelectionInput { File = new MergeFileInput("report.pdf", Generated(5)), Pages = "4, 1-2" }) }));
+        yield return ("Remove pages", "", () => Task.FromResult<IEnumerable<byte[]>>(new[] { RemovePagesSample.Build(new PageSelectionInput { File = new MergeFileInput("report.pdf", Generated(5)), Pages = "1-4" }) }));
         foreach (var (name, html) in new[] { ("invoice", HtmlTemplates.Invoice), ("newsletter", HtmlTemplates.Newsletter), ("letter", HtmlTemplates.Letter), ("report", HtmlTemplates.Report), ("resume", HtmlTemplates.Resume), ("statement", HtmlTemplates.Statement()) })
         {
             yield return ("HTML to PDF", name, () => Html(html));

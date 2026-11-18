@@ -41,16 +41,23 @@ public class SplitPlaygroundTests
     }
 
     [Theory]
-    [InlineData("", "Enter the pages")]
-    [InlineData("1-9", "past the last page")]
-    [InlineData("3-1", "runs backwards")]
+    [InlineData("", "The text holds no page numbers.")]
+    [InlineData("1-9", "Ranges: page range 1 (1-9) goes past the file's last page, 5.")]
+    [InlineData("3-", "Item 1 (\"3-\") is not a page number or a range such as 7-9.")]
     public void Page_ranges_demo_explains_a_bad_range_list(string ranges, string message)
     {
+        // The demo reads its text with PdfPageRange.Parse (PR-017), so its messages are the library's (WR-040).
         var input = new SplitInput { File = new MergeFileInput("report.pdf", File(5)), Ranges = ranges };
 
-        var exception = Assert.Throws<InvalidOperationException>(() => SplitRangesSample.Build(input));
+        Assert.Equal(message, ErrorText.Plain(Record.Exception(() => SplitRangesSample.Build(input))!));
+    }
 
-        Assert.Contains(message, exception.Message, StringComparison.Ordinal);
+    [Fact]
+    public void Page_ranges_demo_reads_a_descending_range_as_one_part_per_page()
+    {
+        var parts = SplitRangesSample.Build(new SplitInput { File = new MergeFileInput("report.pdf", File(5)), Ranges = "3-1" });
+
+        Assert.Equal(new[] { "3-3", "2-2", "1-1" }, parts.Select(p => $"{p.Part.FirstPage}-{p.Part.LastPage}"));
     }
 
     [Fact]
@@ -67,11 +74,14 @@ public class SplitPlaygroundTests
         var split = categories[2];
 
         Assert.Equal("Merge", categories[1].Title);
-        Assert.Equal("Split", split.Title);
-        Assert.Equal(new[] { "Every N pages", "Page ranges" }, split.Demos.Select(demo => demo.Title));
-        Assert.Equal(new[] { "playground/split/every-n-pages", "playground/split/page-ranges" }, split.Demos.Select(demo => demo.Route));
-        Assert.Equal(new[] { "SplitEveryNSample.cs", "SplitRangesSample.cs" }, split.Demos.Select(demo => demo.SourceFile));
-        Assert.All(split.Demos, demo => Assert.EndsWith(".zip", demo.FileName, StringComparison.Ordinal));
+        // The tab became Split and extract (D-018); its Split group keeps the two split demos.
+        var splitDemos = split.Groups![0].Demos;
+        Assert.Equal("Split and extract", split.Title);
+        Assert.Equal("split", split.Id);
+        Assert.Equal(new[] { "Every N pages", "Page ranges" }, splitDemos.Select(demo => demo.Title));
+        Assert.Equal(new[] { "playground/split/every-n-pages", "playground/split/page-ranges" }, splitDemos.Select(demo => demo.Route));
+        Assert.Equal(new[] { "SplitEveryNSample.cs", "SplitRangesSample.cs" }, splitDemos.Select(demo => demo.SourceFile));
+        Assert.All(splitDemos, demo => Assert.EndsWith(".zip", demo.FileName, StringComparison.Ordinal));
     }
 
     [Fact]

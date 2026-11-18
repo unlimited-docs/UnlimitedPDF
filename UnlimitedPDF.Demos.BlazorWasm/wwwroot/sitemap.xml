@@ -15,6 +15,8 @@
   <url><loc>https://unlimitedpdf.dev/playground/merge/document-packs</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/split/every-n-pages</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/split/page-ranges</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/split/extract-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/split/remove-pages</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/html/html-to-pdf</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/html/common-problems</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/languages/fonts-and-languages</loc></url>

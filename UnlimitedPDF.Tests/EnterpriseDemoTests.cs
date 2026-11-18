@@ -115,7 +115,7 @@ public class EnterpriseDemoTests
         var demos = new[] { SampleCatalog.BulkInvoices, SampleCatalog.InventoryReport, SampleCatalog.Contract, SampleCatalog.KpiReport, SampleCatalog.ShippingLabels };
         string sitemap = DemosFile("wwwroot/sitemap.xml");
 
-        Assert.Equal(23, ScenarioGallery.Scenarios.Count);
+        Assert.Equal(25, ScenarioGallery.Scenarios.Count);
         Assert.All(demos, demo =>
         {
             Assert.Contains(demo, ScenarioGallery.Scenarios);

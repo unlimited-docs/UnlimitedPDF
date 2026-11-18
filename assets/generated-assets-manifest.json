@@ -350,6 +350,16 @@
       "capturedOn": "2026-11-12"
     },
     {
+      "path": "originals/readme/extract.png",
+      "purpose": "README.md and nuget/README.md Extract and remove pages screenshot: summary.pdf and cover-and-sign-off.pdf, drawn by the library's preview renderer",
+      "width": 1672,
+      "height": 456,
+      "bytes": 45203,
+      "sha256": "56d7049ac8c83adcc0373647b790ba11da83b84674b4a3637cbfdc7c9a014833",
+      "capturedFrom": "README.md Extract and remove pages example",
+      "capturedOn": "2026-11-18"
+    },
+    {
       "path": "originals/readme/html-to-pdf.png",
       "purpose": "Readme screenshot for \"HTML to PDF (invoice.pdf)\": the PDF the README.md and nuget/README.md example writes, as the browser PDF viewer draws it",
       "width": 832,
@@ -528,6 +538,26 @@
       "sha256": "97d0b7662d874ace41a71627b0eaf5d07131ded89f09d052aab67e5d21456e4a",
       "capturedFrom": "playground/split/page-ranges",
       "capturedOn": "2026-11-17"
+    },
+    {
+      "path": "originals/gallery/extracted-pages.png",
+      "purpose": "Extract pages card picture: first page of the PDF the demo generates with its default input (report page 4), drawn by the library's preview renderer",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 181880,
+      "sha256": "a4f73743f3d3e34b116ba74eb4763a6c815772265ecbe1a028021595909ea741",
+      "capturedFrom": "playground/split/extract-pages",
+      "capturedOn": "2026-11-18"
+    },
+    {
+      "path": "originals/gallery/remaining-pages.png",
+      "purpose": "Remove pages card picture: first page of the PDF the demo generates with its default input (report page 5), drawn by the library's preview renderer",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 167452,
+      "sha256": "0fde8927b4a2c3636e4e0fadb0ccd58b2504ffc8752f044dcd73831b0ca13714",
+      "capturedFrom": "playground/split/remove-pages",
+      "capturedOn": "2026-11-18"
     },
     {
       "path": "originals/gallery/tables.png",

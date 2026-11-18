@@ -18,12 +18,13 @@ public static class SplitRangesSample
     /// </summary>
     /// <param name="input">The file and the ranges.</param>
     /// <returns>The parts, in order, with their PDF bytes.</returns>
-    /// <exception cref="InvalidOperationException">No file is chosen or the range list is not valid.</exception>
+    /// <exception cref="InvalidOperationException">No file is chosen.</exception>
+    /// <exception cref="FormatException">The range list is not valid.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A range goes past the file's last page.</exception>
     public static IReadOnlyList<SplitPartFile> Build(SplitInput input)
     {
         var file = input.File?.File ?? throw new InvalidOperationException("Choose a PDF.");
-        var ranges = PickPagesSample.ParsePages(input.Ranges, file.PageCount)
-            .Select(range => new PdfPageRange(range.First, range.Last));
+        var ranges = PdfPageRange.Parse(input.Ranges);
 
         // Each part is written to the stream returned for it; here, one memory stream per part.
         var streams = new List<MemoryStream>();

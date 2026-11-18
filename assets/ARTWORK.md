@@ -75,8 +75,12 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 | `originals/gallery/shipping-labels.png` | 1479 x 2092 | Shipping labels (`playground/documents/shipping-labels`) |
 | `originals/gallery/every-n-pages.png` | 1479 x 2092 | Every N pages, the second page of the first part (`playground/split/every-n-pages`) |
 | `originals/gallery/page-ranges.png` | 1479 x 2092 | Page ranges (first part) (`playground/split/page-ranges`) |
+| `originals/gallery/extracted-pages.png` | 1479 x 2092 | Extract pages, report page 4 (`playground/split/extract-pages`), see below |
+| `originals/gallery/remaining-pages.png` | 1479 x 2092 | Remove pages, report page 5 (`playground/split/remove-pages`), see below |
 | `originals/gallery/tables.png` | 1479 x 2092 | Tables (`playground/create/tables`) |
 | `originals/gallery/text-and-pages.png` | 1479 x 2092 | Text and pages (`playground/create/text-and-pages`) |
+
+The Extract pages and Remove pages card pictures (20-extract-pages, 2026-11-18) are captures of the first page of the PDF each demo writes with its default input: Extract pages (`4, 1-2`) starts with report page 4, and Remove pages (`1-4`) with report page 5, pages no other card shows. They were captured differently from the pictures above, because a headless browser does not draw its built-in PDF viewer: the page was drawn by the library's own preview renderer (the SVG the demo site shows on phones), placed alone in a page 986 CSS pixels wide, and captured with a headless browser at 1.5 device pixels per CSS pixel, then cropped to 1479 x 2092 to match the other originals. Their derived copies were made by `New-DerivedImages.ps1`.
 
 On 2026-11-11 the copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the gallery copies below were added. Two runs there produce byte-identical gallery copies.
 
@@ -100,7 +104,10 @@ Sample and invoice show the top of their page only (30% and 56%), where all thei
 | `originals/readme/headers-footers.png` | 1336 x 683 | Headers, footers & flow (pages 1, 2, and 4) |
 | `originals/readme/merge.png` | 1448 x 569 | Merge PDFs (`pack.pdf`) |
 | `originals/readme/split.png` | 1672 x 456 | Split PDFs (`chapters/report-1.pdf` and `report-2.pdf`) |
+| `originals/readme/extract.png` | 1672 x 456 | Extract and remove pages (`summary.pdf` and `cover-and-sign-off.pdf`), see below |
 | `originals/readme/html-to-pdf.png` | 832 x 1148 | HTML to PDF (`invoice.pdf`) |
+
+The Extract and remove pages screenshot (20-extract-pages, 2026-11-18) shows the two files that section's example writes from the same `report.pdf` as the Split PDFs screenshot (the "Headers, footers & flow" example with 330 rows, 10 pages): `summary.pdf` (pages 10, 1, 2, and 3) and `cover-and-sign-off.pdf` (pages 1 and 10). It was made the way the Extract pages and Remove pages card pictures were, because a headless browser does not draw its built-in PDF viewer: each page was drawn by the library's own preview renderer and laid out like the Split PDFs screenshot (light gray background, thin page borders, a caption under each page), then captured with a headless browser at 1.5 device pixels per CSS pixel and cropped to 1672 x 456. Its copy was made by `New-DerivedImages.ps1`; the other copies the script rewrote with different bytes were left as committed.
 
 ## Derived copies
 
@@ -157,6 +164,8 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/shipping-labels-320.jpg` | `originals/gallery/shipping-labels.png` | 320 x 453 | 32,639 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/every-n-pages-320.jpg` | `originals/gallery/every-n-pages.png` | 320 x 453 | 36,585 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/page-ranges-320.jpg` | `originals/gallery/page-ranges.png` | 320 x 453 | 39,565 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/extracted-pages-320.jpg` | `originals/gallery/extracted-pages.png` | 320 x 453 | 37,609 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/remaining-pages-320.jpg` | `originals/gallery/remaining-pages.png` | 320 x 453 | 36,051 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/tables-320.jpg` | `originals/gallery/tables.png` | 320 x 453 | 11,592 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/text-and-pages-320.jpg` | `originals/gallery/text-and-pages.png` | 320 x 453 | 6,857 | Scenario card |
 | `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | README.md and nuget/README.md screenshot |
@@ -166,4 +175,5 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `assets/derived/readme/headers-footers.jpg` | `originals/readme/headers-footers.png` | 1336 x 683, JPEG quality 90 | 168,527 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/merge.jpg` | `originals/readme/merge.png` | 1448 x 569, JPEG quality 90 | 111,547 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/split.jpg` | `originals/readme/split.png` | 1672 x 456, JPEG quality 90 | 157,268 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/extract.jpg` | `originals/readme/extract.png` | 1672 x 456, JPEG quality 90 | 162,570 | README.md and nuget/README.md screenshot |
 | `assets/derived/readme/html-to-pdf.jpg` | `originals/readme/html-to-pdf.png` | 832 x 1148, JPEG quality 90 | 77,154 | README.md and nuget/README.md screenshot |

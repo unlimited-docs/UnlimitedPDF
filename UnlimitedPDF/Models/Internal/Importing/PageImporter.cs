@@ -51,6 +51,56 @@ internal sealed class PageImporter
     #region Public Methods
 
     /// <summary>
+    /// Copies the pages at <paramref name="pageIndexes"/> (0-based) in that order, a page listed more than once
+    /// becoming one page per listing, numbering new objects from <paramref name="firstNumber"/> (WR-036, WR-040).
+    /// Links and bookmarks to a repeated page target its first copy; every copy has its own annotations. Links to
+    /// pages not listed are removed. With <paramref name="trimResources"/>, each page keeps only the resources its
+    /// content uses (<see cref="ResourceTrimmer"/>).
+    /// </summary>
+    /// <param name="pageIndexes">The indexes of the pages, in the order they are added; not empty.</param>
+    /// <param name="firstNumber">The first free object number in the document.</param>
+    /// <param name="trimResources">True to copy only the resources the pages use (extract, remove, and page
+    /// selections, WR-040); false to copy every resource a page reaches (merge, split, and page runs).</param>
+    /// <returns>The objects to add, in number order, and the new page object numbers in the order listed.</returns>
+    /// <exception cref="PdfReadException">An object cannot be read (only for a file that changed since it was
+    /// checked, which cannot happen through the public API).</exception>
+    public ImportedPages Import(IReadOnlyList<int> pageIndexes, int firstNumber, bool trimResources)
+    {
+        int next = firstNumber;
+
+        // Every listing gets its page object number first, in the order listed. Links and bookmarks target a page's
+        // first copy. Copies are made in rounds: round k holds each page's k-th listing, so no round holds a page
+        // twice and each round copies its own annotations.
+        var pageMap = new Dictionary<int, int>();
+        var pageNumbers = new List<int>(pageIndexes.Count);
+        var rounds = new List<List<(int Index, int Number)>>();
+        var listings = new Dictionary<int, int>();
+        foreach (int index in pageIndexes)
+        {
+            int number = next++;
+            pageNumbers.Add(number);
+            pageMap.TryAdd(_file.Pages[index].ObjectNumber, number);
+            int round = listings.TryGetValue(index, out int seen) ? seen : 0;
+            listings[index] = round + 1;
+            if (round == rounds.Count) rounds.Add(new List<(int, int)>());
+            rounds[round].Add((index, number));
+        }
+
+        var imported = new HashSet<int>(pageMap.Keys);
+        var shared = new Dictionary<int, int>(_shared);
+        var shareable = new Dictionary<int, int>();
+        var objects = new List<PdfRawObject>();
+        var trimmer = trimResources ? new ResourceTrimmer(_file.Source.Objects) : null;
+        for (int i = 0; i < rounds.Count; i++)
+        {
+            next = CopyRound(rounds[i], imported, pageMap, shared, shareable, objects, next, isRepeat: i > 0, trimmer);
+        }
+
+        objects.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
+        return new ImportedPages(objects, pageNumbers, shareable);
+    }
+
+    /// <summary>
     /// Copies pages <paramref name="first"/> to <paramref name="last"/> (0-based, inclusive), numbering new objects
     /// from <paramref name="firstNumber"/>.
     /// </summary>
@@ -60,98 +110,8 @@ internal sealed class PageImporter
     /// <returns>The objects to add, in number order, and the new page object numbers.</returns>
     /// <exception cref="PdfReadException">An object cannot be read (only for a file that changed since it was
     /// checked, which cannot happen through the public API).</exception>
-    public ImportedPages Import(int first, int last, int firstNumber)
-    {
-        var table = _file.Source.Objects;
-        int next = firstNumber;
-        var pageMap = new Dictionary<int, int>();
-        for (int i = first; i <= last; i++) pageMap[_file.Pages[i].ObjectNumber] = next++;
-
-        // Annotations decide what each page keeps, and may add content streams that paint form fields.
-        int temporary = FirstTemporary;
-        var imported = new HashSet<int>(pageMap.Keys);
-        var rewrites = new Dictionary<int, PageRewrite>();
-        var overrides = new Dictionary<int, PdfReadDictionary>();
-        var removed = new HashSet<int>();
-        var added = new Dictionary<int, (int Number, byte[] Data)>();
-        for (int i = first; i <= last; i++)
-        {
-            var rewrite = _annotations.Rewrite(_file.Pages[i], imported, () => temporary--);
-            rewrites[i] = rewrite;
-            foreach (var (number, value) in rewrite.Overrides) overrides[number] = value;
-            removed.UnionWith(rewrite.Removed);
-            foreach (var (temporaryNumber, data) in rewrite.NewStreams) added[temporaryNumber] = (next++, data);
-        }
-        removed.ExceptWith(overrides.Keys);
-
-        // Number every object the pages reach that this document does not hold yet. A rewritten annotation is always
-        // copied anew, since it depends on which pages this call imports.
-        var copied = new Dictionary<int, int>();
-        var order = new List<int>();
-        var pending = new Stack<PdfReadValue>();
-        for (int i = first; i <= last; i++)
-        {
-            foreach (var (_, value) in PageEntries(_file.Pages[i], rewrites[i])) pending.Push(value);
-        }
-        while (pending.Count > 0)
-        {
-            switch (pending.Pop())
-            {
-                case PdfReadReference reference:
-                    int number = reference.ObjectNumber;
-                    if (number < 0 || removed.Contains(number) || _sourcePages.Contains(number) || copied.ContainsKey(number)) break;
-                    if (overrides.TryGetValue(number, out var rewritten))
-                    {
-                        copied[number] = next++;
-                        order.Add(number);
-                        pending.Push(rewritten);
-                        break;
-                    }
-                    if (_shared.ContainsKey(number)) break;
-                    var target = table.Get(number);
-                    if (IsPageTreeNode(target)) break;
-                    copied[number] = next++;
-                    order.Add(number);
-                    pending.Push(target);
-                    break;
-                case PdfReadArray array:
-                    foreach (var item in array.Items) pending.Push(item);
-                    break;
-                case PdfReadDictionary dictionary:
-                    foreach (var key in dictionary.Keys) pending.Push(dictionary[key]!);
-                    break;
-                case PdfReadStream stream:
-                    pending.Push(stream.Dictionary);
-                    break;
-            }
-        }
-
-        int? Map(int source) =>
-            source < 0 ? (added.TryGetValue(source, out var stream) ? stream.Number : null)
-            : removed.Contains(source) ? null
-            : pageMap.TryGetValue(source, out int page) ? page
-            : copied.TryGetValue(source, out int own) ? own
-            : _shared.TryGetValue(source, out int shared) ? shared
-            : null;
-
-        var objects = new List<PdfRawObject>();
-        for (int i = first; i <= last; i++)
-            objects.Add(new PdfRawObject(pageMap[_file.Pages[i].ObjectNumber], PageBody(_file.Pages[i], rewrites[i], Map)));
-        foreach (var (number, data) in added.Values)
-            objects.Add(new PdfRawObject(number, Encoding.ASCII.GetBytes($"<< /Length {data.Length.ToString(CultureInfo.InvariantCulture)} >>"), data));
-
-        var shareable = new Dictionary<int, int>();
-        foreach (int source in order)
-        {
-            bool isRewritten = overrides.TryGetValue(source, out var rewritten);
-            PdfReadValue value = isRewritten ? rewritten! : table.Get(source);
-            objects.Add(Copy(copied[source], value, Map));
-            if (!isRewritten && !ReferencesPage(value)) shareable[source] = copied[source];
-        }
-
-        objects.Sort((a, b) => a.ObjectNumber.CompareTo(b.ObjectNumber));
-        return new ImportedPages(objects, pageMap.Values.OrderBy(n => n).ToList(), shareable);
-    }
+    public ImportedPages Import(int first, int last, int firstNumber) =>
+        Import(Enumerable.Range(first, last - first + 1).ToList(), firstNumber, trimResources: false);
 
     #endregion
 
@@ -170,6 +130,122 @@ internal sealed class PageImporter
         var sb = new StringBuilder();
         PdfValueWriter.AppendDictionary(sb, entries, map);
         return new PdfRawObject(number, Encoding.ASCII.GetBytes(sb.ToString()), data);
+    }
+
+    // Copies one round of pages (no page twice) and every object they reach that is not shared yet, numbering from
+    // next; returns the next free number. Shareable copies join shared for later rounds and later imports. In a
+    // repeat round, each kept annotation's /P names the copy that holds it rather than the page's first copy. With a
+    // trimmer, each page's resources become the trimmed copy, and trimmed forms, patterns, Type 3 fonts, and
+    // appearances are copied in place of their source objects. A trimmed copy depends only on its source object, so it
+    // is shared like any other copy: a page listed again, or imported again later, reuses it (review R-02).
+    private int CopyRound(List<(int Index, int Number)> round, HashSet<int> imported, Dictionary<int, int> pageMap,
+        Dictionary<int, int> shared, Dictionary<int, int> shareable, List<PdfRawObject> objects, int next, bool isRepeat,
+        ResourceTrimmer? trimmer)
+    {
+        var table = _file.Source.Objects;
+
+        // Annotations decide what each page keeps, and may add content streams that paint form fields.
+        int temporary = FirstTemporary;
+        var rewrites = new Dictionary<int, PageRewrite>();
+        var overrides = new Dictionary<int, PdfReadDictionary>();
+        var removed = new HashSet<int>();
+        var added = new Dictionary<int, (int Number, byte[] Data)>();
+        foreach (var (index, _) in round)
+        {
+            var rewrite = _annotations.Rewrite(_file.Pages[index], imported, () => temporary--);
+            rewrites[index] = rewrite;
+            foreach (var (number, value) in rewrite.Overrides) overrides[number] = value;
+            removed.UnionWith(rewrite.Removed);
+            foreach (var (temporaryNumber, data) in rewrite.NewStreams) added[temporaryNumber] = (next++, data);
+        }
+        if (trimmer is not null)
+        {
+            foreach (var (index, _) in round) Trim(_file.Pages[index], rewrites[index], trimmer);
+        }
+        removed.ExceptWith(overrides.Keys);
+
+        var holders = new Dictionary<int, int>();
+        if (isRepeat)
+        {
+            foreach (var (index, number) in round)
+            {
+                int page = _file.Pages[index].ObjectNumber;
+                foreach (var annotation in rewrites[index].Overrides.Values)
+                {
+                    if (annotation["P"] is not PdfReadReference { } holder || holder.ObjectNumber != page) continue;
+                    int marker = temporary--;
+                    holders[marker] = number;
+                    annotation.Set("P", new PdfReadReference(marker, 0));
+                }
+            }
+        }
+
+        // Number every object the pages reach that this document does not hold yet. A rewritten annotation is always
+        // copied anew, since it depends on which pages are imported and which copy holds it.
+        var copied = new Dictionary<int, int>();
+        var order = new List<int>();
+        var pending = new Stack<PdfReadValue>();
+        foreach (var (index, _) in round)
+        {
+            foreach (var (_, value) in PageEntries(_file.Pages[index], rewrites[index])) pending.Push(value);
+        }
+        while (pending.Count > 0)
+        {
+            switch (pending.Pop())
+            {
+                case PdfReadReference reference:
+                    int number = reference.ObjectNumber;
+                    if (number < 0 || removed.Contains(number) || _sourcePages.Contains(number) || copied.ContainsKey(number)) break;
+                    if (overrides.TryGetValue(number, out var rewritten))
+                    {
+                        copied[number] = next++;
+                        order.Add(number);
+                        pending.Push(rewritten);
+                        break;
+                    }
+                    if (shared.ContainsKey(number)) break;
+                    var target = Source(number, table, trimmer);
+                    if (IsPageTreeNode(target)) break;
+                    copied[number] = next++;
+                    order.Add(number);
+                    pending.Push(target);
+                    break;
+                case PdfReadArray array:
+                    foreach (var item in array.Items) pending.Push(item);
+                    break;
+                case PdfReadDictionary dictionary:
+                    foreach (var key in dictionary.Keys) pending.Push(dictionary[key]!);
+                    break;
+                case PdfReadStream stream:
+                    pending.Push(stream.Dictionary);
+                    break;
+            }
+        }
+
+        int? Map(int source) =>
+            source < 0 ? (added.TryGetValue(source, out var stream) ? stream.Number : holders.TryGetValue(source, out int holder) ? holder : null)
+            : removed.Contains(source) ? null
+            : pageMap.TryGetValue(source, out int page) ? page
+            : copied.TryGetValue(source, out int own) ? own
+            : shared.TryGetValue(source, out int sharedCopy) ? sharedCopy
+            : null;
+
+        foreach (var (index, number) in round)
+            objects.Add(new PdfRawObject(number, PageBody(_file.Pages[index], rewrites[index], Map)));
+        foreach (var (number, data) in added.Values)
+            objects.Add(new PdfRawObject(number, Encoding.ASCII.GetBytes($"<< /Length {data.Length.ToString(CultureInfo.InvariantCulture)} >>"), data));
+        foreach (int source in order)
+        {
+            bool isRewritten = overrides.TryGetValue(source, out var rewritten);
+            PdfReadValue value = isRewritten ? rewritten! : Source(source, table, trimmer);
+            objects.Add(Copy(copied[source], value, Map));
+            if (!isRewritten && !ReferencesPage(value))
+            {
+                shareable[source] = copied[source];
+                shared[source] = copied[source];
+            }
+        }
+        return next;
     }
 
     private static bool IsPageTreeNode(PdfReadValue value) =>
@@ -228,6 +304,31 @@ internal sealed class PageImporter
         PdfReadStream stream => ReferencesPage(stream.Dictionary),
         _ => false,
     };
+
+    // The value copied for a source object: its trimmed copy when the trimmer made one, else the object itself.
+    private static PdfReadValue Source(int number, PdfObjectTable table, ResourceTrimmer? trimmer) =>
+        trimmer is not null && trimmer.Overrides.TryGetValue(number, out var trimmed) ? trimmed : table.Get(number);
+
+    // Replaces the page's resources with the trimmed copy, unless its content cannot be read.
+    private void Trim(PdfSourcePage page, PageRewrite rewrite, ResourceTrimmer trimmer)
+    {
+        var table = _file.Source.Objects;
+        var resources = rewrite.Resources ?? (page.Inherited.TryGetValue("Resources", out var inherited) ? inherited : null);
+        var annotations = new List<PdfReadDictionary>();
+        if (rewrite.Annots is PdfReadArray kept)
+        {
+            foreach (var item in kept.Items)
+            {
+                var annotation = item is PdfReadReference reference && rewrite.Overrides.TryGetValue(reference.ObjectNumber, out var copy)
+                    ? copy
+                    : table.Resolve(item) as PdfReadDictionary;
+                if (annotation is not null) annotations.Add(annotation);
+            }
+        }
+
+        var trimmed = trimmer.TrimPage(resources, page.Dictionary["Contents"], rewrite.NewStreams.Values, annotations);
+        if (!ReferenceEquals(trimmed, resources)) rewrite.Resources = trimmed;
+    }
 
     #endregion
 

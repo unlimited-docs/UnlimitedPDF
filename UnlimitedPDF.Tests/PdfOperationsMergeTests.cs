@@ -102,18 +102,21 @@ public class PdfOperationsMergeTests
         Assert.All(expected, name => Assert.Contains(name, types));
         Assert.True(typeof(PdfOperations).IsAbstract && typeof(PdfOperations).IsSealed, "PdfOperations is a static class.");
 
-        var addPages = typeof(PdfDocument).GetMethod(nameof(PdfDocument.AddPages))!;
+        var addPages = typeof(PdfDocument).GetMethod(nameof(PdfDocument.AddPages), new[] { typeof(PdfFile), typeof(int?), typeof(int?), typeof(string) })!;
         Assert.Equal(new[] { "file", "firstPage", "lastPage", "bookmarkTitle" }, addPages.GetParameters().Select(p => p.Name));
         Assert.Equal(new[] { "FromBytes", "FromFile", "FromFileAsync", "FromStream", "FromStreamAsync" },
             typeof(PdfFile).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).Where(m => !m.IsSpecialName).Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
-        // Merge, plus the split operations (PR-017, WR-037) and the HTML conversion (WR-038) added beside it.
-        Assert.Equal(new[] { "ConvertHtml", "ConvertHtml", "ConvertHtmlAsync", "ConvertHtmlAsync", "Merge", "Merge", "MergeAsync", "MergeAsync", "Split", "Split", "Split", "Split", "SplitAsync", "SplitAsync", "SplitAsync", "SplitAsync" },
+        // Merge, plus the split operations (PR-017, WR-037), the HTML conversion (WR-038), and extract and remove
+        // (WR-040) added beside it.
+        Assert.Equal(new[] { "ConvertHtml", "ConvertHtml", "ConvertHtmlAsync", "ConvertHtmlAsync", "Extract", "Extract", "ExtractAsync", "ExtractAsync", "Merge", "Merge", "MergeAsync", "MergeAsync", "Remove", "Remove", "RemoveAsync", "RemoveAsync", "Split", "Split", "Split", "Split", "SplitAsync", "SplitAsync", "SplitAsync", "SplitAsync" },
             typeof(PdfOperations).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).Select(m => m.Name).OrderBy(n => n, StringComparer.Ordinal));
         Assert.Equal(new[] { "Damaged", "Empty", "Encrypted", "TooLarge" }, Enum.GetNames(typeof(PdfFileErrorReason)).OrderBy(n => n, StringComparer.Ordinal));
 
         foreach (var method in typeof(PdfOperations).GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly).Append(addPages))
         {
-            Assert.Equal("1.0.0", method.GetCustomAttributes().First(a => a.GetType().Name == "AddedVersionAttribute").GetType().GetProperty("Version")!.GetValue(method.GetCustomAttributes().First(a => a.GetType().Name == "AddedVersionAttribute")));
+            // Extract and remove shipped in 1.1.0 (WR-040); everything else here in 1.0.0.
+            string expectedVersion = method.Name.StartsWith("Extract", StringComparison.Ordinal) || method.Name.StartsWith("Remove", StringComparison.Ordinal) ? "1.1.0" : "1.0.0";
+            Assert.Equal(expectedVersion, method.GetCustomAttributes().First(a => a.GetType().Name == "AddedVersionAttribute").GetType().GetProperty("Version")!.GetValue(method.GetCustomAttributes().First(a => a.GetType().Name == "AddedVersionAttribute")));
             Assert.NotNull(method.GetCustomAttribute<DescriptionAttribute>());
         }
     }

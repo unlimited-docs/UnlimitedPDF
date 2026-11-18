@@ -122,21 +122,27 @@ public class MergePlaygroundTests
     }
 
     [Theory]
-    [InlineData("", "Enter the pages")]
-    [InlineData(" , ", "Enter the pages")]
-    [InlineData("3-", "'3-' is not a page")]
-    [InlineData("a", "'a' is not a page")]
-    [InlineData("0", "'0' is not a page")]
-    [InlineData("1-2-3", "'1-2-3' is not a page")]
-    [InlineData("4-2", "runs backwards; write 2-4")]
-    [InlineData("2, 9", "Page 9 is past the last page (5)")]
+    [InlineData("", "The text holds no page numbers.")]
+    [InlineData(" , ", "Item 1 is empty; page numbers are separated by single commas.")]
+    [InlineData("3-", "Item 1 (\"3-\") is not a page number or a range such as 7-9.")]
+    [InlineData("a", "Item 1 (\"a\") is not a page number or a range such as 7-9.")]
+    [InlineData("0", "Item 1 (\"0\") has page 0; page numbers start at 1.")]
+    [InlineData("1-2-3", "Item 1 (\"1-2-3\") is not a page number or a range such as 7-9.")]
+    [InlineData("2, 9", "First page: the first page must be from 1 to 5.")]
     public void Pick_pages_rejects_an_invalid_list_and_builds_nothing(string pages, string message)
     {
+        // The demo reads its text with PdfPageRange.Parse (PR-017), so its messages are the library's (WR-040).
         var input = new PickPagesInput { File = new MergeFileInput("five.pdf", File(5)), Pages = pages };
 
-        var error = Assert.Throws<InvalidOperationException>(() => PickPagesSample.Build(input));
+        Assert.Equal(message, ErrorText.Plain(Record.Exception(() => PickPagesSample.Build(input))!));
+    }
 
-        Assert.Contains(message, error.Message, StringComparison.Ordinal);
+    [Fact]
+    public void Pick_pages_reads_a_descending_range_in_that_order()
+    {
+        var pdf = Save(PickPagesSample.Build(new PickPagesInput { File = new MergeFileInput("five.pdf", File(5)), Pages = "4-2" }));
+
+        Assert.Equal(new[] { "Page 4", "Page 3", "Page 2" }, ImportedPagesTests.PageTexts(PdfFile.FromBytes(pdf)));
     }
 
     #endregion
