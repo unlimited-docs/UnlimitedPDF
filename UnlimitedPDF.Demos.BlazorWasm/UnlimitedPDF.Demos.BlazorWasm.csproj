@@ -47,12 +47,14 @@
       <Folder ParameterType="System.String" Required="true" />
       <Template ParameterType="System.String" Required="true" />
     </ParameterGroup>
+    <!-- Forward slashes: these paths reach file reads as plain strings, and on Linux (the CI runner) a backslash is
+         part of the file name, not a folder separator (QF-26111801). -->
     <Task>
-      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)Build\WriteImportMapHash.cs" />
+      <Code Type="Class" Language="cs" Source="$(MSBuildThisFileDirectory)Build/WriteImportMapHash.cs" />
     </Task>
   </UsingTask>
 
   <Target Name="WriteImportMapHashAfterPublish" AfterTargets="Publish">
-    <WriteImportMapHash Folder="$(PublishDir)wwwroot" Template="$(MSBuildThisFileDirectory)wwwroot\staticwebapp.config.json" />
+    <WriteImportMapHash Folder="$(PublishDir)wwwroot" Template="$(MSBuildThisFileDirectory)wwwroot/staticwebapp.config.json" />
   </Target>
 </Project>
