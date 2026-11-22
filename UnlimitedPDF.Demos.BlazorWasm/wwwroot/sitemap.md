@@ -7,6 +7,7 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 - [UnlimitedPDF: C# PDF library for .NET, with live demos](https://unlimitedpdf.dev/): Try UnlimitedPDF, the C# PDF library for .NET, in your browser: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF.
 - [C# PDF examples by scenario](https://unlimitedpdf.dev/playground): Every UnlimitedPDF demo by capability and business domain: invoices, statements, payslips, merge, split, HTML to PDF, and languages, with C# code.
 - [UnlimitedPDF FAQ: C# and .NET PDF library questions](https://unlimitedpdf.dev/faq): Answers about the UnlimitedPDF C# PDF library: install, .NET versions, Blazor WebAssembly, fonts, tables, images, merge, split, HTML to PDF, and license.
+- [Free PDF tools: merge, split, convert](https://unlimitedpdf.dev/tools): Merge, split, and convert your own files for free. Built with UnlimitedPDF, running in your browser: nothing is uploaded.
 
 ## Create PDFs
 
@@ -54,3 +55,12 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 - [Create a PDF medical report in C#](https://unlimitedpdf.dev/playground/documents/medical-report): A laboratory report with patient details, results, reference ranges, and flags.
 - [Create a PDF KPI report with bar charts in C#](https://unlimitedpdf.dev/playground/documents/kpi-report): Headline figures and a bar chart of monthly revenue, drawn from rectangles on one page.
 - [Print PDF shipping labels on A4 sheets in C#](https://unlimitedpdf.dev/playground/documents/shipping-labels): Address labels on A4 sheets of three by seven, outlined for cutting and ready to print.
+
+## Free PDF tools
+
+- [Merge PDF files free, in your browser](https://unlimitedpdf.dev/tools/merge): Join several PDFs into one, in the order you choose, right in your browser.
+- [Convert JPG and PNG images to PDF free, in your browser](https://unlimitedpdf.dev/tools/images-to-pdf): Turn JPG and PNG pictures into one PDF, one picture per page.
+- [Split a PDF into several files free, in your browser](https://unlimitedpdf.dev/tools/split): Cut one PDF into several files, every few pages or at the page ranges you type.
+- [Extract pages from a PDF free, in your browser](https://unlimitedpdf.dev/tools/extract-pages): Get a new PDF with only the pages you pick, right in your browser.
+- [Remove pages from a PDF free, in your browser](https://unlimitedpdf.dev/tools/remove-pages): Delete the pages you don't need and keep the rest, in order, right in your browser.
+- [Convert HTML to PDF free, in your browser](https://unlimitedpdf.dev/tools/html-to-pdf): Paste HTML or choose an .html file, add the pictures it uses, and get a PDF.

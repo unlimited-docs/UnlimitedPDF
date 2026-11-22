@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
+using UnlimitedPDF.Demos.BlazorWasm.Services.Tools;
 
 namespace UnlimitedPDF.Tests;
 
@@ -118,11 +119,13 @@ public class PageTitleTests
         Assert.StartsWith("> ", lines.First(l => l.Length > 0 && l != lines[0]), StringComparison.Ordinal);
         Assert.All(AllDemos(), d => Assert.Contains($"- [{d.PageTitle}]({SiteLinks.For(d.Route)}): {d.Description}\n", text, StringComparison.Ordinal));
         Assert.Contains($"]({SiteLinks.For("faq")})", text, StringComparison.Ordinal);
+        Assert.All(ToolCatalog.All, t => Assert.Contains($"- [{t.PageTitle}]({SiteLinks.For(t.Route)}): {t.Subtitle}\n", text, StringComparison.Ordinal));
+        Assert.Contains($"]({SiteLinks.For(ToolCatalog.HubRoute)}): {ToolCatalog.HubSubtitle}\n", text, StringComparison.Ordinal);
 
         // Every link is absolute, because agents often keep the text without the file's own address (QF-26111204).
         // Site links are pages the app has or its Markdown site map; the rest point at the project's own GitHub and
         // NuGet pages.
-        var routes = AllDemos().Select(d => d.Route).Concat(["faq", "playground", "", "sitemap.md"]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
+        var routes = AllDemos().Select(d => d.Route).Concat(ToolCatalog.All.Select(t => t.Route)).Concat(["faq", "playground", "", "sitemap.md", ToolCatalog.HubRoute]).Select(SiteLinks.For).ToHashSet(StringComparer.Ordinal);
         foreach (Match link in Regex.Matches(text, @"\]\(([^)]+)\)"))
         {
             var target = link.Groups[1].Value;

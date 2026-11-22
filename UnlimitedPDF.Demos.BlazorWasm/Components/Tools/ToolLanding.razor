@@ -1,0 +1,130 @@
+@using UnlimitedPDF.Demos.BlazorWasm.Services.Tools
+@* A tool's landing (26112201 AC-04, D-007): the large title and subtitle, one large upload button on a soft band with a
+   menu for sample files, the privacy and limits lines, then the numbered how-to, the C# that does the same, and the
+   link to the matching scenario. *@
+<section class="tool-landing" aria-labelledby="tool-heading">
+    <div class="tool-hero">
+        <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
+        <p class="tool-subtitle">@Tool.Subtitle</p>
+    </div>
+
+    <div class="tool-band">
+        <div class="tool-upload">
+            <button type="button" class="btn btn-lg btn-cta tool-upload-button" aria-describedby="tool-limits" disabled="@Busy" @onclick="OnChoose">
+                <Icon Name="upload" Size="22" /> @ChooseLabel
+            </button>
+            <details class="tool-upload-more">
+                <summary class="btn btn-lg btn-cta" aria-label="More ways to add files"><Icon Name="chevron" Size="18" /></summary>
+                <div class="tool-upload-menu">
+                    <button type="button" class="btn btn-text" disabled="@Busy" @onclick="OnSample">@SampleLabel</button>
+                    @MenuItems
+                </div>
+            </details>
+        </div>
+        <p class="tool-drop-hint">or drop @(Single ? "it" : "them") anywhere on this page</p>
+
+        @if (Busy)
+        {
+            <p class="tool-reading" role="status"><span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span> Reading your @(Single ? "file" : "files")...</p>
+        }
+
+        @if (Errors.Count > 0)
+        {
+            <div class="error-box tool-file-errors" role="alert">
+                @foreach (var error in Errors)
+                {
+                    <p>@error</p>
+                }
+            </div>
+        }
+
+        <p class="tool-privacy"><Icon Name="check" Size="16" /> @ToolLimits.PrivacyLine</p>
+        <p class="tool-limits" id="tool-limits">Free, no sign-up. @LimitsLine</p>
+    </div>
+
+    <div class="section tool-how">
+        <h2 class="section-title is-centered">How to @HowToTask</h2>
+        <ol class="tool-steps">
+            @for (int i = 0; i < Tool.Steps.Count; i++)
+            {
+                var step = Tool.Steps[i];
+                <li class="panel tool-step">
+                    <span class="tool-step-number" aria-hidden="true">@(i + 1)</span>
+                    <h3>@step.Title</h3>
+                    <p>@step.Text</p>
+                </li>
+            }
+        </ol>
+
+        <h2 class="section-title is-centered tool-code-title">Do the same in your .NET app</h2>
+        <div class="tool-code">
+            <CodeView Source="@Code" AriaLabel="@($"C# for {Tool.Name}")" />
+            <p class="tool-install">Install with <code>dotnet add package UnlimitedPDF</code>.</p>
+            <a class="tool-scenario-link" href="@Tool.Scenario.Route">
+                <Icon Name="code" Size="18" /> Change the data and the code live: <strong>@Tool.Scenario.Title scenario</strong> <Icon Name="arrow" Size="16" />
+            </a>
+        </div>
+    </div>
+</section>
+
+@code {
+    /// <summary>
+    /// Gets or sets whether files are being read.
+    /// </summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the large button's text, for example "Choose PDF files".
+    /// </summary>
+    [Parameter, EditorRequired] public string ChooseLabel { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the code shown under the how-to.
+    /// </summary>
+    [Parameter, EditorRequired] public string Code { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the messages for files that were refused.
+    /// </summary>
+    [Parameter] public IReadOnlyList<string> Errors { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the task the how-to names after "How to", for example "merge PDF files".
+    /// </summary>
+    [Parameter, EditorRequired] public string HowToTask { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the limits line.
+    /// </summary>
+    [Parameter, EditorRequired] public string LimitsLine { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets more items for the menu beside the large button, for example "Paste HTML instead".
+    /// </summary>
+    [Parameter] public RenderFragment? MenuItems { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback for the large button.
+    /// </summary>
+    [Parameter] public EventCallback OnChoose { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback for the sample files item.
+    /// </summary>
+    [Parameter] public EventCallback OnSample { get; set; }
+
+    /// <summary>
+    /// Gets or sets the sample files item's text, for example "Use two sample PDFs".
+    /// </summary>
+    [Parameter, EditorRequired] public string SampleLabel { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets whether the tool takes one file, which changes "them" to "it".
+    /// </summary>
+    [Parameter] public bool Single { get; set; }
+
+    /// <summary>
+    /// Gets or sets the tool.
+    /// </summary>
+    [Parameter, EditorRequired] public PdfTool Tool { get; set; } = default!;
+}

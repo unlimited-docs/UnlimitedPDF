@@ -1,0 +1,136 @@
+@page "/tools/split"
+@inherits SingleFileToolBase
+@* Split PDF (26112201 AC-04, D-007): landing, then every page with the cuts marked for every N pages or typed ranges,
+   then each part with its own download and all of them as one zip. *@
+
+<PageTitle>@Tool.DocumentTitle</PageTitle>
+<PageDescription Text="@Tool.Subtitle" />
+<CanonicalLink Path="@Tool.Route" />
+
+<InputFile @ref="FileInput" class="visually-hidden" tabindex="-1" aria-hidden="true" accept=".pdf,application/pdf" OnChange="OnFilesAsync" />
+
+@switch (Step)
+{
+    case ToolPageStep.Landing:
+        <ToolLanding Tool="Tool" ChooseLabel="Choose a PDF file" SampleLabel="Use a sample PDF" HowToTask="split a PDF" Single="true"
+                     LimitsLine="@ToolLimits.SinglePdfLimitsLine" Code="@ToolCode.SplitEvery()" Busy="Busy" Errors="FileErrors"
+                     OnChoose="ChooseFilesAsync" OnSample="UseSample" />
+        break;
+
+    case ToolPageStep.Workspace when File is { } file && Selection is { } ranges:
+        <section class="tool-workspace" aria-labelledby="tool-heading">
+            <div class="tool-workspace-head">
+                <div>
+                    <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
+                    <p class="tool-workspace-meta">@FileLine</p>
+                </div>
+                <div class="tool-workspace-tools">
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@Busy" @onclick="ChooseFilesAsync"><Icon Name="upload" Size="16" /> Use another PDF</button>
+                </div>
+            </div>
+            <ToolFileErrors Errors="FileErrors" Busy="Busy" />
+            <p class="tool-workspace-limits" role="status">@PartsLine(file.Value)</p>
+            <PageGrid File="file.Value" Mode="PageGridMode.Cut" CutAfter="Cuts(file.Value)" Label="@($"Pages of {file.Name}, with the cuts marked")" />
+        </section>
+        <ToolActionBar ActionLabel="@($"Split into {CountText(PartCount(file.Value), "file")}")" Busy="Busy" CanRun="@(Why(file.Value) is null)"
+                       Error="@(RunError ?? Why(file.Value))" OnRun="SplitAsync" OnStartOver="StartOverAsync">
+            <div class="tool-option">
+                <span class="field-label" id="split-how">How to split</span>
+                <div class="segmented" role="group" aria-labelledby="split-how">
+                    <button type="button" aria-pressed="@(_byRanges ? "false" : "true")" @onclick="() => _byRanges = false">Every N pages</button>
+                    <button type="button" aria-pressed="@(_byRanges ? "true" : "false")" @onclick="() => _byRanges = true">Page ranges</button>
+                </div>
+            </div>
+            @if (_byRanges)
+            {
+                <div class="tool-option">
+                    <label for="split-ranges">Ranges, one file each</label>
+                    <input id="split-ranges" class="form-control" value="@ranges.Text" placeholder="1-2, 3-7" aria-describedby="split-ranges-hint"
+                           @onchange="e => ranges.SetText(e.Value?.ToString())" spellcheck="false" />
+                    <p class="tool-option-hint" id="split-ranges-hint">For example 1-2, 3-7. Ranges may overlap.</p>
+                </div>
+            }
+            else
+            {
+                <div class="tool-option">
+                    <label for="split-every">Pages in each file</label>
+                    <input id="split-every" class="form-control" type="number" inputmode="numeric" min="1" max="@file.Value.PageCount" @bind="_every" />
+                </div>
+            }
+        </ToolActionBar>
+        break;
+
+    case ToolPageStep.Done:
+        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="@(_byRanges ? SampleCatalog.SplitRanges : SampleCatalog.SplitEveryN)"
+                  Heading="@($"Your {CountText(Result!.Files.Count, "file")} are ready")"
+                  OnDownload="DownloadAsync" OnOpen="OpenAsync" OnDownloadAll="@(() => DownloadAllAsync($"{Stem}-parts.zip"))">
+            <Back>
+                <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Split differently</button>
+                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Use another file</button>
+            </Back>
+        </ToolDone>
+        break;
+}
+
+@code {
+    private bool _byRanges;
+    private int _every = 1;
+
+    private static PdfTool Tool => ToolCatalog.Split;
+
+    private HashSet<int> Cuts(PdfFile file)
+    {
+        if (!_byRanges) return Enumerable.Range(1, file.PageCount).Where(p => _every >= 1 && p % _every == 0).ToHashSet();
+        return Selection is { IsUsable: true } ? Parts(Selection.Text).Select(r => Math.Max(r.FirstPage, r.LastPage)).ToHashSet() : [];
+    }
+
+    private int PartCount(PdfFile file) =>
+        _byRanges
+            ? Selection is { IsUsable: true } ? Parts(Selection.Text).Count : 0
+            : _every >= 1 ? (file.PageCount + _every - 1) / _every : 0;
+
+    private static IReadOnlyList<PdfPageRange> Parts(string text) => PdfPageRange.Parse(text);
+
+    private string PartsLine(PdfFile file) =>
+        PartCount(file) == 0 ? "No parts yet." : $"{CountText(PartCount(file), "file")} from {CountText(file.PageCount, "page")}. The cuts are marked between pages.";
+
+    private string? Why(PdfFile file)
+    {
+        if (_byRanges)
+        {
+            if (Selection is null || Selection.Count == 0) return Selection?.Error ?? "Type at least one page range.";
+            return Selection.Error;
+        }
+
+        if (_every < 1) return "Each file needs at least one page.";
+        return _every > file.PageCount ? $"This PDF has {CountText(file.PageCount, "page")}; pick {file.PageCount} or fewer." : null;
+    }
+
+    /// <inheritdoc />
+    protected override void Reset()
+    {
+        base.Reset();
+        if (File is { } file)
+        {
+            // Two halves to start with: the first half, rounded up, and the rest.
+            int pages = file.Value.PageCount;
+            int half = (pages + 1) / 2;
+            _every = half;
+            Selection!.SetText(pages == 1 ? "1" : $"1-{half}, {half + 1}-{pages}");
+        }
+    }
+
+    private Task SplitAsync()
+    {
+        var file = File!;
+        string stem = Stem;
+        if (_byRanges)
+        {
+            string text = Selection!.Text;
+            return RunAsync(() => ToolOperations.SplitRangesAsync(file.Value, text, stem), () => ToolCode.SplitRanges(file.Name, text));
+        }
+
+        int every = _every;
+        return RunAsync(() => ToolOperations.SplitEveryAsync(file.Value, every, stem), () => ToolCode.SplitEvery(file.Name, every));
+    }
+}

@@ -43,6 +43,28 @@
     </div>
 </section>
 
+@* The free tools on their own files (26112201 AC-07, D-004): one tile per tool, each opening its page, and all tools. *@
+<section class="section home-section" aria-labelledby="home-tools-title">
+    <div class="home-tools">
+        <div class="home-tools-head">
+            <h2 id="home-tools-title">Try it on your own files</h2>
+            <p><Icon Name="check" Size="16" /> Runs in your browser. Nothing is uploaded.</p>
+            <a href="@ToolCatalog.HubRoute">All tools <Icon Name="arrow" Size="16" /></a>
+        </div>
+        <ul class="home-tools-list">
+            @foreach (var tool in ToolCatalog.All)
+            {
+                <li>
+                    <a class="home-tool" href="@tool.Route">
+                        <span class="tool-card-icon" aria-hidden="true"><Icon Name="@tool.Icon" Size="18" /></span>
+                        <span>@tool.Name<small>@tool.Description</small></span>
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+</section>
+
 <section class="section home-section" aria-labelledby="why-title">
     <h2 id="why-title" class="section-title is-centered">Why UnlimitedPDF</h2>
     <ul class="benefits">

@@ -1,0 +1,17 @@
+@* A scenario's link to the free tool that does the same on the visitor's own files, under its description; nothing
+   for a scenario no tool matches (26112201 AC-07, D-004). *@
+@if (ToolCatalog.ForScenario(Demo) is { } tool)
+{
+    <a class="scenario-tool-link" href="@tool.Route">
+        <Icon Name="@tool.Icon" Size="18" />
+        <span>Want this for your own files, with no code? <strong>Use the free @tool.Name tool</strong></span>
+        <Icon Name="arrow" Size="16" />
+    </a>
+}
+
+@code {
+    /// <summary>
+    /// Gets or sets the scenario.
+    /// </summary>
+    [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
+}

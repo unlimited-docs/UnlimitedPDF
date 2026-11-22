@@ -1,5 +1,5 @@
-using System.IO.Compression;
 using UnlimitedPDF;
+using UnlimitedPDF.Demos.BlazorWasm.Services;
 
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
@@ -30,19 +30,8 @@ public sealed record SplitPartFile(PdfSplitPart Part, byte[] Bytes)
     /// </summary>
     /// <param name="parts">The parts to pack.</param>
     /// <returns>The zip file's bytes.</returns>
-    public static byte[] Zip(IEnumerable<SplitPartFile> parts)
-    {
-        using var output = new MemoryStream();
-        using (var zip = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true))
-        {
-            foreach (var part in parts)
-            {
-                using var entry = zip.CreateEntry(part.Part.FileName, CompressionLevel.Fastest).Open();
-                entry.Write(part.Bytes);
-            }
-        }
-        return output.ToArray();
-    }
+    public static byte[] Zip(IEnumerable<SplitPartFile> parts) =>
+        ZipBuilder.Zip(parts.Select(part => (part.Part.FileName, part.Bytes)));
 
     #endregion
 

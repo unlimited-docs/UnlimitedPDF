@@ -134,6 +134,21 @@
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\Inputs\LanguageInvoiceLine.cs" Link="Demo\Samples\Inputs\LanguageInvoiceLine.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\UploadedFontLoader.cs" Link="Demo\Services\UploadedFontLoader.cs" />
     <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\BundledFonts.cs" Link="Demo\Services\BundledFonts.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\PdfTool.cs" Link="Demo\Services\Tools\PdfTool.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\ToolCatalog.cs" Link="Demo\Services\Tools\ToolCatalog.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\ToolLimits.cs" Link="Demo\Services\Tools\ToolLimits.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\ToolFileSet.cs" Link="Demo\Services\Tools\ToolFileSet.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\ToolResult.cs" Link="Demo\Services\Tools\ToolResult.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\ToolOperations.cs" Link="Demo\Services\Tools\ToolOperations.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\HtmlPictureScan.cs" Link="Demo\Services\Tools\HtmlPictureScan.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\SafeFileName.cs" Link="Demo\Services\Tools\SafeFileName.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\ToolCode.cs" Link="Demo\Services\Tools\ToolCode.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\Tools\PageSelection.cs" Link="Demo\Services\Tools\PageSelection.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Samples\ToolSnippets.cs" Link="Demo\Samples\ToolSnippets.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\ZipBuilder.cs" Link="Demo\Services\ZipBuilder.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\UploadedPdfLoader.cs" Link="Demo\Services\UploadedPdfLoader.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\UploadedImageLoader.cs" Link="Demo\Services\UploadedImageLoader.cs" />
+    <Compile Include="..\UnlimitedPDF.Demos.BlazorWasm\Services\UploadResult.cs" Link="Demo\Services\UploadResult.cs" />
   </ItemGroup>
 
 </Project>

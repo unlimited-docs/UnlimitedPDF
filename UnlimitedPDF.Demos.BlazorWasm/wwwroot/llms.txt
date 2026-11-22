@@ -78,6 +78,16 @@ pdfDocument.Save("sample.pdf");
 - [Create a PDF KPI report with bar charts in C#](https://unlimitedpdf.dev/playground/documents/kpi-report): Headline figures and a bar chart of monthly revenue, drawn from rectangles on one page.
 - [Print PDF shipping labels on A4 sheets in C#](https://unlimitedpdf.dev/playground/documents/shipping-labels): Address labels on A4 sheets of three by seven, outlined for cutting and ready to print.
 
+## Free PDF tools
+
+- [Free PDF tools: merge, split, convert](https://unlimitedpdf.dev/tools): Merge, split, and convert your own files for free. Built with UnlimitedPDF, running in your browser: nothing is uploaded.
+- [Merge PDF files free, in your browser](https://unlimitedpdf.dev/tools/merge): Join several PDFs into one, in the order you choose, right in your browser.
+- [Convert JPG and PNG images to PDF free, in your browser](https://unlimitedpdf.dev/tools/images-to-pdf): Turn JPG and PNG pictures into one PDF, one picture per page.
+- [Split a PDF into several files free, in your browser](https://unlimitedpdf.dev/tools/split): Cut one PDF into several files, every few pages or at the page ranges you type.
+- [Extract pages from a PDF free, in your browser](https://unlimitedpdf.dev/tools/extract-pages): Get a new PDF with only the pages you pick, right in your browser.
+- [Remove pages from a PDF free, in your browser](https://unlimitedpdf.dev/tools/remove-pages): Delete the pages you don't need and keep the rest, in order, right in your browser.
+- [Convert HTML to PDF free, in your browser](https://unlimitedpdf.dev/tools/html-to-pdf): Paste HTML or choose an .html file, add the pictures it uses, and get a PDF.
+
 ## Optional
 
 - [Site map](https://unlimitedpdf.dev/sitemap.md): every page of the site with its title and description.

@@ -1,0 +1,187 @@
+@page "/tools/images-to-pdf"
+@inherits ToolPageBase
+@inject HttpClient Http
+@* Images to PDF (26112201 AC-04, D-007): landing, then picture cards in page order with the page size and fit, then
+   one PDF with a picture on each page. Pictures keep the tools' limits: 10 MB, JPEG 50 MP, PNG 4096 x 4096 (D-008). *@
+
+<PageTitle>@Tool.DocumentTitle</PageTitle>
+<PageDescription Text="@Tool.Subtitle" />
+<CanonicalLink Path="@Tool.Route" />
+
+<InputFile @ref="FileInput" class="visually-hidden" tabindex="-1" aria-hidden="true" multiple accept=".jpg,.jpeg,.png,image/jpeg,image/png" OnChange="OnFilesAsync" />
+
+@switch (Step)
+{
+    case ToolPageStep.Landing:
+        <ToolLanding Tool="Tool" ChooseLabel="Choose pictures" SampleLabel="Use two sample pictures" HowToTask="turn pictures into a PDF"
+                     LimitsLine="@ToolLimits.PictureLimitsLine" Code="@ToolCode.ImagesToPdf()" Busy="Busy" Errors="FileErrors"
+                     OnChoose="ChooseFilesAsync" OnSample="UseSamplesAsync" />
+        break;
+
+    case ToolPageStep.Workspace:
+        <section class="tool-workspace" aria-labelledby="tool-heading">
+            <div class="tool-workspace-head">
+                <div>
+                    <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
+                    <p class="tool-workspace-meta" role="status">@CountText(_pictures.Count, "picture") · @SizeText(_pictures.TotalBytes)</p>
+                </div>
+                <div class="tool-workspace-tools">
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@(_pictures.Count < 2)" @onclick="_pictures.SortByName">Sort A to Z</button>
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@Busy" @onclick="ChooseFilesAsync"><Icon Name="upload" Size="16" /> Add more pictures</button>
+                </div>
+            </div>
+            <ToolFileErrors Errors="FileErrors" Busy="Busy" />
+            <FileCards T="ToolPicture" Files="_pictures.Files" Label="Your pictures, one per page in this order" Meta="Meta"
+                       AddLabel="Add pictures" OnAdd="ChooseFilesAsync" OnMove="m => _pictures.Move(m.From, m.To)" OnRemove="RemoveAsync">
+                <Picture Context="picture"><img src="@picture.Value.Url" alt="" /></Picture>
+            </FileCards>
+            <p class="tool-workspace-limits">@ToolLimits.PictureLimitsLine</p>
+        </section>
+        <ToolActionBar ActionLabel="@($"Make a PDF from {CountText(_pictures.Count, "picture")}")" Busy="Busy" CanRun="@(_pictures.Count > 0)"
+                       Error="@RunError" Hint="@(_pictures.Count == 0 ? "Add at least one picture." : null)" OnRun="MakeAsync" OnStartOver="StartOverAsync">
+            <div class="tool-option">
+                <span class="field-label" id="images-size">Page size</span>
+                <div class="segmented" role="group" aria-labelledby="images-size">
+                    <button type="button" aria-pressed="@(_size == PdfPageSize.A4 ? "true" : "false")" @onclick="() => _size = PdfPageSize.A4">A4</button>
+                    <button type="button" aria-pressed="@(_size == PdfPageSize.Letter ? "true" : "false")" @onclick="() => _size = PdfPageSize.Letter">Letter</button>
+                </div>
+            </div>
+            <div class="tool-option">
+                <span class="field-label" id="images-fit">Picture on the page</span>
+                <div class="segmented" role="group" aria-labelledby="images-fit">
+                    <button type="button" aria-pressed="@(_fit == PictureFit.InsideMargins ? "true" : "false")" @onclick="() => _fit = PictureFit.InsideMargins">Inside margins</button>
+                    <button type="button" aria-pressed="@(_fit == PictureFit.EdgeToEdge ? "true" : "false")" @onclick="() => _fit = PictureFit.EdgeToEdge">Edge to edge</button>
+                </div>
+            </div>
+            <div class="tool-option">
+                <label for="images-name">Save as</label>
+                <input id="images-name" class="form-control" @bind="_name" spellcheck="false" />
+            </div>
+        </ToolActionBar>
+        break;
+
+    case ToolPageStep.Done:
+        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+            <Back>
+                <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Change the pictures or options</button>
+                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Start with other pictures</button>
+            </Back>
+        </ToolDone>
+        break;
+}
+
+@code {
+    private readonly ToolFileSet<ToolPicture> _pictures = new();
+    private PictureFit _fit = PictureFit.InsideMargins;
+    private string _name = "pictures";
+    private PdfPageSize _size = PdfPageSize.A4;
+
+    private static PdfTool Tool => ToolCatalog.ImagesToPdf;
+
+    /// <summary>
+    /// A picture the visitor added: the loaded image and a browser URL for its card.
+    /// </summary>
+    /// <param name="Image">The loaded image.</param>
+    /// <param name="Url">The browser URL of the picture's bytes, revoked when the card goes.</param>
+    public sealed record ToolPicture(PdfImage Image, string Url);
+
+    private static string Meta(ToolFile<ToolPicture> picture) =>
+        $"{picture.Value.Image.PixelWidth} x {picture.Value.Image.PixelHeight} px · {SizeText(picture.Size)}";
+
+    /// <inheritdoc />
+    protected override async ValueTask DisposeToolAsync()
+    {
+        foreach (var picture in _pictures.Files) await Interop.RevokeObjectUrlAsync(picture.Value.Url);
+    }
+
+    private async Task AddAsync(string name, long size, PdfImage image, byte[] bytes)
+    {
+        string type = bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 ? "image/jpeg" : "image/png";
+        _pictures.Add(name, size, new ToolPicture(image, await Interop.CreateObjectUrlAsync(bytes, type)));
+    }
+
+    private Task MakeAsync()
+    {
+        string output = SafeFileName.For(_name, "pictures");
+        var images = _pictures.Files.Select(p => p.Value.Image).ToList();
+        var names = _pictures.Files.Select(p => p.Name).ToList();
+        var (size, fit) = (_size, _fit);
+        return RunAsync(() => ToolOperations.ImagesToPdfAsync(images, size, fit, output), () => ToolCode.ImagesToPdf(names, size, fit, output));
+    }
+
+    private async Task OnFilesAsync(InputFileChangeEventArgs args)
+    {
+        FileErrors.Clear();
+        RunError = null;
+        Busy = true;
+        try
+        {
+            foreach (var file in args.GetMultipleFiles(Math.Max(1, args.FileCount)))
+            {
+                if (_pictures.CheckRoomFor(file.Size) is { } room)
+                {
+                    FileErrors.Add($"{file.Name}: {room}");
+                    continue;
+                }
+
+                var loaded = await UploadedImageLoader.LoadAsync(file, ToolLimits.MaxPictureBytes, ToolLimits.MaxJpegPixels, ToolLimits.MaxPngPixels);
+                if (loaded.Image is null || loaded.Bytes is null)
+                {
+                    FileErrors.Add($"{file.Name}: {loaded.Error}");
+                    continue;
+                }
+
+                await AddAsync(file.Name, file.Size, loaded.Image, loaded.Bytes);
+            }
+        }
+        finally
+        {
+            Busy = false;
+        }
+
+        if (_pictures.Count > 0 && Step == ToolPageStep.Landing) GoTo(ToolPageStep.Workspace);
+    }
+
+    private async Task RemoveAsync(int index)
+    {
+        await Interop.RevokeObjectUrlAsync(_pictures.Files[index].Value.Url);
+        _pictures.RemoveAt(index);
+        if (_pictures.Count == 0) await StartOverAsync();
+    }
+
+    private async Task StartOverAsync()
+    {
+        foreach (var picture in _pictures.Files) await Interop.RevokeObjectUrlAsync(picture.Value.Url);
+        _pictures.Clear();
+        FileErrors.Clear();
+        _name = "pictures";
+        await ClearResultAsync();
+        GoTo(ToolPageStep.Landing);
+    }
+
+    private async Task UseSamplesAsync()
+    {
+        FileErrors.Clear();
+        Busy = true;
+        try
+        {
+            foreach (var picture in _pictures.Files) await Interop.RevokeObjectUrlAsync(picture.Value.Url);
+            _pictures.Clear();
+            foreach (var name in new[] { "unlimitedpdf-demos-hero-800.jpg", "invoice-logo.png" })
+            {
+                byte[] bytes = await Http.GetByteArrayAsync($"images/{name}");
+                await AddAsync(name, bytes.LongLength, PdfImage.FromBytes(bytes), bytes);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            FileErrors.Add("The sample pictures couldn't be loaded. Try your own pictures.");
+        }
+        finally
+        {
+            Busy = false;
+        }
+
+        if (_pictures.Count > 0) GoTo(ToolPageStep.Workspace);
+    }
+}

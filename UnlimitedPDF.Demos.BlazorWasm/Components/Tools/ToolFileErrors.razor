@@ -1,0 +1,26 @@
+@* The files a tool refused, one line each, and the reading state, in a tool's workspace (26112201 AC-08, AC-10). *@
+@if (Busy)
+{
+    <p class="tool-reading" role="status"><span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span> Reading your files...</p>
+}
+@if (Errors.Count > 0)
+{
+    <div class="error-box tool-file-errors" role="alert">
+        @foreach (var error in Errors)
+        {
+            <p>@error</p>
+        }
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Gets or sets whether files are being read.
+    /// </summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the messages for files that were refused.
+    /// </summary>
+    [Parameter] public IReadOnlyList<string> Errors { get; set; } = [];
+}

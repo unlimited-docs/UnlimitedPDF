@@ -1,0 +1,82 @@
+@* A tool's action bar (26112201 AC-04): fixed to the bottom of the view while the workspace scrolls, with the tool's
+   options, Start over, and one button that names what it does. A run that fails shows its message here and keeps the
+   workspace. *@
+<div class="tool-action-bar" role="region" aria-label="Options and action">
+    <div class="tool-action-inner">
+        @if (Error is not null)
+        {
+            <p class="tool-action-error" id="tool-action-note" role="alert">@Error</p>
+        }
+        else if (Hint is not null)
+        {
+            <p class="tool-action-hint" id="tool-action-note" role="status">@Hint</p>
+        }
+        <div class="tool-action-row">
+            <div class="tool-options">@ChildContent</div>
+            <div class="tool-action-buttons">
+                <button type="button" class="btn btn-text" disabled="@Busy" @onclick="OnStartOver">Start over</button>
+                <button type="button" class="btn btn-lg btn-solid theme-primary tool-run" aria-disabled="@(Busy || !CanRun ? "true" : null)"
+                        aria-describedby="@(Error is null && Hint is null ? null : "tool-action-note")" @onclick="RunAsync">
+                    @if (Busy)
+                    {
+                        <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span>
+                        <span>Working...</span>
+                    }
+                    else
+                    {
+                        <span>@ActionLabel</span>
+                        <Icon Name="arrow" Size="18" />
+                    }
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    /// <summary>
+    /// Gets or sets the button's text, naming what it does, for example "Merge 3 files".
+    /// </summary>
+    [Parameter, EditorRequired] public string ActionLabel { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets whether a run is under way.
+    /// </summary>
+    [Parameter] public bool Busy { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the tool has what it needs to run.
+    /// </summary>
+    [Parameter] public bool CanRun { get; set; } = true;
+
+    /// <summary>
+    /// Gets or sets the tool's options.
+    /// </summary>
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Gets or sets the message of a run that failed, or of an entry that can't be used.
+    /// </summary>
+    [Parameter] public string? Error { get; set; }
+
+    /// <summary>
+    /// Gets or sets what the tool still needs before it can run, for example "Pick at least one page.".
+    /// </summary>
+    [Parameter] public string? Hint { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback for the button.
+    /// </summary>
+    [Parameter] public EventCallback OnRun { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback for Start over.
+    /// </summary>
+    [Parameter] public EventCallback OnStartOver { get; set; }
+
+    // The button stays focusable and says why it can't run, rather than being disabled without a reason.
+    private async Task RunAsync()
+    {
+        if (!Busy && CanRun) await OnRun.InvokeAsync();
+    }
+}

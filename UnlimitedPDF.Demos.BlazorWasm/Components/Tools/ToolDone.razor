@@ -1,0 +1,178 @@
+@using System.Globalization
+@using UnlimitedPDF.Demos.BlazorWasm.Services.Tools
+@* A tool's done screen (26112201 AC-04): "Your PDF is ready" with the file's name, pages, size, and time, a large
+   Download, Preview (the site's drawn preview of every page), Open PDF, ways back, and the C# that did it with the
+   visitor's file names and choices. Split lists each part with its own download and "Download all (.zip)". *@
+<section class="tool-done" aria-labelledby="tool-heading">
+    <div class="tool-done-head">
+        <Icon Name="check" Size="34" Class="tool-done-icon" />
+        <h1 id="tool-heading" tabindex="-1">@Heading</h1>
+        <p class="tool-done-meta">@Summary</p>
+        @Note
+    </div>
+
+    @if (Result.Files.Count == 1)
+    {
+        var pdf = Result.Files[0];
+        <div class="tool-done-actions">
+            <button type="button" class="btn btn-lg btn-cta tool-download" @onclick="() => OnDownload.InvokeAsync(pdf)">
+                <Icon Name="download" Size="22" /> Download @pdf.FileName
+            </button>
+        </div>
+        <div class="tool-done-more">
+            <button type="button" class="btn btn-outline" aria-expanded="@(_previewing ? "true" : "false")" aria-controls="tool-preview" @onclick="() => TogglePreviewAsync(pdf)">
+                @(_previewing ? "Hide preview" : "Preview")
+            </button>
+            <button type="button" class="btn btn-outline" @onclick="() => OnOpen.InvokeAsync(pdf)">
+                <Icon Name="external" Size="16" /> Open PDF<span class="visually-hidden"> in a new tab</span>
+            </button>
+            @Back
+        </div>
+    }
+    else
+    {
+        <div class="tool-done-actions">
+            <button type="button" class="btn btn-lg btn-cta tool-download" @onclick="OnDownloadAll">
+                <Icon Name="download" Size="22" /> Download all (.zip)
+            </button>
+        </div>
+        <ol class="tool-parts" aria-label="Parts">
+            @foreach (var part in Result.Files)
+            {
+                <li class="tool-part @(_shown == part ? "is-selected" : null)">
+                    <span class="tool-part-name">@part.FileName</span>
+                    <span class="tool-part-pages">@Pages(part)</span>
+                    <span class="tool-part-actions">
+                        <button type="button" class="btn btn-sm btn-outline" aria-label="@($"Preview {part.FileName}")" @onclick="() => ShowAsync(part)">Preview</button>
+                        <button type="button" class="btn btn-sm btn-outline" aria-label="@($"Download {part.FileName}")" @onclick="() => OnDownload.InvokeAsync(part)">
+                            <Icon Name="download" Size="16" />
+                        </button>
+                    </span>
+                </li>
+            }
+        </ol>
+        <div class="tool-done-more">@Back</div>
+    }
+
+    <div id="tool-preview" class="tool-preview" hidden="@(!_previewing)">
+        <PdfPreview @ref="_preview" />
+    </div>
+
+    <div class="tool-done-code">
+        <h2 class="tool-done-code-title">The C# that did this, with your files</h2>
+        <CodeView Source="@Code" AriaLabel="C# that made this result" />
+        <a class="tool-scenario-link" href="@Scenario.Route">
+            <Icon Name="code" Size="18" /> Change the data and the code live: <strong>@Scenario.Title scenario</strong> <Icon Name="arrow" Size="16" />
+        </a>
+    </div>
+</section>
+
+@code {
+    private PdfPreview? _preview;
+    private bool _previewing;
+    private ToolPdf? _shown;
+    private ToolPdf? _pending;
+
+    /// <summary>
+    /// Gets or sets the buttons that go back, for example "Pick other pages" and "Merge other files".
+    /// </summary>
+    [Parameter] public RenderFragment? Back { get; set; }
+
+    /// <summary>
+    /// Gets or sets the code that did it.
+    /// </summary>
+    [Parameter, EditorRequired] public string Code { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the heading, for example "Your PDF is ready".
+    /// </summary>
+    [Parameter] public string Heading { get; set; } = "Your PDF is ready";
+
+    /// <summary>
+    /// Gets or sets a note under the summary, for example the pictures HTML to PDF left out.
+    /// </summary>
+    [Parameter] public RenderFragment? Note { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback that downloads one PDF.
+    /// </summary>
+    [Parameter] public EventCallback<ToolPdf> OnDownload { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback that downloads every part as one zip.
+    /// </summary>
+    [Parameter] public EventCallback OnDownloadAll { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback that opens one PDF in a new tab.
+    /// </summary>
+    [Parameter] public EventCallback<ToolPdf> OnOpen { get; set; }
+
+    /// <summary>
+    /// Gets or sets the run's result.
+    /// </summary>
+    [Parameter, EditorRequired] public ToolResult Result { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the scenario the code links to.
+    /// </summary>
+    [Parameter, EditorRequired] public SampleDemo Scenario { get; set; } = default!;
+
+    private string Summary
+    {
+        get
+        {
+            string time = Result.Elapsed.TotalSeconds < 1
+                ? Math.Max(1, Math.Round(Result.Elapsed.TotalMilliseconds)).ToString(CultureInfo.InvariantCulture) + " ms"
+                : Result.Elapsed.TotalSeconds.ToString("0.0", CultureInfo.InvariantCulture) + " s";
+            if (Result.Files.Count == 1)
+            {
+                var pdf = Result.Files[0];
+                return $"{pdf.FileName} · {Count(pdf.PageCount, "page")} · {Size(pdf.Bytes.LongLength)} · made in {time} in your browser";
+            }
+
+            return $"{Count(Result.Files.Count, "file")} · made in {time} in your browser";
+        }
+    }
+
+    /// <inheritdoc />
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pending is { } pdf && _preview is not null)
+        {
+            _pending = null;
+            await _preview.ShowAsync(pdf.Bytes, pdf.FileName);
+        }
+    }
+
+    private static string Count(int count, string noun) => count == 1 ? $"1 {noun}" : $"{count.ToString(CultureInfo.InvariantCulture)} {noun}s";
+
+    private static string Pages(ToolPdf part) =>
+        part.FirstPage == part.LastPage
+            ? $"page {part.FirstPage.ToString(CultureInfo.InvariantCulture)}"
+            : $"pages {part.FirstPage.ToString(CultureInfo.InvariantCulture)}–{part.LastPage.ToString(CultureInfo.InvariantCulture)}";
+
+    private static string Size(long bytes) =>
+        bytes >= 1024 * 1024
+            ? (bytes / (1024.0 * 1024)).ToString("0.0", CultureInfo.InvariantCulture) + " MB"
+            : Math.Max(1, (bytes + 1023) / 1024).ToString(CultureInfo.InvariantCulture) + " KB";
+
+    private Task ShowAsync(ToolPdf pdf)
+    {
+        _previewing = true;
+        _shown = pdf;
+        _pending = pdf;
+        return Task.CompletedTask;
+    }
+
+    private Task TogglePreviewAsync(ToolPdf pdf)
+    {
+        if (_previewing)
+        {
+            _previewing = false;
+            return Task.CompletedTask;
+        }
+
+        return ShowAsync(pdf);
+    }
+}

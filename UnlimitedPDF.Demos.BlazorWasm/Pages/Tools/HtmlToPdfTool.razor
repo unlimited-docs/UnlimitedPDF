@@ -1,0 +1,248 @@
+@page "/tools/html-to-pdf"
+@inherits ToolPageBase
+@inject HttpClient Http
+@using System.Text
+@* HTML to PDF (26112201 AC-04, AC-09, D-006, D-007): landing, then the HTML with the pictures it names, each added by
+   file name, then the PDF. Pictures the visitor didn't add, and web addresses, aren't fetched: they show their alt text
+   and are listed (PR-018). The visitor's HTML is converted by the library and never put into this page (OWASP A05). *@
+
+<PageTitle>@Tool.DocumentTitle</PageTitle>
+<PageDescription Text="@Tool.Subtitle" />
+<CanonicalLink Path="@Tool.Route" />
+
+<InputFile @ref="FileInput" class="visually-hidden" tabindex="-1" aria-hidden="true" multiple
+           accept=".html,.htm,text/html,.jpg,.jpeg,.png,image/jpeg,image/png" OnChange="OnFilesAsync" />
+
+@switch (Step)
+{
+    case ToolPageStep.Landing:
+        <ToolLanding Tool="Tool" ChooseLabel="Choose an HTML file" SampleLabel="Use a sample invoice" HowToTask="convert HTML to PDF" Single="true"
+                     LimitsLine="@LimitsLine" Code="@ToolCode.HtmlToPdf()" Busy="Busy" Errors="FileErrors"
+                     OnChoose="ChooseFilesAsync" OnSample="UseSampleAsync">
+            <MenuItems>
+                <button type="button" class="btn btn-text" @onclick="PasteInstead">Paste HTML instead</button>
+            </MenuItems>
+        </ToolLanding>
+        break;
+
+    case ToolPageStep.Workspace:
+        <section class="tool-workspace" aria-labelledby="tool-heading">
+            <div class="tool-workspace-head">
+                <div>
+                    <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
+                    <p class="tool-workspace-meta">@(_htmlName ?? "Pasted HTML") · @CountText(_pictures.Count, "picture") named</p>
+                </div>
+                <div class="tool-workspace-tools">
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@Busy" @onclick="ChooseFilesAsync"><Icon Name="upload" Size="16" /> Add files</button>
+                </div>
+            </div>
+            <ToolFileErrors Errors="FileErrors" Busy="Busy" />
+            <div class="tool-html-grid">
+                <div class="field">
+                    <label for="html-source">Your HTML</label>
+                    <textarea id="html-source" class="form-control code-input tool-html-source" rows="16" spellcheck="false"
+                              aria-describedby="html-source-hint" @bind="Html"></textarea>
+                    <p class="field-hint" id="html-source-hint">Paste HTML here, or add an .html file. The list of pictures updates when you leave the box.</p>
+                </div>
+                <div class="tool-html-pictures">
+                    <h2 class="tool-html-pictures-title">Pictures your HTML uses</h2>
+                    @if (_pictures.Count == 0)
+                    {
+                        <p class="field-hint">Your HTML names no picture files.</p>
+                    }
+                    else
+                    {
+                        <ul class="tool-html-picture-list">
+                            @foreach (var picture in _pictures)
+                            {
+                                <li class="tool-html-picture">
+                                    <Icon Name="image" Size="18" />
+                                    <span class="tool-html-picture-name">@picture.Reference</span>
+                                    @if (picture.IsWebAddress)
+                                    {
+                                        <span class="tool-html-picture-state">Web address, not fetched</span>
+                                    }
+                                    else if (_added.TryGetValue(picture.FileName, out var bytes))
+                                    {
+                                        <span class="tool-html-picture-state is-added"><Icon Name="check" Size="16" /> Added · @SizeText(bytes.LongLength)</span>
+                                    }
+                                    else
+                                    {
+                                        <button type="button" class="btn btn-sm btn-outline" aria-label="@($"Add {picture.FileName}")" @onclick="ChooseFilesAsync">Add file</button>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        <p class="field-hint">Add a picture by choosing or dropping a file with the same name. A picture not added shows its alt text.</p>
+                    }
+                </div>
+            </div>
+        </section>
+        <ToolActionBar ActionLabel="Convert to PDF" Busy="Busy" CanRun="@(!string.IsNullOrWhiteSpace(_html))"
+                       Error="@RunError" Hint="@(string.IsNullOrWhiteSpace(_html) ? "Paste or add some HTML first." : null)"
+                       OnRun="ConvertAsync" OnStartOver="StartOverAsync">
+            <div class="tool-option">
+                <span class="field-label" id="html-size">Page size</span>
+                <div class="segmented" role="group" aria-labelledby="html-size">
+                    <button type="button" aria-pressed="@(_size == PdfPageSize.A4 ? "true" : "false")" @onclick="() => _size = PdfPageSize.A4">A4</button>
+                    <button type="button" aria-pressed="@(_size == PdfPageSize.Letter ? "true" : "false")" @onclick="() => _size = PdfPageSize.Letter">Letter</button>
+                </div>
+            </div>
+            <div class="tool-option">
+                <label for="html-name">Save as</label>
+                <input id="html-name" class="form-control" @bind="_name" placeholder="@DefaultName" spellcheck="false" />
+            </div>
+        </ToolActionBar>
+        break;
+
+    case ToolPageStep.Done:
+        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+            <Note>
+                @if (Result!.LeftOut is { Count: > 0 } leftOut)
+                {
+                    <div class="tool-left-out" role="note">
+                        <p>@CountText(leftOut.Count, "picture") left out, so @(leftOut.Count == 1 ? "its" : "their") alt text shows:</p>
+                        <ul>
+                            @foreach (var reference in leftOut)
+                            {
+                                <li>@reference</li>
+                            }
+                        </ul>
+                    </div>
+                }
+            </Note>
+            <Back>
+                <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Change the HTML or pictures</button>
+                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Start again</button>
+            </Back>
+        </ToolDone>
+        break;
+}
+
+@code {
+    private readonly Dictionary<string, byte[]> _added = new(StringComparer.OrdinalIgnoreCase);
+    private string _html = string.Empty;
+    private string? _htmlName;
+    private string? _name;
+    private IReadOnlyList<HtmlPicture> _pictures = [];
+    private PdfPageSize _size = PdfPageSize.A4;
+
+    private static PdfTool Tool => ToolCatalog.HtmlToPdf;
+
+    private static string LimitsLine =>
+        $"HTML up to {ToolLimits.Megabytes(ToolLimits.MaxHtmlBytes)}; pictures JPG or PNG, up to {ToolLimits.Megabytes(ToolLimits.MaxPictureBytes)} each.";
+
+    private string DefaultName => SafeFileName.StemOf(_htmlName, "page");
+
+    private string Html
+    {
+        get => _html;
+        set
+        {
+            _html = value ?? string.Empty;
+            _pictures = HtmlPictureScan.Scan(_html);
+        }
+    }
+
+    private Task ConvertAsync()
+    {
+        string html = _html;
+        var pictures = new Dictionary<string, byte[]>(_added, StringComparer.OrdinalIgnoreCase);
+        var size = _size;
+        string output = SafeFileName.For(string.IsNullOrWhiteSpace(_name) ? DefaultName : _name, DefaultName);
+        string source = SafeFileName.For(_htmlName, "page", ".html");
+        return RunAsync(() => ToolOperations.HtmlToPdfAsync(html, pictures, size, output), () => ToolCode.HtmlToPdf(source, size, output));
+    }
+
+    private static bool IsHtml(string name) =>
+        name.EndsWith(".html", StringComparison.OrdinalIgnoreCase) || name.EndsWith(".htm", StringComparison.OrdinalIgnoreCase);
+
+    private async Task OnFilesAsync(InputFileChangeEventArgs args)
+    {
+        FileErrors.Clear();
+        RunError = null;
+        Busy = true;
+        try
+        {
+            foreach (var file in args.GetMultipleFiles(Math.Max(1, args.FileCount)))
+            {
+                if (IsHtml(file.Name))
+                {
+                    if (file.Size > ToolLimits.MaxHtmlBytes)
+                    {
+                        FileErrors.Add($"{file.Name}: The file is larger than {ToolLimits.Megabytes(ToolLimits.MaxHtmlBytes)}.");
+                        continue;
+                    }
+
+                    await using var stream = file.OpenReadStream(ToolLimits.MaxHtmlBytes);
+                    using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+                    Html = await reader.ReadToEndAsync();
+                    _htmlName = file.Name;
+                    continue;
+                }
+
+                long total = _added.Values.Sum(b => b.LongLength) + file.Size;
+                if (_added.Count >= ToolLimits.MaxFiles || total > ToolLimits.MaxTotalBytes)
+                {
+                    FileErrors.Add($"{file.Name}: {(total > ToolLimits.MaxTotalBytes ? ToolLimits.TotalTooLarge(total) : $"One run takes up to {ToolLimits.MaxFiles} pictures.")}");
+                    continue;
+                }
+
+                var loaded = await UploadedImageLoader.LoadAsync(file, ToolLimits.MaxPictureBytes, ToolLimits.MaxJpegPixels, ToolLimits.MaxPngPixels);
+                if (loaded.Bytes is null)
+                {
+                    FileErrors.Add($"{file.Name}: {loaded.Error}");
+                    continue;
+                }
+
+                _added[file.Name] = loaded.Bytes;
+            }
+        }
+        finally
+        {
+            Busy = false;
+        }
+
+        if (Step == ToolPageStep.Landing && (_html.Length > 0 || _added.Count > 0)) GoTo(ToolPageStep.Workspace);
+    }
+
+    private void PasteInstead()
+    {
+        FileErrors.Clear();
+        GoTo(ToolPageStep.Workspace);
+    }
+
+    private async Task StartOverAsync()
+    {
+        Html = string.Empty;
+        _htmlName = null;
+        _name = null;
+        _added.Clear();
+        FileErrors.Clear();
+        await ClearResultAsync();
+        GoTo(ToolPageStep.Landing);
+    }
+
+    private async Task UseSampleAsync()
+    {
+        FileErrors.Clear();
+        Busy = true;
+        try
+        {
+            _added.Clear();
+            Html = HtmlTemplates.Invoice;
+            _htmlName = "invoice.html";
+            _added["logo.png"] = await Http.GetByteArrayAsync("images/invoice-logo.png");
+        }
+        catch (HttpRequestException)
+        {
+            FileErrors.Add("The sample picture couldn't be loaded; the invoice shows its alt text instead.");
+        }
+        finally
+        {
+            Busy = false;
+        }
+
+        GoTo(ToolPageStep.Workspace);
+    }
+}

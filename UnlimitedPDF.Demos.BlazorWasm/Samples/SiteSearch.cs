@@ -1,3 +1,5 @@
+using UnlimitedPDF.Demos.BlazorWasm.Services.Tools;
+
 namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 
 /// <summary>
@@ -9,6 +11,11 @@ public enum SearchKind
     /// A demo page.
     /// </summary>
     Demo,
+
+    /// <summary>
+    /// A free tool's page.
+    /// </summary>
+    Tool,
 
     /// <summary>
     /// An FAQ answer.
@@ -38,7 +45,7 @@ public sealed record SearchResult(SearchKind Kind, string Title, string Detail, 
 public readonly record struct TextPart(string Text, bool IsMatch);
 
 /// <summary>
-/// The site-wide search in the top bar: demos, FAQ answers, and the demos' C# code. A query is a few words, each
+/// The site-wide search in the top bar: demos, free tools, FAQ answers, and the demos' C# code. A query is a few words, each
 /// matched as plain text, ignoring case; a result holds every word.
 /// </summary>
 public static class SiteSearch
@@ -76,7 +83,7 @@ public static class SiteSearch
     /// </summary>
     /// <param name="query">What the visitor typed.</param>
     /// <param name="source">Reads a demo's sample source by file name (see <see cref="SampleDemo.SourceFile"/>).</param>
-    /// <returns>Up to <see cref="MaxPerKind"/> demos, then FAQ answers, then code lines; empty for an empty query.</returns>
+    /// <returns>Up to <see cref="MaxPerKind"/> demos, then tools, then FAQ answers, then code lines; empty for an empty query.</returns>
     public static IReadOnlyList<SearchResult> Find(string? query, Func<string, string> source)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -89,6 +96,12 @@ public static class SiteSearch
             .OrderBy(demo => words.All(word => Contains(demo.Title, word)) ? 0 : 1)
             .Take(MaxPerKind)
             .Select(demo => new SearchResult(SearchKind.Demo, demo.Title, demo.Description, demo.Route)));
+
+        results.AddRange(ToolCatalog.All
+            .Where(tool => words.All(word => Contains(ToolText(tool), word)))
+            .OrderBy(tool => words.All(word => Contains(tool.Name, word)) ? 0 : 1)
+            .Take(MaxPerKind)
+            .Select(tool => new SearchResult(SearchKind.Tool, tool.Name, tool.Description, tool.Route)));
 
         results.AddRange(FaqQuestions.Questions
             .Where(question => words.All(word => Contains(question.Text, word) || question.Answer.Any(paragraph => Contains(paragraph, word))))
@@ -165,6 +178,10 @@ public static class SiteSearch
     private static bool Contains(string text, string word) => text.Contains(word, StringComparison.OrdinalIgnoreCase);
 
     // What a demo is found by: its names, description, business domains, and capability.
+    // What a tool is found by: its name, heading, description, and task words (26112201 AC-12).
+    private static string ToolText(PdfTool tool) =>
+        string.Join(' ', [tool.Name, tool.Heading, tool.Description, .. tool.SearchWords]);
+
     private static string DemoText(SampleDemo demo) =>
         string.Join(' ', [demo.Title, demo.Heading ?? string.Empty, demo.PageTitle, demo.Description, .. demo.Domains, ScenarioGallery.CategoryOf(demo).Title]);
 
