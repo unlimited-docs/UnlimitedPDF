@@ -204,8 +204,16 @@
     private SamplePage? _page;
     private (int Min, int Max)? _variable;
 
+    /// <summary>
+    /// Gets or sets the language to start with, from the address (a language id such as <c>telugu</c>), so a link can open
+    /// one language's invoice; any other value keeps the default (QF-26112201).
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "language")] public string? Language { get; set; }
+
     protected override void OnInitialized()
     {
+        if (LanguageInvoices.All.FirstOrDefault(l => l.Id == Language) is { } preset)
+            _input.Apply(preset);
         Refresh();
         _defaults = LoadDefaultsAsync();
     }

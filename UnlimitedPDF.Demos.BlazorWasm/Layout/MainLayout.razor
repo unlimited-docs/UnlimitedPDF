@@ -67,8 +67,32 @@
     @Body
 </main>
 
-@* On every page. The heart icon is hidden from screen readers, which read the word "love" instead. *@
+@* On every page: the site's links by task, document, and tool, in the words people search with (QF-26112201), then the
+   credit and notes. The heart icon is hidden from screen readers, which read the word "love" instead. *@
 <footer class="footer">
+    <nav class="footer-links" aria-label="Site links">
+        @foreach (var column in FooterLinks.Columns)
+        {
+            <div class="footer-col">
+                <h2 class="footer-title">@column.Title</h2>
+                <ul>
+                    @foreach (var link in column.Links)
+                    {
+                        <li>
+                            @if (link.External)
+                            {
+                                <a href="@link.Href" target="_blank" rel="noopener">@link.Text<span class="visually-hidden"> (opens in a new tab)</span></a>
+                            }
+                            else
+                            {
+                                <a href="@link.Href">@link.Text</a>
+                            }
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </nav>
     <p>
         Designed and built with <Icon Name="heart" Size="14" Class="footer-heart" /><span class="visually-hidden">love</span>
         by the <a href="https://github.com/unlimited-docs" target="_blank" rel="noopener">UnlimitedDocs team</a> and our

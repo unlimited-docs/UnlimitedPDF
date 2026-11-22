@@ -4,9 +4,10 @@
 <PageDescription Text="Try UnlimitedPDF, the C# PDF library for .NET, in your browser: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF." />
 <CanonicalLink Path="" />
 
-@* The home page as approved (D-026, D-027): a centered hero over the production illustration, the benefits, the first
-   PDF in three lines, popular scenarios, the capabilities as rows with their demos and code, "How do I...?", and the
-   FAQ band. *@
+@* The home page (D-026, D-027; layout "Two paths", QF-26112201): a centered hero over the production illustration;
+   two paths, one for developers (install and the first PDF) and one for visitors' own files (the free tools); the
+   real-life documents as cards; the other capabilities as rows with their demos, code, and tools; the benefits;
+   "How do I...?"; and the FAQ band. *@
 <section class="hero">
     @* The current release and what it adds (QF-26111209); the version is read from the built library. Update the
        sentence with each release. *@
@@ -29,9 +30,6 @@
             View on GitHub<span class="visually-hidden"> (opens in a new tab)</span>
         </a>
     </div>
-    @* The install command sits right under the buttons, so it is on the first screen at every width (developer
-       choice B, 2026-11-17). *@
-    <div class="hero-install"><InstallCommand /></div>
     <div class="showcase">
         @* The production illustration (D-027); the phone-sized copy is chosen by srcset. It is in the first screen at
            every width and is the page's largest picture, so it loads at once, ahead of other images. *@
@@ -43,14 +41,21 @@
     </div>
 </section>
 
-@* The free tools on their own files (26112201 AC-07, D-004): one tile per tool, each opening its page, and all tools. *@
-<section class="section home-section" aria-labelledby="home-tools-title">
-    <div class="home-tools">
-        <div class="home-tools-head">
-            <h2 id="home-tools-title">Try it on your own files</h2>
-            <p><Icon Name="check" Size="16" /> Runs in your browser. Nothing is uploaded.</p>
-            <a href="@ToolCatalog.HubRoute">All tools <Icon Name="arrow" Size="16" /></a>
+@* Two paths (QF-26112201): developers start with the package and the first PDF in three lines; visitors with their
+   own files start with the free tools (26112201 AC-07, D-004), one tile per tool and all tools. *@
+<section class="section home-section home-paths">
+    <div class="home-path" aria-labelledby="first-title" role="region">
+        <h2 id="first-title" class="home-path-title">For developers</h2>
+        <p class="home-path-lead">Install the package, then write your first PDF in three lines.</p>
+        <InstallCommand />
+        <div class="first-pdf-code">
+            <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
         </div>
+        <a class="home-path-more" href="#capabilities">See the C# for each capability <Icon Name="arrow" Size="16" /></a>
+    </div>
+    <div class="home-path home-tools" aria-labelledby="home-tools-title" role="region">
+        <h2 id="home-tools-title" class="home-path-title">For your files</h2>
+        <p class="home-path-lead"><Icon Name="check" Size="16" /> @ToolCatalog.HubHeading that run in your browser. Nothing is uploaded.</p>
         <ul class="home-tools-list">
             @foreach (var tool in ToolCatalog.All)
             {
@@ -62,6 +67,46 @@
                 </li>
             }
         </ul>
+        <a class="home-path-more" href="@ToolCatalog.HubRoute">All tools <Icon Name="arrow" Size="16" /></a>
+    </div>
+</section>
+
+@* The real-life documents as picture cards, each demo once on the page (QF-26112201 F-1): they replace the popular
+   scenarios and the documents capability row, which showed the same demos twice. The section keeps the row's anchor. *@
+<section id="@Documents.Id" class="section home-section" aria-labelledby="documents-title">
+    <div class="section-head">
+        <div>
+            <h2 id="documents-title" class="section-title">@Documents.Title</h2>
+            <p class="section-lead">Complete documents you can edit and download, each ready to run, change, and copy.</p>
+        </div>
+        <a class="section-more" href="@ScenarioGallery.Route">See all @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="16" /></a>
+    </div>
+    <ul class="gallery-grid">
+        @foreach (var demo in Documents.Demos)
+        {
+            <ScenarioCard Demo="demo" HeadingLevel="3" />
+        }
+    </ul>
+</section>
+
+<section id="capabilities" class="section home-section" aria-labelledby="capabilities-title">
+    <h2 id="capabilities-title" class="section-title">Capabilities</h2>
+    <p class="section-lead">Each one is a few lines of C#. Open a demo to change the data and see the PDF.</p>
+    @* A link to each row, so a visitor can go straight to one (QF-26112201 F-7). *@
+    <nav class="cap-jump" aria-label="Capabilities">
+        <span class="cap-jump-label">Jump to:</span>
+        <ul>
+            @foreach (var category in Capabilities)
+            {
+                <li><a href="#@category.Id">@category.Title</a></li>
+            }
+        </ul>
+    </nav>
+    <div class="cap-rows">
+        @foreach (var category in Capabilities)
+        {
+            <CapabilityRow Category="category" />
+        }
     </div>
 </section>
 
@@ -73,43 +118,6 @@
             <li class="panel benefit"><h3>@title</h3><p>@text</p></li>
         }
     </ul>
-</section>
-
-<section class="section home-section first-pdf" aria-labelledby="first-title">
-    <div class="first-pdf-text">
-        <h2 id="first-title" class="section-title">Three lines to your first PDF</h2>
-        <p class="section-lead">With the package installed, write a page and save it to a folder of your choice.</p>
-    </div>
-    <div class="first-pdf-code">
-        <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
-    </div>
-</section>
-
-<section class="section home-section" aria-labelledby="popular-title">
-    <div class="section-head">
-        <div>
-            <h2 id="popular-title" class="section-title">Popular scenarios</h2>
-            <p class="section-lead">Six scenarios to start with, each ready to run, change, and copy.</p>
-        </div>
-        <a class="section-more" href="@ScenarioGallery.Route">See all @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="16" /></a>
-    </div>
-    <ul class="gallery-grid">
-        @foreach (var demo in ScenarioGallery.Popular)
-        {
-            <ScenarioCard Demo="demo" HeadingLevel="3" />
-        }
-    </ul>
-</section>
-
-<section class="section home-section" aria-labelledby="capabilities-title">
-    <h2 id="capabilities-title" class="section-title">Capabilities</h2>
-    <p class="section-lead">Each one is a few lines of C#. Open a demo to change the data and see the PDF.</p>
-    <div class="cap-rows">
-        @foreach (var category in Capabilities)
-        {
-            <CapabilityRow Category="category" />
-        }
-    </div>
 </section>
 
 <section id="how-do-i" class="section home-section" aria-labelledby="how-do-i-title">
@@ -126,7 +134,6 @@
             </li>
         }
     </ul>
-    <a class="questions-more" href="faq">More questions in the FAQ <Icon Name="arrow" Size="16" /></a>
 </section>
 
 <section class="section home-section" aria-labelledby="faq-band-title">
@@ -140,21 +147,26 @@
 </section>
 
 @code {
-    // The six benefits (D-026): each true of the shipped library (PR-012).
+    // The six benefits (D-026): each true of the shipped library (PR-012), and none repeating the hero or a capability
+    // row (QF-26112201 F-3).
     private static readonly (string Title, string Text)[] Benefits =
     [
-        ("Pure .NET", "No engine required and no native libraries: it runs on .NET 6 and later, on servers, desktops, and in the browser."),
-        ("Live in your browser", "Every demo on this site is the library running in your browser."),
-        ("Your languages", "Hindi, Telugu, Tamil, French, and more, with your own fonts."),
-        ("Merge and split", "Join files, pick pages, split by ranges, and keep bookmarks."),
-        ("HTML to PDF", "Turn HTML and CSS into PDF with the built-in renderer."),
+        ("Safe with files you didn't make", "Reads PDF 1.0 to 2.0 behind size, stream, and object limits you can change."),
+        ("Clear errors", "Bad input fails at load with a reason you can check: encrypted, damaged, no pages, or too large."),
+        ("Small, searchable PDFs", "Embeds only the glyphs it uses from your fonts, and copied text reads back as written."),
+        ("Code that compiles", "The C# on this site comes from source that builds and is tested with the library."),
+        ("Files stay on the device", "In Blazor WebAssembly it runs in the browser, so files don't have to reach a server."),
         ("Free and open", "Apache-2.0 licensed, on NuGet and GitHub."),
     ];
 
     private string _firstPdf = string.Empty;
 
-    // The capability rows, in catalogue order: every category, so every demo is one click from the home page.
-    private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories;
+    // The real-life documents, shown as picture cards in their own section (QF-26112201 F-1).
+    private static SampleCategory Documents => SampleCatalog.Categories.Single(c => c.Id == "documents");
+
+    // The capability rows, in catalogue order: every other category. With the documents section, every demo is one
+    // click from the home page.
+    private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories.Where(c => c != Documents);
 
     /// <inheritdoc />
     protected override void OnInitialized() => _firstPdf = SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "first");

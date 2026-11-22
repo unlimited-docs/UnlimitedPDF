@@ -261,10 +261,11 @@ public class FaqPageTests
         int github = layout.IndexOf("topnav-github", StringComparison.Ordinal);
         Assert.True(playground >= 0 && playground < faq && faq < github, "The FAQ link sits between Playground and GitHub.");
 
+        // The FAQ band right after "How do I...?" is the home page's one FAQ link (QF-26112201 F-4).
         int questions = home.IndexOf("HomeQuestions.Questions", StringComparison.Ordinal);
-        int more = home.IndexOf("<a class=\"questions-more\" href=\"faq\">More questions in the FAQ", StringComparison.Ordinal);
         int band = home.IndexOf("class=\"faq-band\"", StringComparison.Ordinal);
-        Assert.True(questions >= 0 && questions < more && more < band, "The FAQ link ends the \"How do I...?\" block.");
+        Assert.True(questions >= 0 && questions < band, "The FAQ band follows the \"How do I...?\" block.");
+        Assert.Single(System.Text.RegularExpressions.Regex.Matches(home, "href=\"faq\""));
     }
 
     [Fact]
