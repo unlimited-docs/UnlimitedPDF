@@ -67,11 +67,56 @@ public class ToolPagesTests
         string landing = DemosFile("Components/Tools/ToolLanding.razor");
         Assert.Contains("@ToolLimits.PrivacyLine", landing, StringComparison.Ordinal);
         Assert.Contains("Free, no sign-up. @LimitsLine", landing, StringComparison.Ordinal);
-        Assert.Contains("@Tool.Scenario.Route", landing, StringComparison.Ordinal);
-        Assert.Contains("@Scenario.Route", DemosFile("Components/Tools/ToolDone.razor"), StringComparison.Ordinal);
+        Assert.Contains("<ToolDevLine />", landing, StringComparison.Ordinal);
 
-        foreach (string part in new[] { "ToolLanding", "ToolDone", "ToolActionBar", "FileCards", "PageGrid", "ToolFileErrors" })
+        foreach (string part in new[] { "ToolLanding", "ToolDone", "ToolDevLine", "ToolActionBar", "FileCards", "PageGrid", "ToolFileErrors" })
             Assert.DoesNotContain("MarkupString", DemosFile($"Components/Tools/{part}.razor"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Tool_pages_show_no_code_and_link_developers_to_getting_started()
+    {
+        // QF-26112202: the landing and the done screen each end with one line for developers that links to Getting
+        // started; neither shows C#. The done screen keeps the result in one card.
+        string landing = DemosFile("Components/Tools/ToolLanding.razor");
+        string done = DemosFile("Components/Tools/ToolDone.razor");
+        string line = DemosFile("Components/Tools/ToolDevLine.razor");
+        foreach (var part in new[] { landing, done })
+        {
+            Assert.DoesNotContain("<CodeView", part, StringComparison.Ordinal);
+            Assert.DoesNotContain("public string Code", part, StringComparison.Ordinal);
+            Assert.Contains("<ToolDevLine />", part, StringComparison.Ordinal);
+        }
+
+        Assert.Contains("<p class=\"tool-dev\">", line, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"getting-started\">Get started with UnlimitedPDF", line, StringComparison.Ordinal);
+        Assert.Contains("<div class=\"tool-done-card\">", done, StringComparison.Ordinal);
+        foreach (var page in PageFiles.Values)
+        {
+            string source = DemosFile($"Pages/Tools/{page}");
+            Assert.DoesNotContain("ToolCode", source, StringComparison.Ordinal);
+            Assert.DoesNotContain("DoneCode", source, StringComparison.Ordinal);
+            Assert.Contains("class=\"btn btn-outline\" @onclick=\"StartOverAsync\"", source, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Getting_started_installs_from_nuget_shows_the_first_pdf_and_links_next_steps()
+    {
+        // QF-26112202: the page the tool pages and the footer link to.
+        string page = DemosFile("Pages/GettingStarted.razor");
+        Assert.Contains("@page \"/getting-started\"", page, StringComparison.Ordinal);
+        Assert.Contains("<InstallCommand />", page, StringComparison.Ordinal);
+        Assert.Contains("<InstallCommand Command=\"@PackageReference\" IsFileText=\"true\" />", page, StringComparison.Ordinal);
+        Assert.Contains("One package targets .NET 6, .NET 8, .NET 9, .NET 10, and .NET 11.", page, StringComparison.Ordinal);
+        Assert.Contains("SnippetText.Extract(SampleSource.Read(\"HomeSnippets.cs\"), \"first\")", page, StringComparison.Ordinal);
+        Assert.Contains("href=\"@FooterLinks.NuGetUrl\" target=\"_blank\" rel=\"noopener\"", page, StringComparison.Ordinal);
+        Assert.Contains("(opens in a new tab)", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("MarkupString", page, StringComparison.Ordinal);
+        Assert.Contains(FooterLinks.Columns.Single(c => c.Title == "Resources").Links, l => l.Href == "getting-started");
+
+        // The page's main area ends with its content, so short pages leave no empty band above the footer.
+        Assert.DoesNotContain(".app-main { min-height", DemosFile("wwwroot/css/app.css"), StringComparison.Ordinal);
     }
 
     [Fact]

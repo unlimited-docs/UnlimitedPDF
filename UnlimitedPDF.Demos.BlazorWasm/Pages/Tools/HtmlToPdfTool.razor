@@ -17,7 +17,7 @@
 {
     case ToolPageStep.Landing:
         <ToolLanding Tool="Tool" ChooseLabel="Choose an HTML file" SampleLabel="Use a sample invoice" HowToTask="convert HTML to PDF" Single="true"
-                     LimitsLine="@LimitsLine" Code="@ToolCode.HtmlToPdf()" Busy="Busy" Errors="FileErrors"
+                     LimitsLine="@LimitsLine" Busy="Busy" Errors="FileErrors"
                      OnChoose="ChooseFilesAsync" OnSample="UseSampleAsync">
             <MenuItems>
                 <button type="button" class="btn btn-text" @onclick="PasteInstead">Paste HTML instead</button>
@@ -96,7 +96,7 @@
         break;
 
     case ToolPageStep.Done:
-        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+        <ToolDone Result="Result!" OnDownload="DownloadAsync" OnOpen="OpenAsync">
             <Note>
                 @if (Result!.LeftOut is { Count: > 0 } leftOut)
                 {
@@ -113,7 +113,7 @@
             </Note>
             <Back>
                 <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Change the HTML or pictures</button>
-                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Start again</button>
+                <button type="button" class="btn btn-outline" @onclick="StartOverAsync">Start again</button>
             </Back>
         </ToolDone>
         break;
@@ -151,7 +151,7 @@
         var size = _size;
         string output = SafeFileName.For(string.IsNullOrWhiteSpace(_name) ? DefaultName : _name, DefaultName);
         string source = SafeFileName.For(_htmlName, "page", ".html");
-        return RunAsync(() => ToolOperations.HtmlToPdfAsync(html, pictures, size, output), () => ToolCode.HtmlToPdf(source, size, output));
+        return RunAsync(() => ToolOperations.HtmlToPdfAsync(html, pictures, size, output));
     }
 
     private static bool IsHtml(string name) =>

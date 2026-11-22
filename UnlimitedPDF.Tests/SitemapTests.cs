@@ -27,7 +27,7 @@ public class SitemapTests
     {
         var sitemap = XDocument.Parse(DemosFile("wwwroot/sitemap.xml"));
         var urls = sitemap.Root!.Elements(Sitemaps + "url").Select(u => u.Element(Sitemaps + "loc")!.Value).ToList();
-        var expected = new[] { "", "playground", "faq", ToolCatalog.HubRoute }
+        var expected = new[] { "", "playground", "faq", "getting-started", ToolCatalog.HubRoute }
             .Concat(SampleCatalog.Pages.Select(d => d.Route))
             .Concat(ToolCatalog.All.Select(t => t.Route))
             .Distinct()
@@ -94,7 +94,7 @@ public class SitemapTests
             Assert.Equal(tool.Subtitle, entry.Description);
         }
         Assert.Equal(ToolCatalog.HubSubtitle, entries.Single(e => e.Url == SiteLinks.For(ToolCatalog.HubRoute)).Description);
-        foreach (var (path, page) in new[] { ("", "Pages/Home.razor"), ("playground", "Pages/PlaygroundIndex.razor"), ("faq", "Pages/Faq.razor") })
+        foreach (var (path, page) in new[] { ("", "Pages/Home.razor"), ("playground", "Pages/PlaygroundIndex.razor"), ("faq", "Pages/Faq.razor"), ("getting-started", "Pages/GettingStarted.razor") })
         {
             var entry = entries.Single(e => e.Url == SiteLinks.For(path));
             Assert.Contains($"<PageDescription Text=\"{entry.Description}\" />", DemosFile(page), StringComparison.Ordinal);

@@ -29,6 +29,7 @@ pdfDocument.Save("sample.pdf");
 
 - [README on GitHub](https://github.com/unlimited-docs/UnlimitedPDF#readme): install, sample code, tables across pages, headers and footers, images, merge, split, HTML to PDF, fonts and languages, upgrading to 1.0.0, and the change list.
 - [NuGet package](https://www.nuget.org/packages/UnlimitedPDF): package versions and target frameworks.
+- [Getting started](https://unlimitedpdf.dev/getting-started): install from NuGet, target frameworks, the first PDF in three lines, and where to go next.
 - [FAQ](https://unlimitedpdf.dev/faq): platforms, text and fonts, tables and layout, images, merge and split, HTML to PDF, and license.
 
 ## Create PDFs

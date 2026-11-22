@@ -13,7 +13,7 @@
 {
     case ToolPageStep.Landing:
         <ToolLanding Tool="Tool" ChooseLabel="Choose PDF files" SampleLabel="Use two sample PDFs" HowToTask="merge PDF files"
-                     LimitsLine="@ToolLimits.PdfLimitsLine" Code="@ToolCode.Merge()" Busy="Busy" Errors="FileErrors"
+                     LimitsLine="@ToolLimits.PdfLimitsLine" Busy="Busy" Errors="FileErrors"
                      OnChoose="ChooseFilesAsync" OnSample="UseSamples" />
         break;
 
@@ -45,10 +45,10 @@
         break;
 
     case ToolPageStep.Done:
-        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+        <ToolDone Result="Result!" OnDownload="DownloadAsync" OnOpen="OpenAsync">
             <Back>
                 <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Change the order or files</button>
-                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Merge other files</button>
+                <button type="button" class="btn btn-outline" @onclick="StartOverAsync">Merge other files</button>
             </Back>
         </ToolDone>
         break;
@@ -69,7 +69,7 @@
         string output = SafeFileName.For(_name, "merged");
         var names = _files.Files.Select(f => f.Name).ToList();
         var files = _files.Files.Select(f => f.Value).ToList();
-        return RunAsync(() => ToolOperations.MergeAsync(files, output), () => ToolCode.Merge(names, output));
+        return RunAsync(() => ToolOperations.MergeAsync(files, output));
     }
 
     private async Task RemoveAsync(int index)

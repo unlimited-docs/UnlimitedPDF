@@ -7,6 +7,7 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 - [UnlimitedPDF: C# PDF library for .NET, with live demos](https://unlimitedpdf.dev/): Try UnlimitedPDF, the C# PDF library for .NET, in your browser: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF.
 - [C# PDF examples by scenario](https://unlimitedpdf.dev/playground): Every UnlimitedPDF demo by capability and business domain: invoices, statements, payslips, merge, split, HTML to PDF, and languages, with C# code.
 - [UnlimitedPDF FAQ: C# and .NET PDF library questions](https://unlimitedpdf.dev/faq): Answers about the UnlimitedPDF C# PDF library: install, .NET versions, Blazor WebAssembly, fonts, tables, images, merge, split, HTML to PDF, and license.
+- [Get started with UnlimitedPDF: install from NuGet](https://unlimitedpdf.dev/getting-started): Install the UnlimitedPDF C# PDF library from NuGet, write your first PDF in three lines, and find the scenario for your task.
 - [Free PDF tools: merge, split, convert](https://unlimitedpdf.dev/tools): Merge, split, and convert your own files for free. Built with UnlimitedPDF, running in your browser: nothing is uploaded.
 
 ## Create PDFs

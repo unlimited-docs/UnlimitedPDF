@@ -215,9 +215,8 @@ public abstract class ToolPageBase : ComponentBase, IAsyncDisposable
     /// Runs the tool: shows the busy state, then the done screen, or the message in the action bar with the workspace kept.
     /// </summary>
     /// <param name="run">The work.</param>
-    /// <param name="code">Returns the code that did it, with the visitor's names and choices.</param>
     /// <returns>A task that completes when the run ends.</returns>
-    protected async Task RunAsync(Func<Task<ToolResult>> run, Func<string> code)
+    protected async Task RunAsync(Func<Task<ToolResult>> run)
     {
         if (Busy) return;
         Busy = true;
@@ -236,7 +235,6 @@ public abstract class ToolPageBase : ComponentBase, IAsyncDisposable
 
             await RevokeUrlsAsync();
             Result = result;
-            DoneCode = code();
             GoTo(ToolPageStep.Done);
         }
         finally
@@ -253,7 +251,6 @@ public abstract class ToolPageBase : ComponentBase, IAsyncDisposable
     {
         await RevokeUrlsAsync();
         Result = null;
-        DoneCode = null;
     }
 
     #endregion
@@ -289,11 +286,6 @@ public abstract class ToolPageBase : ComponentBase, IAsyncDisposable
     /// Gets or sets whether a run or a file read is under way.
     /// </summary>
     protected bool Busy { get; set; }
-
-    /// <summary>
-    /// Gets the code shown on the done screen.
-    /// </summary>
-    protected string? DoneCode { get; private set; }
 
     /// <summary>
     /// Gets the messages for files that were refused, one per file; the other files stay.
