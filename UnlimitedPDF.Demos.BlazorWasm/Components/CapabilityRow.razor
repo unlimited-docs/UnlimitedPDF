@@ -33,11 +33,23 @@
         {
             @DemoLinks(Category.Demos)
         }
+        @* The free tools that do this row's work on the visitor's own files (QF-26112201 F-5). *@
+        @if (_tools.Count > 0)
+        {
+            <p class="cap-tools">
+                <span class="cap-tools-label">On your own files:</span>
+                @foreach (var tool in _tools)
+                {
+                    <a class="cap-tool" href="@tool.Route">@tool.Name <Icon Name="arrow" Size="14" /></a>
+                }
+            </p>
+        }
     </div>
 </section>
 
 @code {
     private string? _snippet;
+    private IReadOnlyList<PdfTool> _tools = [];
 
     /// <summary>
     /// Gets or sets the capability shown in the row.
@@ -47,8 +59,11 @@
     private string HeadingId => $"{Category.Id}-title";
 
     /// <inheritdoc />
-    protected override void OnParametersSet() =>
+    protected override void OnParametersSet()
+    {
         _snippet = Category.Snippet is null ? null : SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), Category.Snippet);
+        _tools = Category.Demos.Select(ToolCatalog.ForScenario).OfType<PdfTool>().Distinct().ToList();
+    }
 
     private static RenderFragment DemoLinks(IReadOnlyList<SampleDemo> demos) =>
         @<ul class="cap-links">

@@ -108,15 +108,6 @@ public static class ScenarioGallery
     public static IReadOnlyList<string> Domains { get; } = ["Finance", "HR", "Legal", "Healthcare", "Retail", "Logistics", "Management", "General"];
 
     /// <summary>
-    /// Gets the scenarios the home page shows first: the documents and tasks developers ask about most.
-    /// </summary>
-    public static IReadOnlyList<SampleDemo> Popular =>
-    [
-        SampleCatalog.Invoice, SampleCatalog.BulkInvoices, SampleCatalog.AccountStatement,
-        SampleCatalog.Contract, SampleCatalog.ShippingLabels, SampleCatalog.HtmlToPdf,
-    ];
-
-    /// <summary>
     /// Gets every scenario in catalog order: each demo of the catalog once. The Invoice demo's other document types are
     /// part of its card.
     /// </summary>

@@ -31,7 +31,7 @@ public static class SampleCatalog
             Snippet: "create"),
         new SampleCategory(
             "Merge",
-            "Join existing PDFs, pick their pages, and build complete document packs. Try your own files.",
+            "Join existing PDFs, pick their pages, and build complete document packs.",
             [JoinFiles, CoverAndRanges, PickPages, BookmarksAndNumbers, DocumentPacks],
             Id: "merge",
             Icon: "merge",
@@ -44,7 +44,7 @@ public static class SampleCatalog
             ]),
         new SampleCategory(
             "Split and extract",
-            "Split a PDF into parts, every few pages or by the page ranges you choose, or extract or remove the pages you choose. Try your own file.",
+            "Split a PDF into parts, every few pages or by the page ranges you choose, or extract or remove the pages you choose.",
             [SplitEveryN, SplitRanges, ExtractPages, RemovePages],
             Id: "split",
             Icon: "split",

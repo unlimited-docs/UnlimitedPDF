@@ -14,14 +14,17 @@ public static class HomeSnippets
     #region Public Methods
 
     /// <summary>
-    /// The Create sample: a one-page document with a line of text.
+    /// The Create sample: a table with a line of text in its first cell. It differs from the first PDF the home page
+    /// shows above it (QF-26112201).
     /// </summary>
     /// <param name="output">The stream the PDF is written to.</param>
     public static void Create(Stream output)
     {
-        // snippet:create
         var document = new PdfDocument();
-        document.AddPage().AddText("Hello, PDF!", 72, 720, 24);
+        // snippet:create
+        var table = document.Body.AddTable(500);
+        table.SetColumnWidths(350, 150);
+        table.AddRow().GetCell(0).Text = "Hello, table!";
         document.Save(output);
         // end
     }

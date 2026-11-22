@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
+using UnlimitedPDF.Demos.BlazorWasm.Services.Tools;
 
 namespace UnlimitedPDF.Tests;
 
@@ -102,7 +103,7 @@ public class HomePageTests
 
         PdfStructureChecker.AssertValid(created.ToArray());
         PdfStructureChecker.AssertValid(converted.ToArray());
-        Assert.True(Assert.Single(PdfPageReader.Read(created.ToArray())).Shows("Hello, PDF!"));
+        Assert.True(Assert.Single(PdfPageReader.Read(created.ToArray())).Shows("Hello, table!"));
         Assert.Single(PdfPageReader.Read(converted.ToArray()));
         var text = string.Join(" ", ImportedPagesTests.PageTexts(PdfFile.FromBytes(converted.ToArray())));
         Assert.Contains("Hello", text, StringComparison.Ordinal);
@@ -224,17 +225,58 @@ public class HomePageTests
     }
 
     [Fact]
-    public void The_capability_rows_hold_every_demo_once_and_the_popular_scenarios_are_six_of_them()
+    public void The_documents_cards_and_the_capability_rows_hold_every_demo_once()
     {
-        // D-026: a row per capability, so every demo is one click from the home page; six popular scenarios above them.
-        var rows = SampleCatalog.Categories.SelectMany(c => c.Demos).ToList();
-        var popular = ScenarioGallery.Popular;
+        // D-026, QF-26112201 F-1: the real-life documents as cards and the other categories as rows, so every demo is
+        // one click from the home page and none is shown twice.
+        var documents = SampleCatalog.Categories.Single(c => c.Id == "documents").Demos;
+        var rows = SampleCatalog.Categories.Where(c => c.Id != "documents").SelectMany(c => c.Demos).ToList();
+        var shown = documents.Concat(rows).ToList();
 
-        Assert.Equal(ScenarioGallery.Scenarios.Count, rows.Count);
-        Assert.Equal(ScenarioGallery.Scenarios.ToHashSet(), rows.ToHashSet());
-        Assert.Equal(6, popular.Count);
-        Assert.Equal(popular.Count, popular.Distinct().Count());
-        Assert.All(popular, demo => Assert.Contains(demo, ScenarioGallery.Scenarios));
+        Assert.Equal(ScenarioGallery.Scenarios.Count, shown.Count);
+        Assert.Equal(ScenarioGallery.Scenarios.ToHashSet(), shown.ToHashSet());
+    }
+
+    [Fact]
+    public void Each_capability_row_links_the_free_tools_for_its_demos_and_each_tool_sits_in_one_row()
+    {
+        // QF-26112201 F-5: a row shows the tools that do its demos' work on the visitor's own files.
+        var tools = SampleCatalog.Categories.ToDictionary(c => c.Id, c => c.Demos.Select(ToolCatalog.ForScenario).OfType<PdfTool>().Distinct().Select(t => t.Slug).ToList());
+
+        Assert.Equal(["images-to-pdf"], tools["create"]);
+        Assert.Equal(["merge"], tools["merge"]);
+        Assert.Equal(["split", "extract-pages", "remove-pages"], tools["split"]);
+        Assert.Equal(["html-to-pdf"], tools["html-to-pdf"]);
+        Assert.Empty(tools["languages"]);
+        Assert.Equal(ToolCatalog.All.Select(t => t.Slug).Order(), tools.Values.SelectMany(t => t).Order());
+
+        var row = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/CapabilityRow.razor"));
+        Assert.Contains("Category.Demos.Select(ToolCatalog.ForScenario)", row, StringComparison.Ordinal);
+        Assert.Contains("<a class=\"cap-tool\" href=\"@tool.Route\">", row, StringComparison.Ordinal);
+        Assert.DoesNotContain("Try your own", SampleCatalog.Categories.Single(c => c.Id == "merge").Description, StringComparison.Ordinal);
+        Assert.DoesNotContain("Try your own", SampleCatalog.Categories.Single(c => c.Id == "split").Description, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_footer_has_four_columns_and_every_link_opens_a_page_that_exists()
+    {
+        // QF-26112201: C# guides, languages, free tools, and resources, on every page, in the words people search with.
+        Assert.Equal(["C# guides", "Languages", ToolCatalog.HubHeading, "Resources"], FooterLinks.Columns.Select(c => c.Title));
+        var pages = SampleCatalog.Pages.Select(d => d.Route)
+            .Concat(ToolCatalog.All.Select(t => t.Route))
+            .Concat([ToolCatalog.HubRoute, ScenarioGallery.Route, "faq"]).ToHashSet();
+        var links = FooterLinks.Columns.SelectMany(c => c.Links).ToList();
+
+        Assert.Equal(links.Count, links.Select(l => l.Href).Distinct().Count());
+        Assert.All(links.Where(l => !l.External), link => Assert.Contains(link.Href.Split('?')[0], pages));
+        Assert.All(links.Where(l => l.External), link => Assert.StartsWith("https://", link.Href, StringComparison.Ordinal));
+        Assert.Equal(LanguageInvoices.All.Select(FooterLinks.LanguageRoute), FooterLinks.Columns[1].Links.Take(LanguageInvoices.All.Count).Select(l => l.Href));
+
+        var layout = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Layout/MainLayout.razor"));
+        Assert.Contains("@foreach (var column in FooterLinks.Columns)", layout, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"visually-hidden\"> (opens in a new tab)</span>", layout, StringComparison.Ordinal);
+        var languages = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages/Playground/Languages/FontsAndLanguages.razor"));
+        Assert.Contains("[SupplyParameterFromQuery(Name = \"language\")]", languages, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -247,8 +289,9 @@ public class HomePageTests
         var card = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Components/ScenarioCard.razor"));
 
         Assert.Contains("<CapabilityRow ", home, StringComparison.Ordinal);
-        Assert.Contains("private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories;", home, StringComparison.Ordinal);
-        Assert.Contains("@foreach (var demo in ScenarioGallery.Popular)", home, StringComparison.Ordinal);
+        Assert.Contains("private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories.Where(c => c != Documents);", home, StringComparison.Ordinal);
+        Assert.Contains("@foreach (var demo in Documents.Demos)", home, StringComparison.Ordinal);
+        Assert.Contains("<li><a href=\"#@category.Id\">@category.Title</a></li>", home, StringComparison.Ordinal);
         Assert.Contains("<ScenarioCard Demo=\"demo\" HeadingLevel=\"3\" />", home, StringComparison.Ordinal);
         // The row calls its link fragment for a category's demos and for each group's (F-23): the link attribute alone
         // also sits in the fragment's definition, so it would pass a row that never shows its links.
@@ -256,11 +299,11 @@ public class HomePageTests
         Assert.Equal(2, Regex.Matches(row, @"@DemoLinks\(\w+\.Demos\)").Count);
         Assert.Equal(2, Regex.Matches(card, "<a class=\"scenario-link\" href=\"@Demo.Route\">").Count);
 
-        // The approved order (D-026): hero and illustration, benefits, first PDF, popular, capabilities, How do I, FAQ band.
-        // The install command sits under the hero's buttons, above the illustration, and only there (developer choice,
-        // 2026-11-17).
+        // The approved order ("Two paths", QF-26112201): hero and illustration, the developer path with the install
+        // command and the first PDF, the tools path, documents, capabilities, benefits, How do I, FAQ band. The install
+        // command is only in the developer path.
         Assert.Single(Regex.Matches(home, "<InstallCommand />"));
-        string[] order = ["class=\"hero\"", "class=\"hero-actions\"", "<InstallCommand />", "class=\"showcase\"", "class=\"benefits\"", "first-pdf", "ScenarioGallery.Popular", "<CapabilityRow ", "id=\"how-do-i\"", "class=\"faq-band\""];
+        string[] order = ["class=\"hero\"", "class=\"hero-actions\"", "class=\"showcase\"", "For developers", "<InstallCommand />", "first-pdf-code", "For your files", "Documents.Demos", "<CapabilityRow ", "class=\"benefits\"", "id=\"how-do-i\"", "class=\"faq-band\""];
         var positions = order.Select(marker => home.IndexOf(marker, StringComparison.Ordinal)).ToList();
         Assert.All(positions, position => Assert.True(position >= 0));
         Assert.Equal(positions.Order(), positions);
@@ -303,7 +346,8 @@ public class HomePageTests
         Assert.DoesNotContain("made with UnlimitedPDF", home, StringComparison.Ordinal);
         Assert.Contains("<CodeView Source=\"@_firstPdf\"", home, StringComparison.Ordinal);
         Assert.Contains("SnippetText.Extract(SampleSource.Read(\"HomeSnippets.cs\"), \"first\")", home, StringComparison.Ordinal);
-        Assert.Equal(6, Regex.Matches(home, "<h2 id=\"[a-z-]+-title\" class=\"section-title").Count + Regex.Matches(home, "<h2 id=\"faq-band-title\">").Count);
+        Assert.Equal(5, Regex.Matches(home, "<h2 id=\"[a-z-]+-title\" class=\"section-title").Count + Regex.Matches(home, "<h2 id=\"faq-band-title\">").Count);
+        Assert.Equal(2, Regex.Matches(home, "<h2 id=\"[a-z-]+-title\" class=\"home-path-title\">").Count);
         Assert.Contains("<h3 class=\"scenario-title\">", card, StringComparison.Ordinal);
         string license = Regex.Match(project, "<PackageLicenseExpression>([^<]+)</PackageLicenseExpression>").Groups[1].Value;
         Assert.Contains($"(\"Free and open\", \"{license} licensed", home, StringComparison.Ordinal);

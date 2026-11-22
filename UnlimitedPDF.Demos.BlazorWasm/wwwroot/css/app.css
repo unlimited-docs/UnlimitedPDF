@@ -799,7 +799,6 @@ input[type="file"] { max-width: 100%; }
 .hero-lead { max-width: 40rem; margin: 0 auto; color: var(--app-muted); font-size: 1.1rem; line-height: 1.6; }
 .hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 2rem; }
 .hero-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
-.hero-install { display: flex; justify-content: center; margin: -0.75rem 0 2rem; }
 
 /* The release announcement above the headline (QF-26111209): a filled version pill, then what the release adds. */
 .hero-release {
@@ -846,7 +845,6 @@ input[type="file"] { max-width: 100%; }
 .benefit p { margin: 0; color: var(--app-muted); font-size: 0.92rem; }
 
 /* Three lines to your first PDF: the words and the install command beside the code. */
-.first-pdf { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2rem; align-items: center; }
 .first-pdf-code .code-view { height: auto; min-height: 0; border-radius: 14px; overflow: hidden; }
 .first-pdf-code .code-view pre { height: auto; padding-top: 2.9rem; }
 
@@ -931,7 +929,6 @@ input[type="file"] { max-width: 100%; }
 
 @media (max-width: 1023.98px) {
     .cap-row { grid-template-columns: minmax(0, 1fr); grid-template-areas: "intro" "demos" "code"; }
-    .first-pdf { grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
 }
 
 @media (max-width: 899.98px) {
@@ -1002,6 +999,41 @@ input[type="file"] { max-width: 100%; }
 .footer p + p { margin-top: 0.35rem; }
 .footer a { text-decoration: underline; text-underline-offset: 2px; }
 .footer-heart { fill: currentColor; color: var(--app-danger); vertical-align: -2px; }
+
+/* The footer's links (QF-26112201): four columns by task, document, tool, and resource, above the credit lines; two
+   columns on tablets and phones. */
+.footer-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem 2rem; max-width: 1100px; margin: 0 auto 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--app-line); text-align: left; }
+.footer-title { margin: 0 0 0.5rem; color: var(--app-accent); font-size: 0.95rem; font-weight: 750; }
+.footer-col ul { margin: 0; padding: 0; list-style: none; }
+.footer-col li + li { margin-top: 0.2rem; }
+.footer-col a { color: var(--app-muted); text-decoration: none; display: inline-block; padding: 0.1rem 0; }
+.footer-col a:hover { color: var(--app-accent); text-decoration: underline; }
+@media (max-width: 1023.98px) { .footer-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 575.98px) { .footer-col a { min-height: 44px; display: inline-flex; align-items: center; } }
+
+/* The home page's jump links to the capability rows and each row's free tools (QF-26112201 F-5, F-7); the documents
+   section keeps the row's anchor and stops below the top bar. */
+.cap-jump { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; margin: 0.75rem 0 1rem; }
+.cap-jump-label { color: var(--app-muted); font-size: 0.9rem; }
+.cap-jump ul { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.cap-jump a { display: inline-flex; align-items: center; min-height: 36px; padding: 0.2rem 0.8rem; border: 1px solid var(--app-line); border-radius: 999px; background: var(--app-surface); color: var(--app-accent); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+.cap-jump a:hover { border-color: var(--app-accent); background: var(--app-accent-soft); }
+.cap-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem 0.6rem; margin: 0.75rem 0 0; }
+.cap-tools-label { color: var(--app-muted); font-size: 0.9rem; }
+.cap-tool { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 36px; padding: 0.2rem 0.8rem; border: 1px solid var(--tone, var(--app-accent)); border-radius: 999px; color: var(--tone, var(--app-accent)); font-size: 0.9rem; font-weight: 600; text-decoration: none; }
+.cap-tool:hover { background: var(--tone-soft, var(--app-accent-soft)); }
+#documents.home-section, #capabilities.home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
+
+/* The home page's two paths (QF-26112201): for developers and for visitors' own files, side by side, one column below
+   1,024 px. */
+.home-paths { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: stretch; }
+.home-path { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.25rem 1.4rem; background: var(--app-surface); border: 1px solid var(--app-line); border-radius: var(--app-radius); }
+.home-path-title { margin: 0; color: var(--app-accent); font-size: 1.35rem; font-weight: 800; }
+.home-path-lead { margin: -0.5rem 0 0; color: var(--app-muted); }
+.home-path .home-tools-list { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.home-path-more { margin-top: auto; display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; font-weight: 700; }
+@media (max-width: 1023.98px) { .home-paths { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 575.98px) { .cap-jump a, .cap-tool { min-height: 44px; } }
 
 /* A missing page: the code, what happened, the search, and the ways on. */
 .not-found { max-width: 36rem; margin: 4rem auto; padding: 0 1.25rem; text-align: center; }
