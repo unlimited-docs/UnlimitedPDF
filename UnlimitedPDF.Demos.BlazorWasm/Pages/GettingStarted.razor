@@ -1,0 +1,85 @@
+@page "/getting-started"
+
+<PageTitle>Get started with UnlimitedPDF: install from NuGet</PageTitle>
+<PageDescription Text="Install the UnlimitedPDF C# PDF library from NuGet, write your first PDF in three lines, and find the scenario for your task." />
+<CanonicalLink Path="getting-started" />
+
+@* Getting started (QF-26112202): install from NuGet, what it runs on, the first PDF, and where to go next. The tool pages
+   and the footer link here. Every statement matches the readme and the FAQ (PR-012). *@
+<div class="getting-started">
+    <header class="gs-head">
+        <h1>Get started with UnlimitedPDF</h1>
+        <p>Install the package from NuGet, write your first PDF, and find the scenario for your task.</p>
+    </header>
+
+    <ol class="gs-steps">
+        <li class="panel gs-step" aria-labelledby="gs-install-title">
+            <span class="gs-step-number" aria-hidden="true">1</span>
+            <h2 id="gs-install-title">Install the package</h2>
+            <p>Run this in your project's folder:</p>
+            <InstallCommand />
+            <p>Or add a package reference to the project file:</p>
+            <InstallCommand Command="@PackageReference" IsFileText="true" />
+            <ul class="gs-facts">
+                <li><Icon Name="check" Size="16" /> One package targets .NET 6, .NET 8, .NET 9, .NET 10, and .NET 11.</li>
+                <li><Icon Name="check" Size="16" /> No native code, no PDF engine to install, and no third-party package dependencies.</li>
+                <li><Icon Name="check" Size="16" /> Runs wherever your .NET app runs: Windows, Linux, macOS, containers, and Blazor WebAssembly.</li>
+            </ul>
+            <a class="gs-more" href="@FooterLinks.NuGetUrl" target="_blank" rel="noopener">UnlimitedPDF on NuGet <Icon Name="external" Size="14" /><span class="visually-hidden"> (opens in a new tab)</span></a>
+        </li>
+
+        <li class="panel gs-step" aria-labelledby="gs-first-title">
+            <span class="gs-step-number" aria-hidden="true">2</span>
+            <h2 id="gs-first-title">Write your first PDF</h2>
+            <p>Add <code>using UnlimitedPDF;</code> at the top of a file, then write a page and save it:</p>
+            <div class="gs-code">
+                <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
+            </div>
+            <p>This saves hello.pdf, one page with a line of text, in the folder you choose.</p>
+        </li>
+
+        <li class="panel gs-step" aria-labelledby="gs-next-title">
+            <span class="gs-step-number" aria-hidden="true">3</span>
+            <h2 id="gs-next-title">Find your next step</h2>
+            <p>Each scenario runs in your browser, with the data, the PDF, and the C# side by side.</p>
+            <ul class="gs-next">
+                @foreach (var (text, demo) in NextSteps)
+                {
+                    <li>
+                        <a class="gs-next-link" href="@demo.Route">
+                            <span class="gs-next-icon" aria-hidden="true"><Icon Name="@demo.Icon" Size="18" /></span>
+                            <span>@text<small>@demo.Title</small></span>
+                        </a>
+                    </li>
+                }
+            </ul>
+            <p class="gs-links">
+                <a href="@ScenarioGallery.Route">All @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="16" /></a>
+                <a href="faq">FAQ <Icon Name="arrow" Size="16" /></a>
+            </p>
+        </li>
+    </ol>
+</div>
+
+@code {
+    // The tasks most people start with, each opening the scenario that shows it.
+    private static readonly (string Text, SampleDemo Demo)[] NextSteps =
+    [
+        ("Place text and add pages", SampleCatalog.TextAndPages),
+        ("Build tables across pages", SampleCatalog.Tables),
+        ("Merge PDF files", SampleCatalog.JoinFiles),
+        ("Split a PDF", SampleCatalog.SplitEveryN),
+        ("Convert HTML to PDF", SampleCatalog.HtmlToPdf),
+        ("Draw Hindi, Telugu, and Tamil", SampleCatalog.FontsAndLanguages),
+    ];
+
+    private string _firstPdf = string.Empty;
+
+    private static string PackageReference =>
+        LibraryRelease.Version.Length > 0
+            ? $"<PackageReference Include=\"UnlimitedPDF\" Version=\"{LibraryRelease.Version}\" />"
+            : "<PackageReference Include=\"UnlimitedPDF\" />";
+
+    /// <inheritdoc />
+    protected override void OnInitialized() => _firstPdf = SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "first");
+}

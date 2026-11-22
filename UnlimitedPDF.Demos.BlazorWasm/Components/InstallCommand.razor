@@ -1,6 +1,6 @@
 @inject UnlimitedPDF.Demos.BlazorWasm.Services.BrowserInterop Interop
 
-<div class="install">
+<div class="@(IsFileText ? "install is-file" : "install")">
     <code>@Command</code>
     <button type="button" @onclick="CopyAsync">
         <Icon Name="@(_copied ? "check" : "copy")" Size="14" /> @(_copied ? "Copied" : "Copy")<span class="visually-hidden"> the install command</span>
@@ -15,6 +15,12 @@
     /// Gets or sets the command to show and copy.
     /// </summary>
     [Parameter] public string Command { get; set; } = "dotnet add package UnlimitedPDF";
+
+    /// <summary>
+    /// Gets or sets whether the text is a line for a file, such as a package reference, rather than a command, so it is
+    /// shown without the shell prompt (QF-26112202).
+    /// </summary>
+    [Parameter] public bool IsFileText { get; set; }
 
     private async Task CopyAsync()
     {

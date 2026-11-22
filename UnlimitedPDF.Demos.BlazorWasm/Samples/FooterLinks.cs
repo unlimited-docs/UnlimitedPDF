@@ -71,6 +71,7 @@ public static class FooterLinks
         ]),
         new("Resources",
         [
+            new("Getting started", "getting-started"),
             new($"All {ScenarioGallery.Scenarios.Count} scenarios", ScenarioGallery.Route),
             new("Real-life documents", $"{ScenarioGallery.Route}?capability=documents"),
             new("FAQ", "faq"),

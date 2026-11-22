@@ -55,6 +55,9 @@ html, body {
     color: var(--app-ink);
     background: var(--app-canvas);
 }
+/* The page ends where its content and footer end (QF-26112202): below a page shorter than the window, the window shows
+   the footer's color, so the footer reads as filling the rest of the screen. */
+html { background: var(--app-surface); }
 
 h1:focus { outline: none; }
 
@@ -206,8 +209,6 @@ summary:focus-visible,
 }
 .site-menu-link.active { box-shadow: inset 4px 0 0 var(--app-focus); padding-left: 0.75rem; }
 .site-menu-install { justify-content: center; min-height: 48px; }
-
-.app-main { min-height: calc(100vh - var(--app-topbar-h)); }
 
 /* Focused by the skip link only; the next Tab press continues inside it, so it needs no ring of its own. */
 .app-main:focus, .playground-content:focus { outline: none; }
@@ -862,6 +863,7 @@ input[type="file"] { max-width: 100%; }
 }
 .install code { color: inherit; white-space: nowrap; overflow: auto; }
 .install code::before { content: "$ "; color: #9aa7c4; }
+.install.is-file code::before { content: none; }
 .install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
 .install button:hover { background: #1b2a47; }
 
@@ -1407,6 +1409,9 @@ input[type="file"] { max-width: 100%; }
 /* Phone tap targets for controls whose base rules come later in this file, so these win (26111103 AC-05). */
 @media (max-width: 575.98px) {
     .demo-choice .demo-choice-option { min-height: 44px; }
+    .getting-started .gs-step { padding: 1.25rem 1rem; }
+    .getting-started .gs-step-number { position: static; margin-bottom: 0.5rem; }
+    .getting-started .gs-next { grid-template-columns: minmax(0, 1fr); }
     .breadcrumbs a { min-height: 44px; min-width: 44px; }
     .gallery-tabs .gallery-tab { min-height: 44px; min-width: 44px; justify-content: center; }
     .stale-note button { min-height: 44px; }
@@ -1487,27 +1492,34 @@ input[type="file"] { max-width: 100%; }
     color: #ffffff;
     font-weight: 700;
 }
-.tool-code-title { margin-top: 2.5rem; font-size: 1.35rem; }
-.tool-code, .tool-done-code { max-width: 46rem; margin: 1rem auto 2.5rem; }
-/* A tool's code is a few lines, so its view fits them instead of the scenarios' tall panel. */
-.tool-code .code-view, .tool-done-code .code-view { height: auto; min-height: 0; border-radius: 12px; overflow: hidden; }
-.tool-code .code-view pre, .tool-done-code .code-view pre { height: auto; padding: 2.9rem 1.1rem 1.25rem; }
-.tool-install { margin: 0.6rem 0; color: var(--app-muted); font-size: 0.95rem; }
-.tool-scenario-link {
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 44px;
-    padding: 0.45rem 0.85rem;
-    border: 1px solid #a9dccf;
-    border-radius: 10px;
-    background: var(--app-teal-soft);
-    color: var(--app-teal-ink);
-    text-decoration: none;
-}
-.tool-scenario-link strong { color: var(--app-accent); }
-.tool-scenario-link:hover strong { text-decoration: underline; }
+/* The developer line under a tool's how-to (QF-26112202): one line that links to Getting started. The C# itself is on
+   the done screen. */
+.tool-dev { max-width: 46rem; margin: 1.75rem auto 2.25rem; text-align: center; color: var(--app-muted); }
+.tool-dev a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; font-weight: 700; }
+.tool-dev > .icon { vertical-align: -4px; color: var(--app-accent); }
+
+/* Getting started (QF-26112202): numbered steps in one column. */
+.getting-started { max-width: 52rem; margin: 0 auto; padding: 2.5rem 1.25rem 3rem; }
+.gs-head { text-align: center; margin-bottom: 1.75rem; }
+.gs-head h1 { margin: 0 0 0.5rem; color: var(--app-accent); font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; }
+.gs-head p { margin: 0; color: var(--app-muted); font-size: 1.1rem; }
+.gs-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+.gs-step { position: relative; padding: 1.4rem 1.5rem 1.4rem 4.5rem; }
+.gs-step-number { position: absolute; left: 1.4rem; top: 1.35rem; width: 2.2rem; height: 2.2rem; border-radius: 50%; display: grid; place-items: center; background: var(--app-accent); color: #fff; font-weight: 800; }
+.gs-step h2 { margin: 0.2rem 0 0.6rem; color: var(--app-accent); font-size: 1.35rem; font-weight: 800; }
+.gs-step p { margin: 0.75rem 0 0.5rem; color: var(--app-muted); }
+.gs-facts { list-style: none; margin: 1rem 0 0.5rem; padding: 0; display: grid; gap: 0.35rem; }
+.gs-facts .icon { color: var(--app-teal-ink); vertical-align: -3px; margin-right: 0.25rem; }
+.gs-more { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; font-weight: 700; }
+.gs-code .code-view { height: auto; min-height: 0; border-radius: 12px; overflow: hidden; }
+.gs-code .code-view pre { height: auto; padding: 2.9rem 1.1rem 1.25rem; }
+.gs-next { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; }
+.gs-next-link { display: flex; align-items: center; gap: 0.75rem; min-height: 56px; padding: 0.6rem 0.85rem; border: 1px solid var(--app-line); border-radius: 12px; background: var(--app-surface); color: var(--app-accent); font-weight: 700; text-decoration: none; }
+.gs-next-link:hover { border-color: var(--app-accent); }
+.gs-next-link small { display: block; color: var(--app-muted); font-weight: 400; }
+.gs-next-icon { width: 36px; height: 36px; flex: none; border-radius: 10px; display: grid; place-items: center; background: var(--app-accent-soft); }
+.gs-links { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+.gs-links a { display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; font-weight: 700; }
 
 /* Workspace: the visitor's files or pages, with the action bar under them. */
 .tool-landing, .tool-workspace, .tool-done { scroll-margin-top: calc(var(--app-topbar-h) + 0.5rem); }
@@ -1663,6 +1675,9 @@ button.page-tile:hover { border-color: var(--app-accent); }
 
 /* Done. */
 .tool-done { max-width: 1200px; margin: 0 auto; padding: 2.5rem 1.25rem 1rem; text-align: center; }
+/* The result in one card (QF-26112202): the heading, the file, Download, and the other actions. */
+.tool-done-card { max-width: 44rem; margin: 0 auto; padding: 1.75rem 1.5rem 1.5rem; background: var(--app-surface); border: 1px solid var(--app-line); border-radius: 16px; }
+.tool-done-card .tool-done-actions { margin: 1.25rem 0 0.75rem; }
 .tool-done-head .tool-done-icon { color: var(--app-teal-ink); }
 .tool-done-head h1 { margin: 0.25rem 0 0.35rem; color: var(--app-accent); font-size: clamp(1.7rem, 4vw, 2.2rem); font-weight: 800; }
 .tool-done-meta { margin: 0; color: var(--app-muted); overflow-wrap: anywhere; }
@@ -1678,8 +1693,6 @@ button.page-tile:hover { border-color: var(--app-accent); }
 .tool-part-actions { display: flex; gap: 0.4rem; margin-left: auto; }
 .tool-part-actions .btn { min-height: 44px; min-width: 44px; }
 .tool-preview { max-width: 52rem; margin: 1.5rem auto 0; text-align: left; }
-.tool-done-code { text-align: left; }
-.tool-done-code-title { margin: 2rem 0 0.75rem; color: var(--app-accent); font-size: 1.2rem; font-weight: 750; }
 
 /* While files are dragged over the page, the whole view shows where they go. */
 body.is-dropping::after {

@@ -264,7 +264,7 @@ public class HomePageTests
         Assert.Equal(["C# guides", "Languages", ToolCatalog.HubHeading, "Resources"], FooterLinks.Columns.Select(c => c.Title));
         var pages = SampleCatalog.Pages.Select(d => d.Route)
             .Concat(ToolCatalog.All.Select(t => t.Route))
-            .Concat([ToolCatalog.HubRoute, ScenarioGallery.Route, "faq"]).ToHashSet();
+            .Concat([ToolCatalog.HubRoute, ScenarioGallery.Route, "faq", "getting-started"]).ToHashSet();
         var links = FooterLinks.Columns.SelectMany(c => c.Links).ToList();
 
         Assert.Equal(links.Count, links.Select(l => l.Href).Distinct().Count());

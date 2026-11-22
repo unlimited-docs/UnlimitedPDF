@@ -1,9 +1,11 @@
 @using System.Globalization
 @using UnlimitedPDF.Demos.BlazorWasm.Services.Tools
-@* A tool's done screen (26112201 AC-04): "Your PDF is ready" with the file's name, pages, size, and time, a large
-   Download, Preview (the site's drawn preview of every page), Open PDF, ways back, and the C# that did it with the
-   visitor's file names and choices. Split lists each part with its own download and "Download all (.zip)". *@
+@* A tool's done screen (26112201 AC-04, QF-26112202): one card with "Your PDF is ready", the file's name, pages, size,
+   and time, a large Download, Preview (the site's drawn preview of every page), Open PDF, and ways back; under it the
+   preview and one line for developers that links to Getting started. Split lists each part with its own download and
+   "Download all (.zip)". *@
 <section class="tool-done" aria-labelledby="tool-heading">
+    <div class="tool-done-card">
     <div class="tool-done-head">
         <Icon Name="check" Size="34" Class="tool-done-icon" />
         <h1 id="tool-heading" tabindex="-1">@Heading</h1>
@@ -53,18 +55,13 @@
         </ol>
         <div class="tool-done-more">@Back</div>
     }
+    </div>
 
     <div id="tool-preview" class="tool-preview" hidden="@(!_previewing)">
         <PdfPreview @ref="_preview" />
     </div>
 
-    <div class="tool-done-code">
-        <h2 class="tool-done-code-title">The C# that did this, with your files</h2>
-        <CodeView Source="@Code" AriaLabel="C# that made this result" />
-        <a class="tool-scenario-link" href="@Scenario.Route">
-            <Icon Name="code" Size="18" /> Change the data and the code live: <strong>@Scenario.Title scenario</strong> <Icon Name="arrow" Size="16" />
-        </a>
-    </div>
+    <ToolDevLine />
 </section>
 
 @code {
@@ -77,11 +74,6 @@
     /// Gets or sets the buttons that go back, for example "Pick other pages" and "Merge other files".
     /// </summary>
     [Parameter] public RenderFragment? Back { get; set; }
-
-    /// <summary>
-    /// Gets or sets the code that did it.
-    /// </summary>
-    [Parameter, EditorRequired] public string Code { get; set; } = "";
 
     /// <summary>
     /// Gets or sets the heading, for example "Your PDF is ready".
@@ -112,11 +104,6 @@
     /// Gets or sets the run's result.
     /// </summary>
     [Parameter, EditorRequired] public ToolResult Result { get; set; } = default!;
-
-    /// <summary>
-    /// Gets or sets the scenario the code links to.
-    /// </summary>
-    [Parameter, EditorRequired] public SampleDemo Scenario { get; set; } = default!;
 
     private string Summary
     {

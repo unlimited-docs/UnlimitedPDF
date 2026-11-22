@@ -14,7 +14,7 @@
 {
     case ToolPageStep.Landing:
         <ToolLanding Tool="Tool" ChooseLabel="Choose pictures" SampleLabel="Use two sample pictures" HowToTask="turn pictures into a PDF"
-                     LimitsLine="@ToolLimits.PictureLimitsLine" Code="@ToolCode.ImagesToPdf()" Busy="Busy" Errors="FileErrors"
+                     LimitsLine="@ToolLimits.PictureLimitsLine" Busy="Busy" Errors="FileErrors"
                      OnChoose="ChooseFilesAsync" OnSample="UseSamplesAsync" />
         break;
 
@@ -61,10 +61,10 @@
         break;
 
     case ToolPageStep.Done:
-        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+        <ToolDone Result="Result!" OnDownload="DownloadAsync" OnOpen="OpenAsync">
             <Back>
                 <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Change the pictures or options</button>
-                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Start with other pictures</button>
+                <button type="button" class="btn btn-outline" @onclick="StartOverAsync">Start with other pictures</button>
             </Back>
         </ToolDone>
         break;
@@ -106,7 +106,7 @@
         var images = _pictures.Files.Select(p => p.Value.Image).ToList();
         var names = _pictures.Files.Select(p => p.Name).ToList();
         var (size, fit) = (_size, _fit);
-        return RunAsync(() => ToolOperations.ImagesToPdfAsync(images, size, fit, output), () => ToolCode.ImagesToPdf(names, size, fit, output));
+        return RunAsync(() => ToolOperations.ImagesToPdfAsync(images, size, fit, output));
     }
 
     private async Task OnFilesAsync(InputFileChangeEventArgs args)

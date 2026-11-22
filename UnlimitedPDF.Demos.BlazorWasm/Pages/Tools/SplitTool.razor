@@ -13,7 +13,7 @@
 {
     case ToolPageStep.Landing:
         <ToolLanding Tool="Tool" ChooseLabel="Choose a PDF file" SampleLabel="Use a sample PDF" HowToTask="split a PDF" Single="true"
-                     LimitsLine="@ToolLimits.SinglePdfLimitsLine" Code="@ToolCode.SplitEvery()" Busy="Busy" Errors="FileErrors"
+                     LimitsLine="@ToolLimits.SinglePdfLimitsLine" Busy="Busy" Errors="FileErrors"
                      OnChoose="ChooseFilesAsync" OnSample="UseSample" />
         break;
 
@@ -61,12 +61,12 @@
         break;
 
     case ToolPageStep.Done:
-        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="@(_byRanges ? SampleCatalog.SplitRanges : SampleCatalog.SplitEveryN)"
+        <ToolDone Result="Result!"
                   Heading="@($"Your {CountText(Result!.Files.Count, "file")} are ready")"
                   OnDownload="DownloadAsync" OnOpen="OpenAsync" OnDownloadAll="@(() => DownloadAllAsync($"{Stem}-parts.zip"))">
             <Back>
                 <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Split differently</button>
-                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Use another file</button>
+                <button type="button" class="btn btn-outline" @onclick="StartOverAsync">Use another file</button>
             </Back>
         </ToolDone>
         break;
@@ -127,10 +127,10 @@
         if (_byRanges)
         {
             string text = Selection!.Text;
-            return RunAsync(() => ToolOperations.SplitRangesAsync(file.Value, text, stem), () => ToolCode.SplitRanges(file.Name, text));
+            return RunAsync(() => ToolOperations.SplitRangesAsync(file.Value, text, stem));
         }
 
         int every = _every;
-        return RunAsync(() => ToolOperations.SplitEveryAsync(file.Value, every, stem), () => ToolCode.SplitEvery(file.Name, every));
+        return RunAsync(() => ToolOperations.SplitEveryAsync(file.Value, every, stem));
     }
 }

@@ -1,7 +1,7 @@
 @using UnlimitedPDF.Demos.BlazorWasm.Services.Tools
 @* A tool's landing (26112201 AC-04, D-007): the large title and subtitle, one large upload button on a soft band with a
-   menu for sample files, the privacy and limits lines, then the numbered how-to, the C# that does the same, and the
-   link to the matching scenario. *@
+   menu for sample files, the privacy and limits lines, then the numbered how-to and one line for developers that links
+   to Getting started. The C# itself is on the done screen, with the visitor's own file names (QF-26112202). *@
 <section class="tool-landing" aria-labelledby="tool-heading">
     <div class="tool-hero">
         <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
@@ -56,14 +56,7 @@
             }
         </ol>
 
-        <h2 class="section-title is-centered tool-code-title">Do the same in your .NET app</h2>
-        <div class="tool-code">
-            <CodeView Source="@Code" AriaLabel="@($"C# for {Tool.Name}")" />
-            <p class="tool-install">Install with <code>dotnet add package UnlimitedPDF</code>.</p>
-            <a class="tool-scenario-link" href="@Tool.Scenario.Route">
-                <Icon Name="code" Size="18" /> Change the data and the code live: <strong>@Tool.Scenario.Title scenario</strong> <Icon Name="arrow" Size="16" />
-            </a>
-        </div>
+        <ToolDevLine />
     </div>
 </section>
 
@@ -77,11 +70,6 @@
     /// Gets or sets the large button's text, for example "Choose PDF files".
     /// </summary>
     [Parameter, EditorRequired] public string ChooseLabel { get; set; } = "";
-
-    /// <summary>
-    /// Gets or sets the code shown under the how-to.
-    /// </summary>
-    [Parameter, EditorRequired] public string Code { get; set; } = "";
 
     /// <summary>
     /// Gets or sets the messages for files that were refused.

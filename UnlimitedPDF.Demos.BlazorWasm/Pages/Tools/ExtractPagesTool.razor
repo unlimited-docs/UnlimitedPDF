@@ -12,7 +12,7 @@
 {
     case ToolPageStep.Landing:
         <ToolLanding Tool="Tool" ChooseLabel="Choose a PDF file" SampleLabel="Use a sample PDF" HowToTask="extract pages from a PDF" Single="true"
-                     LimitsLine="@ToolLimits.SinglePdfLimitsLine" Code="@ToolCode.ExtractPages()" Busy="Busy" Errors="FileErrors"
+                     LimitsLine="@ToolLimits.SinglePdfLimitsLine" Busy="Busy" Errors="FileErrors"
                      OnChoose="ChooseFilesAsync" OnSample="UseSample" />
         break;
 
@@ -54,10 +54,10 @@
         break;
 
     case ToolPageStep.Done:
-        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+        <ToolDone Result="Result!" OnDownload="DownloadAsync" OnOpen="OpenAsync">
             <Back>
                 <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Pick other pages</button>
-                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Use another file</button>
+                <button type="button" class="btn btn-outline" @onclick="StartOverAsync">Use another file</button>
             </Back>
         </ToolDone>
         break;
@@ -75,7 +75,7 @@
         var file = File!;
         string pages = Selection!.Text;
         string output = SafeFileName.For(string.IsNullOrWhiteSpace(_name) ? DefaultName : _name, DefaultName);
-        return RunAsync(() => ToolOperations.ExtractAsync(file.Value, pages, output), () => ToolCode.ExtractPages(file.Name, pages, output));
+        return RunAsync(() => ToolOperations.ExtractAsync(file.Value, pages, output));
     }
 
     /// <inheritdoc />
