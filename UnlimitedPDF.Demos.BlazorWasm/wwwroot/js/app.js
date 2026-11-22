@@ -487,3 +487,132 @@ export function disposeViewer(scroll) {
     scroll.removeEventListener("touchmove", viewer.onTouchMove);
     scroll.viewer = null;
 }
+
+// ---------- Free tools (26112201) ----------
+
+// A page thumbnail: the renderer's drawing of one page, cleaned like a viewer page, placed in its tile's canvas.
+export function placeThumbnail(root, key, svg) {
+    const canvas = root && root.querySelector(`[data-thumb="${CSS.escape(String(key))}"] .thumb-canvas`);
+    const drawing = canvas && cleanSvg(svg);
+    if (!drawing) {
+        return false;
+    }
+    drawing.setAttribute("aria-hidden", "true");
+    drawing.setAttribute("focusable", "false");
+    canvas.replaceChildren(drawing);
+    return true;
+}
+
+// Asks for each thumbnail as its tile comes near the view, once, so a long PDF draws only what is seen.
+const thumbnailObservers = new WeakMap();
+
+export function observeThumbnails(root, listener) {
+    if (!root) {
+        return;
+    }
+    let observer = thumbnailObservers.get(root);
+    if (!observer) {
+        observer = new IntersectionObserver(entries => {
+            for (const entry of entries) {
+                if (entry.isIntersecting) {
+                    observer.unobserve(entry.target);
+                    listener.invokeMethodAsync("DrawThumbnail", entry.target.dataset.thumb);
+                }
+            }
+        }, { rootMargin: "400px 0px" });
+        thumbnailObservers.set(root, observer);
+    }
+    for (const tile of root.querySelectorAll("[data-thumb]:not([data-thumb-watched])")) {
+        tile.dataset.thumbWatched = "true";
+        observer.observe(tile);
+    }
+}
+
+export function stopThumbnails(root) {
+    const observer = root && thumbnailObservers.get(root);
+    if (observer) {
+        observer.disconnect();
+        thumbnailObservers.delete(root);
+    }
+}
+
+// Opens the file picker of a visually hidden file input from a real button, so the button is what the keyboard and
+// screen readers meet.
+export function openFilePicker(input) {
+    if (input) {
+        input.click();
+    }
+}
+
+// Files dropped anywhere on the page go to the tool's file input, as if chosen in its picker. A drop on a file input
+// itself is left to the browser.
+const pageDrops = new WeakMap();
+
+export function initPageDrop(input) {
+    if (!input || pageDrops.has(input)) {
+        return;
+    }
+    let depth = 0;
+    const hasFiles = event => Array.from(event.dataTransfer?.types || []).includes("Files");
+    const clear = () => {
+        depth = 0;
+        document.body.classList.remove("is-dropping");
+    };
+    const handlers = {
+        dragenter: event => {
+            if (hasFiles(event)) {
+                depth++;
+                document.body.classList.add("is-dropping");
+            }
+        },
+        dragleave: event => {
+            if (hasFiles(event) && --depth <= 0) {
+                clear();
+            }
+        },
+        dragover: event => {
+            if (hasFiles(event)) {
+                event.preventDefault();
+            }
+        },
+        drop: event => {
+            if (!hasFiles(event)) {
+                return;
+            }
+            clear();
+            if (event.target instanceof HTMLInputElement && event.target.type === "file") {
+                return;
+            }
+            event.preventDefault();
+            input.files = event.dataTransfer.files;
+            input.dispatchEvent(new Event("change", { bubbles: true }));
+        },
+    };
+    for (const [name, handler] of Object.entries(handlers)) {
+        window.addEventListener(name, handler);
+    }
+    pageDrops.set(input, handlers);
+}
+
+export function disposePageDrop(input) {
+    const handlers = input && pageDrops.get(input);
+    if (handlers) {
+        for (const [name, handler] of Object.entries(handlers)) {
+            window.removeEventListener(name, handler);
+        }
+        pageDrops.delete(input);
+        document.body.classList.remove("is-dropping");
+    }
+}
+
+// Moves the focus to a step's heading (tabindex -1) as a tool moves on, so a screen reader reads the new step.
+export function focusHeading(id) {
+    const heading = document.getElementById(id);
+    if (heading) {
+        heading.focus({ preventScroll: true });
+        const step = heading.closest("section") || heading;
+        if (step.getBoundingClientRect().top < 0 || step.getBoundingClientRect().top > window.innerHeight / 2) {
+            step.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+        }
+    }
+}

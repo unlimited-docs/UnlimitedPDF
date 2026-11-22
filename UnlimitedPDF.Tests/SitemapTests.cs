@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Xml.Linq;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
+using UnlimitedPDF.Demos.BlazorWasm.Services.Tools;
 
 namespace UnlimitedPDF.Tests;
 
@@ -26,8 +27,9 @@ public class SitemapTests
     {
         var sitemap = XDocument.Parse(DemosFile("wwwroot/sitemap.xml"));
         var urls = sitemap.Root!.Elements(Sitemaps + "url").Select(u => u.Element(Sitemaps + "loc")!.Value).ToList();
-        var expected = new[] { "", "playground", "faq" }
+        var expected = new[] { "", "playground", "faq", ToolCatalog.HubRoute }
             .Concat(SampleCatalog.Pages.Select(d => d.Route))
+            .Concat(ToolCatalog.All.Select(t => t.Route))
             .Distinct()
             .Select(SiteLinks.For);
 
@@ -85,6 +87,13 @@ public class SitemapTests
             Assert.Equal(demo.PageTitle, entry.Title);
             Assert.Equal(demo.Description, entry.Description);
         }
+        foreach (var tool in ToolCatalog.All)
+        {
+            var entry = entries.Single(e => e.Url == SiteLinks.For(tool.Route));
+            Assert.Equal(tool.PageTitle, entry.Title);
+            Assert.Equal(tool.Subtitle, entry.Description);
+        }
+        Assert.Equal(ToolCatalog.HubSubtitle, entries.Single(e => e.Url == SiteLinks.For(ToolCatalog.HubRoute)).Description);
         foreach (var (path, page) in new[] { ("", "Pages/Home.razor"), ("playground", "Pages/PlaygroundIndex.razor"), ("faq", "Pages/Faq.razor") })
         {
             var entry = entries.Single(e => e.Url == SiteLinks.For(path));

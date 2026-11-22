@@ -1,0 +1,94 @@
+@page "/tools/remove-pages"
+@inherits SingleFileToolBase
+@* Remove pages (26112201 AC-04, D-007): landing, then every page to cross out or a typed page list, then the PDF
+   without them. *@
+
+<PageTitle>@Tool.DocumentTitle</PageTitle>
+<PageDescription Text="@Tool.Subtitle" />
+<CanonicalLink Path="@Tool.Route" />
+
+<InputFile @ref="FileInput" class="visually-hidden" tabindex="-1" aria-hidden="true" accept=".pdf,application/pdf" OnChange="OnFilesAsync" />
+
+@switch (Step)
+{
+    case ToolPageStep.Landing:
+        <ToolLanding Tool="Tool" ChooseLabel="Choose a PDF file" SampleLabel="Use a sample PDF" HowToTask="remove pages from a PDF" Single="true"
+                     LimitsLine="@ToolLimits.SinglePdfLimitsLine" Code="@ToolCode.RemovePages()" Busy="Busy" Errors="FileErrors"
+                     OnChoose="ChooseFilesAsync" OnSample="UseSample" />
+        break;
+
+    case ToolPageStep.Workspace when File is { } file && Selection is { } selection:
+        <section class="tool-workspace" aria-labelledby="tool-heading">
+            <div class="tool-workspace-head">
+                <div>
+                    <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
+                    <p class="tool-workspace-meta">@FileLine</p>
+                </div>
+                <div class="tool-workspace-tools">
+                    <div class="page-select-tools" role="group" aria-label="Mark pages">
+                        <button type="button" class="btn btn-sm btn-outline" @onclick="selection.Clear">Clear</button>
+                        <button type="button" class="btn btn-sm btn-outline" @onclick="selection.SelectOdd">Odd pages</button>
+                        <button type="button" class="btn btn-sm btn-outline" @onclick="selection.SelectEven">Even pages</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@Busy" @onclick="ChooseFilesAsync"><Icon Name="upload" Size="16" /> Use another PDF</button>
+                </div>
+            </div>
+            <ToolFileErrors Errors="FileErrors" Busy="Busy" />
+            <PageGrid File="file.Value" Mode="PageGridMode.Remove" Selection="selection" OnToggle="selection.Toggle"
+                      Label="@($"Pages of {file.Name}; mark the pages to remove")" />
+        </section>
+        <ToolActionBar ActionLabel="@($"Remove {CountText(Removed(selection), "page")}")" Busy="Busy" CanRun="@CanRemove(selection, file.Value)"
+                       Error="@(RunError ?? selection.Error)" Hint="@Why(selection, file.Value)" OnRun="RemoveAsync" OnStartOver="StartOverAsync">
+            <div class="tool-option">
+                <label for="remove-pages">Pages to remove</label>
+                <input id="remove-pages" class="form-control" value="@selection.Text" placeholder="2, 6" aria-describedby="remove-pages-hint"
+                       @onchange="e => selection.SetText(e.Value?.ToString())" spellcheck="false" />
+                <p class="tool-option-hint" id="remove-pages-hint">For example 2, 6 or 1-3. @CountText(file.Value.PageCount - Removed(selection), "page") kept.</p>
+            </div>
+            <div class="tool-option">
+                <label for="remove-name">Save as</label>
+                <input id="remove-name" class="form-control" @bind="_name" placeholder="@DefaultName" spellcheck="false" />
+            </div>
+        </ToolActionBar>
+        break;
+
+    case ToolPageStep.Done:
+        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+            <Back>
+                <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Mark other pages</button>
+                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Use another file</button>
+            </Back>
+        </ToolDone>
+        break;
+}
+
+@code {
+    private string? _name;
+
+    private static PdfTool Tool => ToolCatalog.RemovePages;
+
+    private string DefaultName => $"{Stem}-trimmed";
+
+    private static bool CanRemove(PageSelection selection, PdfFile file) => selection.IsUsable && Removed(selection) < file.PageCount;
+
+    private static int Removed(PageSelection selection) => selection.Pages.Distinct().Count();
+
+    private static string? Why(PageSelection selection, PdfFile file) =>
+        (selection.Count == 0 ? "Mark at least one page to remove." : null)
+        ?? (Removed(selection) >= file.PageCount ? "Keep at least one page." : null);
+
+    private Task RemoveAsync()
+    {
+        var file = File!;
+        string pages = Selection!.Text;
+        string output = SafeFileName.For(string.IsNullOrWhiteSpace(_name) ? DefaultName : _name, DefaultName);
+        return RunAsync(() => ToolOperations.RemoveAsync(file.Value, pages, output), () => ToolCode.RemovePages(file.Name, pages, output));
+    }
+
+    /// <inheritdoc />
+    protected override void Reset()
+    {
+        base.Reset();
+        _name = null;
+    }
+}

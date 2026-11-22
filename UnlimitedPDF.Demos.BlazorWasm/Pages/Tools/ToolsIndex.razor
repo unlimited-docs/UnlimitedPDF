@@ -1,0 +1,46 @@
+@page "/tools"
+@* The free tools hub (26112201 AC-03, AC-06, D-002, D-003): every tool as a card in its group, each naming what it
+   does and what goes in and comes out, and linking to the tool's own page. *@
+
+<PageTitle>@ToolCatalog.HubDocumentTitle</PageTitle>
+<PageDescription Text="@ToolCatalog.HubSubtitle" />
+<CanonicalLink Path="@ToolCatalog.HubRoute" />
+
+<section class="tools-hub-hero" aria-labelledby="tools-title">
+    <h1 id="tools-title">@ToolCatalog.HubHeading</h1>
+    <p class="tool-subtitle">Merge, split, and convert your own files. Built with UnlimitedPDF, running in your browser.</p>
+    <ul class="tools-trust">
+        <li><Icon Name="check" Size="16" /> Your files never leave your device</li>
+        <li><Icon Name="check" Size="16" /> No sign-up</li>
+        <li><Icon Name="check" Size="16" /> PDFs up to @ToolLimits.Megabytes(ToolLimits.MaxPdfBytes) each</li>
+    </ul>
+</section>
+
+<div class="section">
+    @foreach (var group in ToolCatalog.Groups)
+    {
+        string id = $"tools-{group.ToString().ToLowerInvariant()}";
+        <section class="tools-group" aria-labelledby="@id">
+            <h2 class="tools-group-title" id="@id">@ToolCatalog.GroupName(group)</h2>
+            <ul class="tools-cards">
+                @foreach (var tool in ToolCatalog.InGroup(group))
+                {
+                    <li>
+                        <a class="tool-card" href="@tool.Route">
+                            <span class="tool-card-icon" aria-hidden="true"><Icon Name="@tool.Icon" Size="20" /></span>
+                            <span class="tool-card-name">@tool.Name</span>
+                            <span class="tool-card-text">@tool.Description</span>
+                            <span class="tool-card-io">@tool.InputOutput</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    <div class="tools-code-band">
+        <Icon Name="code" Size="22" />
+        <p>Every tool is a few lines of C#. Each result shows the code that made it, with your files.</p>
+        <a href="@ScenarioGallery.Route">Browse the scenarios <Icon Name="arrow" Size="16" /></a>
+    </div>
+</div>

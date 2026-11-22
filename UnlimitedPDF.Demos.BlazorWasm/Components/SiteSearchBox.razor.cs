@@ -71,6 +71,7 @@ public partial class SiteSearchBox : IAsyncDisposable
     private static string GroupName(SearchKind kind) => kind switch
     {
         SearchKind.Demo => "Scenarios",
+        SearchKind.Tool => "Free tools",
         SearchKind.Faq => "FAQ answers",
         _ => "Code",
     };
@@ -94,6 +95,7 @@ public partial class SiteSearchBox : IAsyncDisposable
         _status = SiteSearch.Words(_query).Length == 0 ? string.Empty
             : _results.Count == 0 ? "No results."
             : $"{Count(_results.Count(r => r.Kind == SearchKind.Demo), "scenario", "scenarios")}, "
+              + $"{Count(_results.Count(r => r.Kind == SearchKind.Tool), "tool", "tools")}, "
               + $"{Count(_results.Count(r => r.Kind == SearchKind.Faq), "FAQ answer", "FAQ answers")}, "
               + $"{Count(_results.Count(r => r.Kind == SearchKind.Code), "code line", "code lines")}.";
     }

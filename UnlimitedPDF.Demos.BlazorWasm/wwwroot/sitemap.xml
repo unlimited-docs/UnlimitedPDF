@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Every page of the demos site: the home page, the scenario gallery, the FAQ, then each demo page in catalog order (SampleCatalog.Pages). -->
+<!-- Every page of the demos site: the home page, the scenario gallery, the FAQ, the free tools hub, then each demo page in catalog order (SampleCatalog.Pages), then each free tool in catalog order (ToolCatalog.All). -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>https://unlimitedpdf.dev/</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground</loc></url>
   <url><loc>https://unlimitedpdf.dev/faq</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/create/text-and-pages</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/create/tables</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/create/images</loc></url>
@@ -33,4 +34,10 @@
   <url><loc>https://unlimitedpdf.dev/playground/documents/medical-report</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/kpi-report</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/shipping-labels</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools/merge</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools/images-to-pdf</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools/split</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools/extract-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools/remove-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/tools/html-to-pdf</loc></url>
 </urlset>

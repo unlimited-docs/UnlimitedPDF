@@ -21,7 +21,7 @@ public class AccessibilityAuditTests
     {
         // 1.3.1, 4.1.2: a label beside a field names it only through "for".
         foreach (var file in Directory.GetFiles(DemosPath("Pages"), "*.razor", SearchOption.AllDirectories)
-                     .Concat(Directory.GetFiles(DemosPath("Components"), "*.razor")))
+                     .Concat(Directory.GetFiles(DemosPath("Components"), "*.razor", SearchOption.AllDirectories)))
         {
             var text = File.ReadAllText(file);
             Assert.True(!Regex.IsMatch(text, @"<label>[^<]*</label>\s*<(input|select|textarea)\b"), $"{Path.GetFileName(file)} has a label without for");

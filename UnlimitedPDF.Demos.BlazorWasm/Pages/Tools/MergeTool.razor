@@ -1,0 +1,98 @@
+@page "/tools/merge"
+@inherits ToolPageBase
+@using UnlimitedPDF.Models.Internal.Rendering
+@* Merge PDFs (26112201 AC-04, D-007): landing, then file cards in the order they are joined, then the merged PDF. *@
+
+<PageTitle>@Tool.DocumentTitle</PageTitle>
+<PageDescription Text="@Tool.Subtitle" />
+<CanonicalLink Path="@Tool.Route" />
+
+<InputFile @ref="FileInput" class="visually-hidden" tabindex="-1" aria-hidden="true" multiple accept=".pdf,application/pdf" OnChange="e => AddPdfsAsync(e, _files)" />
+
+@switch (Step)
+{
+    case ToolPageStep.Landing:
+        <ToolLanding Tool="Tool" ChooseLabel="Choose PDF files" SampleLabel="Use two sample PDFs" HowToTask="merge PDF files"
+                     LimitsLine="@ToolLimits.PdfLimitsLine" Code="@ToolCode.Merge()" Busy="Busy" Errors="FileErrors"
+                     OnChoose="ChooseFilesAsync" OnSample="UseSamples" />
+        break;
+
+    case ToolPageStep.Workspace:
+        <section class="tool-workspace" aria-labelledby="tool-heading">
+            <div class="tool-workspace-head">
+                <div>
+                    <h1 id="tool-heading" tabindex="-1">@Tool.Heading</h1>
+                    <p class="tool-workspace-meta" role="status">@CountText(_files.Count, "file") · @CountText(_files.Files.Sum(f => f.Value.PageCount), "page") · @SizeText(_files.TotalBytes)</p>
+                </div>
+                <div class="tool-workspace-tools">
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@(_files.Count < 2)" @onclick="_files.SortByName">Sort A to Z</button>
+                    <button type="button" class="btn btn-sm btn-outline" disabled="@Busy" @onclick="ChooseFilesAsync"><Icon Name="upload" Size="16" /> Add more files</button>
+                </div>
+            </div>
+            <ToolFileErrors Errors="FileErrors" Busy="Busy" />
+            <FileCards T="PdfFile" Files="_files.Files" Label="Your files, joined in this order" Meta="Meta" FirstPage="FirstPage"
+                       AddLabel="Add files" OnAdd="ChooseFilesAsync" OnMove="m => _files.Move(m.From, m.To)" OnRemove="RemoveAsync" />
+            <p class="tool-workspace-limits">@ToolLimits.PdfLimitsLine Drag the cards or use their arrows to change the order.</p>
+        </section>
+        <ToolActionBar ActionLabel="@($"Merge {CountText(_files.Count, "file")}")" Busy="Busy" CanRun="@(_files.Count >= 2)"
+                       Error="@RunError" Hint="@(_files.Count < 2 ? "Add at least two PDFs to merge." : null)"
+                       OnRun="MergeAsync" OnStartOver="StartOverAsync">
+            <div class="tool-option">
+                <label for="merge-name">Save as</label>
+                <input id="merge-name" class="form-control" @bind="_name" @bind:event="oninput" spellcheck="false" />
+            </div>
+        </ToolActionBar>
+        break;
+
+    case ToolPageStep.Done:
+        <ToolDone Result="Result!" Code="@(DoneCode!)" Scenario="Tool.Scenario" OnDownload="DownloadAsync" OnOpen="OpenAsync">
+            <Back>
+                <button type="button" class="btn btn-outline" @onclick="() => GoTo(ToolPageStep.Workspace)">Change the order or files</button>
+                <button type="button" class="btn btn-text" @onclick="StartOverAsync">Merge other files</button>
+            </Back>
+        </ToolDone>
+        break;
+}
+
+@code {
+    private readonly ToolFileSet<PdfFile> _files = new();
+    private string _name = "merged";
+
+    private static PdfTool Tool => ToolCatalog.Merge;
+
+    private static string? FirstPage(ToolFile<PdfFile> file, string prefix) => PdfPageRenderer.Render(file.Value, 0, prefix).Svg;
+
+    private static string Meta(ToolFile<PdfFile> file) => $"{CountText(file.Value.PageCount, "page")} · {SizeText(file.Size)}";
+
+    private Task MergeAsync()
+    {
+        string output = SafeFileName.For(_name, "merged");
+        var names = _files.Files.Select(f => f.Name).ToList();
+        var files = _files.Files.Select(f => f.Value).ToList();
+        return RunAsync(() => ToolOperations.MergeAsync(files, output), () => ToolCode.Merge(names, output));
+    }
+
+    private async Task RemoveAsync(int index)
+    {
+        _files.RemoveAt(index);
+        if (_files.Count == 0) await StartOverAsync();
+    }
+
+    private async Task StartOverAsync()
+    {
+        _files.Clear();
+        FileErrors.Clear();
+        _name = "merged";
+        await ClearResultAsync();
+        GoTo(ToolPageStep.Landing);
+    }
+
+    private void UseSamples()
+    {
+        FileErrors.Clear();
+        _files.Clear();
+        AddSample(_files, "text-and-pages.pdf", TextBasicsSample.Build(new TextBasicsInput()));
+        AddSample(_files, "tables.pdf", TablesSample.Build(new TablesInput()));
+        GoTo(ToolPageStep.Workspace);
+    }
+}

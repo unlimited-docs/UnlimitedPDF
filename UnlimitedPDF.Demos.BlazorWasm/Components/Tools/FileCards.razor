@@ -1,0 +1,118 @@
+@typeparam T
+@inherits ThumbnailHost
+@using UnlimitedPDF.Demos.BlazorWasm.Services.Tools
+@* The visitor's files in a tool's workspace (26112201 AC-04, AC-05): one card each, with its first page or picture, its
+   place in the order, and buttons to move it earlier or later or remove it, so the order can be set with the keyboard
+   as well as by dragging (WCAG 2.1.1, 2.5.7). *@
+<ol class="file-cards" @ref="Root" aria-label="@Label">
+    @for (int i = 0; i < Files.Count; i++)
+    {
+        int index = i;
+        var file = Files[index];
+        <li @key="file.Id" class="file-card @(_dragFrom == index ? "is-dragged" : null)" data-thumb="@file.Id"
+            draggable="true"
+            @ondragstart="() => _dragFrom = index"
+            @ondragend="() => _dragFrom = null"
+            @ondragover:preventDefault
+            @ondrop="() => DropOnAsync(index)">
+            <span class="file-card-order" aria-hidden="true">@(index + 1)</span>
+            <span class="thumb">
+                @if (Picture is not null)
+                {
+                    @Picture(file)
+                }
+                else
+                {
+                    <span class="thumb-canvas"></span>
+                }
+            </span>
+            <span class="file-card-name">@file.Name</span>
+            <span class="file-card-meta">@Meta(file)</span>
+            <span class="file-card-actions">
+                <button type="button" class="file-card-button" disabled="@(index == 0)" aria-label="@($"Move {file.Name} earlier")" title="Move earlier"
+                        @onclick="() => MoveAsync(index, index - 1)">
+                    <span aria-hidden="true">&larr;</span>
+                </button>
+                <button type="button" class="file-card-button" disabled="@(index == Files.Count - 1)" aria-label="@($"Move {file.Name} later")" title="Move later"
+                        @onclick="() => MoveAsync(index, index + 1)">
+                    <span aria-hidden="true">&rarr;</span>
+                </button>
+                <button type="button" class="file-card-button" aria-label="@($"Remove {file.Name}")" title="Remove"
+                        @onclick="() => OnRemove.InvokeAsync(index)">
+                    <Icon Name="close" Size="16" />
+                </button>
+            </span>
+        </li>
+    }
+    <li class="file-card-add-item">
+        <button type="button" class="file-card-add" @onclick="OnAdd">
+            <Icon Name="upload" Size="20" />
+            <span>@AddLabel</span>
+        </button>
+    </li>
+</ol>
+
+@code {
+    private int? _dragFrom;
+
+    /// <summary>
+    /// Gets or sets the add button's text, for example "Add files".
+    /// </summary>
+    [Parameter] public string AddLabel { get; set; } = "Add files";
+
+    /// <summary>
+    /// Gets or sets the first page drawn for a card, as SVG; null draws nothing.
+    /// </summary>
+    [Parameter] public Func<ToolFile<T>, string, string?>? FirstPage { get; set; }
+
+    /// <summary>
+    /// Gets or sets the files, in the visitor's order.
+    /// </summary>
+    [Parameter, EditorRequired] public IReadOnlyList<ToolFile<T>> Files { get; set; } = [];
+
+    /// <summary>
+    /// Gets or sets the list's accessible name, for example "Your files, joined in this order".
+    /// </summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets the line under a card's name, for example "3 pages · 412 KB".
+    /// </summary>
+    [Parameter, EditorRequired] public Func<ToolFile<T>, string> Meta { get; set; } = _ => "";
+
+    /// <summary>
+    /// Gets or sets the callback for the add button.
+    /// </summary>
+    [Parameter] public EventCallback OnAdd { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback that moves a file from one place to another.
+    /// </summary>
+    [Parameter] public EventCallback<(int From, int To)> OnMove { get; set; }
+
+    /// <summary>
+    /// Gets or sets the callback that removes the file at a place.
+    /// </summary>
+    [Parameter] public EventCallback<int> OnRemove { get; set; }
+
+    /// <summary>
+    /// Gets or sets the picture shown for a card instead of a drawn first page.
+    /// </summary>
+    [Parameter] public RenderFragment<ToolFile<T>>? Picture { get; set; }
+
+    /// <inheritdoc />
+    protected override string? Draw(string key, string idPrefix)
+    {
+        if (FirstPage is null) return null;
+        var file = Files.FirstOrDefault(f => f.Id.ToString(System.Globalization.CultureInfo.InvariantCulture) == key);
+        return file is null ? null : FirstPage(file, idPrefix);
+    }
+
+    private async Task DropOnAsync(int index)
+    {
+        if (_dragFrom is { } from && from != index) await OnMove.InvokeAsync((from, index));
+        _dragFrom = null;
+    }
+
+    private Task MoveAsync(int from, int to) => OnMove.InvokeAsync((from, to));
+}

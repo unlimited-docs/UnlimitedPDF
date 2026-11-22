@@ -1,0 +1,75 @@
+@inherits ThumbnailHost
+@using UnlimitedPDF.Demos.BlazorWasm.Services.Tools
+@using UnlimitedPDF.Models.Internal.Rendering
+@* Every page of the visitor's PDF in a tool's workspace (26112201 AC-04): pages to keep are ticked, pages to remove are
+   crossed out, and for Split the cuts are marked after the last page of each part. A page is picked by clicking it;
+   the typed page list beside the grid does the same from the keyboard. Pages are drawn as they come into view. *@
+<ol class="page-grid is-@Mode.ToString().ToLowerInvariant()" @ref="Root" aria-label="@Label">
+    @for (int page = 1; page <= File.PageCount; page++)
+    {
+        int number = page;
+        bool picked = Selection?.Contains(number) == true;
+        <li @key="number" class="page-tile-item">
+            @if (Mode == PageGridMode.Cut)
+            {
+                <span class="page-tile" data-thumb="@number">
+                    <span class="thumb"><span class="thumb-canvas"></span></span>
+                    <span class="page-tile-number">@number</span>
+                </span>
+                @if (CutAfter?.Contains(number) == true && number < File.PageCount)
+                {
+                    <span class="page-cut" role="img" aria-label="@($"Cut after page {number}")"><Icon Name="split" Size="16" /></span>
+                }
+            }
+            else
+            {
+                <button type="button" class="page-tile @(picked ? "is-picked" : null)" data-thumb="@number" aria-pressed="@(picked ? "true" : "false")"
+                        aria-label="@($"Page {number}")" @onclick="() => OnToggle.InvokeAsync(number)">
+                    <span class="thumb"><span class="thumb-canvas"></span></span>
+                    <span class="page-tile-number" aria-hidden="true">@number</span>
+                    <span class="page-tile-mark" aria-hidden="true">@(Mode == PageGridMode.Remove ? "✕" : "✓")</span>
+                </button>
+            }
+        </li>
+    }
+</ol>
+
+@code {
+    /// <summary>
+    /// Gets or sets the pages after which Split cuts, in Cut mode.
+    /// </summary>
+    [Parameter] public IReadOnlySet<int>? CutAfter { get; set; }
+
+    /// <summary>
+    /// Gets or sets the PDF.
+    /// </summary>
+    [Parameter, EditorRequired] public PdfFile File { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the list's accessible name, for example "Pages of contract.pdf; pick the pages to keep".
+    /// </summary>
+    [Parameter, EditorRequired] public string Label { get; set; } = "";
+
+    /// <summary>
+    /// Gets or sets what picking a page means.
+    /// </summary>
+    [Parameter] public PageGridMode Mode { get; set; } = PageGridMode.Keep;
+
+    /// <summary>
+    /// Gets or sets the callback for a clicked page.
+    /// </summary>
+    [Parameter] public EventCallback<int> OnToggle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pages picked.
+    /// </summary>
+    [Parameter] public PageSelection? Selection { get; set; }
+
+    /// <inheritdoc />
+    protected override string? Draw(string key, string idPrefix)
+    {
+        if (!int.TryParse(key, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out int number)) return null;
+        if (number < 1 || number > File.PageCount) return null;
+        return PdfPageRenderer.Render(File, number - 1, idPrefix).Svg;
+    }
+}

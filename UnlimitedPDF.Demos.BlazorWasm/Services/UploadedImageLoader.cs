@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components.Forms;
 using UnlimitedPDF;
 
@@ -28,23 +29,72 @@ public static class UploadedImageLoader
     #region Public Methods
 
     /// <summary>
-    /// Reads and loads an uploaded image.
+    /// Reads and loads an uploaded image with the demo's limits (2 MB, 4096 x 4096 pixels).
     /// </summary>
     /// <param name="file">The picked file.</param>
     /// <param name="progress">Receives the share of the file read so far, from 0 to 1.</param>
     /// <returns>The loaded image and its bytes (for a thumbnail), or a readable error.</returns>
-    public static async Task<UploadResult> LoadAsync(IBrowserFile file, IProgress<double>? progress = null)
+    public static Task<UploadResult> LoadAsync(IBrowserFile file, IProgress<double>? progress = null) =>
+        LoadAsync(file, MaxFileBytes, _ => MaxPixels, _ => "The image is larger than 4096 x 4096 pixels.", progress);
+
+    /// <summary>
+    /// Reads and loads an uploaded image with the free tools' limits: a JPEG may have more pixels than a PNG, because a
+    /// JPEG goes into the PDF without being decoded while a PNG is decoded in full.
+    /// </summary>
+    /// <param name="file">The picked file.</param>
+    /// <param name="maxBytes">The largest file accepted, in bytes.</param>
+    /// <param name="maxJpegPixels">The most pixels a JPEG may have.</param>
+    /// <param name="maxPngPixels">The most pixels a PNG may have.</param>
+    /// <param name="progress">Receives the share of the file read so far, from 0 to 1.</param>
+    /// <returns>The loaded image and its bytes, or a readable error.</returns>
+    public static Task<UploadResult> LoadAsync(
+        IBrowserFile file,
+        long maxBytes,
+        long maxJpegPixels,
+        long maxPngPixels,
+        IProgress<double>? progress = null) =>
+        LoadAsync(
+            file,
+            maxBytes,
+            bytes => IsJpeg(bytes) ? maxJpegPixels : maxPngPixels,
+            bytes => IsJpeg(bytes)
+                ? string.Create(CultureInfo.InvariantCulture, $"The JPEG is larger than {maxJpegPixels / 1_000_000} megapixels.")
+                : PngTooLarge(maxPngPixels),
+            progress);
+
+    #endregion
+
+    #region Private Methods
+
+    private static bool IsJpeg(byte[] bytes) => bytes.Length >= 3 && bytes[0] == 0xFF && bytes[1] == 0xD8 && bytes[2] == 0xFF;
+
+    private static string PngTooLarge(long maxPixels)
+    {
+        long side = (long)Math.Sqrt(maxPixels);
+        return side * side == maxPixels
+            ? string.Create(CultureInfo.InvariantCulture, $"The PNG is larger than {side} x {side} pixels.")
+            : string.Create(CultureInfo.InvariantCulture, $"The PNG has more than {maxPixels} pixels.");
+    }
+
+    private static async Task<UploadResult> LoadAsync(
+        IBrowserFile file,
+        long maxBytes,
+        Func<byte[], long> maxPixels,
+        Func<byte[], string> tooManyPixels,
+        IProgress<double>? progress)
     {
         ArgumentNullException.ThrowIfNull(file);
-        if (file.Size > MaxFileBytes)
+        string tooLarge = string.Create(CultureInfo.InvariantCulture, $"The file is larger than {maxBytes / (1024 * 1024)} MB.");
+        if (file.Size > maxBytes)
         {
-            return UploadResult.Failed("The file is larger than 2 MB.");
+            return UploadResult.Failed(tooLarge);
         }
 
+        byte[] bytes = [];
         try
         {
-            var bytes = new byte[file.Size];
-            await using var stream = file.OpenReadStream(MaxFileBytes);
+            bytes = new byte[file.Size];
+            await using var stream = file.OpenReadStream(maxBytes);
             int total = 0;
             int read;
             while (total < bytes.Length && (read = await stream.ReadAsync(bytes.AsMemory(total, Math.Min(64 * 1024, bytes.Length - total)))) > 0)
@@ -53,12 +103,12 @@ public static class UploadedImageLoader
                 progress?.Report((double)total / bytes.Length);
             }
 
-            var image = PdfImage.FromBytes(bytes, new PdfImageLoadOptions { MaxPixels = MaxPixels });
+            var image = PdfImage.FromBytes(bytes, new PdfImageLoadOptions { MaxPixels = maxPixels(bytes) });
             return UploadResult.Loaded(image, bytes);
         }
         catch (IOException)
         {
-            return UploadResult.Failed("The file is larger than 2 MB.");
+            return UploadResult.Failed(tooLarge);
         }
         catch (PdfImageException exception)
         {
@@ -66,7 +116,7 @@ public static class UploadedImageLoader
             {
                 PdfImageErrorReason.UnsupportedFormat => "This file isn't a JPEG or PNG image.",
                 PdfImageErrorReason.CorruptData => "The image data is damaged and can't be read.",
-                PdfImageErrorReason.TooLarge => "The image is larger than 4096 x 4096 pixels.",
+                PdfImageErrorReason.TooLarge => tooManyPixels(bytes),
                 _ => "This image can't be used."
             });
         }

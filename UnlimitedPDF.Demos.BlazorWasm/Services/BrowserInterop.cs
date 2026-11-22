@@ -243,6 +243,61 @@ public sealed class BrowserInterop : IAsyncDisposable
     /// <param name="scroll">The preview's scrolling list of pages.</param>
     public Task WatchPagesAsync(ElementReference scroll) => InvokeVoidAsync("watchPages", scroll);
 
+    /// <summary>
+    /// Stops sending files dropped anywhere on the page to a tool's file input.
+    /// </summary>
+    /// <param name="input">The file input.</param>
+    /// <returns>A task that completes when the call returns.</returns>
+    public Task DisposePageDropAsync(ElementReference input) => InvokeVoidAsync("disposePageDrop", input);
+
+    /// <summary>
+    /// Moves the keyboard focus to a heading and scrolls it into view, as a tool moves to its next step.
+    /// </summary>
+    /// <param name="id">The heading's id.</param>
+    /// <returns>A task that completes when the call returns.</returns>
+    public Task FocusHeadingAsync(string id) => InvokeVoidAsync("focusHeading", id);
+
+    /// <summary>
+    /// Sends files dropped anywhere on the page to a tool's file input, as if chosen in its picker.
+    /// </summary>
+    /// <param name="input">The file input.</param>
+    /// <returns>A task that completes when the call returns.</returns>
+    public Task InitPageDropAsync(ElementReference input) => InvokeVoidAsync("initPageDrop", input);
+
+    /// <summary>
+    /// Asks <paramref name="listener"/>'s <c>DrawThumbnail</c> method for each thumbnail tile in <paramref name="root"/>
+    /// as it comes near the view, once; call again after new tiles are shown.
+    /// </summary>
+    /// <typeparam name="T">The listener's type.</typeparam>
+    /// <param name="root">The element holding the tiles.</param>
+    /// <param name="listener">The component that draws the thumbnails.</param>
+    /// <returns>A task that completes when the call returns.</returns>
+    public Task ObserveThumbnailsAsync<T>(ElementReference root, DotNetObjectReference<T> listener) where T : class =>
+        InvokeVoidAsync("observeThumbnails", root, listener);
+
+    /// <summary>
+    /// Opens the file picker of a visually hidden file input.
+    /// </summary>
+    /// <param name="input">The file input.</param>
+    /// <returns>A task that completes when the call returns.</returns>
+    public Task OpenFilePickerAsync(ElementReference input) => InvokeVoidAsync("openFilePicker", input);
+
+    /// <summary>
+    /// Places a page's drawing, cleaned like a viewer page, in the thumbnail tile with the given key.
+    /// </summary>
+    /// <param name="root">The element holding the tiles.</param>
+    /// <param name="key">The tile's key.</param>
+    /// <param name="svg">The drawing.</param>
+    /// <returns>Whether the drawing was placed.</returns>
+    public Task<bool> PlaceThumbnailAsync(ElementReference root, string key, string svg) => InvokeAsync("placeThumbnail", false, root, key, svg);
+
+    /// <summary>
+    /// Stops asking for the thumbnails in <paramref name="root"/>.
+    /// </summary>
+    /// <param name="root">The element holding the tiles.</param>
+    /// <returns>A task that completes when the call returns.</returns>
+    public Task StopThumbnailsAsync(ElementReference root) => InvokeVoidAsync("stopThumbnails", root);
+
     #endregion
 
     #region Private Methods
