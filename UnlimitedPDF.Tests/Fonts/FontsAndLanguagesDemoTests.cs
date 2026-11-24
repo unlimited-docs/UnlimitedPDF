@@ -23,14 +23,18 @@ public class FontsAndLanguagesDemoTests
     #region Public Methods
 
     [Fact]
-    public void The_presets_are_the_nine_indian_languages_french_and_mixed_with_their_money_style()
+    public void The_presets_are_the_nine_indian_languages_eight_european_ones_filipino_and_mixed_with_their_money_style()
     {
         Assert.Equal(
-            new[] { "hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam", "french", "mixed" },
+            new[] { "hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam", "french", "polish", "czech", "turkish", "filipino", "greek", "russian", "ukrainian", "armenian", "georgian", "mixed" },
             LanguageInvoices.All.Select(p => p.Id));
         Assert.All(LanguageInvoices.All, p => Assert.True(p.Items.Count >= 2, p.Id));
         Assert.Equal("₹ 1,500.00", LanguageInvoices.Find("telugu").Money(1500m));
         Assert.Equal("1 500,50 €", LanguageInvoices.Find("french").Money(1500.5m));
+        Assert.Equal("1 500,50 zł", LanguageInvoices.Find("polish").Money(1500.5m));
+        Assert.Equal("396,00 Kč", LanguageInvoices.Find("czech").Money(396m));
+        Assert.Equal("₱1,500.50", LanguageInvoices.Find("filipino").Money(1500.5m));
+        Assert.Equal("15 000,00 ֏", LanguageInvoices.Find("armenian").Money(15000m));
         Assert.Same(LanguageInvoices.All[0], LanguageInvoices.Find("klingon"));
     }
 
@@ -41,6 +45,15 @@ public class FontsAndLanguagesDemoTests
     [InlineData("odia", "or")]
     [InlineData("kannada", "kn")]
     [InlineData("malayalam", "ml")]
+    [InlineData("polish", "pl")]
+    [InlineData("czech", "cs")]
+    [InlineData("turkish", "tr")]
+    [InlineData("filipino", "fil")]
+    [InlineData("greek", "el")]
+    [InlineData("russian", "ru")]
+    [InlineData("ukrainian", "uk")]
+    [InlineData("armenian", "hy")]
+    [InlineData("georgian", "ka")]
     public void Each_added_language_invoice_names_its_language_for_the_page(string id, string tag)
     {
         var input = new FontsAndLanguagesInput();
@@ -70,14 +83,29 @@ public class FontsAndLanguagesDemoTests
         Assert.Equal(new[] { FontScript.Kannada }, Needs("kannada"));
         Assert.Equal(new[] { FontScript.Malayalam }, Needs("malayalam"));
         Assert.Equal(new[] { FontScript.Latin }, Needs("french"));
+        Assert.Equal(new[] { FontScript.Latin }, Needs("polish"));
+        Assert.Equal(new[] { FontScript.Latin }, Needs("czech"));
+        Assert.Equal(new[] { FontScript.Latin }, Needs("turkish"));
+        Assert.Equal(new[] { FontScript.Latin }, Needs("filipino"));
+        Assert.Equal(new[] { FontScript.Greek }, Needs("greek"));
+        Assert.Equal(new[] { FontScript.Cyrillic }, Needs("russian"));
+        Assert.Equal(new[] { FontScript.Cyrillic }, Needs("ukrainian"));
+        Assert.Equal(new[] { FontScript.Armenian }, Needs("armenian"));
+        Assert.Equal(new[] { FontScript.Georgian }, Needs("georgian"));
         Assert.Equal(new[] { FontScript.Latin, FontScript.Devanagari, FontScript.Telugu }, Needs("mixed"));
         Assert.Equal(new[]
         {
-            FontScript.Latin, FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
+            FontScript.Latin, FontScript.Greek, FontScript.Cyrillic, FontScript.Armenian, FontScript.Georgian, FontScript.Devanagari,
+            FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
             FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam
         }, FontSlots.Scripts);
         Assert.Null(FontSlots.ScriptOf('×'));
         Assert.Null(FontSlots.ScriptOf('₹'));
+        Assert.Null(FontSlots.ScriptOf('₽'));
+        Assert.Equal(FontScript.Greek, FontSlots.ScriptOf('ά'));
+        Assert.Equal(FontScript.Cyrillic, FontSlots.ScriptOf('ї'));
+        Assert.Equal(FontScript.Armenian, FontSlots.ScriptOf('և'));
+        Assert.Equal(FontScript.Georgian, FontSlots.ScriptOf('ჭ'));
     }
 
     [Fact]
@@ -132,7 +160,7 @@ public class FontsAndLanguagesDemoTests
     public void Every_slot_has_a_free_font_link()
     {
         Assert.All(FontSlots.Scripts, s => Assert.StartsWith("https://fonts.google.com/noto/specimen/Noto+Sans", FontSlots.FreeFontLink(s), StringComparison.Ordinal));
-        Assert.Equal(10, FontSlots.Scripts.Select(FontSlots.FreeFontLink).Distinct().Count());
+        Assert.Equal(12, FontSlots.Scripts.Select(FontSlots.FreeFontLink).Distinct().Count()); // Noto Sans covers Latin, Greek, and Cyrillic
         Assert.Equal("https://fonts.google.com/noto/specimen/Noto+Sans+Oriya", FontSlots.FreeFontLink(FontScript.Odia));
     }
 

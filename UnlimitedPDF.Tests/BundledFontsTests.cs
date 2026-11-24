@@ -7,9 +7,10 @@ using UnlimitedPDF.Demos.BlazorWasm.Services;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// The free fonts the Fonts and languages demo includes (CR-001, D-030, D-031, FD-016): every language invoice draws
-/// without a missing character in both drawing modes, the files match their readme and carry their license, only that
-/// page downloads them, and neither the package nor its tests carry a font file.
+/// The free fonts the Fonts and languages demo includes (CR-001, D-030, D-031, FD-016, QF-26112401): every language
+/// invoice draws without a missing character in both drawing modes, the files match their readme and carry their
+/// license, each file downloads once, only that page downloads them, and neither the package nor its tests carry a font
+/// file.
 /// </summary>
 public class BundledFontsTests
 {
@@ -53,7 +54,7 @@ public class BundledFontsTests
     public void Each_included_font_fills_its_slot_and_matches_its_readme_entry()
     {
         string readme = File.ReadAllText(FontsFile("README.md"));
-        Assert.Equal(FontSlots.Scripts.Where(s => s != FontScript.Latin), BundledFonts.All.Select(f => f.Script));
+        Assert.Equal(FontSlots.Scripts, BundledFonts.All.Select(f => f.Script));
 
         foreach (var bundled in BundledFonts.All)
         {
@@ -69,11 +70,28 @@ public class BundledFontsTests
     }
 
     [Fact]
+    public async Task Each_font_file_downloads_once_and_noto_sans_fills_the_latin_greek_and_cyrillic_slots()
+    {
+        // QF-26112401: one Noto Sans file has Latin, Greek, and Cyrillic, so its three slots share one download and font.
+        var requests = new List<string>();
+        using var http = new HttpClient(new FontsFolderHandler(requests)) { BaseAddress = new Uri("http://localhost/") };
+
+        var slots = await BundledFonts.LoadAsync(http);
+
+        Assert.Equal(FontSlots.Scripts.Order(), slots.Keys.Order());
+        Assert.Equal(BundledFonts.All.Select(f => "/fonts/" + f.FileName).Distinct().Order(StringComparer.Ordinal), requests.Order(StringComparer.Ordinal));
+        Assert.Same(slots[FontScript.Latin].Font, slots[FontScript.Greek].Font);
+        Assert.Same(slots[FontScript.Latin].Font, slots[FontScript.Cyrillic].Font);
+        Assert.All(slots, slot => Assert.Equal(slot.Key, slot.Value.Bundled!.Script));
+        Assert.Equal("NotoSans-Regular.ttf", slots[FontScript.Cyrillic].Bundled!.FileName);
+    }
+
+    [Fact]
     public void The_license_goes_with_the_fonts_and_each_slot_credits_it()
     {
         string license = File.ReadAllText(FontsFile("OFL.txt"));
         Assert.Contains("SIL OPEN FONT LICENSE Version 1.1", license, StringComparison.Ordinal);
-        foreach (string family in new[] { "devanagari", "telugu", "tamil", "gujarati", "gurmukhi", "oriya", "kannada", "malayalam" })
+        foreach (string family in new[] { "devanagari", "telugu", "tamil", "gujarati", "gurmukhi", "oriya", "kannada", "malayalam", "latin-greek-cyrillic", "armenian", "georgian" })
             Assert.Contains($"Copyright 2022 The Noto Project Authors (https://github.com/notofonts/{family})", license, StringComparison.Ordinal);
         Assert.Contains("Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali)", license, StringComparison.Ordinal);
 
@@ -155,6 +173,22 @@ public class BundledFontsTests
         Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", relative));
 
     #endregion
+
+    #endregion
+
+    #region Nested Types
+
+    // Serves the demo's font folder from disk and records each requested path.
+    private sealed class FontsFolderHandler(List<string> requests) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            string path = request.RequestUri!.AbsolutePath;
+            lock (requests) requests.Add(path);
+            var content = new ByteArrayContent(File.ReadAllBytes(FontsFile(Path.GetFileName(path))));
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = content });
+        }
+    }
 
     #endregion
 }

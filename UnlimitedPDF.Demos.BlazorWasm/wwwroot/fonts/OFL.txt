@@ -7,6 +7,9 @@ Copyright 2022 The Noto Project Authors (https://github.com/notofonts/gurmukhi)
 Copyright 2022 The Noto Project Authors (https://github.com/notofonts/oriya)
 Copyright 2022 The Noto Project Authors (https://github.com/notofonts/kannada)
 Copyright 2022 The Noto Project Authors (https://github.com/notofonts/malayalam)
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/armenian)
+Copyright 2022 The Noto Project Authors (https://github.com/notofonts/georgian)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

@@ -14,7 +14,10 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 /// <param name="BuyerName">The buyer's name.</param>
 /// <param name="BuyerAddress">The buyer's address.</param>
 /// <param name="Items">The line items: description, quantity, and rate.</param>
-/// <param name="Euro">Whether amounts are in euros (French style) rather than rupees.</param>
+/// <param name="Currency">The currency sign written after amounts in the European style (<c>1 500,00 €</c>), or null
+/// for rupees (<c>₹ 1,500.00</c>).</param>
+/// <param name="SignFirst">Whether <paramref name="Currency"/> goes before the amount, with comma thousands and a point
+/// for decimals (<c>₱1,500.00</c>), as the Philippines writes pesos.</param>
 public sealed record LanguageInvoice(
     string Id,
     string Name,
@@ -24,14 +27,16 @@ public sealed record LanguageInvoice(
     string BuyerName,
     string BuyerAddress,
     IReadOnlyList<(string Description, int Quantity, decimal Rate)> Items,
-    bool Euro = false)
+    string? Currency = null,
+    bool SignFirst = false)
 {
     #region Methods
 
     #region Public Methods
 
     /// <summary>
-    /// Formats an amount the way this invoice writes money: <c>₹ 1,500.00</c>, or <c>1 500,00 €</c> for euros.
+    /// Formats an amount the way this invoice writes money: <c>₹ 1,500.00</c>, <c>1 500,00 €</c> with another currency,
+    /// or <c>₱1,500.00</c> with the sign first.
     /// Formatting is fixed rather than taken from a culture, so it is the same in every browser.
     /// </summary>
     /// <param name="amount">The amount.</param>
@@ -39,7 +44,8 @@ public sealed record LanguageInvoice(
     public string Money(decimal amount)
     {
         string number = amount.ToString("#,##0.00", CultureInfo.InvariantCulture);
-        return Euro ? number.Replace(",", " ", StringComparison.Ordinal).Replace(".", ",", StringComparison.Ordinal) + " €" : "₹ " + number;
+        if (Currency is null) return "₹ " + number;
+        return SignFirst ? Currency + number : number.Replace(",", " ", StringComparison.Ordinal).Replace(".", ",", StringComparison.Ordinal) + " " + Currency;
     }
 
     #endregion

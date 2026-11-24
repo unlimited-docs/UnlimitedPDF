@@ -6,9 +6,29 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 public enum FontScript
 {
     /// <summary>
-    /// Latin letters (English, French, and other Western languages).
+    /// Latin letters (English, French, Polish, Turkish, and other languages written in Latin).
     /// </summary>
     Latin,
+
+    /// <summary>
+    /// Greek.
+    /// </summary>
+    Greek,
+
+    /// <summary>
+    /// Cyrillic (Russian, Ukrainian, Bulgarian, Serbian, Kazakh, and other languages).
+    /// </summary>
+    Cyrillic,
+
+    /// <summary>
+    /// Armenian.
+    /// </summary>
+    Armenian,
+
+    /// <summary>
+    /// Georgian.
+    /// </summary>
+    Georgian,
 
     /// <summary>
     /// Devanagari (Hindi and other languages).
