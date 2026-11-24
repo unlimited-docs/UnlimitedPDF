@@ -474,9 +474,12 @@ internal sealed class LayoutEngine
         if (anchorOffset == 0) return false;
         var targetAnchor = Anchor(data, anchorOffset);
 
+        // The anchors place the mark; an adjustment an earlier lookup gave it is replaced, not added (later ones add).
         mark.AttachTo = target;
         mark.AttachDx = targetAnchor.X - markAnchor.X;
         mark.AttachDy = targetAnchor.Y - markAnchor.Y;
+        mark.XOffset = 0;
+        mark.YOffset = 0;
         return true;
     }
 

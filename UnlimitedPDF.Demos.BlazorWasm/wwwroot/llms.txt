@@ -10,7 +10,7 @@ Key facts:
 - Every public type is in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` needed.
 - Main types: `PdfDocument` (pages, header, footer, body flow, save), `PdfPage` (text, rectangles, images, tables), `PdfTable`, `PdfImage`, `PdfColor`, `PdfFont` (load a font), `PdfFile` (load an existing PDF), `PdfHtml`, and `PdfOperations` (`Merge`, `Split`, `ConvertHtml`).
 - Positions and sizes are in PDF points (1/72 inch); `PdfUnits` converts from millimeters, centimeters, inches, and pixels.
-- Fonts and languages: load `.ttf` and `.otf` fonts (TrueType or CFF outlines, including variable fonts) with `PdfFont` and use them in every text call and in HTML (`PdfHtmlLoadOptions.Fonts`). Latin, Devanagari (Hindi), Telugu, and Tamil text is shaped with the font's rules, PDFs embed only the glyphs used, and copied text reads back as written. Without a font, text uses the PDF standard fonts with Western European characters; a character no font has is written as `?`.
+- Fonts and languages: load `.ttf` and `.otf` fonts (TrueType or CFF outlines, including variable fonts) with `PdfFont` and use them in every text call and in HTML (`PdfHtmlLoadOptions.Fonts`). Latin, Devanagari (Hindi), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, and Tamil text is shaped with the font's rules, PDFs embed only the glyphs used, and copied text reads back as written. Without a font, text uses the PDF standard fonts with Western European characters; a character no font has is written as `?`.
 - Not supported yet: right-to-left scripts (Arabic, Hebrew), Chinese, Japanese, and Korean, font collections (`.ttc`) and web fonts (WOFF, WOFF2), encryption, digital signatures, and PDF/A.
 
 Quick start:
@@ -61,7 +61,7 @@ pdfDocument.Save("sample.pdf");
 
 ## Languages
 
-- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with included free fonts or your own, which stay in your browser.
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in Hindi, Bengali, Gujarati, Punjabi, Odia, Kannada, Malayalam, Telugu, Tamil, French, or a mix, drawn with included free fonts or your own.
 
 ## Complete business documents
 

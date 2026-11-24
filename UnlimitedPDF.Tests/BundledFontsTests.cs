@@ -53,7 +53,7 @@ public class BundledFontsTests
     public void Each_included_font_fills_its_slot_and_matches_its_readme_entry()
     {
         string readme = File.ReadAllText(FontsFile("README.md"));
-        Assert.Equal([FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil], BundledFonts.All.Select(f => f.Script));
+        Assert.Equal(FontSlots.Scripts.Where(s => s != FontScript.Latin), BundledFonts.All.Select(f => f.Script));
 
         foreach (var bundled in BundledFonts.All)
         {
@@ -73,8 +73,9 @@ public class BundledFontsTests
     {
         string license = File.ReadAllText(FontsFile("OFL.txt"));
         Assert.Contains("SIL OPEN FONT LICENSE Version 1.1", license, StringComparison.Ordinal);
-        foreach (string family in new[] { "devanagari", "telugu", "tamil" })
+        foreach (string family in new[] { "devanagari", "telugu", "tamil", "gujarati", "gurmukhi", "oriya", "kannada", "malayalam" })
             Assert.Contains($"Copyright 2022 The Noto Project Authors (https://github.com/notofonts/{family})", license, StringComparison.Ordinal);
+        Assert.Contains("Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali)", license, StringComparison.Ordinal);
 
         Assert.Equal("fonts/OFL.txt", BundledFonts.LicensePath);
         string slot = DemosFile("Components/FontSlot.razor");

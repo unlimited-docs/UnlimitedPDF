@@ -11,7 +11,10 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// Copy and search return the original text (AC-06, D-005, V-07): reordered and formed syllables in Devanagari,
 /// Telugu, and Tamil, and mixed lines, read back exactly through <c>ActualText</c> spans; text drawn unchanged needs
 /// no span; every drawn glyph has a <c>ToUnicode</c> entry, a character glyph always stands for the same character,
-/// and the actual text is written as hex (A05).
+/// and the actual text is written as hex (A05). Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, and Malayalam
+/// (WR-039, V-07 to V-10 of 61-more-indic-scripts) read back exactly, mix with the other scripts in one line, share the
+/// danda, count split vowel signs drawn through their parts as present, break only between syllables, and lay out a long
+/// line in linear time.
 /// </summary>
 [Collection(nameof(TimingTestsCollection))]
 public class ActualTextTests
@@ -230,6 +233,98 @@ public class ActualTextTests
         Assert.Equal(0x20, map.CodePointFor(1));
         Assert.Equal(0x20 + 999, map.CodePointFor(1000));
         Assert.True(clock.Elapsed < TimeSpan.FromSeconds(2), clock.Elapsed.ToString());
+    }
+
+    [Theory]
+    [InlineData("কিো ", "bng2", "কি কো")] // Bengali
+    [InlineData("કિ ", "gjr2", "કિ ક")] // Gujarati
+    [InlineData("ਕਿ ", "gur2", "ਕਿ ਕ")] // Gurmukhi
+    [InlineData("କୋ ", "ory2", "କେ କୋ")] // Oriya
+    [InlineData("ಕೋ ", "knd2", "ಕೋ ಕೆ")] // Kannada
+    [InlineData("കൊ ", "mlm2", "കെ കൊ")] // Malayalam
+    public void Each_added_script_reads_back_exactly(string characters, string script, string text)
+    {
+        var builder = new TestFontBuilder("Test Indic");
+        Map(builder, characters);
+        var font = Build(builder, new L(), script);
+
+        var (pdf, content) = Save(text, font);
+
+        Assert.Equal(text, PageText(pdf));
+        Assert.Contains("/ActualText", content); // a reordered or split syllable needs a span
+        Assert.Empty(new PdfDocument().FindMissingCharacters(text, font));
+    }
+
+    [Fact]
+    public void A_line_mixing_the_added_scripts_with_the_others_reads_back_exactly()
+    {
+        var latin = Latin("Total: 42", out _);
+        var (deva, _) = Devanagari();
+        var bengali = new TestFontBuilder("Test Bengali");
+        Map(bengali, "কিো। ");
+        var malayalam = new TestFontBuilder("Test Malayalam");
+        Map(malayalam, "കൊ ");
+        var document = new PdfDocument();
+        document.FontFallback.Add(deva);
+        document.FontFallback.Add(Build(bengali, new L(), "bng2"));
+        document.FontFallback.Add(Build(malayalam, new L(), "mlm2"));
+        const string text = "Total: क्षि কি। കൊ 42";
+        document.AddPage().AddText(text, latin, 72, 720);
+
+        var pdf = PdfPageReader.SaveBytes(document);
+
+        PdfStructureChecker.AssertValid(pdf);
+        Assert.Equal(text, PageText(pdf));
+        Assert.Equal(4, PdfInspector.Read(pdf).Fonts().Count);
+        Assert.Single(Regex.Matches(Assert.Single(PdfPageReader.Read(pdf)).Content, "BT "));
+    }
+
+    [Fact]
+    public void A_danda_stays_in_the_run_of_the_script_around_it()
+    {
+        var builder = new TestFontBuilder("Test Bengali");
+        var g = Map(builder, "কি। ");
+        var font = Build(builder, new L(), "bng2");
+
+        var layout = TextPipeline.Layout("কি।", font, Array.Empty<PdfFont>(), 12)!;
+
+        var segment = Assert.IsType<FontSegment>(Assert.Single(layout.Segments));
+        Assert.Equal(new[] { g["ি"], g["ক"], g["।"] }, segment.Run.Glyphs.Select(x => x.Glyph));
+    }
+
+    [Fact]
+    public void Breaks_fall_only_between_syllables()
+    {
+        // HTML measures and breaks a caller-font segment by its clusters; each syllable is one cluster.
+        var builder = new TestFontBuilder("Test Bengali");
+        Map(builder, "কষ্িে");
+        var font = Build(builder, new L(), "bng2");
+
+        var layout = TextPipeline.Layout("ক্ষিকি", font, Array.Empty<PdfFont>(), 12)!;
+
+        Assert.Equal(2, TextPipeline.Clusters(Assert.IsType<FontSegment>(Assert.Single(layout.Segments))));
+    }
+
+    [Theory]
+    [InlineData("bng2", "ক্ষিং")] // Bengali
+    [InlineData("gjr2", "ક્ષિં")] // Gujarati
+    [InlineData("gur2", "ਕ੍ਰਿੰ")] // Gurmukhi
+    [InlineData("ory2", "କ୍ଷେଂ")] // Oriya
+    [InlineData("knd2", "ಕ್ಷೆಂ")] // Kannada
+    [InlineData("mlm2", "ക്രെം")] // Malayalam
+    public void A_long_line_in_each_added_script_lays_out_in_linear_time(string script, string syllable)
+    {
+        var builder = new TestFontBuilder("Test Indic");
+        Map(builder, syllable + " ");
+        var font = Build(builder, new L(), script);
+        string line = string.Concat(Enumerable.Repeat(syllable, 16_000)); // 80,000 characters
+        TextPipeline.Layout(syllable, font, Array.Empty<PdfFont>(), 12);
+        var clock = Stopwatch.StartNew();
+
+        var layout = TextPipeline.Layout(line, font, Array.Empty<PdfFont>(), 12)!;
+
+        Assert.True(clock.Elapsed < TimeSpan.FromSeconds(3), clock.Elapsed.ToString());
+        Assert.Equal(line, layout.Text);
     }
 
     [Fact]

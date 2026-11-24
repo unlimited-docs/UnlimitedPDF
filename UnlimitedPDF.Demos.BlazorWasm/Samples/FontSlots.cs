@@ -18,7 +18,13 @@ public static class FontSlots
     {
         [FontScript.Devanagari] = "कखगचजटडतदनपबमयरलवसह",
         [FontScript.Telugu] = "కఖగచజటడతదనపబమయరలవసహ",
-        [FontScript.Tamil] = "கஙசஞடணதநபமயரலவழளறன"
+        [FontScript.Tamil] = "கஙசஞடணதநபமயரலவழளறன",
+        [FontScript.Bengali] = "কখগঘচছজঝটঠডঢতথদধনপবম",
+        [FontScript.Gujarati] = "કખગઘચછજઝટઠડઢતથદધનપબમ",
+        [FontScript.Gurmukhi] = "ਕਖਗਘਚਛਜਝਟਠਡਢਤਥਦਧਨਪਬਮ",
+        [FontScript.Odia] = "କଖଗଘଚଛଜଝଟଠଡଢତଥଦଧନପବମ",
+        [FontScript.Kannada] = "ಕಖಗಘಚಛಜಝಟಠಡಢತಥದಧನಪಬಮ",
+        [FontScript.Malayalam] = "കഖഗഘചഛജഝടഠഡഢതഥദധനപബമ"
     };
 
     // The built-in font draws every Western European letter a font lacks, so the library never reports a Latin letter
@@ -60,6 +66,12 @@ public static class FontSlots
         FontScript.Devanagari => "https://fonts.google.com/noto/specimen/Noto+Sans+Devanagari",
         FontScript.Telugu => "https://fonts.google.com/noto/specimen/Noto+Sans+Telugu",
         FontScript.Tamil => "https://fonts.google.com/noto/specimen/Noto+Sans+Tamil",
+        FontScript.Bengali => "https://fonts.google.com/noto/specimen/Noto+Sans+Bengali",
+        FontScript.Gujarati => "https://fonts.google.com/noto/specimen/Noto+Sans+Gujarati",
+        FontScript.Gurmukhi => "https://fonts.google.com/noto/specimen/Noto+Sans+Gurmukhi",
+        FontScript.Odia => "https://fonts.google.com/noto/specimen/Noto+Sans+Oriya",
+        FontScript.Kannada => "https://fonts.google.com/noto/specimen/Noto+Sans+Kannada",
+        FontScript.Malayalam => "https://fonts.google.com/noto/specimen/Noto+Sans+Malayalam",
         _ => "https://fonts.google.com/noto/specimen/Noto+Sans"
     };
 
@@ -88,9 +100,16 @@ public static class FontSlots
     public static FontScript? ScriptOf(char c) => c switch
     {
         >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= 'À' and <= 'ɏ' when c is not ('×' or '÷') => FontScript.Latin,
+        '।' or '॥' => null, // danda and double danda: several scripts use them
         >= 'ऀ' and <= 'ॿ' => FontScript.Devanagari,
         >= 'ఀ' and <= '౿' => FontScript.Telugu,
         >= '஀' and <= '௿' => FontScript.Tamil,
+        >= 'ঀ' and <= '৿' => FontScript.Bengali,
+        >= '઀' and <= '૿' => FontScript.Gujarati,
+        >= '਀' and <= '੿' => FontScript.Gurmukhi,
+        >= '଀' and <= '୿' => FontScript.Odia,
+        >= 'ಀ' and <= '೿' => FontScript.Kannada,
+        >= 'ഀ' and <= 'ൿ' => FontScript.Malayalam,
         _ => null
     };
 
@@ -116,7 +135,11 @@ public static class FontSlots
     /// <summary>
     /// Gets the scripts in slot order, which is the order the fonts are tried for each character.
     /// </summary>
-    public static IReadOnlyList<FontScript> Scripts { get; } = [FontScript.Latin, FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil];
+    public static IReadOnlyList<FontScript> Scripts { get; } =
+    [
+        FontScript.Latin, FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
+        FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam
+    ];
 
     #endregion
 }

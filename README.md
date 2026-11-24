@@ -52,7 +52,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 
 ## Demos
 
-`UnlimitedPDF.Demos.BlazorWasm` is an interactive site that runs entirely in the browser: no engine required, nothing uploaded. Its scenario gallery lists 25 scenarios by capability and business domain, and each scenario shows your data, the PDF drawn in the page, and the C# code side by side. Create: text and pages, tables, images, and headers and footers. Merge: join files, cover and ranges, pick pages, bookmarks and numbers, and document packs for finance, HR, and healthcare. Split and extract: every N pages, page ranges, extract pages, and remove pages. HTML to PDF: templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit. Languages (Fonts and languages, with text calls or HTML): an invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with free fonts included for the demo or fonts you upload. Real-life documents: invoice (also quotation, purchase order, delivery note, and receipt), bulk invoices (up to 1,000, zipped), account statement (up to 5,000 rows), inventory report, payslip, contract, medical report, KPI report, and shipping labels. Each scenario has editable data, a download, and the C# code that builds it.
+`UnlimitedPDF.Demos.BlazorWasm` is an interactive site that runs entirely in the browser: no engine required, nothing uploaded. Its scenario gallery lists 25 scenarios by capability and business domain, and each scenario shows your data, the PDF drawn in the page, and the C# code side by side. Create: text and pages, tables, images, and headers and footers. Merge: join files, cover and ranges, pick pages, bookmarks and numbers, and document packs for finance, HR, and healthcare. Split and extract: every N pages, page ranges, extract pages, and remove pages. HTML to PDF: templates or your own HTML, and Common problems: HTML that often goes wrong in PDF, which you can open and edit. Languages (Fonts and languages, with text calls or HTML): an invoice in Hindi, Bengali, Gujarati, Punjabi, Odia, Kannada, Malayalam, Telugu, Tamil, French, or a mix, drawn with free fonts included for the demo or fonts you upload. Real-life documents: invoice (also quotation, purchase order, delivery note, and receipt), bulk invoices (up to 1,000, zipped), account statement (up to 5,000 rows), inventory report, payslip, contract, medical report, KPI report, and shipping labels. Each scenario has editable data, a download, and the C# code that builds it.
 
 Try it live at [unlimitedpdf.dev](https://unlimitedpdf.dev/), or run it locally:
 
@@ -476,13 +476,13 @@ var banner = PdfHtml.FromString("<img src='https://cdn.example.com/logo.png'>", 
 
 ## Fonts and languages
 
-Draw text in your own fonts: Hindi, Telugu, Tamil, French, and other languages written in Latin letters, each shaped the way its script needs. Load a `.ttf` or `.otf` font once with `PdfFont`, then pass it to any text call; characters it doesn't have come from the document's fallback fonts. The PDF embeds only the glyphs it uses, and copied or searched text reads back exactly as written.
+Draw text in your own fonts: Hindi, Bengali, Assamese, Gujarati, Punjabi, Odia, Kannada, Malayalam, Telugu, Tamil, French, and other languages written in Latin letters, each shaped the way its script needs. Load a `.ttf` or `.otf` font once with `PdfFont`, then pass it to any text call; characters it doesn't have come from the document's fallback fonts. The PDF embeds only the glyphs it uses, and copied or searched text reads back exactly as written.
 
 Before you start, you need:
 
 - A `.ttf` or `.otf` font that has the letters of each script you write: one font per script, or one that covers them all. The package includes no fonts; ship the font files with your app.
 - The right to embed each font in a PDF. Check the font's license; free fonts under the SIL Open Font License, for example, allow it.
-- A supported script: Latin, Devanagari, Telugu, or Tamil.
+- A supported script: Latin, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, or Tamil.
 - A check for characters no font has: `FindMissingCharacters` or `FailOnMissingCharacters`, so none is drawn as `?`.
 
 ```cs
@@ -516,12 +516,12 @@ PdfOperations.ConvertHtml(html, "total.pdf");
 
 - Fonts: `PdfFont.FromFile`, `FromFileAsync`, `FromStream`, `FromStreamAsync`, and `FromBytes` load `.ttf` and `.otf` fonts with TrueType or CFF outlines. A variable font draws any weight it holds: `new PdfFontLoadOptions { Weight = 700 }`. Font collections (`.ttc`), WOFF, WOFF2, damaged fonts, fonts over 50 MB (`PdfFont.DefaultMaxFileSize`, or `MaxFileSize` per load), and fonts whose license forbids embedding throw `PdfFontException` with a `Reason`. Set `IgnoreEmbeddingRestrictions` only when you hold the rights to embed the font.
 - Where: `PdfPage.AddText`, headers and footers, the body flow, flow blocks, table cells (`new PdfCellText(text, font)` or `PdfTable.SetText(row, column, text, font)`), and HTML. Each character takes the call's font, then the `PdfDocument.FontFallback` fonts in order, so one line can mix scripts.
-- Scripts: Latin (accents, ligatures, kerning), Devanagari, Telugu, and Tamil are shaped with the font's own rules: conjuncts, half forms, reph, vowel signs drawn before their consonant, and marks placed above and below. Copy, search, and read-aloud return the original text.
+- Scripts: Latin (accents, ligatures, kerning), Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, and Tamil are shaped with the font's own rules: conjuncts, half forms, reph, vowel signs drawn before their consonant or split around it, and marks placed above and below. Copy, search, and read-aloud return the original text.
 - Missing characters: a character no font has is drawn as `?`. `FindMissingCharacters` lists them before you save; `FailOnMissingCharacters` makes `Save` throw `PdfTextException` (the character, its text, and its page) before anything is written; HTML adds a `MissingCharacter` warning.
 - Without a font: text uses the built-in Helvetica as before, and Western European characters such as `é`, `ñ`, `€`, dashes, and curly quotes are drawn as written. Documents with only ASCII text are written byte for byte as before.
 - HTML: `font-family` names map to the fonts registered in `PdfHtmlLoadOptions.Fonts`, matched by weight and style; register one font per weight and style, or one variable font, which draws CSS weights rounded to the nearest hundred (on the same side of 600, so bold stays bold). Each character takes the first listed family that has it, then the fallback fonts (`PdfDocument.FontFallback`, or `PdfHtmlConvertOptions.FontFallback` for `ConvertHtml`), then the standard fonts. When a bold or italic font is missing, the nearest registered one is used with a `MissingFontFace` warning; `SynthesizeMissingStyles` draws the regular font thickened or slanted instead. `@font-face` rules are ignored with a `FontFaceIgnored` warning, and their font files are never read.
 - Known limitations:
-  - Right-to-left scripts, such as Arabic and Hebrew, and Chinese, Japanese, and Korean are not supported.
+  - Right-to-left scripts, such as Arabic and Hebrew (so Urdu, Kashmiri, and Sindhi in Perso-Arabic letters), and Chinese, Japanese, and Korean are not supported.
   - Font collections (`.ttc`) and web fonts (WOFF, WOFF2) can't be loaded; convert them to `.ttf` or `.otf`.
   - HTML `@font-face` rules are ignored; register fonts in code instead.
 

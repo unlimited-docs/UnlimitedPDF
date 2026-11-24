@@ -39,7 +39,7 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 
 ## Languages
 
-- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with included free fonts or your own, which stay in your browser.
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in Hindi, Bengali, Gujarati, Punjabi, Odia, Kannada, Malayalam, Telugu, Tamil, French, or a mix, drawn with included free fonts or your own.
 
 ## Complete business documents
 

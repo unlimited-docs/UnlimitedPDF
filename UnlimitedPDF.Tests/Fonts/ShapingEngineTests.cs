@@ -186,6 +186,22 @@ public class ShapingEngineTests
     }
 
     [Fact]
+    public void Attaching_a_mark_replaces_an_earlier_adjustment_and_a_later_one_adds()
+    {
+        // Lookups run in list order: an adjustment before the attachment is replaced by the anchors; one after it adds.
+        var gpos = new L();
+        int before = gpos.AddLookup(1, 0, L.SinglePos(new[] { G('m') }, 0, -30, 0));
+        gpos.AddFeature("mark", gpos.AddLookup(4, 0, L.MarkAttach(new[] { (G('m'), 0, (short)100, (short)0) }, new[] { (G('b'), new[] { ((short)300, (short)700) }) })));
+        int after = gpos.AddLookup(1, 0, L.SinglePos(new[] { G('m') }, 5, 0, 0));
+        gpos.AddFeature("kern", before, after);
+        var gdef = L.Gdef(new Dictionary<int, int> { [G('m')] = 3 });
+
+        var run = Shape(Font(gpos: gpos, gdef: gdef), "bm");
+
+        Assert.Equal((200 + 5, 700), (run.Glyphs[1].X, run.Glyphs[1].Y));
+    }
+
+    [Fact]
     public void A_mark_after_a_ligature_component_attaches_to_that_component()
     {
         var builder = Builder();

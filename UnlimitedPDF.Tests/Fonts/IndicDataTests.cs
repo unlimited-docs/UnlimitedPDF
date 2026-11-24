@@ -5,8 +5,9 @@ namespace UnlimitedPDF.Tests.Fonts;
 
 /// <summary>
 /// The generated Indic character tables (T-15, D-020, A-03): spot checks against the Unicode Character Database
-/// 17.0.0 for Devanagari, Telugu, Tamil, and the shared characters those scripts use; the generator and the generated
-/// file name the same pinned version and hashes; the Unicode notice ships with the package.
+/// 17.0.0 for Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada, Malayalam, and the shared
+/// characters those scripts use; the generator and the generated file name the same pinned version and hashes; the
+/// Unicode notice ships with the package.
 /// </summary>
 public class IndicDataTests
 {
@@ -32,6 +33,32 @@ public class IndicDataTests
     [InlineData(0x0BC6, "VowelDependent", "Left")] // TAMIL VOWEL SIGN E
     [InlineData(0x0BCA, "VowelDependent", "LeftAndRight")] // TAMIL VOWEL SIGN O
     [InlineData(0x0BCD, "Virama", "Top")] // TAMIL VIRAMA (pulli)
+    [InlineData(0x0995, "Consonant", "None")] // BENGALI KA
+    [InlineData(0x09B0, "Consonant", "None")] // BENGALI RA (reph source)
+    [InlineData(0x09F0, "Consonant", "None")] // BENGALI LETTER RA WITH MIDDLE DIAGONAL (Assamese Ra)
+    [InlineData(0x09BF, "VowelDependent", "Left")] // BENGALI VOWEL SIGN I (pre-base)
+    [InlineData(0x09CB, "VowelDependent", "LeftAndRight")] // BENGALI VOWEL SIGN O (split)
+    [InlineData(0x09CE, "ConsonantDead", "None")] // BENGALI LETTER KHANDA TA
+    [InlineData(0x09CD, "Virama", "Bottom")] // BENGALI VIRAMA
+    [InlineData(0x0A15, "Consonant", "None")] // GURMUKHI KA
+    [InlineData(0x0A3F, "VowelDependent", "Left")] // GURMUKHI VOWEL SIGN I (pre-base)
+    [InlineData(0x0A70, "Bindu", "Top")] // GURMUKHI TIPPI
+    [InlineData(0x0A71, "GeminationMark", "Top")] // GURMUKHI ADDAK
+    [InlineData(0x0A95, "Consonant", "None")] // GUJARATI KA
+    [InlineData(0x0ABF, "VowelDependent", "Left")] // GUJARATI VOWEL SIGN I (pre-base)
+    [InlineData(0x0ACD, "Virama", "Bottom")] // GUJARATI VIRAMA
+    [InlineData(0x0B15, "Consonant", "None")] // ORIYA KA
+    [InlineData(0x0B47, "VowelDependent", "Left")] // ORIYA VOWEL SIGN E (pre-base)
+    [InlineData(0x0B4B, "VowelDependent", "LeftAndRight")] // ORIYA VOWEL SIGN O (split)
+    [InlineData(0x0C95, "Consonant", "None")] // KANNADA KA
+    [InlineData(0x0CC0, "VowelDependent", "TopAndRight")] // KANNADA VOWEL SIGN II (split)
+    [InlineData(0x0CCD, "Virama", "Top")] // KANNADA VIRAMA
+    [InlineData(0x0D15, "Consonant", "None")] // MALAYALAM KA
+    [InlineData(0x0D46, "VowelDependent", "Left")] // MALAYALAM VOWEL SIGN E (pre-base)
+    [InlineData(0x0D4A, "VowelDependent", "LeftAndRight")] // MALAYALAM VOWEL SIGN O (split)
+    [InlineData(0x0D4D, "Virama", "Top")] // MALAYALAM VIRAMA
+    [InlineData(0x0D4E, "ConsonantPrecedingRepha", "Top")] // MALAYALAM LETTER DOT REPH
+    [InlineData(0x0D7D, "ConsonantDead", "None")] // MALAYALAM LETTER CHILLU L
     [InlineData(0x200C, "NonJoiner", "None")] // ZERO WIDTH NON-JOINER
     [InlineData(0x200D, "Joiner", "None")] // ZERO WIDTH JOINER
     [InlineData(0x25CC, "ConsonantPlaceholder", "None")] // DOTTED CIRCLE

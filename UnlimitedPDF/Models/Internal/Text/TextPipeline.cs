@@ -99,7 +99,7 @@ internal static class TextPipeline
                 segments.Add(new StandardSegment(runText, standardWidth(runText)));
                 continue;
             }
-            var shaped = script is "deva" or "telu" or "taml" ? IndicShaper.Shape(runFont, runText, script) : TextShaper.Shape(runFont, runText, ScriptTags(script));
+            var shaped = IndicScript.For(script) is not null ? IndicShaper.Shape(runFont, runText, script) : TextShaper.Shape(runFont, runText, ScriptTags(script));
             var spans = new List<ActualTextSpan>();
             var texts = GlyphTexts(runFont, shaped, runText, spans);
             segments.Add(new FontSegment(runFont, shaped, texts, spans, runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm));
@@ -146,20 +146,23 @@ internal static class TextPipeline
     // digits, punctuation), which join the run around them.
     private static string? ScriptOf(int codePoint) => codePoint switch
     {
+        0x0964 or 0x0965 => null, // danda and double danda: Bengali, Gurmukhi, Oriya, and others use them too (WR-039)
         >= 0x0900 and <= 0x097F or >= 0xA8E0 and <= 0xA8FF => "deva",
+        >= 0x0980 and <= 0x09FF => "beng",
+        >= 0x0A00 and <= 0x0A7F => "guru",
+        >= 0x0A80 and <= 0x0AFF => "gujr",
+        >= 0x0B00 and <= 0x0B7F => "orya",
         >= 0x0B80 and <= 0x0BFF => "taml",
         >= 0x0C00 and <= 0x0C7F => "telu",
+        >= 0x0C80 and <= 0x0CFF => "knda",
+        >= 0x0D00 and <= 0x0D7F => "mlym",
         >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= 0x00C0 and <= 0x024F => "latn",
         _ => null
     };
 
-    private static string[] ScriptTags(string script) => script switch
-    {
-        "deva" => new[] { "dev2", "deva", "DFLT", "dflt" },
-        "telu" => new[] { "tel2", "telu", "DFLT", "dflt" },
-        "taml" => new[] { "tml2", "taml", "DFLT", "dflt" },
-        _ => new[] { "latn", "DFLT", "dflt" }
-    };
+    private static string[] ScriptTags(string script) => IndicScript.For(script) is { } indic
+        ? new[] { indic.Version2Tag, indic.Version1Tag, "DFLT", "dflt" }
+        : new[] { "latn", "DFLT", "dflt" };
 
     // The text of each glyph for ToUnicode, and the spans that need ActualText. Glyphs are taken in groups: the
     // smallest runs of glyphs that hold every glyph of their clusters (a reordered syllable is one group). A glyph
