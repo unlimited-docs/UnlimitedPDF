@@ -172,7 +172,9 @@ internal static class TextPipeline
             }
             var shaped = IndicScript.For(script) is not null
                 ? IndicShaper.Shape(runFont, runText, script)
-                : TextShaper.Shape(runFont, runText, ScriptTags(script), rightToLeft);
+                : script == "arab"
+                    ? ArabicShaper.Shape(runFont, runText, ScriptTags(script), rightToLeft)
+                    : TextShaper.Shape(runFont, runText, ScriptTags(script), rightToLeft);
             var spans = new List<ActualTextSpan>();
             var texts = GlyphTexts(runFont, shaped, runText, spans);
             segments[r] = new FontSegment(runFont, shaped, texts, spans, runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm);
@@ -250,6 +252,9 @@ internal static class TextPipeline
     private static string? ScriptOf(int codePoint) => codePoint switch
     {
         0x0964 or 0x0965 => null, // danda and double danda: Bengali, Gurmukhi, Oriya, and others use them too (WR-039)
+        // Arabic comma, semicolon, question mark, tatweel, and Arabic-Indic digits are shared with other scripts (Thaana
+        // among them) and join the run around them (WR-039).
+        0x060C or 0x061B or 0x061F or 0x0640 or >= 0x0660 and <= 0x0669 => null,
         >= 0x0900 and <= 0x097F or >= 0xA8E0 and <= 0xA8FF => "deva",
         >= 0x0980 and <= 0x09FF => "beng",
         >= 0x0A00 and <= 0x0A7F => "guru",
@@ -266,6 +271,8 @@ internal static class TextPipeline
         >= 0x10A0 and <= 0x10FF or >= 0x1C90 and <= 0x1CBF or >= 0x2D00 and <= 0x2D2F => "geor",
         >= 0x0591 and <= 0x05F4 or >= 0xFB1D and <= 0xFB4F => "hebr",
         >= 0x0780 and <= 0x07BF => "thaa",
+        >= 0x0600 and <= 0x06FF or >= 0x0750 and <= 0x077F or >= 0x0870 and <= 0x089F or >= 0x08A0 and <= 0x08FF
+            or >= 0xFB50 and <= 0xFDFF or >= 0xFE70 and <= 0xFEFF => "arab",
         _ => null
     };
 
@@ -273,7 +280,7 @@ internal static class TextPipeline
     // after the defaults, for fonts that list their features under Latin only, as these scripts used before.
     internal static string[] ScriptTags(string script) => IndicScript.For(script) is { } indic
         ? new[] { indic.Version2Tag, indic.Version1Tag, "DFLT", "dflt" }
-        : script is "grek" or "cyrl" or "armn" or "geor" or "hebr" or "thaa"
+        : script is "grek" or "cyrl" or "armn" or "geor" or "hebr" or "thaa" or "arab"
             ? new[] { script, "DFLT", "dflt", "latn" }
             : new[] { "latn", "DFLT", "dflt" };
 
