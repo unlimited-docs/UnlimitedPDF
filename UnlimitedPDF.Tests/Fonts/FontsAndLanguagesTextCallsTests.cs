@@ -19,6 +19,12 @@ public class FontsAndLanguagesTextCallsTests
     [InlineData("hindi")]
     [InlineData("telugu")]
     [InlineData("tamil")]
+    [InlineData("bengali")]
+    [InlineData("gujarati")]
+    [InlineData("punjabi")]
+    [InlineData("odia")]
+    [InlineData("kannada")]
+    [InlineData("malayalam")]
     [InlineData("french")]
     [InlineData("mixed")]
     public void Each_language_reads_back_exactly_with_a_font_for_each_script_it_needs(string language)

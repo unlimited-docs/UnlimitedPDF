@@ -307,7 +307,7 @@ public class HtmlScenarioTests
         // The outcome names registered fonts and the shaped scripts, and still says what is drawn as ? (CR-001, D-019).
         var scenario = HtmlScenarios.Find("non-latin-characters")!;
         Assert.True(scenario.IsLimitation);
-        foreach (string term in new[] { "standard fonts", "Devanagari, Telugu, and Tamil", "PdfHtmlLoadOptions.Fonts", "drawn as ?", "reported" })
+        foreach (string term in new[] { "standard fonts", "Devanagari, Bengali, Telugu, and Tamil", "PdfHtmlLoadOptions.Fonts", "drawn as ?", "reported" })
             Assert.Contains(term, scenario.Outcome, StringComparison.Ordinal);
     }
 

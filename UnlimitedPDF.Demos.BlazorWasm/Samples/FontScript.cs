@@ -23,5 +23,35 @@ public enum FontScript
     /// <summary>
     /// Tamil.
     /// </summary>
-    Tamil
+    Tamil,
+
+    /// <summary>
+    /// Bengali-Assamese (Bengali, Assamese, and Manipuri).
+    /// </summary>
+    Bengali,
+
+    /// <summary>
+    /// Gujarati.
+    /// </summary>
+    Gujarati,
+
+    /// <summary>
+    /// Gurmukhi (Punjabi).
+    /// </summary>
+    Gurmukhi,
+
+    /// <summary>
+    /// Odia (Oriya).
+    /// </summary>
+    Odia,
+
+    /// <summary>
+    /// Kannada.
+    /// </summary>
+    Kannada,
+
+    /// <summary>
+    /// Malayalam.
+    /// </summary>
+    Malayalam
 }

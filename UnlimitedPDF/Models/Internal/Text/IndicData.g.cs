@@ -78,8 +78,8 @@ internal enum IndicPositionalCategory : byte
 }
 
 /// <summary>
-/// Looks up the Indic categories of Devanagari, Telugu, and Tamil characters and the shared characters those
-/// scripts use; every other character is Other and None.
+/// Looks up the Indic categories of Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada, and
+/// Malayalam characters and the shared characters those scripts use; every other character is Other and None.
 /// </summary>
 internal static class IndicData
 {
@@ -116,6 +116,119 @@ internal static class IndicData
         (0x0966, 0x096F, 24, 0), // Number
         (0x0972, 0x0977, 36, 0), // Vowel_Independent
         (0x0978, 0x097F, 5, 0), // Consonant
+        (0x0980, 0x0980, 12, 0), // Consonant_Placeholder
+        (0x0981, 0x0981, 2, 8), // Bindu, Top
+        (0x0982, 0x0982, 2, 7), // Bindu, Right
+        (0x0983, 0x0983, 33, 7), // Visarga, Right
+        (0x0985, 0x098C, 36, 0), // Vowel_Independent
+        (0x098F, 0x0990, 36, 0), // Vowel_Independent
+        (0x0993, 0x0994, 36, 0), // Vowel_Independent
+        (0x0995, 0x09A8, 5, 0), // Consonant
+        (0x09AA, 0x09B0, 5, 0), // Consonant
+        (0x09B2, 0x09B2, 5, 0), // Consonant
+        (0x09B6, 0x09B9, 5, 0), // Consonant
+        (0x09BC, 0x09BC, 23, 1), // Nukta, Bottom
+        (0x09BD, 0x09BD, 1, 0), // Avagraha
+        (0x09BE, 0x09BE, 35, 7), // Vowel_Dependent, Right
+        (0x09BF, 0x09BF, 35, 4), // Vowel_Dependent, Left
+        (0x09C0, 0x09C0, 35, 7), // Vowel_Dependent, Right
+        (0x09C1, 0x09C4, 35, 1), // Vowel_Dependent, Bottom
+        (0x09C7, 0x09C8, 35, 4), // Vowel_Dependent, Left
+        (0x09CB, 0x09CC, 35, 5), // Vowel_Dependent, Left_And_Right
+        (0x09CD, 0x09CD, 32, 1), // Virama, Bottom
+        (0x09CE, 0x09CE, 6, 0), // Consonant_Dead
+        (0x09D7, 0x09D7, 35, 7), // Vowel_Dependent, Right
+        (0x09DC, 0x09DD, 5, 0), // Consonant
+        (0x09DF, 0x09DF, 5, 0), // Consonant
+        (0x09E0, 0x09E1, 36, 0), // Vowel_Independent
+        (0x09E2, 0x09E3, 35, 1), // Vowel_Dependent, Bottom
+        (0x09E6, 0x09EF, 24, 0), // Number
+        (0x09F0, 0x09F1, 5, 0), // Consonant
+        (0x09FC, 0x09FC, 2, 0), // Bindu
+        (0x09FE, 0x09FE, 29, 8), // Syllable_Modifier, Top
+        (0x0A01, 0x0A02, 2, 8), // Bindu, Top
+        (0x0A03, 0x0A03, 33, 7), // Visarga, Right
+        (0x0A05, 0x0A0A, 36, 0), // Vowel_Independent
+        (0x0A0F, 0x0A10, 36, 0), // Vowel_Independent
+        (0x0A13, 0x0A14, 36, 0), // Vowel_Independent
+        (0x0A15, 0x0A28, 5, 0), // Consonant
+        (0x0A2A, 0x0A30, 5, 0), // Consonant
+        (0x0A32, 0x0A33, 5, 0), // Consonant
+        (0x0A35, 0x0A36, 5, 0), // Consonant
+        (0x0A38, 0x0A39, 5, 0), // Consonant
+        (0x0A3C, 0x0A3C, 23, 1), // Nukta, Bottom
+        (0x0A3E, 0x0A3E, 35, 7), // Vowel_Dependent, Right
+        (0x0A3F, 0x0A3F, 35, 4), // Vowel_Dependent, Left
+        (0x0A40, 0x0A40, 35, 7), // Vowel_Dependent, Right
+        (0x0A41, 0x0A42, 35, 1), // Vowel_Dependent, Bottom
+        (0x0A47, 0x0A48, 35, 8), // Vowel_Dependent, Top
+        (0x0A4B, 0x0A4C, 35, 8), // Vowel_Dependent, Top
+        (0x0A4D, 0x0A4D, 32, 1), // Virama, Bottom
+        (0x0A51, 0x0A51, 4, 1), // Cantillation_Mark, Bottom
+        (0x0A59, 0x0A5C, 5, 0), // Consonant
+        (0x0A5E, 0x0A5E, 5, 0), // Consonant
+        (0x0A66, 0x0A6F, 24, 0), // Number
+        (0x0A70, 0x0A70, 2, 8), // Bindu, Top
+        (0x0A71, 0x0A71, 18, 8), // Gemination_Mark, Top
+        (0x0A72, 0x0A73, 12, 0), // Consonant_Placeholder
+        (0x0A75, 0x0A75, 11, 1), // Consonant_Medial, Bottom
+        (0x0A81, 0x0A82, 2, 8), // Bindu, Top
+        (0x0A83, 0x0A83, 33, 7), // Visarga, Right
+        (0x0A85, 0x0A8D, 36, 0), // Vowel_Independent
+        (0x0A8F, 0x0A91, 36, 0), // Vowel_Independent
+        (0x0A93, 0x0A94, 36, 0), // Vowel_Independent
+        (0x0A95, 0x0AA8, 5, 0), // Consonant
+        (0x0AAA, 0x0AB0, 5, 0), // Consonant
+        (0x0AB2, 0x0AB3, 5, 0), // Consonant
+        (0x0AB5, 0x0AB9, 5, 0), // Consonant
+        (0x0ABC, 0x0ABC, 23, 1), // Nukta, Bottom
+        (0x0ABD, 0x0ABD, 1, 0), // Avagraha
+        (0x0ABE, 0x0ABE, 35, 7), // Vowel_Dependent, Right
+        (0x0ABF, 0x0ABF, 35, 4), // Vowel_Dependent, Left
+        (0x0AC0, 0x0AC0, 35, 7), // Vowel_Dependent, Right
+        (0x0AC1, 0x0AC4, 35, 1), // Vowel_Dependent, Bottom
+        (0x0AC5, 0x0AC5, 35, 8), // Vowel_Dependent, Top
+        (0x0AC7, 0x0AC8, 35, 8), // Vowel_Dependent, Top
+        (0x0AC9, 0x0AC9, 35, 14), // Vowel_Dependent, Top_And_Right
+        (0x0ACB, 0x0ACC, 35, 7), // Vowel_Dependent, Right
+        (0x0ACD, 0x0ACD, 32, 1), // Virama, Bottom
+        (0x0AE0, 0x0AE1, 36, 0), // Vowel_Independent
+        (0x0AE2, 0x0AE3, 35, 1), // Vowel_Dependent, Bottom
+        (0x0AE6, 0x0AEF, 24, 0), // Number
+        (0x0AF9, 0x0AF9, 5, 0), // Consonant
+        (0x0AFA, 0x0AFA, 4, 8), // Cantillation_Mark, Top
+        (0x0AFB, 0x0AFB, 18, 8), // Gemination_Mark, Top
+        (0x0AFC, 0x0AFC, 4, 8), // Cantillation_Mark, Top
+        (0x0AFD, 0x0AFF, 23, 8), // Nukta, Top
+        (0x0B01, 0x0B01, 2, 8), // Bindu, Top
+        (0x0B02, 0x0B02, 2, 7), // Bindu, Right
+        (0x0B03, 0x0B03, 33, 7), // Visarga, Right
+        (0x0B05, 0x0B0C, 36, 0), // Vowel_Independent
+        (0x0B0F, 0x0B10, 36, 0), // Vowel_Independent
+        (0x0B13, 0x0B14, 36, 0), // Vowel_Independent
+        (0x0B15, 0x0B28, 5, 0), // Consonant
+        (0x0B2A, 0x0B30, 5, 0), // Consonant
+        (0x0B32, 0x0B33, 5, 0), // Consonant
+        (0x0B35, 0x0B39, 5, 0), // Consonant
+        (0x0B3C, 0x0B3C, 23, 1), // Nukta, Bottom
+        (0x0B3D, 0x0B3D, 1, 0), // Avagraha
+        (0x0B3E, 0x0B3E, 35, 7), // Vowel_Dependent, Right
+        (0x0B3F, 0x0B3F, 35, 8), // Vowel_Dependent, Top
+        (0x0B40, 0x0B40, 35, 7), // Vowel_Dependent, Right
+        (0x0B41, 0x0B44, 35, 1), // Vowel_Dependent, Bottom
+        (0x0B47, 0x0B47, 35, 4), // Vowel_Dependent, Left
+        (0x0B48, 0x0B48, 35, 12), // Vowel_Dependent, Top_And_Left
+        (0x0B4B, 0x0B4B, 35, 5), // Vowel_Dependent, Left_And_Right
+        (0x0B4C, 0x0B4C, 35, 13), // Vowel_Dependent, Top_And_Left_And_Right
+        (0x0B4D, 0x0B4D, 32, 1), // Virama, Bottom
+        (0x0B55, 0x0B56, 35, 8), // Vowel_Dependent, Top
+        (0x0B57, 0x0B57, 35, 14), // Vowel_Dependent, Top_And_Right
+        (0x0B5C, 0x0B5D, 5, 0), // Consonant
+        (0x0B5F, 0x0B5F, 5, 0), // Consonant
+        (0x0B60, 0x0B61, 36, 0), // Vowel_Independent
+        (0x0B62, 0x0B63, 35, 1), // Vowel_Dependent, Bottom
+        (0x0B66, 0x0B6F, 24, 0), // Number
+        (0x0B71, 0x0B71, 5, 0), // Consonant
         (0x0B82, 0x0B82, 2, 8), // Bindu, Top
         (0x0B83, 0x0B83, 21, 0), // Modifying_Letter
         (0x0B85, 0x0B8A, 36, 0), // Vowel_Independent
@@ -160,6 +273,57 @@ internal static class IndicData
         (0x0C60, 0x0C61, 36, 0), // Vowel_Independent
         (0x0C62, 0x0C63, 35, 1), // Vowel_Dependent, Bottom
         (0x0C66, 0x0C6F, 24, 0), // Number
+        (0x0C80, 0x0C80, 2, 0), // Bindu
+        (0x0C81, 0x0C81, 2, 8), // Bindu, Top
+        (0x0C82, 0x0C82, 2, 7), // Bindu, Right
+        (0x0C83, 0x0C83, 33, 7), // Visarga, Right
+        (0x0C85, 0x0C8C, 36, 0), // Vowel_Independent
+        (0x0C8E, 0x0C90, 36, 0), // Vowel_Independent
+        (0x0C92, 0x0C94, 36, 0), // Vowel_Independent
+        (0x0C95, 0x0CA8, 5, 0), // Consonant
+        (0x0CAA, 0x0CB3, 5, 0), // Consonant
+        (0x0CB5, 0x0CB9, 5, 0), // Consonant
+        (0x0CBC, 0x0CBC, 23, 1), // Nukta, Bottom
+        (0x0CBD, 0x0CBD, 1, 0), // Avagraha
+        (0x0CBE, 0x0CBE, 35, 7), // Vowel_Dependent, Right
+        (0x0CBF, 0x0CBF, 35, 8), // Vowel_Dependent, Top
+        (0x0CC0, 0x0CC0, 35, 14), // Vowel_Dependent, Top_And_Right
+        (0x0CC1, 0x0CC4, 35, 7), // Vowel_Dependent, Right
+        (0x0CC6, 0x0CC6, 35, 8), // Vowel_Dependent, Top
+        (0x0CC7, 0x0CC8, 35, 14), // Vowel_Dependent, Top_And_Right
+        (0x0CCA, 0x0CCB, 35, 14), // Vowel_Dependent, Top_And_Right
+        (0x0CCC, 0x0CCC, 35, 8), // Vowel_Dependent, Top
+        (0x0CCD, 0x0CCD, 32, 8), // Virama, Top
+        (0x0CD5, 0x0CD6, 35, 7), // Vowel_Dependent, Right
+        (0x0CDD, 0x0CDD, 6, 0), // Consonant_Dead
+        (0x0CDE, 0x0CDE, 5, 0), // Consonant
+        (0x0CE0, 0x0CE1, 36, 0), // Vowel_Independent
+        (0x0CE2, 0x0CE3, 35, 1), // Vowel_Dependent, Bottom
+        (0x0CE6, 0x0CEF, 24, 0), // Number
+        (0x0CF1, 0x0CF2, 17, 0), // Consonant_With_Stacker
+        (0x0CF3, 0x0CF3, 2, 7), // Bindu, Right
+        (0x0D00, 0x0D01, 2, 8), // Bindu, Top
+        (0x0D02, 0x0D02, 2, 7), // Bindu, Right
+        (0x0D03, 0x0D03, 33, 7), // Visarga, Right
+        (0x0D04, 0x0D04, 2, 0), // Bindu
+        (0x0D05, 0x0D0C, 36, 0), // Vowel_Independent
+        (0x0D0E, 0x0D10, 36, 0), // Vowel_Independent
+        (0x0D12, 0x0D14, 36, 0), // Vowel_Independent
+        (0x0D15, 0x0D3A, 5, 0), // Consonant
+        (0x0D3B, 0x0D3C, 26, 8), // Pure_Killer, Top
+        (0x0D3D, 0x0D3D, 1, 0), // Avagraha
+        (0x0D3E, 0x0D40, 35, 7), // Vowel_Dependent, Right
+        (0x0D41, 0x0D44, 35, 1), // Vowel_Dependent, Bottom
+        (0x0D46, 0x0D48, 35, 4), // Vowel_Dependent, Left
+        (0x0D4A, 0x0D4C, 35, 5), // Vowel_Dependent, Left_And_Right
+        (0x0D4D, 0x0D4D, 32, 8), // Virama, Top
+        (0x0D4E, 0x0D4E, 13, 8), // Consonant_Preceding_Repha, Top
+        (0x0D54, 0x0D56, 6, 0), // Consonant_Dead
+        (0x0D57, 0x0D57, 35, 7), // Vowel_Dependent, Right
+        (0x0D5F, 0x0D61, 36, 0), // Vowel_Independent
+        (0x0D62, 0x0D63, 35, 1), // Vowel_Dependent, Bottom
+        (0x0D66, 0x0D6F, 24, 0), // Number
+        (0x0D7A, 0x0D7F, 6, 0), // Consonant_Dead
         (0x200C, 0x200C, 22, 0), // Non_Joiner
         (0x200D, 0x200D, 20, 0), // Joiner
         (0x25CC, 0x25CC, 12, 0), // Consonant_Placeholder

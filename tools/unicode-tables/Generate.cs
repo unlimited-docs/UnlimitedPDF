@@ -5,8 +5,9 @@
 //     dotnet run tools/unicode-tables/Generate.cs -- --from <folder holding the two .txt files>
 //
 // The tool reads IndicSyllabicCategory.txt and IndicPositionalCategory.txt of the pinned UCD version, checks their
-// SHA-256 hashes, keeps the characters the Indic shaper handles (Devanagari, Devanagari Extended, Tamil, Telugu, and
-// the joiners, dotted circle, and no-break space those scripts use), and writes a compact table. The files are read
+// SHA-256 hashes, keeps the characters the Indic shaper handles (Devanagari, Devanagari Extended, Bengali, Gurmukhi,
+// Gujarati, Oriya, Tamil, Telugu, Kannada, Malayalam, and the joiners, dotted circle, and no-break space those scripts
+// use), and writes a compact table. The files are read
 // here only; they are not committed and never ship. Running it again gives the same output.
 
 using System.Globalization;
@@ -26,8 +27,14 @@ var covered = new (int First, int Last)[]
 {
     (0x00A0, 0x00A0), // NO-BREAK SPACE (a base for a lone vowel sign)
     (0x0900, 0x097F), // Devanagari
+    (0x0980, 0x09FF), // Bengali (Bengali-Assamese)
+    (0x0A00, 0x0A7F), // Gurmukhi
+    (0x0A80, 0x0AFF), // Gujarati
+    (0x0B00, 0x0B7F), // Oriya (Odia)
     (0x0B80, 0x0BFF), // Tamil
     (0x0C00, 0x0C7F), // Telugu
+    (0x0C80, 0x0CFF), // Kannada
+    (0x0D00, 0x0D7F), // Malayalam
     (0x200C, 0x200D), // ZERO WIDTH NON-JOINER, ZERO WIDTH JOINER
     (0x25CC, 0x25CC), // DOTTED CIRCLE
     (0xA8E0, 0xA8FF)  // Devanagari Extended
@@ -87,8 +94,8 @@ sb.Append(string.Join(",\n", syllabicNames.Select(n => "    " + Pascal(n)))).App
 sb.Append("/// <summary>\n/// The Unicode Indic_Positional_Category of a character (UCD ").Append(Version).Append("); None for NA.\n/// </summary>\n");
 sb.Append("internal enum IndicPositionalCategory : byte\n{\n");
 sb.Append(string.Join(",\n", positionalNames.Select(n => "    " + Pascal(n)))).Append("\n}\n\n");
-sb.Append("/// <summary>\n/// Looks up the Indic categories of Devanagari, Telugu, and Tamil characters and the shared characters those\n");
-sb.Append("/// scripts use; every other character is Other and None.\n/// </summary>\n");
+sb.Append("/// <summary>\n/// Looks up the Indic categories of Devanagari, Bengali, Gurmukhi, Gujarati, Oriya, Tamil, Telugu, Kannada, and\n");
+sb.Append("/// Malayalam characters and the shared characters those scripts use; every other character is Other and None.\n/// </summary>\n");
 sb.Append("internal static class IndicData\n{\n");
 sb.Append("    #region Fields and Constants\n\n");
 sb.Append("    // (first code point, last code point, syllabic category, positional category), sorted, non-overlapping.\n");

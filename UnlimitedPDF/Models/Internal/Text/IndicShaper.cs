@@ -15,6 +15,9 @@ internal static class IndicShaper
 {
     #region Fields and Constants
 
+    // A flag in ShapingGlyph.Position above the class (low byte) and positional category (second byte).
+    private const int PostBaseForm = 1 << 16;
+
     private static readonly string[][] BasicStages =
     {
         new[] { "locl", "ccmp" },
@@ -22,13 +25,17 @@ internal static class IndicShaper
         new[] { "abvf" }, new[] { "half" }, new[] { "pstf" }, new[] { "vatu" }, new[] { "cjct" }
     };
 
+    // The presentation features and the horizontal features the OpenType Indic model applies with them, in one
+    // stage (lookup-list order). init is masked to word-initial pre-base vowel signs.
     private static readonly string[][] PresentationStages =
     {
-        new[] { "init", "pres", "abvs", "blws", "psts", "haln" },
-        new[] { "calt", "clig" }
+        new[] { "init", "pres", "abvs", "blws", "psts", "haln", "calt", "clig", "liga", "rlig", "rclt" }
     };
 
     private static readonly string[] PositioningFeatures = { "kern", "dist", "abvm", "blwm", "mark", "mkmk" };
+
+    // The bit of init in PresentationStages (see TextShaper.FeatureBit).
+    private static readonly ulong InitBit = TextShaper.FeatureBit(0);
 
     // The bit of each basic feature, in the order RunStages numbers them (see TextShaper.FeatureBit).
     private static readonly ulong RphfBit = TextShaper.FeatureBit(4);
@@ -38,15 +45,6 @@ internal static class IndicShaper
     private static readonly ulong PstfBit = TextShaper.FeatureBit(10);
     private static readonly ulong PrefBit = TextShaper.FeatureBit(6);
     private static readonly ulong PerPositionBits = RphfBit | BlwfBit | AbvfBit | HalfBit | PstfBit | PrefBit;
-
-    // Split vowel signs and their parts (canonical decompositions), so each part takes its own position.
-    private static readonly Dictionary<int, int[]> SplitVowels = new()
-    {
-        [0x0BCA] = new[] { 0x0BC6, 0x0BBE }, // TAMIL O
-        [0x0BCB] = new[] { 0x0BC7, 0x0BBE }, // TAMIL OO
-        [0x0BCC] = new[] { 0x0BC6, 0x0BD7 }, // TAMIL AU
-        [0x0C48] = new[] { 0x0C46, 0x0C56 }  // TELUGU AI
-    };
 
     #endregion
 
@@ -59,19 +57,19 @@ internal static class IndicShaper
     /// </summary>
     /// <param name="font">The font.</param>
     /// <param name="text">The run's text.</param>
-    /// <param name="script">The run's script: <c>deva</c>, <c>telu</c>, or <c>taml</c>.</param>
+    /// <param name="script">The run's script tag, one of <see cref="IndicScript.All"/>.</param>
     /// <returns>The shaped run.</returns>
     public static ShapedRun Shape(PdfFont font, string text, string script)
     {
         var plan = Plan.For(font, script);
         var buffer = Map(font, text);
-        var syllables = Segment(font, buffer);
+        var syllables = Segment(plan, font, buffer);
 
         foreach (var syllable in syllables) InitialReorder(plan, buffer, syllable);
 
         if (font.Layout.Gsub is not null) TextShaper.Substitute(font, buffer, plan.ScriptTags, BasicStages);
         FinalReorder(plan, buffer);
-        foreach (var glyph in buffer) glyph.Mask = ulong.MaxValue;
+        MaskForPresentation(buffer, text);
         if (font.Layout.Gsub is not null) TextShaper.Substitute(font, buffer, plan.ScriptTags, PresentationStages);
 
         // Joiners have done their work (blocking or requesting forms); they are not drawn.
@@ -82,7 +80,7 @@ internal static class IndicShaper
     /// <summary>
     /// Returns the parts the shaper splits a vowel sign into, or null for any other code point.
     /// </summary>
-    public static int[]? SplitParts(int codePoint) => SplitVowels.TryGetValue(codePoint, out var parts) ? parts : null;
+    public static int[]? SplitParts(int codePoint) => IndicScript.SplitParts(codePoint);
 
     #endregion
 
@@ -96,7 +94,7 @@ internal static class IndicShaper
         for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
         {
             int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
-            var parts = SplitVowels.TryGetValue(codePoint, out var split) && split.All(p => font.Font.CharacterMap.GlyphFor(p) != 0)
+            var parts = IndicScript.SplitParts(codePoint) is { } split && split.All(p => font.Font.CharacterMap.GlyphFor(p) != 0)
                 ? split
                 : new[] { codePoint };
             foreach (int part in parts) buffer.Add(Glyph(font, gdef, part, i));
@@ -116,7 +114,7 @@ internal static class IndicShaper
 
     private static int Category(int codePoint)
     {
-        if (codePoint is 0x0930 or 0x0C30 or 0x0BB0) return Cat.Ra;
+        if (IndicScript.IsRa(codePoint)) return Cat.Ra;
         return IndicData.Syllabic(codePoint) switch
         {
             IndicSyllabicCategory.Consonant or IndicSyllabicCategory.ConsonantDead or IndicSyllabicCategory.ConsonantWithStacker
@@ -129,6 +127,7 @@ internal static class IndicShaper
             IndicSyllabicCategory.Bindu or IndicSyllabicCategory.Visarga or IndicSyllabicCategory.CantillationMark
                 or IndicSyllabicCategory.SyllableModifier or IndicSyllabicCategory.ToneMark or IndicSyllabicCategory.GeminationMark
                 or IndicSyllabicCategory.RegisterShifter => Cat.Modifier,
+            IndicSyllabicCategory.ConsonantPrecedingRepha => Cat.Repha,
             IndicSyllabicCategory.Joiner => Cat.Zwj,
             IndicSyllabicCategory.NonJoiner => Cat.Zwnj,
             _ => Cat.Other
@@ -142,8 +141,14 @@ internal static class IndicShaper
     // Cuts the buffer into syllables (start, end, consonant syllable or not) and numbers each glyph's syllable. A
     // syllable that starts with a vowel sign, halant, nukta, or modifier gets a dotted circle as its base when the
     // font has one.
-    private static List<(int Start, int End, bool Consonant)> Segment(PdfFont font, List<ShapingGlyph> buffer)
+    private static List<(int Start, int End, bool Consonant)> Segment(Plan plan, PdfFont font, List<ShapingGlyph> buffer)
     {
+        // A joiner before a halant (ZWJ for a subjoined form, ZWNJ for none) stays in the syllable, except in the scripts
+        // that keep their released output.
+        bool joinerBeforeHalant = !plan.Script.KeepsReleasedOutput;
+        int HalantAt(int j) => Cat0(buffer, j) == Cat.Halant ? j
+            : joinerBeforeHalant && Cat0(buffer, j) is Cat.Zwj or Cat.Zwnj && Cat0(buffer, j + 1) == Cat.Halant ? j + 1 : -1;
+
         var syllables = new List<(int, int, bool)>();
         int i = 0;
         while (i < buffer.Count)
@@ -163,22 +168,22 @@ internal static class IndicShaper
                 }
             }
 
-            if (IsConsonant(c) || c == Cat.Placeholder)
+            if (IsConsonant(c) || c == Cat.Placeholder || (c == Cat.Repha && IsConsonant(Cat0(buffer, i + 1))))
             {
                 consonant = true;
-                int j = i + 1;
+                int j = c == Cat.Repha ? i + 2 : i + 1;
                 if (Cat0(buffer, j) == Cat.Nukta) j++;
-                while (Cat0(buffer, j) == Cat.Halant)
+                while (HalantAt(j) is int h && h >= 0)
                 {
-                    int k = j + 1;
+                    int k = h + 1;
                     if (Cat0(buffer, k) is Cat.Zwj or Cat.Zwnj) k++;
                     if (!IsConsonant(Cat0(buffer, k))) break;
                     j = k + 1;
                     if (Cat0(buffer, j) == Cat.Nukta) j++;
                 }
-                if (Cat0(buffer, j) == Cat.Halant)
+                if (HalantAt(j) is int last && last >= 0)
                 {
-                    j++;
+                    j = last + 1;
                     if (Cat0(buffer, j) is Cat.Zwj or Cat.Zwnj) j++;
                 }
                 else
@@ -215,6 +220,29 @@ internal static class IndicShaper
         return syllables;
     }
 
+    // init acts only on a pre-base vowel sign that starts a word: the first glyph of its syllable, with no letter,
+    // mark, or format character before the syllable in the text.
+    private static void MaskForPresentation(List<ShapingGlyph> buffer, string text)
+    {
+        for (int i = 0; i < buffer.Count; i++)
+        {
+            var glyph = buffer[i];
+            glyph.Mask = ulong.MaxValue & ~InitBit;
+            bool syllableStart = i == 0 || buffer[i - 1].Syllable != glyph.Syllable;
+            if (syllableStart && (glyph.Position & 0xFF) == 1 && glyph.Category == Cat.Matra && WordStartsAt(text, glyph.Cluster)) glyph.Mask |= InitBit;
+        }
+    }
+
+    private static bool WordStartsAt(string text, int index)
+    {
+        if (index <= 0 || index > text.Length) return true;
+        int previous = index >= 2 && char.IsSurrogatePair(text[index - 2], text[index - 1]) ? char.ConvertToUtf32(text[index - 2], text[index - 1]) : text[index - 1];
+        return CharUnicodeInfo.GetUnicodeCategory(previous) is not (UnicodeCategory.Format or UnicodeCategory.OtherNotAssigned
+            or UnicodeCategory.PrivateUse or UnicodeCategory.Surrogate or UnicodeCategory.LowercaseLetter or UnicodeCategory.ModifierLetter
+            or UnicodeCategory.OtherLetter or UnicodeCategory.TitlecaseLetter or UnicodeCategory.UppercaseLetter or UnicodeCategory.SpacingCombiningMark
+            or UnicodeCategory.EnclosingMark or UnicodeCategory.NonSpacingMark);
+    }
+
     // Base consonant, reph, position classes, sort, masks; every glyph of the syllable takes its first cluster.
     private static void InitialReorder(Plan plan, List<ShapingGlyph> buffer, (int Start, int End, bool Consonant) syllable)
     {
@@ -232,14 +260,20 @@ internal static class IndicShaper
         // scripts need a ZWJ after the halant; elsewhere a joiner there asks for no reph (ZWJ an eyelash Ra, ZWNJ a
         // visible halant).
         int limit = start;
-        bool reph = plan.HasReph && end - start >= 3 && buffer[start].Category == Cat.Ra && buffer[start + 1].Category == Cat.Halant
-            && (plan.ExplicitReph ? Cat0(buffer, start + 2) == Cat.Zwj : Cat0(buffer, start + 2) is not (Cat.Zwj or Cat.Zwnj))
-            && plan.WouldSubstitute("rphf", buffer[start].Glyph, buffer[start + 1].Glyph);
-        if (reph) limit = start + 2 + (plan.ExplicitReph ? 1 : 0);
+        bool encoded = plan.Script.Reph == IndicScript.RephKind.Encoded;
+        bool reph = encoded
+            ? end - start >= 2 && buffer[start].Category == Cat.Repha
+            : plan.HasReph && end - start >= 3 && buffer[start].Category == Cat.Ra && buffer[start + 1].Category == Cat.Halant
+                && (plan.ExplicitReph ? Cat0(buffer, start + 2) == Cat.Zwj : Cat0(buffer, start + 2) is not (Cat.Zwj or Cat.Zwnj))
+                && plan.WouldSubstitute("rphf", buffer[start].Glyph, buffer[start + 1].Glyph);
+        if (reph) limit = encoded ? start + 1 : start + 2 + (plan.ExplicitReph ? 1 : 0);
 
-        // Base: the last consonant that has no below-base or post-base form after a halant; else the first one.
+        // Base: the last consonant that has no below-base or post-base form after a halant; else the first one. Where
+        // the script allows it, a syllable that ends in halant + ZWJ has no base: every consonant takes its half form.
         int baseIndex = -1;
-        for (int i = end - 1; i >= limit; i--)
+        if (!plan.Script.KeepsReleasedOutput && end - start >= 3 && buffer[end - 1].Category == Cat.Zwj && buffer[end - 2].Category == Cat.Halant)
+            baseIndex = end;
+        for (int i = end - 1; baseIndex < 0 && i >= limit; i--)
         {
             if (!IsConsonant(buffer[i].Category) && buffer[i].Category != Cat.Placeholder) continue;
             bool afterHalant = i > limit && (buffer[i - 1].Category == Cat.Halant || (i > limit + 1 && buffer[i - 1].Category is Cat.Zwj or Cat.Zwnj && buffer[i - 2].Category == Cat.Halant));
@@ -272,8 +306,19 @@ internal static class IndicShaper
             g.Position = (g.Position & ~0xFF) | cls;
         }
 
-        // Stable sort of the syllable by class (pre-base vowel signs move to the front, after a reph).
-        var sorted = buffer.GetRange(start, end - start).Select((g, k) => (g, k)).OrderBy(t => t.g.Position & 0xFF).ThenBy(t => t.k).Select(t => t.g).ToList();
+        // Post-base consonant forms (pstf or pref after a halant), with their halant, for the reph placement.
+        for (int i = baseIndex + 1; i + 1 < end; i++)
+        {
+            if (buffer[i].Category != Cat.Halant || !IsConsonant(buffer[i + 1].Category)) continue;
+            int halantGlyph = buffer[i].Glyph, consonantGlyph = buffer[i + 1].Glyph;
+            bool post = plan.WouldSubstitute("pstf", halantGlyph, consonantGlyph) || plan.WouldSubstitute("pref", halantGlyph, consonantGlyph)
+                || plan.WouldSubstitute("pstf", consonantGlyph, halantGlyph) || plan.WouldSubstitute("pref", consonantGlyph, halantGlyph);
+            if (post) { buffer[i].Position |= PostBaseForm; buffer[i + 1].Position |= PostBaseForm; }
+        }
+
+        // Stable sort of the syllable (pre-base vowel signs move to the front, after a reph).
+        var keys = SortKeys(plan, buffer, start, end, baseIndex);
+        var sorted = buffer.GetRange(start, end - start).Select((g, k) => (g, k)).OrderBy(t => keys[t.k]).ThenBy(t => t.k).Select(t => t.g).ToList();
         for (int i = 0; i < sorted.Count; i++) buffer[start + i] = sorted[i];
 
         // Version-1 fonts form below-base consonants from consonant + halant: move each such halant after its consonant.
@@ -326,7 +371,55 @@ internal static class IndicShaper
         }
     }
 
-    private static IndicPositionalCategory PositionalOf(ShapingGlyph glyph) => (IndicPositionalCategory)(glyph.Position >> 8);
+    // The order of a syllable's glyphs: ten times the class, so scripts that keep their released output sort by class
+    // alone. The other scripts place each vowel sign after the base by the script's rule (right after the base, before
+    // or after the below-base forms, or after the post-base forms), put below-base forms before post-base forms, and let
+    // a halant, nukta, or joiner move with its consonant.
+    private static int[] SortKeys(Plan plan, List<ShapingGlyph> buffer, int start, int end, int baseIndex)
+    {
+        var keys = new int[end - start];
+        for (int i = start; i < end; i++) keys[i - start] = (buffer[i].Position & 0xFF) * 10;
+        if (plan.Script.KeepsReleasedOutput || baseIndex >= end) return keys;
+
+        for (int i = baseIndex + 1; i < end; i++)
+        {
+            var g = buffer[i];
+            int cls = g.Position & 0xFF;
+            if (cls == 5 && g.Category == Cat.Matra)
+            {
+                keys[i - start] = plan.Script.PlaceOf(g.CodePoint, PositionalOf(g)) switch
+                {
+                    IndicScript.MatraPlace.AfterMain => 32,
+                    IndicScript.MatraPlace.BeforeSub => 35,
+                    IndicScript.MatraPlace.AfterSub => 42,
+                    _ => 50
+                };
+            }
+            else if (cls == 4 && IsConsonant(g.Category)) keys[i - start] = (g.Position & PostBaseForm) != 0 ? 46 : 40;
+        }
+
+        // A halant, nukta, or joiner takes the key of the glyph before it; then each consonant after the base takes along
+        // everything since the last consonant or vowel sign (the halant before a below-base or post-base consonant).
+        int lastKey = keys[baseIndex - start];
+        for (int i = baseIndex + 1; i < end; i++)
+        {
+            if (buffer[i].Category is Cat.Halant or Cat.Nukta or Cat.Zwj or Cat.Zwnj) keys[i - start] = lastKey;
+            else if (keys[i - start] < 60) lastKey = keys[i - start];
+        }
+        int last = baseIndex;
+        for (int i = baseIndex + 1; i < end; i++)
+        {
+            if (IsConsonant(buffer[i].Category))
+            {
+                for (int j = last + 1; j < i; j++) if (keys[j - start] < 60) keys[j - start] = keys[i - start];
+                last = i;
+            }
+            else if (buffer[i].Category == Cat.Matra) last = i;
+        }
+        return keys;
+    }
+
+    private static IndicPositionalCategory PositionalOf(ShapingGlyph glyph) => (IndicPositionalCategory)((glyph.Position >> 8) & 0xFF);
 
     // After the basic features: each pre-base vowel sign goes right after the last halant still standing before the
     // base (or stays at the front); the reph goes before the first post-base vowel sign or modifier, else to the end.
@@ -338,12 +431,27 @@ internal static class IndicShaper
             int syllable = buffer[i].Syllable;
             int end = i;
             while (end < buffer.Count && buffer[end].Syllable == syllable) end++;
-            ReorderSyllable(buffer, i, end);
+            ReorderSyllable(plan, buffer, i, end);
             i = end;
         }
     }
 
-    private static void ReorderSyllable(List<ShapingGlyph> buffer, int start, int end)
+    // The base glyph of a syllable after the basic features, or the conjunct that took it in (the last ligature before
+    // the post-base glyphs); -1 when there is neither.
+    private static int BaseOrConjunct(List<ShapingGlyph> buffer, int start, int end)
+    {
+        int conjunct = -1;
+        for (int i = start; i < end; i++)
+        {
+            int cls = buffer[i].Position & 0xFF;
+            if (cls == 3) return i;
+            if (cls > 3) break;
+            if (cls == 2 && buffer[i].ComponentCount > 1) conjunct = i;
+        }
+        return conjunct;
+    }
+
+    private static void ReorderSyllable(Plan plan, List<ShapingGlyph> buffer, int start, int end)
     {
         int baseIndex = -1;
         for (int i = start; i < end; i++) if ((buffer[i].Position & 0xFF) == 3) { baseIndex = i; break; }
@@ -364,6 +472,21 @@ internal static class IndicShaper
             }
         }
 
+        // A pre-base form (Malayalam reformed Ra): the glyph the font's pref feature formed from halant + consonant moves
+        // right before the base.
+        if (plan.Script.ReordersPreBaseForm && BaseOrConjunct(buffer, start, end) is int at && at >= 0)
+        {
+            for (int i = at + 1; i < end; i++)
+            {
+                var g = buffer[i];
+                if ((g.Mask & PrefBit) == 0 || g.ComponentCount < 2) continue;
+                buffer.RemoveAt(i);
+                buffer.Insert(at, g);
+                if (baseIndex >= 0) baseIndex++;
+                break;
+            }
+        }
+
         // Reph.
         int rephIndex = -1;
         for (int i = start; i < end; i++) if ((buffer[i].Position & 0xFF) == 0) { rephIndex = i; break; }
@@ -372,12 +495,32 @@ internal static class IndicShaper
         buffer.RemoveAt(rephIndex);
         int stop = end - 1;
         int destination = stop;
+        var place = plan.Script.RephPosition;
+        if (place == IndicScript.RephPlace.AfterBase)
+        {
+            // Right after the base (or the conjunct that took it in) and the glyphs that stay with it (a nukta).
+            int after = BaseOrConjunct(buffer, rephIndex, stop);
+            if (after >= 0)
+            {
+                while (after + 1 < stop && (buffer[after + 1].Position & 0xFF) == 3) after++;
+                buffer.Insert(after + 1, rephGlyph);
+                return;
+            }
+        }
+        if (place == IndicScript.RephPlace.BeforeModifiers)
+        {
+            // Last in the syllable, before its syllable modifiers.
+            while (destination > rephIndex && (buffer[destination - 1].Position & 0xFF) == 6) destination--;
+            buffer.Insert(destination, rephGlyph);
+            return;
+        }
         for (int i = rephIndex; i < stop; i++)
         {
             var g = buffer[i];
             int cls = g.Position & 0xFF;
             bool postMatra = cls == 5 && g.Category == Cat.Matra && PositionalOf(g) is IndicPositionalCategory.Right or IndicPositionalCategory.TopAndRight or IndicPositionalCategory.BottomAndRight;
-            if (postMatra || cls == 6) { destination = i; break; }
+            bool postForm = place == IndicScript.RephPlace.BeforePostBaseForm && (g.Position & PostBaseForm) != 0;
+            if (postMatra || postForm || cls == 6) { destination = i; break; }
         }
         buffer.Insert(destination, rephGlyph);
     }
@@ -402,6 +545,7 @@ internal static class IndicShaper
         public const int Zwj = 8;
         public const int Zwnj = 9;
         public const int Placeholder = 10;
+        public const int Repha = 11;
     }
 
     // What a script and font need: the script tags (version 2 first), whether the font only has version-1 tags, the
@@ -412,39 +556,35 @@ internal static class IndicShaper
         private readonly Dictionary<string, List<int>> _lookups;
         private readonly Dictionary<(string, int, int), bool> _cache = new();
 
-        private Plan(PdfFont font, string[] scriptTags, bool oldSpec, bool hasReph, bool explicitReph, Dictionary<string, List<int>> lookups)
+        private Plan(PdfFont font, IndicScript script, string[] scriptTags, bool oldSpec, Dictionary<string, List<int>> lookups)
         {
             _font = font;
+            Script = script;
             ScriptTags = scriptTags;
             OldSpec = oldSpec;
-            HasReph = hasReph;
-            ExplicitReph = explicitReph;
             _lookups = lookups;
         }
 
-        public bool ExplicitReph { get; }
+        public bool ExplicitReph => Script.Reph == IndicScript.RephKind.Explicit;
 
-        public bool HasReph { get; }
+        public bool HasReph => Script.Reph != IndicScript.RephKind.None;
 
         public bool OldSpec { get; }
+
+        public IndicScript Script { get; }
 
         public string[] ScriptTags { get; }
 
         public static Plan For(PdfFont font, string script)
         {
-            var (v2, v1) = script switch
-            {
-                "deva" => ("dev2", "deva"),
-                "telu" => ("tel2", "telu"),
-                _ => ("tml2", "taml")
-            };
-            var tags = new[] { v2, v1, "DFLT", "dflt" };
+            var settings = IndicScript.For(script) ?? throw new ArgumentOutOfRangeException(nameof(script));
+            var tags = new[] { settings.Version2Tag, settings.Version1Tag, "DFLT", "dflt" };
             string? found = null;
             var lookups = font.Layout.Gsub is { } gsub
                 ? gsub.FeatureLookups(tags, new[] { "rphf", "blwf", "pstf", "pref", "vatu" }, font.Instance.Coordinates, out found)
                 : new Dictionary<string, List<int>>();
-            bool oldSpec = found == v1;
-            return new Plan(font, tags, oldSpec, hasReph: script != "taml", explicitReph: script == "telu", lookups);
+            bool oldSpec = found == settings.Version1Tag;
+            return new Plan(font, settings, tags, oldSpec, lookups);
         }
 
         // Below-base or post-base: the font's blwf, vatu, pstf, or pref forms a glyph from halant + consonant (or

@@ -25,7 +25,7 @@
         </CollapsibleSection>
 
         <CollapsibleSection Title="Fonts">
-            <p class="field-hint">The Devanagari, Telugu, and Tamil slots start with free Noto Sans fonts included for this demo; Latin text uses the built-in font. Drop your own font on a slot to replace its font. Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
+            <p class="field-hint">Every slot except Latin starts with a free Noto Sans font included for this demo; Latin text uses the built-in font. Drop your own font on a slot to replace its font. Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
             @if (_loadingDefaults)
             {
                 <div class="upload-reading" role="status">
@@ -60,7 +60,7 @@
                 <li>The right to embed the font in a PDF. Check its license; a font whose license forbids embedding fails to load unless you set <code>IgnoreEmbeddingRestrictions</code> in <code>PdfFontLoadOptions</code>.</li>
                 <li>Load each font once with <code>PdfFont.FromFile</code>, <code>FromStream</code>, or <code>FromBytes</code>, and ship the file with your app. Pass it to a text call, or add it to <code>document.FontFallback</code> for characters the call's font doesn't have.</li>
                 <li>For HTML, register each font in <code>PdfHtmlLoadOptions.Fonts</code> under the family name your CSS uses.</li>
-                <li>Scripts: Latin, Devanagari (Hindi, Marathi, and others), Telugu, and Tamil. Right-to-left scripts and Chinese, Japanese, and Korean aren't supported yet.</li>
+                <li>Scripts: Latin, Devanagari (Hindi, Marathi, and others), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, and Tamil. Right-to-left scripts, including Urdu, Kashmiri, and Sindhi, and Chinese, Japanese, and Korean aren't supported yet.</li>
                 <li>Check for characters no font has with <code>FindMissingCharacters</code>, or set <code>FailOnMissingCharacters</code> so saving fails instead of drawing ?.</li>
             </ul>
         </CollapsibleSection>

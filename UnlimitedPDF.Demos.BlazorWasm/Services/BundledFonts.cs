@@ -11,8 +11,8 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Services;
 public sealed record BundledFont(FontScript Script, string Name, string FileName);
 
 /// <summary>
-/// The free fonts the Fonts and languages demo puts in its Devanagari, Telugu, and Tamil slots when the page opens, so
-/// no shown invoice draws "?" (CR-001, D-030). They are downloaded from the site itself, only by that page; Latin text
+/// The free fonts the Fonts and languages demo puts in every slot except Latin when the page opens, so no shown invoice
+/// draws "?" (CR-001, D-030; WR-039). They are downloaded from the site itself, only by that page; Latin text
 /// keeps the built-in font. The files and their license are in <c>wwwroot/fonts</c> (PR-011 exception, FD-016).
 /// </summary>
 public static class BundledFonts
@@ -82,7 +82,13 @@ public static class BundledFonts
     [
         new(FontScript.Devanagari, "Noto Sans Devanagari", "NotoSansDevanagari-Regular.ttf"),
         new(FontScript.Telugu, "Noto Sans Telugu", "NotoSansTelugu-Regular.ttf"),
-        new(FontScript.Tamil, "Noto Sans Tamil", "NotoSansTamil-Regular.ttf")
+        new(FontScript.Tamil, "Noto Sans Tamil", "NotoSansTamil-Regular.ttf"),
+        new(FontScript.Bengali, "Noto Sans Bengali", "NotoSansBengali-Regular.ttf"),
+        new(FontScript.Gujarati, "Noto Sans Gujarati", "NotoSansGujarati-Regular.ttf"),
+        new(FontScript.Gurmukhi, "Noto Sans Gurmukhi", "NotoSansGurmukhi-Regular.ttf"),
+        new(FontScript.Odia, "Noto Sans Oriya", "NotoSansOriya-Regular.ttf"),
+        new(FontScript.Kannada, "Noto Sans Kannada", "NotoSansKannada-Regular.ttf"),
+        new(FontScript.Malayalam, "Noto Sans Malayalam", "NotoSansMalayalam-Regular.ttf")
     ];
 
     #endregion

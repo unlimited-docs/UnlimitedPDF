@@ -19,6 +19,12 @@ public class FontsAndLanguagesHtmlTests
     [InlineData("hindi")]
     [InlineData("telugu")]
     [InlineData("tamil")]
+    [InlineData("bengali")]
+    [InlineData("gujarati")]
+    [InlineData("punjabi")]
+    [InlineData("odia")]
+    [InlineData("kannada")]
+    [InlineData("malayalam")]
     [InlineData("french")]
     [InlineData("mixed")]
     public void Each_language_reads_back_exactly_with_the_fonts_registered_as_families(string language)
@@ -116,7 +122,8 @@ public class FontsAndLanguagesHtmlTests
     public void Families_are_named_after_their_slots()
     {
         Assert.Equal("Invoice Devanagari", FontsAndLanguagesHtmlSample.Family(FontScript.Devanagari));
-        Assert.Equal(4, FontSlots.Scripts.Select(FontsAndLanguagesHtmlSample.Family).Distinct().Count());
+        Assert.Equal("Invoice Malayalam", FontsAndLanguagesHtmlSample.Family(FontScript.Malayalam));
+        Assert.Equal(10, FontSlots.Scripts.Select(FontsAndLanguagesHtmlSample.Family).Distinct().Count());
     }
 
     #endregion

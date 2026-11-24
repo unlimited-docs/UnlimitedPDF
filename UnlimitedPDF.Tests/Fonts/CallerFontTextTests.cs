@@ -7,7 +7,8 @@ namespace UnlimitedPDF.Tests.Fonts;
 /// Caller fonts on the programmatic text entry points (AC-03, AC-04, AC-06, AC-07, AC-11, D-006, D-007, WR-039):
 /// page text, header and footer text, flow text, flow block text, and table cell text draw with a caller font, fall
 /// back per character to the document's fallback fonts and then the built-in font, read back exactly, are placed with
-/// their real shaped widths, and write only hex glyph IDs for caller-font text (A05).
+/// their real shaped widths, and write only hex glyph IDs for caller-font text (A05). Text in the scripts added later
+/// (WR-039) does the same at every entry point, measured with its shaped glyphs.
 /// </summary>
 public class CallerFontTextTests
 {
@@ -133,6 +134,35 @@ public class CallerFontTextTests
 
         // Right edge 250, padding 4, width 5 x 600 / 1000 x 12 = 36: x = 210 (the old approximation would give 216).
         Assert.Contains("1 0 0 1 210 ", content);
+    }
+
+    [Theory]
+    [MemberData(nameof(EntryPoints))]
+    public void Each_entry_point_shapes_an_added_script_and_reads_back(string entryPoint)
+    {
+        const string text = "কি কো"; // Bengali: a pre-base and a split vowel sign
+        var font = Font("কিো ", "Test Bengali");
+
+        var pdf = Save(entryPoint, text, font);
+
+        PdfStructureChecker.AssertValid(pdf);
+        var errors = new List<string>();
+        Assert.Equal(text, Assert.Single(PdfInspector.Read(pdf).PageText(errors)));
+        Assert.Empty(errors);
+        Assert.Contains("/ActualText", Assert.Single(PdfPageReader.Read(pdf)).Content);
+    }
+
+    [Fact]
+    public void Right_aligned_text_in_an_added_script_uses_its_shaped_width()
+    {
+        // Kannada OO is drawn in three parts: KA plus three glyphs of 600 units at 10 pt is 24 pt wide.
+        var font = Font("ಕೋ", "Test Kannada");
+        var document = new PdfDocument();
+        document.Body.AddText("ಕೋ", font, fontSize: 10, alignment: PdfTextAlignment.Right);
+
+        var content = Assert.Single(PdfPageReader.Save(document)).Content;
+
+        Assert.Contains("1 0 0 1 571.28 ", content); // 595.28 - 24
     }
 
     [Fact]

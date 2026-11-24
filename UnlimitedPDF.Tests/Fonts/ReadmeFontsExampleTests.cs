@@ -97,6 +97,18 @@ public sealed class ReadmeFontsExampleTests : IDisposable
     }
 
     [Fact]
+    public void The_fonts_section_lists_every_shaped_script_and_the_unsupported_ones()
+    {
+        // WR-039: the scripts the shaper handles, and right-to-left Indian languages named as not supported.
+        string fonts = Section(File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n"), "## Fonts and languages");
+
+        Assert.Contains("- A supported script: Latin, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, or Tamil.", fonts, StringComparison.Ordinal);
+        Assert.Contains("Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, and Tamil are shaped", fonts, StringComparison.Ordinal);
+        Assert.Contains("Urdu, Kashmiri, and Sindhi", fonts, StringComparison.Ordinal);
+        Assert.Equal(9, UnlimitedPDF.Models.Internal.Text.IndicScript.All.Count); // the nine Indic scripts listed above
+    }
+
+    [Fact]
     public void The_package_version_and_release_notes_name_1_1_0()
     {
         string project = File.ReadAllText(RepositoryFile(Path.Combine("UnlimitedPDF", "UnlimitedPDF.csproj")));

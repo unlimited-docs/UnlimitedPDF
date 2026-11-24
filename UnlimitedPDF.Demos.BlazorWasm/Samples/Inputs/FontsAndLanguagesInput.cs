@@ -127,6 +127,12 @@ public sealed class FontsAndLanguagesInput
         "hindi" => "hi",
         "telugu" => "te",
         "tamil" => "ta",
+        "bengali" => "bn",
+        "gujarati" => "gu",
+        "punjabi" => "pa",
+        "odia" => "or",
+        "kannada" => "kn",
+        "malayalam" => "ml",
         "french" => "fr",
         _ => null,
     };

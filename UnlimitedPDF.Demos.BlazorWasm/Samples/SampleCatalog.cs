@@ -65,7 +65,7 @@ public static class SampleCatalog
             Snippet: "html"),
         new SampleCategory(
             "Languages",
-            "Draw Hindi, Telugu, Tamil, French, and mixed text with your own fonts, shaped by each font's rules. Try your own fonts.",
+            "Draw text in nine Indian languages, French, and a mix with your own fonts, shaped by each font's rules. Try your own fonts.",
             [FontsAndLanguages],
             Id: "languages",
             Icon: "language",
@@ -235,7 +235,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo FontsAndLanguages { get; } = new(
         "Fonts and languages",
-        "An invoice in Hindi, Telugu, Tamil, French, or a mix, drawn with text calls or HTML, with included free fonts or your own, which stay in your browser.",
+        "An invoice in Hindi, Bengali, Gujarati, Punjabi, Odia, Kannada, Malayalam, Telugu, Tamil, French, or a mix, drawn with included free fonts or your own.",
         "playground/languages/fonts-and-languages",
         "FontsAndLanguagesSample.cs",
         "fonts-and-languages.pdf",
