@@ -123,7 +123,7 @@ public class FontsAndLanguagesHtmlTests
     {
         Assert.Equal("Invoice Devanagari", FontsAndLanguagesHtmlSample.Family(FontScript.Devanagari));
         Assert.Equal("Invoice Malayalam", FontsAndLanguagesHtmlSample.Family(FontScript.Malayalam));
-        Assert.Equal(10, FontSlots.Scripts.Select(FontsAndLanguagesHtmlSample.Family).Distinct().Count());
+        Assert.Equal(14, FontSlots.Scripts.Select(FontsAndLanguagesHtmlSample.Family).Distinct().Count());
     }
 
     #endregion

@@ -99,10 +99,14 @@ public sealed class ReadmeFontsExampleTests : IDisposable
     [Fact]
     public void The_fonts_section_lists_every_shaped_script_and_the_unsupported_ones()
     {
-        // WR-039: the scripts the shaper handles, and right-to-left Indian languages named as not supported.
+        // WR-039 and QF-26112401: the scripts the shaper handles, the letters the standard fonts lack, and
+        // right-to-left Indian languages named as not supported.
         string fonts = Section(File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n"), "## Fonts and languages");
 
-        Assert.Contains("- A supported script: Latin, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, or Tamil.", fonts, StringComparison.Ordinal);
+        Assert.Contains("- A supported script: Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, or Tamil.", fonts, StringComparison.Ordinal);
+        Assert.Contains("Latin, Greek, Cyrillic, Armenian, and Georgian (accents, ligatures, kerning, each with its own script's font rules)", fonts, StringComparison.Ordinal);
+        Assert.Contains("Polish `ł`, Czech `č`, Romanian `ș`, and Turkish `ğ` and `ı`", fonts, StringComparison.Ordinal);
+        Assert.Contains("`text-transform` follows the `lang` attribute for Turkish and Azerbaijani", fonts, StringComparison.Ordinal);
         Assert.Contains("Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, and Tamil are shaped", fonts, StringComparison.Ordinal);
         Assert.Contains("Urdu, Kashmiri, and Sindhi", fonts, StringComparison.Ordinal);
         Assert.Equal(9, UnlimitedPDF.Models.Internal.Text.IndicScript.All.Count); // the nine Indic scripts listed above

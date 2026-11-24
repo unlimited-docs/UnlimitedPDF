@@ -16,6 +16,10 @@ public static class FontSlots
     // another way (see LatinLetters).
     private static readonly Dictionary<FontScript, string> Letters = new()
     {
+        [FontScript.Greek] = "ΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψω",
+        [FontScript.Cyrillic] = "АБВГДЕЖЗИЙКЛМНОПРСТУФХЦЧШЩЫЭЮЯабвгдежзийклмнопрстуфхцчшщыэюя",
+        [FontScript.Armenian] = "ԱԲԳԴԵԶԷԸԹԺԻԼԽԾԿՀՁՂՃՄաբգդեզէըթժիլխծկհձղճմ",
+        [FontScript.Georgian] = "აბგდევზთიკლმნოპჟრსტუფქღყშჩცძწჭხჯჰ",
         [FontScript.Devanagari] = "कखगचजटडतदनपबमयरलवसह",
         [FontScript.Telugu] = "కఖగచజటడతదనపబమయరలవసహ",
         [FontScript.Tamil] = "கஙசஞடணதநபமயரலவழளறன",
@@ -63,6 +67,8 @@ public static class FontSlots
     /// <returns>The link.</returns>
     public static string FreeFontLink(FontScript script) => script switch
     {
+        FontScript.Armenian => "https://fonts.google.com/noto/specimen/Noto+Sans+Armenian",
+        FontScript.Georgian => "https://fonts.google.com/noto/specimen/Noto+Sans+Georgian",
         FontScript.Devanagari => "https://fonts.google.com/noto/specimen/Noto+Sans+Devanagari",
         FontScript.Telugu => "https://fonts.google.com/noto/specimen/Noto+Sans+Telugu",
         FontScript.Tamil => "https://fonts.google.com/noto/specimen/Noto+Sans+Tamil",
@@ -100,6 +106,10 @@ public static class FontSlots
     public static FontScript? ScriptOf(char c) => c switch
     {
         >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= 'À' and <= 'ɏ' when c is not ('×' or '÷') => FontScript.Latin,
+        >= 'Ͱ' and <= 'Ͽ' or >= 'ἀ' and <= '῿' => FontScript.Greek,
+        >= 'Ѐ' and <= 'ԯ' or >= 'ᲀ' and <= '᲏' or >= 'ⷠ' and <= 'ⷿ' or >= 'Ꙁ' and <= 'ꚟ' => FontScript.Cyrillic,
+        >= 'Ա' and <= '֏' or >= 'ﬓ' and <= 'ﬗ' => FontScript.Armenian,
+        >= 'Ⴀ' and <= 'ჿ' or >= 'Ა' and <= 'Ჿ' or >= 'ⴀ' and <= '⴯' => FontScript.Georgian,
         '।' or '॥' => null, // danda and double danda: several scripts use them
         >= 'ऀ' and <= 'ॿ' => FontScript.Devanagari,
         >= 'ఀ' and <= '౿' => FontScript.Telugu,
@@ -137,7 +147,7 @@ public static class FontSlots
     /// </summary>
     public static IReadOnlyList<FontScript> Scripts { get; } =
     [
-        FontScript.Latin, FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
+        FontScript.Latin, FontScript.Greek, FontScript.Cyrillic, FontScript.Armenian, FontScript.Georgian, FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
         FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam
     ];
 

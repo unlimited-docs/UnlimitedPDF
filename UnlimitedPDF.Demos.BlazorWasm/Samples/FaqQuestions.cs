@@ -58,8 +58,8 @@ public static class FaqQuestions
             ], SampleCatalog.FontsAndLanguages),
             new("languages", "Which languages can I use?",
             [
-                "With the PDF standard fonts: English and other Western European languages, such as French, German, and Spanish.",
-                "With fonts you load: languages written in Latin letters, Hindi and the other languages written in Devanagari, Bengali and Assamese, Gujarati, Punjabi (Gurmukhi), Odia, Kannada, Malayalam, Telugu, and Tamil. Each is shaped with the font's own rules, so conjuncts, vowel signs, and marks are drawn in place, and copied or searched text reads back as written.",
+                "With the PDF standard fonts: English and other Western European languages, such as French, German, and Spanish. Polish, Czech, Romanian, Turkish, and other languages with letters such as ł, č, ș, and ğ need a font you load.",
+                "With fonts you load: languages written in Latin letters; Greek; Russian, Ukrainian, Bulgarian, Serbian, Kazakh, and the other languages written in Cyrillic; Armenian; Georgian; Hindi and the other languages written in Devanagari, Bengali and Assamese, Gujarati, Punjabi (Gurmukhi), Odia, Kannada, Malayalam, Telugu, and Tamil. Each is shaped with the font's own rules, so conjuncts, vowel signs, and marks are drawn in place, and copied or searched text reads back as written.",
                 "Right-to-left scripts, such as Arabic and Hebrew (so Urdu, Kashmiri, and Sindhi in Perso-Arabic letters), and Chinese, Japanese, and Korean are not supported yet."
             ], SampleCatalog.FontsAndLanguages),
             new("wrap-text", "Does text wrap onto the next line?",

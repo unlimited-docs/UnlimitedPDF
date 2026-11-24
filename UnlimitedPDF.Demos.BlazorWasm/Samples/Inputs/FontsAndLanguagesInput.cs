@@ -134,6 +134,15 @@ public sealed class FontsAndLanguagesInput
         "kannada" => "kn",
         "malayalam" => "ml",
         "french" => "fr",
+        "polish" => "pl",
+        "czech" => "cs",
+        "turkish" => "tr",
+        "filipino" => "fil",
+        "greek" => "el",
+        "russian" => "ru",
+        "ukrainian" => "uk",
+        "armenian" => "hy",
+        "georgian" => "ka",
         _ => null,
     };
 

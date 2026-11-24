@@ -157,12 +157,20 @@ internal static class TextPipeline
         >= 0x0C80 and <= 0x0CFF => "knda",
         >= 0x0D00 and <= 0x0D7F => "mlym",
         >= 'A' and <= 'Z' or >= 'a' and <= 'z' or >= 0x00C0 and <= 0x024F => "latn",
+        >= 0x0370 and <= 0x03FF or >= 0x1F00 and <= 0x1FFF => "grek",
+        >= 0x0400 and <= 0x052F or >= 0x1C80 and <= 0x1C8F or >= 0x2DE0 and <= 0x2DFF or >= 0xA640 and <= 0xA69F => "cyrl",
+        >= 0x0531 and <= 0x058F or >= 0xFB13 and <= 0xFB17 => "armn",
+        >= 0x10A0 and <= 0x10FF or >= 0x1C90 and <= 0x1CBF or >= 0x2D00 and <= 0x2D2F => "geor",
         _ => null
     };
 
-    private static string[] ScriptTags(string script) => IndicScript.For(script) is { } indic
+    // Greek, Cyrillic, Armenian, and Georgian take their own script's features first (QF-26112401). Latin comes last,
+    // after the defaults, for fonts that list their features under Latin only, as these scripts used before.
+    internal static string[] ScriptTags(string script) => IndicScript.For(script) is { } indic
         ? new[] { indic.Version2Tag, indic.Version1Tag, "DFLT", "dflt" }
-        : new[] { "latn", "DFLT", "dflt" };
+        : script is "grek" or "cyrl" or "armn" or "geor"
+            ? new[] { script, "DFLT", "dflt", "latn" }
+            : new[] { "latn", "DFLT", "dflt" };
 
     // The text of each glyph for ToUnicode, and the spans that need ActualText. Glyphs are taken in groups: the
     // smallest runs of glyphs that hold every glyph of their clusters (a reordered syllable is one group). A glyph

@@ -1,12 +1,12 @@
 # Demo fonts
 
-Free fonts that the Fonts and languages demo puts in every slot except Latin when the page opens, so every language invoice draws every character without an upload. Visitors can replace each one with their own font.
+Free fonts that the Fonts and languages demo puts in every slot when the page opens, so every language invoice draws every character without an upload. Noto Sans fills the Latin, Greek, and Cyrillic slots, so it also draws the Latin text of every invoice. Visitors can replace each one with their own font.
 
 These files are not project-authored. They are allowed here, and only here, by the exception in project rule PR-011 (FD-016): unmodified free fonts under the SIL Open Font License, shipped only by the demos site, never by the UnlimitedPDF package, its tests, or fixtures. The site downloads them only on the Fonts and languages page.
 
 ## Files
 
-The fonts were downloaded from the Noto project's GitHub repositories (`https://github.com/notofonts/notofonts.github.io/raw/main/fonts/<Family>/hinted/ttf/<File>`), unmodified: Devanagari, Telugu, and Tamil on 2026-11-17, and Bengali, Gujarati, Gurmukhi, Oriya, Kannada, and Malayalam on 2026-11-24. `OFL.txt` is the license text from `https://github.com/notofonts/devanagari`, with the copyright lines of all nine families, as each font's own copyright notice states them.
+The fonts were downloaded from the Noto project's GitHub repositories (`https://github.com/notofonts/notofonts.github.io/raw/main/fonts/<Family>/hinted/ttf/<File>`), unmodified: Devanagari, Telugu, and Tamil on 2026-11-17, and Bengali, Gujarati, Gurmukhi, Oriya, Kannada, Malayalam, Noto Sans (Latin, Greek, and Cyrillic), Armenian, and Georgian on 2026-11-24. `OFL.txt` is the license text from `https://github.com/notofonts/devanagari`, with the copyright lines of all twelve families, as each font's own copyright notice states them.
 
 | File | Font | Version | Size | SHA-256 |
 |---|---|---|---|---|
@@ -19,6 +19,9 @@ The fonts were downloaded from the Noto project's GitHub repositories (`https://
 | `NotoSansOriya-Regular.ttf` | Noto Sans Oriya Regular | 2.007 | 131,216 bytes | `a16645d056017927406546aa78e4ce15e782fd8783467267b75450453d007415` |
 | `NotoSansKannada-Regular.ttf` | Noto Sans Kannada Regular | 2.006 | 182,416 bytes | `9ad74dc64838c6855b96f671fc08e425a58921b9d0c71712ea79c328a27e6e38` |
 | `NotoSansMalayalam-Regular.ttf` | Noto Sans Malayalam Regular | 2.104 | 112,936 bytes | `c08de7fa8d032a5d6a4d120fb82c78cec60b362a4e73fa26360d89759ff2a7f9` |
+| `NotoSans-Regular.ttf` | Noto Sans Regular | 2.015 | 621,572 bytes | `478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823` |
+| `NotoSansArmenian-Regular.ttf` | Noto Sans Armenian Regular | 2.008 | 30,752 bytes | `720df88c332417a235b4d6209d14ec2e2bf4bfe2a954b7453d869ea593bfce1e` |
+| `NotoSansGeorgian-Regular.ttf` | Noto Sans Georgian Regular | 2.005 | 52,888 bytes | `d3e33254b09e7bb2c5cf0f17e554b80462056c5a107097f258d495168c3a9346` |
 | `OFL.txt` | SIL Open Font License, Version 1.1 | | | |
 
 ## License
