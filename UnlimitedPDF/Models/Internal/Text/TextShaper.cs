@@ -113,34 +113,48 @@ internal static class TextShaper
 
     /// <summary>
     /// Sets advances from the font instance, applies GPOS features, and resolves positions: attached marks sit at
-    /// their anchor and take no advance.
+    /// their anchor and take no advance; glyphs chained by cursive attachment take their parent's vertical offset. A
+    /// right-to-left run is positioned in logical order and returned in visual order, left to right (WR-041).
     /// </summary>
-    public static ShapedRun Finish(PdfFont font, List<ShapingGlyph> buffer, IReadOnlyList<string> scriptTags, IReadOnlyList<string> positioningFeatures)
+    public static ShapedRun Finish(PdfFont font, List<ShapingGlyph> buffer, IReadOnlyList<string> scriptTags, IReadOnlyList<string> positioningFeatures, bool rightToLeft = false)
     {
         foreach (var glyph in buffer) glyph.XAdvance = font.Instance.Advance(glyph.Glyph);
-        if (font.Layout.Gpos is { } gpos) RunStages(font, gpos, buffer, scriptTags, new[] { positioningFeatures.ToArray() });
+        if (font.Layout.Gpos is { } gpos) RunStages(font, gpos, buffer, scriptTags, new[] { positioningFeatures.ToArray() }, rightToLeft);
 
-        var shaped = new ShapedGlyph[buffer.Count];
+        int count = buffer.Count;
+        var x = new int[count];
+        var y = new int[count];
+        var advance = new int[count];
+        var chainY = ChainOffsets(buffer);
+        bool Attached(int i) => buffer[i].AttachTo >= 0 && buffer[i].AttachTo < i;
+
+        // Glyphs that are not attached marks take the pen in drawing order.
         int pen = 0;
-        for (int i = 0; i < buffer.Count; i++)
+        for (int k = 0; k < count; k++)
         {
+            int i = rightToLeft ? count - 1 - k : k;
+            if (Attached(i)) continue;
             var glyph = buffer[i];
-            int x, y, advance;
-            if (glyph.AttachTo >= 0 && glyph.AttachTo < i)
-            {
-                var target = shaped[glyph.AttachTo];
-                x = target.X + glyph.AttachDx + glyph.XOffset;
-                y = target.Y + glyph.AttachDy + glyph.YOffset;
-                advance = 0;
-            }
-            else
-            {
-                x = pen + glyph.XOffset;
-                y = glyph.YOffset;
-                advance = glyph.XAdvance;
-            }
-            shaped[i] = new ShapedGlyph(glyph.Glyph, glyph.Cluster, x, y, advance);
-            pen += advance;
+            x[i] = pen + glyph.XOffset;
+            y[i] = chainY[i];
+            advance[i] = glyph.XAdvance;
+            pen += glyph.XAdvance;
+        }
+        // Attached marks sit at their target's anchor; targets come earlier in logical order, so they are placed first.
+        for (int i = 0; i < count; i++)
+        {
+            if (!Attached(i)) continue;
+            var glyph = buffer[i];
+            int target = glyph.AttachTo;
+            x[i] = x[target] + glyph.AttachDx + glyph.XOffset;
+            y[i] = y[target] + glyph.AttachDy + glyph.YOffset;
+        }
+
+        var shaped = new ShapedGlyph[count];
+        for (int k = 0; k < count; k++)
+        {
+            int i = rightToLeft ? count - 1 - k : k;
+            shaped[k] = new ShapedGlyph(buffer[i].Glyph, buffer[i].Cluster, x[i], y[i], advance[i]);
         }
         return new ShapedRun(shaped, pen);
     }
@@ -149,11 +163,43 @@ internal static class TextShaper
 
     #region Private Methods
 
-    private static void RunStages(PdfFont font, LayoutTable table, List<ShapingGlyph> buffer, IReadOnlyList<string> scriptTags, IReadOnlyList<string[]> stages)
+    // The vertical offset of each glyph: its own, or for a glyph chained by cursive attachment its chain offset plus
+    // its parent's (parents resolved first; a chain longer than the run is cut, so a malformed font cannot loop).
+    private static int[] ChainOffsets(List<ShapingGlyph> buffer)
+    {
+        int count = buffer.Count;
+        var result = new int[count];
+        var state = new byte[count]; // 0 unresolved, 1 resolving, 2 resolved
+        for (int i = 0; i < count; i++) Resolve(i);
+        return result;
+
+        void Resolve(int start)
+        {
+            var path = new List<int>();
+            int at = start;
+            while (at >= 0 && at < count && state[at] == 0 && path.Count <= count)
+            {
+                state[at] = 1;
+                path.Add(at);
+                at = buffer[at].CursiveTo;
+            }
+            int above = at >= 0 && at < count && state[at] == 2 ? result[at] : 0;
+            for (int k = path.Count - 1; k >= 0; k--)
+            {
+                var glyph = buffer[path[k]];
+                bool chained = glyph.CursiveTo >= 0 && glyph.CursiveTo < count && (k < path.Count - 1 || state[glyph.CursiveTo] == 2);
+                result[path[k]] = chained ? glyph.CursiveDy + above : glyph.YOffset;
+                above = result[path[k]];
+                state[path[k]] = 2;
+            }
+        }
+    }
+
+    private static void RunStages(PdfFont font, LayoutTable table, List<ShapingGlyph> buffer, IReadOnlyList<string> scriptTags, IReadOnlyList<string[]> stages, bool rightToLeft = false)
     {
         var allFeatures = stages.SelectMany(s => s).Distinct(StringComparer.Ordinal).ToList();
         var lookups = table.FeatureLookups(scriptTags, allFeatures, font.Instance.Coordinates, out _);
-        var engine = new LayoutEngine(table, font.Layout.Gdef, buffer, font.Font.GlyphCount);
+        var engine = new LayoutEngine(table, font.Layout.Gdef, buffer, font.Font.GlyphCount, rightToLeft);
         int bit = 0;
         foreach (var stage in stages)
         {

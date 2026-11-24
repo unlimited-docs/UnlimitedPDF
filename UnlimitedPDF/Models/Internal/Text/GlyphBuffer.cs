@@ -65,6 +65,17 @@ internal sealed class ShapingGlyph
 
     public int ComponentCount { get; set; } = 1;
 
+    /// <summary>
+    /// Gets or sets the vertical offset, in font units, that cursive attachment gives this glyph relative to the glyph
+    /// it is chained to (<see cref="CursiveTo"/>).
+    /// </summary>
+    public int CursiveDy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the index of the glyph this glyph is chained to by cursive attachment, or -1.
+    /// </summary>
+    public int CursiveTo { get; set; } = -1;
+
     public int Glyph { get; set; }
 
     public int GlyphClass { get; set; } = 1;
