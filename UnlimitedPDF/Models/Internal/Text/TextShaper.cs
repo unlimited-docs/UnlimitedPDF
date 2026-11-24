@@ -60,6 +60,14 @@ internal static class TextShaper
 
     public static readonly string[] DefaultPositioningFeatures = { "kern", "mark", "mkmk" };
 
+    // A right-to-left run applies rtlm (right-to-left mirrored forms) first, to the glyphs Mirror leaves it on.
+    public static readonly IReadOnlyList<string[]> RightToLeftSubstitutionStages = new[]
+    {
+        new[] { "rtlm" },
+        new[] { "ccmp", "locl" },
+        new[] { "rlig", "liga", "clig", "calt" }
+    };
+
     #endregion
 
     #region Methods
@@ -73,11 +81,40 @@ internal static class TextShaper
     /// <param name="text">The text; every character should have a glyph in the font (fallback happens before).</param>
     /// <param name="scriptTags">OpenType script tags in order of preference.</param>
     /// <returns>The shaped run.</returns>
-    public static ShapedRun Shape(PdfFont font, string text, IReadOnlyList<string> scriptTags)
+    public static ShapedRun Shape(PdfFont font, string text, IReadOnlyList<string> scriptTags) => Shape(font, text, scriptTags, rightToLeft: false);
+
+    /// <summary>
+    /// Shapes <paramref name="text"/> with the default shaper in the given direction. In a right-to-left run a mirrored
+    /// character (for example a parenthesis) takes the glyph of its mirror character when the font has it, else the
+    /// font's <c>rtlm</c> feature applies to it; the run comes back in visual order (WR-041).
+    /// </summary>
+    public static ShapedRun Shape(PdfFont font, string text, IReadOnlyList<string> scriptTags, bool rightToLeft)
     {
         var buffer = Map(font, text);
-        Substitute(font, buffer, scriptTags, DefaultSubstitutionStages);
-        return Finish(font, buffer, scriptTags, DefaultPositioningFeatures);
+        if (!rightToLeft)
+        {
+            Substitute(font, buffer, scriptTags, DefaultSubstitutionStages);
+            return Finish(font, buffer, scriptTags, DefaultPositioningFeatures);
+        }
+        Mirror(font, buffer);
+        Substitute(font, buffer, scriptTags, RightToLeftSubstitutionStages);
+        return Finish(font, buffer, scriptTags, DefaultPositioningFeatures, rightToLeft: true);
+    }
+
+    /// <summary>
+    /// Swaps mirrored characters of a right-to-left run for their mirror glyph, and leaves the <c>rtlm</c> feature bit
+    /// (bit 0 of <see cref="RightToLeftSubstitutionStages"/>) only on mirrored characters the font has no mirror glyph
+    /// for.
+    /// </summary>
+    public static void Mirror(PdfFont font, List<ShapingGlyph> buffer)
+    {
+        foreach (var glyph in buffer)
+        {
+            int mirror = BidiData.MirrorOf(glyph.CodePoint);
+            int mirrorGlyph = mirror >= 0 ? font.Font.CharacterMap.GlyphFor(mirror) : 0;
+            if (mirrorGlyph != 0) glyph.Glyph = mirrorGlyph;
+            if (mirror < 0 || mirrorGlyph != 0) glyph.Mask &= ~FeatureBit(0);
+        }
     }
 
     /// <summary>
