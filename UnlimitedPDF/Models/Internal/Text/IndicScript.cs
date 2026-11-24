@@ -22,37 +22,37 @@ internal sealed class IndicScript
     {
         var all = new[]
         {
-            new IndicScript("deva", "dev2", "deva", new[] { 0x0930 }, RephKind.Implicit, RephPlace.BeforePostBaseVowelSign,
-                new Dictionary<int, int[]>(), reordersPreBaseForm: false, keepsReleasedOutput: true),
+            new IndicScript("deva", "dev2", "deva", new[] { 0x0930 }, RephKind.Implicit, RephPlace.BeforePostBaseConsonant,
+                new Dictionary<int, int[]>(), reordersPreBaseForm: false),
             new IndicScript("beng", "bng2", "beng", new[] { 0x09B0, 0x09F0 }, RephKind.Implicit, RephPlace.BeforePostBaseForm,
                 new Dictionary<int, int[]>
                 {
                     [0x09CB] = new[] { 0x09C7, 0x09BE }, // BENGALI O
                     [0x09CC] = new[] { 0x09C7, 0x09D7 }  // BENGALI AU
-                }, reordersPreBaseForm: false, keepsReleasedOutput: false),
+                }, reordersPreBaseForm: false),
             new IndicScript("guru", "gur2", "guru", new[] { 0x0A30 }, RephKind.Implicit, RephPlace.AfterBase,
-                new Dictionary<int, int[]>(), reordersPreBaseForm: false, keepsReleasedOutput: false),
+                new Dictionary<int, int[]>(), reordersPreBaseForm: false),
             new IndicScript("gujr", "gjr2", "gujr", new[] { 0x0AB0 }, RephKind.Implicit, RephPlace.BeforePostBaseForm,
-                new Dictionary<int, int[]>(), reordersPreBaseForm: false, keepsReleasedOutput: false),
+                new Dictionary<int, int[]>(), reordersPreBaseForm: false),
             new IndicScript("orya", "ory2", "orya", new[] { 0x0B30 }, RephKind.Implicit, RephPlace.AfterBase,
                 new Dictionary<int, int[]>
                 {
                     [0x0B48] = new[] { 0x0B47, 0x0B56 }, // ORIYA AI
                     [0x0B4B] = new[] { 0x0B47, 0x0B3E }, // ORIYA O
                     [0x0B4C] = new[] { 0x0B47, 0x0B57 }  // ORIYA AU
-                }, reordersPreBaseForm: false, keepsReleasedOutput: false),
+                }, reordersPreBaseForm: false),
             new IndicScript("taml", "tml2", "taml", new[] { 0x0BB0 }, RephKind.None, RephPlace.BeforePostBaseVowelSign,
                 new Dictionary<int, int[]>
                 {
                     [0x0BCA] = new[] { 0x0BC6, 0x0BBE }, // TAMIL O
                     [0x0BCB] = new[] { 0x0BC7, 0x0BBE }, // TAMIL OO
                     [0x0BCC] = new[] { 0x0BC6, 0x0BD7 }  // TAMIL AU
-                }, reordersPreBaseForm: false, keepsReleasedOutput: true),
-            new IndicScript("telu", "tel2", "telu", new[] { 0x0C30 }, RephKind.Explicit, RephPlace.BeforePostBaseVowelSign,
+                }, reordersPreBaseForm: false),
+            new IndicScript("telu", "tel2", "telu", new[] { 0x0C30 }, RephKind.Explicit, RephPlace.BeforeModifiers,
                 new Dictionary<int, int[]>
                 {
                     [0x0C48] = new[] { 0x0C46, 0x0C56 } // TELUGU AI
-                }, reordersPreBaseForm: false, keepsReleasedOutput: true),
+                }, reordersPreBaseForm: false),
             new IndicScript("knda", "knd2", "knda", new[] { 0x0CB0 }, RephKind.Implicit, RephPlace.BeforeModifiers,
                 new Dictionary<int, int[]>
                 {
@@ -61,14 +61,14 @@ internal sealed class IndicScript
                     [0x0CC8] = new[] { 0x0CC6, 0x0CD6 },        // KANNADA AI
                     [0x0CCA] = new[] { 0x0CC6, 0x0CC2 },        // KANNADA O
                     [0x0CCB] = new[] { 0x0CC6, 0x0CC2, 0x0CD5 } // KANNADA OO
-                }, reordersPreBaseForm: false, keepsReleasedOutput: false),
+                }, reordersPreBaseForm: false),
             new IndicScript("mlym", "mlm2", "mlym", new[] { 0x0D30 }, RephKind.Encoded, RephPlace.AfterBase,
                 new Dictionary<int, int[]>
                 {
                     [0x0D4A] = new[] { 0x0D46, 0x0D3E }, // MALAYALAM O
                     [0x0D4B] = new[] { 0x0D47, 0x0D3E }, // MALAYALAM OO
                     [0x0D4C] = new[] { 0x0D46, 0x0D57 }  // MALAYALAM AU
-                }, reordersPreBaseForm: true, keepsReleasedOutput: false)
+                }, reordersPreBaseForm: true)
         };
 
         All = all;
@@ -78,9 +78,8 @@ internal sealed class IndicScript
     }
 
     private IndicScript(string tag, string version2Tag, string version1Tag, int[] ra, RephKind reph, RephPlace rephPlace,
-        Dictionary<int, int[]> splits, bool reordersPreBaseForm, bool keepsReleasedOutput)
+        Dictionary<int, int[]> splits, bool reordersPreBaseForm)
     {
-        KeepsReleasedOutput = keepsReleasedOutput;
         Tag = tag;
         Version2Tag = version2Tag;
         Version1Tag = version1Tag;
@@ -123,10 +122,13 @@ internal sealed class IndicScript
         bool bottom = position is IndicPositionalCategory.Bottom;
         return Tag switch
         {
+            "deva" => MatraPlace.AfterSub,
             "beng" => bottom ? MatraPlace.AfterSub : MatraPlace.AfterPost,
             "guru" => MatraPlace.AfterPost,
             "gujr" => top ? MatraPlace.AfterSub : MatraPlace.AfterPost,
             "orya" => top ? MatraPlace.AfterMain : bottom ? MatraPlace.AfterSub : MatraPlace.AfterPost,
+            "taml" => top ? MatraPlace.AfterSub : MatraPlace.AfterPost,
+            "telu" => top || bottom || codePoint <= 0x0C42 ? MatraPlace.BeforeSub : MatraPlace.AfterSub,
             "knda" => top || bottom || codePoint < 0x0CC3 || codePoint > 0x0CD6 ? MatraPlace.BeforeSub : MatraPlace.AfterSub,
             "mlym" => MatraPlace.AfterPost,
             _ => MatraPlace.AfterPost
@@ -150,13 +152,6 @@ internal sealed class IndicScript
     /// Gets every script the Indic shaper handles.
     /// </summary>
     public static IReadOnlyList<IndicScript> All { get; }
-
-    /// <summary>
-    /// Gets whether the script keeps the output version 1.1.0 shipped (WR-039): Devanagari, Telugu, and Tamil. The
-    /// other scripts also follow these rules of the OpenType Indic model: a syllable that ends in halant + ZWJ asks for
-    /// the half form of its consonants, and a joiner may stand before a halant inside a syllable.
-    /// </summary>
-    public bool KeepsReleasedOutput { get; }
 
     /// <summary>
     /// Gets the letters Ra of the script that form a reph.
@@ -254,7 +249,13 @@ internal sealed class IndicScript
         AfterBase,
 
         /// <summary>Last in the syllable, before its syllable modifiers.</summary>
-        BeforeModifiers
+        BeforeModifiers,
+
+        /// <summary>
+        /// After the base, its below-base forms, and the vowel signs placed before the post-base forms; before a post-base
+        /// consonant form, a vowel sign placed after the post-base forms, or a syllable modifier.
+        /// </summary>
+        BeforePostBaseConsonant
     }
 
     #endregion

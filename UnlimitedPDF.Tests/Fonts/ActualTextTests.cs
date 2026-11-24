@@ -312,7 +312,10 @@ public class ActualTextTests
     [InlineData("ory2", "କ୍ଷେଂ")] // Oriya
     [InlineData("knd2", "ಕ್ಷೆಂ")] // Kannada
     [InlineData("mlm2", "ക്രെം")] // Malayalam
-    public void A_long_line_in_each_added_script_lays_out_in_linear_time(string script, string syllable)
+    [InlineData("dev2", "र्कीं")] // Devanagari
+    [InlineData("tel2", "శ్రీం")] // Telugu
+    [InlineData("tml2", "க்ஷொஂ")] // Tamil
+    public void A_long_line_in_each_indic_script_lays_out_in_linear_time(string script, string syllable)
     {
         var builder = new TestFontBuilder("Test Indic");
         Map(builder, syllable + " ");
