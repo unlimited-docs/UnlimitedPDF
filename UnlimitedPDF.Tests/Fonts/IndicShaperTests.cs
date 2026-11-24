@@ -97,15 +97,46 @@ public class IndicShaperTests
     }
 
     [Fact]
-    public void Ra_and_halant_become_a_reph_after_the_base_and_before_a_post_base_vowel_sign()
+    public void Ra_and_halant_become_a_reph_after_the_base_and_its_vowel_signs()
     {
+        // WR-039: the Devanagari reph goes after the vowel signs that precede the post-base forms, so a font's reph +
+        // vowel sign ligatures form (1.1.0 placed it before a post-base vowel sign).
         var f = new Font(Devanagari);
         int reph = f.AddGlyph();
         f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
 
         Assert.Equal(new[] { f[Ka], reph }, Glyphs(f.Shape("" + Ra + Halant + Ka)));
-        Assert.Equal(new[] { f[Ka], reph, f[Ii] }, Glyphs(f.Shape("" + Ra + Halant + Ka + Ii)));
+        Assert.Equal(new[] { f[Ka], f[Ii], reph }, Glyphs(f.Shape("" + Ra + Halant + Ka + Ii)));
         Assert.Equal(new[] { f[I], f[Ka], reph }, Glyphs(f.Shape("" + Ra + Halant + Ka + I)));
+        Assert.Equal(new[] { f[Ka], f[Ii], reph, f[Anusvara] }, Glyphs(f.Shape("" + Ra + Halant + Ka + Ii + Anusvara)));
+    }
+
+    [Fact]
+    public void A_devanagari_reph_goes_before_a_post_base_form()
+    {
+        var f = new Font(Devanagari + "\u092F");
+        int reph = f.AddGlyph(), yaPost = f.AddGlyph();
+        f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
+        f.Gsub.AddFeature("pstf", f.Gsub.AddLookup(4, 0, Ligature(f[Halant], new[] { f['\u092F'] }, yaPost)));
+
+        Assert.Equal(new[] { f[Ka], reph, yaPost }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + '\u092F')));
+        Assert.Equal(new[] { f[Ka], f[Ii], reph, yaPost }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + '\u092F' + Ii)));
+    }
+
+    [Fact]
+    public void Devanagari_takes_the_explicit_half_form_and_a_joiner_before_a_halant()
+    {
+        // WR-039: halant + ZWJ at the end of a syllable asks for the half form; a joiner before a halant stays in the
+        // syllable (no dotted circle) and asks for no reph.
+        var f = new Font(Devanagari + Zwj + "\u092F");
+        int kaHalf = f.AddGlyph(), reph = f.AddGlyph();
+        f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
+        f.Gsub.AddFeature("half", f.Gsub.AddLookup(4, 0, Ligature(f[Ka], new[] { f[Halant] }, kaHalf)));
+
+        Assert.Equal(new[] { kaHalf }, Glyphs(f.Shape("" + Ka + Halant + Zwj)));
+        var run = f.Shape("" + Ra + Zwj + Halant + '\u092F');
+        Assert.Equal(new[] { f[Ra], f[Halant], f['\u092F'] }, Glyphs(run));
+        Assert.All(run.Glyphs, g => Assert.Equal(0, g.Cluster));
     }
 
     [Theory]
@@ -135,7 +166,7 @@ public class IndicShaperTests
         f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
 
         Assert.Equal(new[] { kssa, reph }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + Ssa)));
-        Assert.Equal(new[] { kssa, reph, f[Ii] }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + Ssa + Ii)));
+        Assert.Equal(new[] { kssa, f[Ii], reph }, Glyphs(f.Shape("" + Ra + Halant + Ka + Halant + Ssa + Ii)));
     }
 
     [Fact]
@@ -228,13 +259,46 @@ public class IndicShaperTests
     public void Telugu_ra_with_a_pref_form_is_not_the_base_and_its_form_stays_after_the_base()
     {
         // A font that forms the subjoined Ra with pref (not blwf): the consonant before it stays the base, and the formed
-        // glyph is drawn where it stands, after the base.
+        // glyph is drawn where it stands, after the base. A top vowel sign goes before it (WR-039; 1.1.0 put it after).
         var f = new Font("" + TeKa + TeHalant + TeRa + TeIi, script: "tel2");
         int raSubjoined = f.AddGlyph();
         f.Gsub.AddFeature("pref", f.Gsub.AddLookup(4, 0, Ligature(f[TeHalant], new[] { f[TeRa] }, raSubjoined)));
 
         Assert.Equal(new[] { f[TeKa], raSubjoined }, Glyphs(f.Shape("" + TeKa + TeHalant + TeRa)));
-        Assert.Equal(new[] { f[TeKa], raSubjoined, f[TeIi] }, Glyphs(f.Shape("" + TeKa + TeHalant + TeRa + TeIi)));
+        Assert.Equal(new[] { f[TeKa], f[TeIi], raSubjoined }, Glyphs(f.Shape("" + TeKa + TeHalant + TeRa + TeIi)));
+    }
+
+    [Theory]
+    [InlineData("tel2")]
+    [InlineData("telu")]
+    public void Telugu_vowel_signs_go_before_or_after_a_below_base_form_by_the_model(string tag)
+    {
+        // WR-039: vowel signs up to U+0C42 and every top or bottom sign go before the below-base form, so a font's
+        // consonant + vowel sign forms can join; U+0C43 and later right signs go after it.
+        const char u = 'ు', r = 'ృ';
+        var f = new Font("" + TeKa + TeI + TeHalant + u + r, script: tag);
+        int kaBelow = f.AddGlyph();
+        f.Gsub.AddFeature("blwf", f.Gsub.AddLookup(4, 0, tag == "tel2"
+            ? Ligature(f[TeHalant], new[] { f[TeKa] }, kaBelow)
+            : Ligature(f[TeKa], new[] { f[TeHalant] }, kaBelow)));
+
+        Assert.Equal(new[] { f[TeKa], f[TeI], kaBelow }, Glyphs(f.Shape("" + TeKa + TeHalant + TeKa + TeI)));
+        Assert.Equal(new[] { f[TeKa], f[u], kaBelow }, Glyphs(f.Shape("" + TeKa + TeHalant + TeKa + u)));
+        Assert.Equal(new[] { f[TeKa], kaBelow, f[r] }, Glyphs(f.Shape("" + TeKa + TeHalant + TeKa + r)));
+    }
+
+    [Fact]
+    public void The_explicit_telugu_reph_forms_through_its_joiner_and_goes_last()
+    {
+        // A font may form the Telugu reph only from Ra + halant + ZWJ; it goes last, before the anusvara.
+        const char anusvara = 'ం';
+        var f = new Font("" + TeKa + TeRa + TeI + TeHalant + anusvara + Zwj, script: "tel2");
+        int reph = f.AddGlyph();
+        f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[TeRa], new[] { f[TeHalant], f[Zwj] }, reph)));
+
+        Assert.Equal(new[] { f[TeKa], reph }, Glyphs(f.Shape("" + TeRa + TeHalant + Zwj + TeKa)));
+        Assert.Equal(new[] { f[TeKa], f[TeI], reph, f[anusvara] }, Glyphs(f.Shape("" + TeRa + TeHalant + Zwj + TeKa + TeI + anusvara)));
+        Assert.DoesNotContain(reph, Glyphs(f.Shape("" + TeRa + TeHalant + TeKa)));
     }
 
     [Fact]
@@ -243,6 +307,23 @@ public class IndicShaperTests
         var f = new Font("" + TeKa + TeE + TeAiLength, script: "tel2");
 
         Assert.Equal(new[] { f[TeKa], f[TeE], f[TeAiLength] }, Glyphs(f.Shape("" + TeKa + TeAi)));
+    }
+
+    [Fact]
+    public void Tamil_takes_the_model_order_the_explicit_half_form_and_a_joiner_before_a_halant()
+    {
+        // WR-039: right vowel signs after the post-base forms; halant + ZWJ asks for the half form; a joiner before a
+        // halant stays in the syllable.
+        const char u = 'ு', ssa = 'ஷ';
+        var f = new Font("" + TaKa + TaE + u + ssa + '\u0BCD' + Zwj + Zwnj, script: "tml2");
+        int kaHalf = f.AddGlyph();
+        f.Gsub.AddFeature("half", f.Gsub.AddLookup(4, 0, Ligature(f[TaKa], new[] { f['\u0BCD'] }, kaHalf)));
+
+        Assert.Equal(new[] { f[TaKa], f[u] }, Glyphs(f.Shape("" + TaKa + u)));
+        Assert.Equal(new[] { kaHalf }, Glyphs(f.Shape("" + TaKa + '\u0BCD' + Zwj)));
+        var run = f.Shape("" + TaKa + Zwnj + '\u0BCD' + ssa);
+        Assert.Equal(new[] { f[TaKa], f['்'], f[ssa] }, Glyphs(run));
+        Assert.All(run.Glyphs, g => Assert.Equal(0, g.Cluster));
     }
 
     [Fact]
