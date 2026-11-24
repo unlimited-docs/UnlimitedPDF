@@ -190,8 +190,10 @@ public class PdfDocument
     /// <summary>
     /// Returns the characters of <paramref name="text"/> that no font can draw and that would be drawn as '?': not
     /// in <paramref name="font"/>, not in any <see cref="FontFallback"/> font, and not a Western European (WinAnsi)
-    /// character the built-in font draws (D-015). Each is one text element (an emoji, for example, is one entry),
-    /// listed once, in order of first appearance.
+    /// character the built-in font draws (D-015). Right-to-left letters of scripts the library does not shape (any but
+    /// Arabic, Hebrew, and Thaana, for example Syriac or N'Ko) are returned too, even when a font has them, because
+    /// they would be drawn without their script's joining. Each is one text element (an emoji, for example, is one
+    /// entry), listed once, in order of first appearance.
     /// </summary>
     /// <param name="text">The text to check.</param>
     /// <param name="font">The font the text would be drawn with, or null for text added without a font.</param>
@@ -209,7 +211,10 @@ public class PdfDocument
         {
             string element = elements.GetTextElement();
             if (missing.Contains(element) || !StandardText.IsMissing(element)) continue;
-            if (candidates.Any(f => CodePoints(element).All(f.Draws))) continue;
+            // Bidirectional marks and controls draw nothing (WR-041), so they are never missing.
+            if (CodePoints(element).All(Models.Internal.Text.Bidi.BidiParagraph.IsFormatCharacter)) continue;
+            bool unshaped = RightToLeftSupport.HasUnshaped(element);
+            if (!unshaped && candidates.Any(f => CodePoints(element).All(f.Draws))) continue;
             missing.Add(element);
         }
         return missing;
@@ -1324,7 +1329,8 @@ public class PdfDocument
     /// <summary>
     /// Gets or sets whether saving fails with <see cref="PdfTextException"/>, before anything is written, when text
     /// added through <see cref="PdfPage.AddText(string, double, double, double)"/>, headers, footers, the body flow,
-    /// or table cells holds a character no font can draw, instead of drawing it as '?' (D-015). The default is false.
+    /// or table cells holds a character no font can draw, instead of drawing it as '?' (D-015), or a right-to-left
+    /// letter of a script the library does not shape (see <see cref="FindMissingCharacters"/>). The default is false.
     /// </summary>
     public bool FailOnMissingCharacters { get; set; }
 

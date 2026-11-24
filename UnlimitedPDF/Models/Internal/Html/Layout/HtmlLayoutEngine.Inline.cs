@@ -345,6 +345,16 @@ internal sealed partial class HtmlLayoutEngine
             string codes = string.Join(" ", CodePointsOf(element).Select(c => "U+" + c.ToString("X4", CultureInfo.InvariantCulture)));
             Warn(PdfHtmlWarningKind.MissingCharacter, element, $"The character {codes} is in no font; it is drawn as '?'. Register a font that has it, or add one to the fallback fonts.");
         }
+        // Right-to-left letters of scripts the library does not shape are drawn in their font without joining (WR-039).
+        if (!Fonts.Simple)
+        {
+            foreach (string element in Fonts.Layout(text, style).Segments.OfType<FontSegment>().SelectMany(segment => RightToLeftSupport.UnshapedElements(segment.Text)))
+            {
+                if (!_reportedMissing.Add(element)) continue;
+                string codes = string.Join(" ", CodePointsOf(element).Select(c => "U+" + c.ToString("X4", CultureInfo.InvariantCulture)));
+                Warn(PdfHtmlWarningKind.MissingCharacter, element, $"The character {codes} is in a right-to-left script that is not shaped; it is drawn without its script's joining. Supported right-to-left scripts are Arabic, Hebrew, and Thaana.");
+            }
+        }
     }
 
     private static IEnumerable<int> CodePointsOf(string text)

@@ -372,6 +372,8 @@ internal static class TextPipeline
     {
         var font = segment.Font;
         double unitsPerEm = font.Font.UnitsPerEm;
+        // Right-to-left letters the library does not shape are drawn, but recorded like missing characters (WR-039).
+        foreach (string unshaped in RightToLeftSupport.UnshapedElements(segment.Text)) sink.RecordMissing(unshaped, segment.Text);
         string resource = string.Empty;
         for (int i = 0; i < segment.Run.Glyphs.Count; i++) resource = sink.FaceResource(font, segment.Run.Glyphs[i].Glyph, segment.GlyphTexts[i]);
         if (segment.Run.Glyphs.Count == 0) return;
