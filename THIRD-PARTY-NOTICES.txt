@@ -10,7 +10,11 @@ Unicode Character Database
 
 The Indic character tables in UnlimitedPDF/Models/Internal/Text/IndicData.g.cs are
 generated from the Unicode Character Database 17.0.0 files IndicSyllabicCategory.txt
-and IndicPositionalCategory.txt, used under the following license:
+and IndicPositionalCategory.txt; the bidirectional tables in
+UnlimitedPDF/Models/Internal/Text/BidiData.g.cs from extracted/DerivedBidiClass.txt,
+BidiBrackets.txt, and BidiMirroring.txt; and the joining tables in
+UnlimitedPDF/Models/Internal/Text/JoiningData.g.cs from ArabicShaping.txt. They are
+used under the following license:
 
 UNICODE LICENSE V3
 
