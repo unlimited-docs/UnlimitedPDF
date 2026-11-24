@@ -143,10 +143,12 @@ internal sealed class ComputedStyle
     /// </summary>
     /// <param name="values">The winning value of each property set on the element.</param>
     /// <param name="parent">The parent's style, or null for the root.</param>
+    /// <param name="language">The element's <c>lang</c> attribute, or null to inherit the parent's language.</param>
     /// <returns>The style.</returns>
-    public static ComputedStyle Compute(IReadOnlyDictionary<string, string> values, ComputedStyle? parent)
+    public static ComputedStyle Compute(IReadOnlyDictionary<string, string> values, ComputedStyle? parent, string? language = null)
     {
         var s = parent is null ? new ComputedStyle() : parent.InheritedCopy();
+        if (language is not null) s.Language = language.Trim();
         double parentFontSize = parent?.FontSize ?? DefaultFontSize;
         double root = DefaultFontSize;
 
@@ -591,6 +593,7 @@ internal sealed class ComputedStyle
         TextAlign = TextAlign,
         TextIndent = TextIndent,
         TextTransform = TextTransform,
+        Language = Language,
         LineHeightFactor = LineHeightFactor,
         LineHeightPoints = LineHeightPoints,
         LetterSpacing = LetterSpacing,
@@ -685,6 +688,11 @@ internal sealed class ComputedStyle
     public CssLength TextIndent { get; private set; } = CssLength.Zero;
 
     public CssTextTransform TextTransform { get; private set; }
+
+    /// <summary>
+    /// Gets the language from the nearest <c>lang</c> attribute, such as <c>tr</c>; null when no element sets one.
+    /// </summary>
+    public string? Language { get; private set; }
 
     public bool Underline { get; private set; }
 

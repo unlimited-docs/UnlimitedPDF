@@ -115,7 +115,7 @@ internal static class CssCascade
             if (!ComputedStyle.IsSupported(declaration.Property) || !ComputedStyle.IsValid(declaration.Property, declaration.Value, out _)) continue;
             values[declaration.Property] = declaration.Value;
         }
-        return ComputedStyle.Compute(values, parent);
+        return ComputedStyle.Compute(values, parent, element.Attribute("lang") ?? element.Attribute("xml:lang"));
     }
 
     private static string Pixels(string value)

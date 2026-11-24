@@ -128,7 +128,7 @@ public class BundledFontsTests
     {
         string page = DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor");
         Assert.Contains("<CollapsibleSection Title=\"Before you use your own fonts\" InitiallyOpen=\"false\">", page, StringComparison.Ordinal);
-        foreach (string need in new[] { "The right to embed the font in a PDF.", "<code>IgnoreEmbeddingRestrictions</code>", "<code>PdfHtmlLoadOptions.Fonts</code>", "<code>FindMissingCharacters</code>", "Scripts: Latin, Devanagari" })
+        foreach (string need in new[] { "The right to embed the font in a PDF.", "<code>IgnoreEmbeddingRestrictions</code>", "<code>PdfHtmlLoadOptions.Fonts</code>", "<code>FindMissingCharacters</code>", "Scripts: Latin, Greek, Cyrillic (Russian, Ukrainian, Bulgarian, and others), Armenian, Georgian, Devanagari" })
             Assert.Contains(need, page, StringComparison.Ordinal);
 
         foreach (string readme in new[] { "README.md", "nuget/README.md" })

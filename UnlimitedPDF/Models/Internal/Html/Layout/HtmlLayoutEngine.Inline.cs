@@ -23,15 +23,33 @@ internal sealed partial class HtmlLayoutEngine
 
     #region Methods
 
+    #region Internal Methods
+
+    // Changes case as text-transform asks. Turkish and Azerbaijani (lang "tr" or "az") pair dotted i with İ and
+    // dotless ı with I (QF-26112401); every other language uses the invariant casing, with ı made I as Unicode does.
+    internal static string ApplyTransform(string text, CssTextTransform transform, string? language = null)
+    {
+        bool turkic = IsTurkic(language);
+        string Upper(string s) => (turkic ? s.Replace('i', 'İ') : s).Replace('ı', 'I').ToUpperInvariant();
+        string Lower(string s) => (turkic ? s.Replace('İ', 'i').Replace("İ", "i").Replace('I', 'ı') : s).ToLowerInvariant();
+        return transform switch
+        {
+            CssTextTransform.Uppercase => Upper(text),
+            CssTextTransform.Lowercase => Lower(text),
+            CssTextTransform.Capitalize => string.Concat(text.Select((c, i) => i == 0 || char.IsWhiteSpace(text[i - 1]) ? Upper(c.ToString()) : c.ToString())),
+            _ => text
+        };
+    }
+
+    #endregion
+
     #region Private Methods
 
-    private static string ApplyTransform(string text, CssTextTransform transform) => transform switch
-    {
-        CssTextTransform.Uppercase => text.ToUpperInvariant(),
-        CssTextTransform.Lowercase => text.ToLowerInvariant(),
-        CssTextTransform.Capitalize => string.Concat(text.Select((c, i) => i == 0 || char.IsWhiteSpace(text[i - 1]) ? char.ToUpperInvariant(c) : c)),
-        _ => text
-    };
+    // A language tag whose primary subtag is tr or az, such as "tr", "tr-TR", or "az-Latn".
+    private static bool IsTurkic(string? language) =>
+        language is { Length: >= 2 } tag
+        && (tag.Length == 2 || tag[2] is '-' or '_')
+        && (tag.StartsWith("tr", StringComparison.OrdinalIgnoreCase) || tag.StartsWith("az", StringComparison.OrdinalIgnoreCase));
 
     // Breaks the tokens into lines that fit the width, wrapping at spaces and splitting a word only when it alone is
     // wider than its line. An inline-block taller than a page body gets a line of its own, so the text around it
@@ -465,7 +483,7 @@ internal sealed partial class HtmlLayoutEngine
             }
 
             var text = (TextItem)item;
-            string value = ApplyTransform(text.Text, style.TextTransform);
+            string value = ApplyTransform(text.Text, style.TextTransform, style.Language);
             var font = Font(style);
             double Measure(string s) => Fonts.Simple
                 ? StandardFontMetrics.Measure(font, s, style.FontSize) + style.LetterSpacing * s.Length

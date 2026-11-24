@@ -178,7 +178,7 @@ public class FaqPageTests
         Assert.Equal("Which languages can I use?", languages.Text);
         Assert.False(languages.NotYet);
         Assert.Equal(group.Questions.ToList().FindIndex(q => q.Id == "own-fonts") + 1, group.Questions.ToList().IndexOf(languages));
-        foreach (string term in new[] { "Western European", "Latin letters", "Devanagari", "Bengali and Assamese", "Gujarati", "Punjabi (Gurmukhi)", "Odia", "Kannada", "Malayalam", "Telugu", "Tamil", "Urdu, Kashmiri, and Sindhi", "Right-to-left scripts", "Arabic", "Hebrew", "Chinese, Japanese, and Korean are not supported" })
+        foreach (string term in new[] { "Western European", "Polish, Czech, Romanian, Turkish", "need a font you load", "Latin letters", "Greek", "Cyrillic", "Armenian", "Georgian", "Devanagari", "Bengali and Assamese", "Gujarati", "Punjabi (Gurmukhi)", "Odia", "Kannada", "Malayalam", "Telugu", "Tamil", "Urdu, Kashmiri, and Sindhi", "Right-to-left scripts", "Arabic", "Hebrew", "Chinese, Japanese, and Korean are not supported" })
             Assert.Contains(term, answer, StringComparison.Ordinal);
     }
 
