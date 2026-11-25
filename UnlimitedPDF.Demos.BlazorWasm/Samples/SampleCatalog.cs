@@ -65,8 +65,8 @@ public static class SampleCatalog
             Snippet: "html"),
         new SampleCategory(
             "Languages",
-            "Draw text in nine Indian languages, French, and a mix with your own fonts, shaped by each font's rules. Try your own fonts.",
-            [FontsAndLanguages],
+            "Draw text in 24 languages with your own fonts, shaped by each font's rules, and documents that read from the right in Arabic, Persian, Urdu, Hebrew, and Dhivehi.",
+            [FontsAndLanguages, RightToLeftDocuments],
             Id: "languages",
             Icon: "language",
             Tone: "green",
@@ -241,6 +241,22 @@ public static class SampleCatalog
         "fonts-and-languages.pdf",
         "language",
         PageTitle: "Multilingual PDFs with your own fonts in C#")
+    {
+        Domains = ["Finance"],
+    };
+
+    /// <summary>
+    /// Gets the Right-to-left documents demo (CR-001): Arabic, Persian, Urdu, Hebrew, and Dhivehi invoices with a direction
+    /// switch, drawn with the included fonts.
+    /// </summary>
+    public static SampleDemo RightToLeftDocuments { get; } = new(
+        "Right-to-left documents",
+        "Invoices in Arabic, Persian, Urdu, Hebrew, and Dhivehi that read from the right: switch the direction, draw with text calls or HTML, and copy the C# code.",
+        "playground/languages/right-to-left-documents",
+        "FontsAndLanguagesSample.cs",
+        "right-to-left.pdf",
+        "direction",
+        PageTitle: "Arabic and Hebrew right-to-left PDFs in C#")
     {
         Domains = ["Finance"],
     };

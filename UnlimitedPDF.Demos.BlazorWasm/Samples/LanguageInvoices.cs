@@ -19,6 +19,12 @@ public static class LanguageInvoices
     /// <returns>The preset.</returns>
     public static LanguageInvoice Find(string? id) => All.FirstOrDefault(p => p.Id == id) ?? All[0];
 
+    /// <summary>
+    /// Gets the right-to-left presets (Arabic, Persian, Urdu, Hebrew, Dhivehi), in button order, for the Right-to-left
+    /// documents demo (65-right-to-left-scripts CR-001).
+    /// </summary>
+    public static IReadOnlyList<LanguageInvoice> RightToLeft => All.Where(p => p.RightToLeft).ToList();
+
     #endregion
 
     #endregion

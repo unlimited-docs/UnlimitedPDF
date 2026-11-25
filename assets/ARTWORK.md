@@ -66,6 +66,7 @@ Released under Apache-2.0 with the rest of the repository (PR-011). Their dimens
 | `originals/gallery/document-pack.png` | 1479 x 2092 | Document packs (`playground/merge/document-packs`) |
 | `originals/gallery/headers-and-footers.png` | 1479 x 2092 | Headers and footers (`playground/create/headers-and-footers`) |
 | `originals/gallery/fonts-and-languages.png` | 1479 x 2092 | Fonts and languages (French) (`playground/languages/fonts-and-languages`) |
+| `originals/gallery/right-to-left.png` | 1479 x 2092 | Right-to-left documents (Arabic) (`playground/languages/right-to-left-documents`); added 2026-11-25 for 65-right-to-left-scripts CR-001: the first page of the PDF the demo builds with its default input and the included fonts, rendered by the Windows built-in PDF renderer (`Windows.Data.Pdf`) at 1479 x 2092 instead of a browser capture |
 | `originals/gallery/html-to-pdf.png` | 1479 x 2092 | HTML to PDF (`playground/html/html-to-pdf`) |
 | `originals/gallery/images.png` | 1479 x 2092 | Images (`playground/create/images`) |
 | `originals/gallery/inventory-report.png` | 1479 x 2092 | Inventory report (`playground/documents/inventory-report`) |
@@ -155,6 +156,7 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/document-pack-320.jpg` | `originals/gallery/document-pack.png` | 320 x 453 | 5,905 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/headers-and-footers-320.jpg` | `originals/gallery/headers-and-footers.png` | 320 x 453 | 37,977 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/fonts-and-languages-320.jpg` | `originals/gallery/fonts-and-languages.png` | 320 x 453 | 14,635 | Scenario card |
+| `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/right-to-left-320.jpg` | `originals/gallery/right-to-left.png` | 320 x 453 | 13,861 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/html-to-pdf-320.jpg` | `originals/gallery/html-to-pdf.png` | 320 x 453 | 16,800 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/images-320.jpg` | `originals/gallery/images.png` | 320 x 453 | 10,934 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/inventory-report-320.jpg` | `originals/gallery/inventory-report.png` | 320 x 453 | 37,913 | Scenario card |

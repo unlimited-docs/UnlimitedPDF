@@ -1,0 +1,236 @@
+@page "/playground/languages/right-to-left-documents"
+
+<SamplePage @ref="_page" Demo="SampleCatalog.RightToLeftDocuments" Build="BuildAsync" PageCount="null" OnReset="Reset"
+            SourceFile="@(_input.Mode == DrawMode.Html ? "FontsAndLanguagesHtmlSample.cs" : "FontsAndLanguagesSample.cs")"
+            FileName="@($"right-to-left-{_input.Language}.pdf")" ContentLanguage="@_input.LanguageTag">
+    <Inputs>
+        <CollapsibleSection Title="Invoice">
+            <div class="field">
+                <span class="field-label">Draw with</span>
+                <div class="segmented" role="group" aria-label="Draw with">
+                    <button type="button" aria-pressed="@(_input.Mode == DrawMode.TextCalls ? "true" : "false")" @onclick="() => SetMode(DrawMode.TextCalls)">Text calls</button>
+                    <button type="button" aria-pressed="@(_input.Mode == DrawMode.Html ? "true" : "false")" @onclick="() => SetMode(DrawMode.Html)">HTML</button>
+                </div>
+            </div>
+            <div class="field">
+                <span class="field-label">Language</span>
+                <div class="segmented wrap" role="group" aria-label="Language">
+                    @foreach (var preset in Presets)
+                    {
+                        <button type="button" aria-pressed="@(_input.Language == preset.Id ? "true" : "false")" @onclick="() => UseLanguage(preset)">@preset.Name</button>
+                    }
+                </div>
+            </div>
+            <div class="field">
+                <span class="field-label">Direction</span>
+                <div class="segmented wrap" role="group" aria-label="Direction">
+                    @foreach (var (direction, label) in Directions)
+                    {
+                        <button type="button" aria-pressed="@(_input.DrawnDirection == direction ? "true" : "false")" @onclick="() => SetDirection(direction)">@label</button>
+                    }
+                </div>
+                <p class="field-hint">
+                    The document's <code>TextDirection</code> in text calls, and the <code>dir</code> of the HTML. Right to left starts each
+                    line at the right edge and puts the first table column at the right; Auto takes each text's first letter; Left to right
+                    shows what the setting changes.
+                </p>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Fonts">
+            <p class="field-hint">
+                The invoices are drawn with free Noto Sans fonts included for this demo: Noto Sans Arabic, Hebrew, and Thaana, and Noto Sans for
+                Latin text. To try your own fonts, use <a href="@SampleCatalog.FontsAndLanguages.Route?language=@_input.Language">Fonts and languages</a>.
+            </p>
+            @if (_loadingFonts)
+            {
+                <div class="upload-reading" role="status">
+                    <span class="spinner-border spinner-sm spinner-sm-inline" aria-hidden="true"></span> Loading the included fonts...
+                </div>
+            }
+            else if (_missing.Count > 0)
+            {
+                <p class="missing-note" role="status">
+                    @_missing.Count @(_missing.Count == 1 ? "character has" : "characters have") no font and @(_missing.Count == 1 ? "is" : "are") drawn as ?: @string.Join(" ", _missing.Take(12))@(_missing.Count > 12 ? " ..." : "")
+                    Some included fonts couldn't be loaded; try <a href="@SampleCatalog.FontsAndLanguages.Route">Fonts and languages</a> with your own.
+                </p>
+            }
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Seller and buyer" InitiallyOpen="false">
+            <div class="field">
+                <label for="rtl-seller-name">Seller name</label>
+                <input id="rtl-seller-name" lang="@_input.LanguageTag" dir="@FieldDirection" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field">
+                <label for="rtl-seller-address">Seller address</label>
+                <input id="rtl-seller-address" lang="@_input.LanguageTag" dir="@FieldDirection" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field">
+                <label for="rtl-buyer-name">Buyer name</label>
+                <input id="rtl-buyer-name" lang="@_input.LanguageTag" dir="@FieldDirection" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field">
+                <label for="rtl-buyer-address">Buyer address</label>
+                <input id="rtl-buyer-address" lang="@_input.LanguageTag" dir="@FieldDirection" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
+            </div>
+            <div class="field-row">
+                <div class="field">
+                    <label for="rtl-number">Invoice number</label>
+                    <input id="rtl-number" class="form-control" @bind="_input.InvoiceNumber" @bind:event="oninput" />
+                </div>
+                <div class="field">
+                    <label for="rtl-date">Date</label>
+                    <input id="rtl-date" type="date" class="form-control" @bind="_input.InvoiceDate" />
+                </div>
+            </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection Title="Line items">
+            <div class="rows">
+                @for (int index = 0; index < _input.Items.Count; index++)
+                {
+                    var line = _input.Items[index];
+                    var number = index + 1;
+                    <div class="row-item" @key="line">
+                        <div class="row-item-head">
+                            <span>Item @number</span>
+                            <button type="button" class="row-remove" title="Remove item @number" aria-label="Remove item @number" @onclick="() => RemoveItem(line)">
+                                <Icon Name="close" Size="16" />
+                            </button>
+                        </div>
+                        <input class="form-control" lang="@_input.LanguageTag" dir="@FieldDirection" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
+                        <div class="field-row">
+                            <div class="field">
+                                <label for="@($"right-to-left-{number}-qty")">Qty</label>
+                                <input id="@($"right-to-left-{number}-qty")" type="number" min="0" class="form-control" @bind="line.Quantity" />
+                            </div>
+                            <div class="field">
+                                <label for="@($"right-to-left-{number}-rate")">Rate</label>
+                                <input id="@($"right-to-left-{number}-rate")" type="number" min="0" step="0.01" class="form-control" @bind="line.Rate" />
+                            </div>
+                        </div>
+                    </div>
+                }
+                <button type="button" class="btn btn-sm btn-outline row-add" @onclick="AddItem">+ Add item</button>
+            </div>
+        </CollapsibleSection>
+    </Inputs>
+</SamplePage>
+
+@inject HttpClient Http
+
+@code {
+    private IReadOnlyDictionary<FontScript, UploadedFont> _fonts = new Dictionary<FontScript, UploadedFont>();
+    private Task? _loading;
+    private bool _loadingFonts = true;
+    private FontsAndLanguagesInput _input = NewInput(null);
+    private IReadOnlyList<string> _missing = Array.Empty<string>();
+    private SamplePage? _page;
+
+    // The right-to-left invoices the demo offers, in button order (CR-001, D-014).
+    private static IReadOnlyList<LanguageInvoice> Presets => LanguageInvoices.RightToLeft;
+
+    // The direction choices, right to left first (D-015).
+    private static readonly (PdfTextDirection Direction, string Label)[] Directions =
+    [
+        (PdfTextDirection.RightToLeft, "Right to left"),
+        (PdfTextDirection.Auto, "Auto"),
+        (PdfTextDirection.LeftToRight, "Left to right")
+    ];
+
+    /// <summary>
+    /// Gets or sets the language to start with, from the address (a language id such as <c>hebrew</c>); any other value
+    /// keeps the default.
+    /// </summary>
+    [SupplyParameterFromQuery(Name = "language")] public string? Language { get; set; }
+
+    // The fields hold right-to-left text whatever direction the PDF is drawn in.
+    private string FieldDirection => "rtl";
+
+    protected override void OnInitialized()
+    {
+        _input = NewInput(Language);
+        Refresh();
+        _loading = LoadFontsAsync();
+    }
+
+    private static FontsAndLanguagesInput NewInput(string? language)
+    {
+        var input = new FontsAndLanguagesInput { Direction = PdfTextDirection.RightToLeft };
+        input.Apply(Presets.FirstOrDefault(p => p.Id == language) ?? Presets[0]);
+        return input;
+    }
+
+    private void AddItem()
+    {
+        _input.Items.Add(new LanguageInvoiceLine());
+        _page?.NotifyInputsChanged();
+    }
+
+    private async Task<PdfDocument> BuildAsync()
+    {
+        // The first preview waits for the included fonts, so it never draws their scripts as "?".
+        if (_loading is not null) await _loading;
+        Refresh();
+        var slots = FontSlots.Scripts.Where(_fonts.ContainsKey).Select(script => (Script: script, Font: _fonts[script].Font)).ToList();
+        if (_input.Mode == DrawMode.Html) return FontsAndLanguagesHtmlSample.Build(_input, slots, out _);
+        var fonts = slots.Select(s => s.Font).ToList();
+        return FontsAndLanguagesSample.Build(_input, fonts, fonts);
+    }
+
+    private async Task LoadFontsAsync()
+    {
+        try
+        {
+            _fonts = await BundledFonts.LoadAsync(Http);
+        }
+        finally
+        {
+            _loadingFonts = false;
+            Refresh();
+            StateHasChanged();
+        }
+    }
+
+    private void Refresh()
+    {
+        var fonts = FontSlots.Scripts.Where(_fonts.ContainsKey).Select(script => _fonts[script].Font).ToList();
+        _missing = _loadingFonts ? Array.Empty<string>() : FontsAndLanguagesSample.MissingCharacters(_input, fonts);
+    }
+
+    private void RemoveItem(LanguageInvoiceLine line)
+    {
+        _input.Items.Remove(line);
+        _page?.NotifyInputsChanged();
+    }
+
+    private void Reset()
+    {
+        var mode = _input.Mode;
+        _input = NewInput(null);
+        _input.Mode = mode;
+        Refresh();
+    }
+
+    private void SetDirection(PdfTextDirection direction)
+    {
+        _input.Direction = direction;
+        _page?.NotifyInputsChanged();
+    }
+
+    private void SetMode(DrawMode mode)
+    {
+        _input.Mode = mode;
+        _page?.NotifyInputsChanged();
+    }
+
+    private void UseLanguage(LanguageInvoice preset)
+    {
+        var direction = _input.Direction;
+        _input.Apply(preset);
+        _input.Direction = direction;
+        Refresh();
+        _page?.NotifyInputsChanged();
+    }
+}

@@ -23,7 +23,7 @@ public class FontsAndLanguagesPageTests
 
         Assert.Equal("Languages", languages.Title);
         Assert.Equal(categories.Single(c => c.Id == "html-to-pdf"), categories[categories.ToList().IndexOf(languages) - 1]);
-        Assert.Same(SampleCatalog.FontsAndLanguages, Assert.Single(languages.Demos));
+        Assert.Equal(new[] { SampleCatalog.FontsAndLanguages, SampleCatalog.RightToLeftDocuments }, languages.Demos); // CR-001
         Assert.Equal("playground/languages/fonts-and-languages", SampleCatalog.FontsAndLanguages.Route);
         Assert.Equal(("language", "green", "languages"), (languages.Icon, languages.Tone, languages.Snippet));
         Assert.Contains("24 languages, from Hindi and Tamil to Arabic, Urdu, Hebrew, Greek, and Russian", SampleCatalog.FontsAndLanguages.Description, StringComparison.Ordinal);

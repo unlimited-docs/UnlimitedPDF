@@ -450,6 +450,16 @@
       "capturedOn": "2026-11-17"
     },
     {
+      "path": "originals/gallery/right-to-left.png",
+      "purpose": "Right-to-left documents (Arabic) card picture: first page of the PDF the demo generates with its default input, rendered by the Windows built-in PDF renderer (Windows.Data.Pdf) at the gallery originals' size",
+      "width": 1479,
+      "height": 2092,
+      "bytes": 82594,
+      "sha256": "ca5bfbee649b725e28fcd478c5125e7f633744c388e7c4c33f090237a0cea944",
+      "capturedFrom": "playground/languages/right-to-left-documents",
+      "capturedOn": "2026-11-25"
+    },
+    {
       "path": "originals/gallery/html-to-pdf.png",
       "purpose": "HTML to PDF card picture: first page of the PDF the demo generates with its default input",
       "width": 1479,

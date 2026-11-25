@@ -280,7 +280,7 @@ $copies = @(
 # originals are captures; see ARTWORK.md.
 New-Item -ItemType Directory -Force -Path (Join-Path $images 'gallery') | Out-Null
 $gallery = 'invoice', 'quotation', 'purchase-order', 'delivery-note', 'account-statement', 'payslip', 'medical-report', 'receipt',
-    'bookmarks-and-numbers', 'invoices', 'common-html-to-pdf-problems', 'contract', 'cover-and-ranges', 'document-pack', 'headers-and-footers', 'fonts-and-languages', 'html-to-pdf', 'images', 'inventory-report', 'joined', 'kpi-report', 'picked-pages', 'shipping-labels', 'every-n-pages', 'page-ranges', 'extracted-pages', 'remaining-pages', 'tables', 'text-and-pages'
+    'bookmarks-and-numbers', 'invoices', 'common-html-to-pdf-problems', 'contract', 'cover-and-ranges', 'document-pack', 'headers-and-footers', 'fonts-and-languages', 'right-to-left', 'html-to-pdf', 'images', 'inventory-report', 'joined', 'kpi-report', 'picked-pages', 'shipping-labels', 'every-n-pages', 'page-ranges', 'extracted-pages', 'remaining-pages', 'tables', 'text-and-pages'
 $copies += foreach ($name in $gallery) {
     @{ Out = "UnlimitedPDF.Demos.BlazorWasm\wwwroot\images\gallery\$name-320.jpg"; From = "originals\gallery\$name.png"; Use = 'Scenario card'; Make = { param($i, $o) [ArtworkCopies]::WidthJpeg($i, $o, 320, 40000) } }
 }

@@ -40,6 +40,7 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 ## Languages
 
 - [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in 24 languages, from Hindi and Tamil to Arabic, Urdu, Hebrew, Greek, and Russian, or a mix, drawn with included free fonts or your own.
+- [Arabic and Hebrew right-to-left PDFs in C#](https://unlimitedpdf.dev/playground/languages/right-to-left-documents): Invoices in Arabic, Persian, Urdu, Hebrew, and Dhivehi that read from the right: switch the direction, draw with text calls or HTML, and copy the C# code.
 
 ## Complete business documents
 
