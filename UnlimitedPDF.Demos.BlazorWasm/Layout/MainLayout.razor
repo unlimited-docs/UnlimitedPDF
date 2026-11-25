@@ -73,7 +73,7 @@
     <nav class="footer-links" aria-label="Site links">
         @foreach (var column in FooterLinks.Columns)
         {
-            <div class="footer-col">
+            <div class="@(column.IsWide ? "footer-col is-wide" : "footer-col")">
                 <h2 class="footer-title">@column.Title</h2>
                 <ul>
                     @foreach (var link in column.Links)

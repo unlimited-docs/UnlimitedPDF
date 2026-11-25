@@ -173,8 +173,13 @@ summary:focus-visible,
 }
 
 @media (max-width: 575.98px) {
-    .topbar-inner { padding: 0 0.9rem; }
+    .topbar-inner { padding: 0 1rem; }
 }
+
+/* The logo and the menu line up with the page's sections (1,200 px, the home, tools, FAQ, and gallery pages); a demo
+   page, which uses the full width, keeps the wider bar. */
+.topbar-inner { max-width: 1200px; }
+body:has(.playground) .topbar-inner { max-width: 1440px; }
 
 /* The menu drawer: the browser's modal dialog, full height at the right edge, at most 22rem wide. */
 .site-menu {
@@ -1005,7 +1010,7 @@ input[type="file"] { max-width: 100%; }
 }
 
 /* "How do I...?": two columns of questions, one on a phone. */
-.questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; margin: 0; padding: 0; list-style: none; }
+.questions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem 1rem; margin: 0; padding: 0; list-style: none; }
 .question {
     display: flex;
     flex-wrap: wrap;
@@ -1064,16 +1069,26 @@ input[type="file"] { max-width: 100%; }
 .footer a { text-decoration: underline; text-underline-offset: 2px; }
 .footer-heart { fill: currentColor; color: var(--app-danger); vertical-align: -2px; }
 
-/* The footer's links (QF-26112201): four columns by task, document, tool, and resource, above the credit lines; two
-   columns on tablets and phones. */
-.footer-links { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.25rem 2rem; max-width: 1100px; margin: 0 auto 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--app-line); text-align: left; }
+/* The footer's links (QF-26112201): columns by task, tool, language, and resource, above the credit lines, on the same
+   left and right edges as the page's sections. The languages, the longest list, take two tracks and list their links
+   in two columns with the grid's own gap, so each half lines up with a track. Two tracks on tablets and phones, where
+   the languages take a row of their own. */
+.footer-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.25rem 2rem; max-width: calc(1200px - 2.5rem); margin: 0 auto 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--app-line); text-align: left; }
+.footer-col.is-wide { grid-column: span 2; }
+.footer-col.is-wide ul { columns: 2; column-gap: 2rem; }
+.footer-col.is-wide li { break-inside: avoid; padding-bottom: 0.2rem; }
+.footer-col.is-wide li + li { margin-top: 0; }
 .footer-title { margin: 0 0 0.5rem; color: var(--app-accent); font-size: 0.95rem; font-weight: 750; }
 .footer-col ul { margin: 0; padding: 0; list-style: none; }
 .footer-col li + li { margin-top: 0.2rem; }
 .footer-col a { color: var(--app-muted); text-decoration: none; display: inline-block; padding: 0.1rem 0; }
 .footer-col a:hover { color: var(--app-accent); text-decoration: underline; }
 @media (max-width: 1023.98px) { .footer-links { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 575.98px) { .footer-col a { min-height: 44px; display: inline-flex; align-items: center; } }
+@media (max-width: 575.98px) {
+    .footer { padding-left: 1rem; padding-right: 1rem; }
+    .footer-links { max-width: none; }
+    .footer-col a { min-height: 44px; display: inline-flex; align-items: center; }
+}
 
 /* The home page's jump links to the capability rows and each row's free tools (QF-26112201 F-5, F-7); the documents
    section keeps the row's anchor and stops below the top bar. */
@@ -1089,13 +1104,16 @@ input[type="file"] { max-width: 100%; }
 #documents.home-section, #capabilities.home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
 
 /* The home page's two paths (QF-26112201): for developers and for visitors' own files, side by side, one column below
-   1,024 px. */
-.home-paths { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: stretch; }
+   1,024 px, with the same 1rem gutter as the page's other grids. */
+.home-paths { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: stretch; }
 .home-path { display: flex; flex-direction: column; gap: 0.9rem; padding: 1.25rem 1.4rem; background: var(--app-surface); border: 1px solid var(--app-line); border-radius: var(--app-radius); }
 .home-path-title { margin: 0; color: var(--app-accent); font-size: 1.35rem; font-weight: 800; }
 .home-path-lead { margin: -0.5rem 0 0; color: var(--app-muted); }
 .home-path .home-tools-list { margin: 0; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .home-path-more { margin-top: auto; display: inline-flex; align-items: center; gap: 0.3rem; min-height: 44px; font-weight: 700; }
+.home-path-note { display: flex; align-items: center; gap: 0.4rem; margin: 0; color: var(--app-muted); }
+.home-path-links { display: flex; flex-wrap: wrap; gap: 0 1.5rem; margin-top: auto; }
+.home-path-links .home-path-more { margin-top: 0; }
 @media (max-width: 1023.98px) { .home-paths { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 575.98px) { .cap-jump a, .cap-tool { min-height: 44px; } }
 
@@ -1250,7 +1268,7 @@ input[type="file"] { max-width: 100%; }
 /* Phone tap targets: every shared and playground control is at least 44 px on a phone (26111103 AC-05). Desktop
    sizes are unchanged. Home's own controls follow in the Home section. */
 @media (max-width: 575.98px) {
-    .brand { min-width: 44px; min-height: 44px; justify-content: center; }
+    .brand { min-width: 44px; min-height: 44px; justify-content: flex-start; }
     .version-link { min-height: 44px; }
     .topnav-link { min-height: 44px; }
     .btn { align-items: center; justify-content: center; min-height: 44px; }

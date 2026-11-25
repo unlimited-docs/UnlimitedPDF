@@ -260,8 +260,10 @@ public class HomePageTests
     [Fact]
     public void The_footer_has_four_columns_and_every_link_opens_a_page_that_exists()
     {
-        // QF-26112201: C# guides, languages, free tools, and resources, on every page, in the words people search with.
-        Assert.Equal(["C# guides", "Languages", ToolCatalog.HubHeading, "Resources"], FooterLinks.Columns.Select(c => c.Title));
+        // QF-26112201: C# guides, free tools, languages, and resources, on every page, in the words people search with.
+        // The languages, the longest list, are one wide column with their links in two columns.
+        Assert.Equal(["C# guides", ToolCatalog.HubHeading, "Languages", "Resources"], FooterLinks.Columns.Select(c => c.Title));
+        Assert.Equal(["Languages"], FooterLinks.Columns.Where(c => c.IsWide).Select(c => c.Title));
         var pages = SampleCatalog.Pages.Select(d => d.Route)
             .Concat(ToolCatalog.All.Select(t => t.Route))
             .Concat([ToolCatalog.HubRoute, ScenarioGallery.Route, "faq", "getting-started"]).ToHashSet();
@@ -270,7 +272,7 @@ public class HomePageTests
         Assert.Equal(links.Count, links.Select(l => l.Href).Distinct().Count());
         Assert.All(links.Where(l => !l.External), link => Assert.Contains(link.Href.Split('?')[0], pages));
         Assert.All(links.Where(l => l.External), link => Assert.StartsWith("https://", link.Href, StringComparison.Ordinal));
-        Assert.Equal(LanguageInvoices.All.Select(FooterLinks.LanguageRoute), FooterLinks.Columns[1].Links.Take(LanguageInvoices.All.Count).Select(l => l.Href));
+        Assert.Equal(LanguageInvoices.All.Select(FooterLinks.LanguageRoute), FooterLinks.Columns.Single(c => c.Title == "Languages").Links.Take(LanguageInvoices.All.Count).Select(l => l.Href));
 
         var layout = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Layout/MainLayout.razor"));
         Assert.Contains("@foreach (var column in FooterLinks.Columns)", layout, StringComparison.Ordinal);

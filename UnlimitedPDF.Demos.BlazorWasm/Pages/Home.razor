@@ -51,7 +51,13 @@
         <div class="first-pdf-code">
             <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
         </div>
-        <a class="home-path-more" href="#capabilities">See the C# for each capability <Icon Name="arrow" Size="16" /></a>
+        @* What it runs on, the first thing developers check, and the step-by-step guide (true per the getting-started
+           page and the csproj, PR-012). They also fill the card to the tools card's height, so its links line up. *@
+        <p class="home-path-note"><Icon Name="check" Size="16" /> One package targets .NET 6, .NET 8, .NET 9, .NET 10, and .NET 11.</p>
+        <div class="home-path-links">
+            <a class="home-path-more" href="getting-started">Get started step by step <Icon Name="arrow" Size="16" /></a>
+            <a class="home-path-more" href="#capabilities">See the C# for each capability <Icon Name="arrow" Size="16" /></a>
+        </div>
     </div>
     <div class="home-path home-tools" aria-labelledby="home-tools-title" role="region">
         <h2 id="home-tools-title" class="home-path-title">For your files</h2>
@@ -111,7 +117,7 @@
 </section>
 
 <section class="section home-section" aria-labelledby="why-title">
-    <h2 id="why-title" class="section-title is-centered">Why UnlimitedPDF</h2>
+    <h2 id="why-title" class="section-title">Why UnlimitedPDF</h2>
     <ul class="benefits">
         @foreach (var (title, text) in Benefits)
         {

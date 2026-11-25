@@ -16,11 +16,12 @@ public sealed record FooterLink(string Text, string Href, bool External = false)
 /// </summary>
 /// <param name="Title">The column heading.</param>
 /// <param name="Links">The links, in the order shown.</param>
-public sealed record FooterColumn(string Title, IReadOnlyList<FooterLink> Links);
+/// <param name="IsWide">Whether the column is twice as wide and lists its links in two columns, for a long list.</param>
+public sealed record FooterColumn(string Title, IReadOnlyList<FooterLink> Links, bool IsWide = false);
 
 /// <summary>
 /// The site footer's links, on every page (QF-26112201): the common C# tasks by the words people search with, the
-/// languages, the free tools, and the site's other pages and project links. Every address comes from the
+/// free tools, the languages, and the site's other pages and project links. Every address comes from the
 /// catalogs, so a link cannot point to a page that does not exist.
 /// </summary>
 public static class FooterLinks
@@ -59,17 +60,19 @@ public static class FooterLinks
             new("Split a PDF in C#", SampleCatalog.SplitEveryN.Route),
             new("Convert HTML to PDF in C#", SampleCatalog.HtmlToPdf.Route),
         ]),
-        new("Languages",
-        [
-            .. LanguageInvoices.All.Select(language => new FooterLink(LanguageText(language), LanguageRoute(language))),
-            new("Use your own fonts", SampleCatalog.FontsAndLanguages.Route),
-            new("Right-to-left PDFs", SampleCatalog.RightToLeftDocuments.Route),
-        ]),
         new(ToolCatalog.HubHeading,
         [
             .. ToolCatalog.All.Select(tool => new FooterLink(tool.Name, tool.Route)),
             new("All tools", ToolCatalog.HubRoute),
         ]),
+        // The longest list, in two columns. It comes after the tools so that, where the footer has two columns, the
+        // guides and the tools share the first row and the languages take the next row whole, in reading order.
+        new("Languages",
+        [
+            .. LanguageInvoices.All.Select(language => new FooterLink(LanguageText(language), LanguageRoute(language))),
+            new("Use your own fonts", SampleCatalog.FontsAndLanguages.Route),
+            new("Right-to-left PDFs", SampleCatalog.RightToLeftDocuments.Route),
+        ], IsWide: true),
         new("Resources",
         [
             new("Getting started", "getting-started"),
