@@ -82,7 +82,7 @@ public static class SiteSearch
     /// Finds the demos, FAQ answers, and code lines that hold every word of a query.
     /// </summary>
     /// <param name="query">What the visitor typed.</param>
-    /// <param name="source">Reads a demo's sample source by file name (see <see cref="SampleDemo.SourceFile"/>).</param>
+    /// <param name="source">Reads a demo's program by file name (see <see cref="SampleDemo.ProgramFile"/>).</param>
     /// <returns>Up to <see cref="MaxPerKind"/> demos, then tools, then FAQ answers, then code lines; empty for an empty query.</returns>
     public static IReadOnlyList<SearchResult> Find(string? query, Func<string, string> source)
     {
@@ -109,10 +109,10 @@ public static class SiteSearch
             .Take(MaxPerKind)
             .Select(question => new SearchResult(SearchKind.Faq, question.Text, Shorten(question.Answer.FirstOrDefault() ?? string.Empty, null), FaqAddress(question.Id))));
 
-        foreach (var demo in SampleCatalog.Pages.DistinctBy(demo => demo.SourceFile))
+        foreach (var demo in SampleCatalog.Pages.DistinctBy(demo => demo.ProgramFile))
         {
             if (results.Count(r => r.Kind == SearchKind.Code) == MaxPerKind) break;
-            string code = source(demo.SourceFile);
+            string code = source(demo.ProgramFile);
             if (!words.All(word => Contains(code, word))) continue;
             // The line holding the most of the words; the first such line when several hold as many.
             string line = code.Split('\n').Select(l => l.Trim()).MaxBy(l => words.Count(word => Contains(l, word)))!;

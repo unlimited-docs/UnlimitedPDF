@@ -1,9 +1,37 @@
-<div class="code-view">
+<div class="code-view@(WrapLines ? " code-wrap" : "")">
     @* The button's name is its visible text (WCAG 2.5.3); the result of a copy is also announced. *@
     <button type="button" class="code-copy" @onclick="CopyAsync">
         <Icon Name="@(_copyState == CopyState.Copied ? "check" : "copy")" Size="15" />
-        @(_copyState switch { CopyState.Copied => "Copied", CopyState.Unavailable => "Copy not available", _ => "Copy code" })
+        @CopyLabel
     </button>
     <span class="visually-hidden" role="status">@(_copyState switch { CopyState.Copied => "Code copied.", CopyState.Unavailable => "Copy is not available in this browser.", _ => "" })</span>
     <pre tabindex="0" role="region" aria-label="@AriaLabel"><code>@Source</code></pre>
 </div>
+
+@if (FullScreenTitle is not null)
+{
+    @* Full screen (QF-26112501): the browser's modal dialog over the whole window, every line at full width. It keeps
+       focus inside, closes on Escape or Close, and returns focus to the button that opened it. *@
+    <dialog class="code-dialog@(WrapLines ? " code-wrap" : "")" @ref="_dialog" aria-labelledby="@_titleId">
+        <div class="code-dialog-bar">
+            <h2 class="code-dialog-title" id="@_titleId">@FullScreenTitle</h2>
+            @if (FullScreenNote is not null)
+            {
+                <span class="code-dialog-note">@FullScreenNote</span>
+            }
+            <span class="code-dialog-actions">
+                <button type="button" class="code-copy" @onclick="CopyAsync">
+                    <Icon Name="@(_copyState == CopyState.Copied ? "check" : "copy")" Size="15" />
+                    @CopyLabel
+                </button>
+                <button type="button" class="code-copy" @onclick="CloseFullScreenAsync">
+                    <Icon Name="close" Size="15" /> Close
+                </button>
+            </span>
+        </div>
+        @if (_fullScreen)
+        {
+            <pre tabindex="0" role="region" aria-label="@AriaLabel"><code>@Source</code></pre>
+        }
+    </dialog>
+}

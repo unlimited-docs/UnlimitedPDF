@@ -1,0 +1,14 @@
+@* The demo output's two tabs (QF-26112501): the result (the PDF, or a split's parts) and the C# code, a complete
+   console program. Arrow keys, Home, and End move between them (the ARIA tabs pattern, activated on focus). *@
+<div class="demo-tabs" role="tablist" aria-label="@AriaLabel">
+    <button type="button" role="tab" id="@OutputTabId" class="demo-tab" aria-selected="@(CodeSelected ? "false" : "true")"
+            aria-controls="@OutputPanelId" tabindex="@(CodeSelected ? -1 : 0)" @ref="_outputTab"
+            @onclick="() => SelectAsync(code: false)" @onkeydown="OnKeyDownAsync">
+        @OutputLabel
+    </button>
+    <button type="button" role="tab" id="@CodeTabId" class="demo-tab" aria-selected="@(CodeSelected ? "true" : "false")"
+            aria-controls="@CodePanelId" tabindex="@(CodeSelected ? 0 : -1)" @ref="_codeTab"
+            @onclick="() => SelectAsync(code: true)" @onkeydown="OnKeyDownAsync">
+        C# code
+    </button>
+</div>

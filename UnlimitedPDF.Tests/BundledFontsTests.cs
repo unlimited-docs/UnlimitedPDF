@@ -159,9 +159,11 @@ public class BundledFontsTests
             .Order(StringComparer.Ordinal);
         Assert.Equal(["FontsAndLanguages.razor", "HtmlToPdf.razor", "RightToLeftDocuments.razor"], callers);
 
-        // Nothing else on the site names the font folder, so the first visit downloads no font.
+        // Nothing else on the site names the font folder, so the first visit downloads no font. The demos' console
+        // programs (Programs/) name font addresses only in their setup steps: text the code tab shows, never fetched.
         string root = RepositoryFile("UnlimitedPDF.Demos.BlazorWasm");
         var others = Directory.EnumerateFiles(root, "*.*", SearchOption.AllDirectories)
+            .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}Programs{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Where(path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                         && !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
                         && !path.Contains($"{Path.DirectorySeparatorChar}fonts{Path.DirectorySeparatorChar}", StringComparison.Ordinal)

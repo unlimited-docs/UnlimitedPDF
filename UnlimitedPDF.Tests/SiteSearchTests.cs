@@ -27,7 +27,7 @@ public class SiteSearchTests
         {
             Assert.Contains("AddPages", r.Detail, StringComparison.OrdinalIgnoreCase);
             var demo = SampleCatalog.Pages.First(d => d.Route == r.Address);
-            Assert.Contains("AddPages", Source(demo.SourceFile), StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("AddPages", Source(demo.ProgramFile), StringComparison.OrdinalIgnoreCase);
         });
     }
 
@@ -135,7 +135,7 @@ public class SiteSearchTests
         });
 
         // Each source file once.
-        Assert.Equal(results.Count, results.Select(r => SampleCatalog.Pages.First(d => d.Route == r.Address).SourceFile).Distinct().Count());
+        Assert.Equal(results.Count, results.Select(r => SampleCatalog.Pages.First(d => d.Route == r.Address).ProgramFile).Distinct().Count());
     }
 
     [Fact]
@@ -193,8 +193,8 @@ public class SiteSearchTests
     private static string DemosFile(string relative, [CallerFilePath] string source = "") =>
         File.ReadAllText(Path.Combine(Path.GetDirectoryName(source)!, "..", "UnlimitedPDF.Demos.BlazorWasm", relative));
 
-    // The demo's sample source, as the app embeds it.
-    private static string Source(string file) => DemosFile("Samples/" + file).Replace("\r\n", "\n");
+    // What a demo's code tab shows, as the app embeds it: its complete console program (QF-26112501).
+    private static string Source(string file) => DemosFile("Programs/" + file).Replace("\r\n", "\n");
 
     #endregion
 

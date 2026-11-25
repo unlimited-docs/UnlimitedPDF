@@ -45,20 +45,22 @@ public class FontsAndLanguagesPageTests
     }
 
     [Fact]
-    public void The_code_card_shows_the_sample_of_the_chosen_drawing_mode_and_the_download_names_the_language()
+    public void The_code_tab_shows_the_program_of_the_chosen_drawing_mode_and_the_download_names_the_language()
     {
         string page = DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor");
         string frame = DemosFile("Components/SamplePage.razor.cs");
 
         Assert.Contains("SourceFile=\"@(_input.Mode == DrawMode.Html ? \"FontsAndLanguagesHtmlSample.cs\" : \"FontsAndLanguagesSample.cs\")\"", page, StringComparison.Ordinal);
         Assert.Contains("FileName=\"@($\"fonts-and-languages-{_input.Language}.pdf\")\"", page, StringComparison.Ordinal);
-        Assert.Contains("_source = SampleSource.Read(ShownSourceFile);", frame, StringComparison.Ordinal);
-        Assert.Contains("private string ShownSourceFile => SourceFile ?? Demo.SourceFile;", frame, StringComparison.Ordinal);
+        // The code tab shows the complete console program of the chosen mode's builder (QF-26112501).
+        Assert.Contains("string program = SampleSource.Read(ShownProgramFile);", frame, StringComparison.Ordinal);
+        Assert.Contains("ProgramFile ?? SampleDemo.ProgramFileOf(SourceFile ?? Demo.SourceFile);", frame, StringComparison.Ordinal);
         Assert.Contains("await _preview.ShowAsync(pdfBytes, ShownFileName);", frame, StringComparison.Ordinal);
 
-        // Both samples are compiled into the site and embedded for the code card.
-        Assert.Contains("<EmbeddedResource Include=\"Samples\\*Sample.cs\"", DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj"), StringComparison.Ordinal);
+        // Both builders are compiled into the site; both modes' programs are embedded for the code tab.
+        Assert.Contains("<EmbeddedResource Include=\"Programs\\*Program.cs\"", DemosFile("UnlimitedPDF.Demos.BlazorWasm.csproj"), StringComparison.Ordinal);
         Assert.True(File.Exists(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Samples/FontsAndLanguagesHtmlSample.cs")));
+        Assert.True(File.Exists(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Programs/FontsAndLanguagesHtmlProgram.cs")));
     }
 
     [Fact]

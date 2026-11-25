@@ -8,9 +8,10 @@ using UnlimitedPDF.Demos.BlazorWasm.Services;
 namespace UnlimitedPDF.Demos.BlazorWasm.Components;
 
 /// <summary>
-/// The page frame every playground demo shares: options with Generate, the drawn PDF and the C# code, and the status
-/// line. It generates the default PDF when the demo opens, runs one generation at a time, and keeps the last good
-/// preview visible while a new one is built or when generation fails.
+/// The page frame every playground demo shares: options with Generate, and the output's two tabs, the drawn PDF with
+/// its status line and the C# code as a complete console program. It generates the default PDF when the demo opens,
+/// runs one generation at a time, and keeps the last good preview visible while a new one is built or when generation
+/// fails.
 /// </summary>
 public partial class SamplePage
 {
@@ -19,6 +20,8 @@ public partial class SamplePage
     private readonly string _id = $"demo-{Guid.NewGuid():N}";
     private string? _announcement;
     private bool _busy;
+    private bool _codeSelected;
+    private CodeView? _codeView;
     private string? _error;
     private ElementReference _optionsSection;
     private ElementReference _outputSection;
@@ -48,7 +51,8 @@ public partial class SamplePage
     {
         if ((Build is null) == (BuildFile is null))
             throw new InvalidOperationException($"{nameof(SamplePage)} needs exactly one of {nameof(Build)} and {nameof(BuildFile)}.");
-        _source = SampleSource.Read(ShownSourceFile);
+        string program = SampleSource.Read(ShownProgramFile);
+        _source = ShapeProgram is null ? program : ShapeProgram(program);
     }
 
     #endregion
@@ -143,9 +147,14 @@ public partial class SamplePage
 
         if (userStarted && _error is null)
         {
+            // The visitor asked for a PDF: show it, even if the code tab was open.
+            _codeSelected = false;
+            StateHasChanged();
             await Interop.ScrollIntoViewOnNarrowAsync(_outputSection);
         }
     }
+
+    private void OnTabChanged(bool code) => _codeSelected = code;
 
     private void OnInputsChanged(ChangeEventArgs _)
     {
@@ -236,10 +245,31 @@ public partial class SamplePage
 
     private string ShownFileName => FileName ?? Demo.FileName;
 
-    private string ShownSourceFile => SourceFile ?? Demo.SourceFile;
+    // The complete console program the code tab shows: the page's own, else the one for the builder file shown.
+    private string ShownProgramFile => ProgramFile ?? SampleDemo.ProgramFileOf(SourceFile ?? Demo.SourceFile);
 
     /// <summary>
-    /// Gets or sets the sample file the C# code card shows, or null for the demo's own (<see cref="SampleDemo.SourceFile"/>).
+    /// Gets or sets the program file the code tab shows when it is not the one named after the builder file (see
+    /// <see cref="SampleDemo.ProgramFileOf"/>), for example a page whose defaults differ from the demo it shares a
+    /// builder with; null for the builder's program.
+    /// </summary>
+    [Parameter] public string? ProgramFile { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether the code tab wraps long lines, for a program holding text the visitor edits (HTML), whose
+    /// lines can be of any length. The programs themselves keep to 100 characters a line.
+    /// </summary>
+    [Parameter] public bool WrapCode { get; set; }
+
+    /// <summary>
+    /// Gets or sets a change the page makes to the program before it is shown, such as putting in the HTML being
+    /// edited; null to show the program as it is.
+    /// </summary>
+    [Parameter] public Func<string, string>? ShapeProgram { get; set; }
+
+    /// <summary>
+    /// Gets or sets the sample builder file of the way the PDF is currently built, or null for the demo's own
+    /// (<see cref="SampleDemo.SourceFile"/>); the code tab shows its program (<see cref="SampleDemo.ProgramFileOf"/>).
     /// A demo with more than one way of building its PDF sets the file of the way currently chosen.
     /// </summary>
     [Parameter] public string? SourceFile { get; set; }

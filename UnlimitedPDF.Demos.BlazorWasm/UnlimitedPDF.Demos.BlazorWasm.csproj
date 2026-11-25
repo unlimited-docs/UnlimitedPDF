@@ -24,9 +24,12 @@
     <ProjectReference Include="..\UnlimitedPDF\UnlimitedPDF.csproj" />
   </ItemGroup>
 
-  <!-- Each sample builder's source is embedded so the page shows exactly the code that runs. -->
+  <!-- Each demo's code tab shows a complete console program (Programs\*Program.cs) that a developer can paste into a
+       new console app and run (QF-26112501). The programs are not part of the app: they are embedded as text, and the
+       tests compile and run every one of them. -->
   <ItemGroup>
-    <EmbeddedResource Include="Samples\*Sample.cs" LogicalName="Samples.%(Filename)%(Extension)" />
+    <Compile Remove="Programs\**" />
+    <EmbeddedResource Include="Programs\*Program.cs" LogicalName="Samples.%(Filename)%(Extension)" />
     <!-- The home page's code samples, shown from the same compiled file (PR-012). -->
     <EmbeddedResource Include="Samples\HomeSnippets.cs" LogicalName="Samples.HomeSnippets.cs" />
     <!-- The FAQ page's code samples, shown the same way. -->
