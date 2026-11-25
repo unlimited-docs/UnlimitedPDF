@@ -73,5 +73,20 @@ public enum FontScript
     /// <summary>
     /// Malayalam.
     /// </summary>
-    Malayalam
+    Malayalam,
+
+    /// <summary>
+    /// Arabic script (Arabic, Persian, Urdu, Pashto, Kurdish Sorani, Sindhi, Uyghur, and Malay Jawi), right to left.
+    /// </summary>
+    Arabic,
+
+    /// <summary>
+    /// Hebrew, right to left.
+    /// </summary>
+    Hebrew,
+
+    /// <summary>
+    /// Thaana (Dhivehi), right to left.
+    /// </summary>
+    Thaana
 }

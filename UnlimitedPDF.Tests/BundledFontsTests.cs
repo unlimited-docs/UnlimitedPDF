@@ -94,6 +94,9 @@ public class BundledFontsTests
         foreach (string family in new[] { "devanagari", "telugu", "tamil", "gujarati", "gurmukhi", "oriya", "kannada", "malayalam", "latin-greek-cyrillic", "armenian", "georgian" })
             Assert.Contains($"Copyright 2022 The Noto Project Authors (https://github.com/notofonts/{family})", license, StringComparison.Ordinal);
         Assert.Contains("Copyright 2025 The Noto Project Authors (https://github.com/notofonts/bengali)", license, StringComparison.Ordinal);
+        Assert.Contains("Copyright 2022 The Noto Project Authors (https://github.com/notofonts/arabic)", license, StringComparison.Ordinal);
+        Assert.Contains("Copyright 2024 The Noto Project Authors (https://github.com/notofonts/hebrew)", license, StringComparison.Ordinal);
+        Assert.Contains("Copyright 2022 The Noto Project Authors (https://github.com/notofonts/thaana)", license, StringComparison.Ordinal);
 
         Assert.Equal("fonts/OFL.txt", BundledFonts.LicensePath);
         string slot = DemosFile("Components/FontSlot.razor");

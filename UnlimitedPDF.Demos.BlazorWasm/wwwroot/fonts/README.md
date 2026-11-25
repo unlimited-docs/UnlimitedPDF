@@ -6,7 +6,7 @@ These files are not project-authored. They are allowed here, and only here, by t
 
 ## Files
 
-The fonts were downloaded from the Noto project's GitHub repositories (`https://github.com/notofonts/notofonts.github.io/raw/main/fonts/<Family>/hinted/ttf/<File>`), unmodified: Devanagari, Telugu, and Tamil on 2026-11-17, and Bengali, Gujarati, Gurmukhi, Oriya, Kannada, Malayalam, Noto Sans (Latin, Greek, and Cyrillic), Armenian, and Georgian on 2026-11-24. `OFL.txt` is the license text from `https://github.com/notofonts/devanagari`, with the copyright lines of all twelve families, as each font's own copyright notice states them.
+The fonts were downloaded from the Noto project's GitHub repositories (`https://github.com/notofonts/notofonts.github.io/raw/main/fonts/<Family>/hinted/ttf/<File>`), unmodified: Devanagari, Telugu, and Tamil on 2026-11-17, Bengali, Gujarati, Gurmukhi, Oriya, Kannada, Malayalam, Noto Sans (Latin, Greek, and Cyrillic), Armenian, and Georgian on 2026-11-24, and Arabic, Hebrew, and Thaana on 2026-11-25. `OFL.txt` is the license text from `https://github.com/notofonts/devanagari`, with the copyright lines of all fifteen families, as each font's own copyright notice states them.
 
 | File | Font | Version | Size | SHA-256 |
 |---|---|---|---|---|
@@ -22,10 +22,13 @@ The fonts were downloaded from the Noto project's GitHub repositories (`https://
 | `NotoSans-Regular.ttf` | Noto Sans Regular | 2.015 | 621,572 bytes | `478c558ea716033cd60c03438f628dfa75694dcf6b5f6d505a2f05fd2b4f3823` |
 | `NotoSansArmenian-Regular.ttf` | Noto Sans Armenian Regular | 2.008 | 30,752 bytes | `720df88c332417a235b4d6209d14ec2e2bf4bfe2a954b7453d869ea593bfce1e` |
 | `NotoSansGeorgian-Regular.ttf` | Noto Sans Georgian Regular | 2.005 | 52,888 bytes | `d3e33254b09e7bb2c5cf0f17e554b80462056c5a107097f258d495168c3a9346` |
+| `NotoSansArabic-Regular.ttf` | Noto Sans Arabic Regular | 2.013 | 234,892 bytes | `bdff3e5659d67e67def05b33f749683b9376ae819d65d3dd62ac4640b3aaef48` |
+| `NotoSansHebrew-Regular.ttf` | Noto Sans Hebrew Regular | 3.001 | 26,860 bytes | `cdefaf8efd47045f6820928eba84db5bed7557539328952b5f828315485e02ee` |
+| `NotoSansThaana-Regular.ttf` | Noto Sans Thaana Regular | 3.001 | 27,308 bytes | `7543935bdcef770c9d3dd54222651b29040e5ec82f3bc58542392b2c7a9cbd3c` |
 | `OFL.txt` | SIL Open Font License, Version 1.1 | | | |
 
 ## License
 
-Copyright 2022 and 2025 The Noto Project Authors. The fonts are licensed under the SIL Open Font License, Version 1.1, in [`OFL.txt`](OFL.txt). The license lets anyone use, bundle, and redistribute the fonts, and embed them in documents, as long as the license text goes with them and the fonts are not sold on their own.
+Copyright 2022, 2024, and 2025 The Noto Project Authors. The fonts are licensed under the SIL Open Font License, Version 1.1, in [`OFL.txt`](OFL.txt). The license lets anyone use, bundle, and redistribute the fonts, and embed them in documents, as long as the license text goes with them and the fonts are not sold on their own.
 
 Keep the files unmodified. To update a font, download the new version from the same place, replace the file, and update the table above; the site's tests check each file against its SHA-256.

@@ -97,9 +97,14 @@ public class FontsAndLanguagesDemoTests
         {
             FontScript.Latin, FontScript.Greek, FontScript.Cyrillic, FontScript.Armenian, FontScript.Georgian, FontScript.Devanagari,
             FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
-            FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam
+            FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam,
+            FontScript.Arabic, FontScript.Hebrew, FontScript.Thaana // right to left, after every other slot (WR-041)
         }, FontSlots.Scripts);
         Assert.Null(FontSlots.ScriptOf('×'));
+        Assert.Equal(FontScript.Arabic, FontSlots.ScriptOf('پ')); // Persian
+        Assert.Equal(FontScript.Arabic, FontSlots.ScriptOf('ے')); // Urdu
+        Assert.Null(FontSlots.ScriptOf('١')); // Arabic-Indic digits are shared, as in the library
+        Assert.Null(FontSlots.ScriptOf('،'));
         Assert.Null(FontSlots.ScriptOf('₹'));
         Assert.Null(FontSlots.ScriptOf('₽'));
         Assert.Equal(FontScript.Greek, FontSlots.ScriptOf('ά'));
@@ -148,6 +153,9 @@ public class FontsAndLanguagesDemoTests
     [InlineData(FontScript.Odia, 'କ')]
     [InlineData(FontScript.Kannada, 'ಕ')]
     [InlineData(FontScript.Malayalam, 'ക')]
+    [InlineData(FontScript.Arabic, 'ب')]
+    [InlineData(FontScript.Hebrew, 'ש')]
+    [InlineData(FontScript.Thaana, 'ހ')]
     public void Each_added_slot_finds_its_script_letters(FontScript script, char letter)
     {
         Assert.Equal(script, FontSlots.ScriptOf(letter));
@@ -160,7 +168,7 @@ public class FontsAndLanguagesDemoTests
     public void Every_slot_has_a_free_font_link()
     {
         Assert.All(FontSlots.Scripts, s => Assert.StartsWith("https://fonts.google.com/noto/specimen/Noto+Sans", FontSlots.FreeFontLink(s), StringComparison.Ordinal));
-        Assert.Equal(12, FontSlots.Scripts.Select(FontSlots.FreeFontLink).Distinct().Count()); // Noto Sans covers Latin, Greek, and Cyrillic
+        Assert.Equal(15, FontSlots.Scripts.Select(FontSlots.FreeFontLink).Distinct().Count()); // Noto Sans covers Latin, Greek, and Cyrillic
         Assert.Equal("https://fonts.google.com/noto/specimen/Noto+Sans+Oriya", FontSlots.FreeFontLink(FontScript.Odia));
     }
 

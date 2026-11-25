@@ -96,7 +96,10 @@ public static class BundledFonts
         new(FontScript.Gurmukhi, "Noto Sans Gurmukhi", "NotoSansGurmukhi-Regular.ttf"),
         new(FontScript.Odia, "Noto Sans Oriya", "NotoSansOriya-Regular.ttf"),
         new(FontScript.Kannada, "Noto Sans Kannada", "NotoSansKannada-Regular.ttf"),
-        new(FontScript.Malayalam, "Noto Sans Malayalam", "NotoSansMalayalam-Regular.ttf")
+        new(FontScript.Malayalam, "Noto Sans Malayalam", "NotoSansMalayalam-Regular.ttf"),
+        new(FontScript.Arabic, "Noto Sans Arabic", "NotoSansArabic-Regular.ttf"),
+        new(FontScript.Hebrew, "Noto Sans Hebrew", "NotoSansHebrew-Regular.ttf"),
+        new(FontScript.Thaana, "Noto Sans Thaana", "NotoSansThaana-Regular.ttf")
     ];
 
     #endregion
