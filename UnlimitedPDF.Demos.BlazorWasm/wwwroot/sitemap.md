@@ -34,7 +34,7 @@ Every page of [unlimitedpdf.dev](https://unlimitedpdf.dev/), the live demos of U
 
 ## HTML to PDF
 
-- [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template or paste your own HTML, then convert it with the built-in renderer: no engine required, nothing uploaded.
+- [Convert HTML to PDF in C#](https://unlimitedpdf.dev/playground/html/html-to-pdf): Pick a template, including an Arabic invoice and a Hebrew letter that read from the right, or paste your own HTML: no engine required, nothing uploaded.
 - [Common HTML to PDF problems in C#](https://unlimitedpdf.dev/playground/html/common-problems): Rows cut at page breaks, headers that don't repeat, long URLs, nested tables and lists, and print styles: open a problem, see the PDF, edit the HTML.
 
 ## Languages

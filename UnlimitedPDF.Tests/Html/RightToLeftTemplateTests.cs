@@ -76,6 +76,17 @@ public class RightToLeftTemplateTests
         Assert.Contains("HtmlToPdfSample.BuildAsync(_html, Images.ResolveAsync, fallback)", page, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void The_listings_name_the_templates_and_the_footer_links_the_right_to_left_demo()
+    {
+        const string Description = "Pick a template, including an Arabic invoice and a Hebrew letter that read from the right, or paste your own HTML: no engine required, nothing uploaded.";
+        Assert.Equal(Description, SampleCatalog.HtmlToPdf.Description);
+        foreach (var file in new[] { "UnlimitedPDF.Demos.BlazorWasm/wwwroot/llms.txt", "UnlimitedPDF.Demos.BlazorWasm/wwwroot/sitemap.md" })
+            Assert.Contains($"(https://unlimitedpdf.dev/playground/html/html-to-pdf): {Description}", File.ReadAllText(Path.Combine(Root(), file)), StringComparison.Ordinal);
+        Assert.Contains("HTML to PDF: templates, including an Arabic invoice and a Hebrew letter that read from the right, or your own HTML", File.ReadAllText(Path.Combine(Root(), "README.md")), StringComparison.Ordinal);
+        Assert.Contains(FooterLinks.Columns.Single(c => c.Title == "Languages").Links, link => link.Href == SampleCatalog.RightToLeftDocuments.Route && link.Text == "Right-to-left PDFs");
+    }
+
     #endregion
 
     #region Private Methods
