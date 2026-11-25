@@ -189,6 +189,38 @@ internal sealed record ListMarker(CssListStyleType Type, string? Text, bool Insi
 /// <summary>
 /// One piece of inline content.
 /// </summary>
+/// <summary>
+/// An inline element that isolates or overrides the bidirectional order of its content (WR-041): one with a
+/// <c>dir</c> attribute, a <c>bdi</c>, or a <c>bdo</c> (which overrides). Items share the instance of each element they
+/// are inside, so a change of scope between items marks where an isolate starts or ends.
+/// </summary>
+internal sealed class BidiScope
+{
+    #region Constructors and Finalizers
+
+    public BidiScope(bool rightToLeft, bool overrides)
+    {
+        RightToLeft = rightToLeft;
+        Overrides = overrides;
+    }
+
+    #endregion
+
+    #region Properties, Indexers
+
+    /// <summary>
+    /// Gets whether the scope overrides its content's order (<c>bdo</c>).
+    /// </summary>
+    public bool Overrides { get; }
+
+    /// <summary>
+    /// Gets whether the scope is right to left.
+    /// </summary>
+    public bool RightToLeft { get; }
+
+    #endregion
+}
+
 internal abstract class InlineItem
 {
     #region Constructors and Finalizers
@@ -206,6 +238,11 @@ internal abstract class InlineItem
     /// Gets the background of the nearest inline element with one inside the block, or null.
     /// </summary>
     public PdfColor? Background { get; set; }
+
+    /// <summary>
+    /// Gets the isolating and overriding elements the item is inside, outermost first, within its block (WR-041).
+    /// </summary>
+    public IReadOnlyList<BidiScope> Scopes { get; set; } = Array.Empty<BidiScope>();
 
     /// <summary>
     /// Gets the element ids and headings that start at this item.

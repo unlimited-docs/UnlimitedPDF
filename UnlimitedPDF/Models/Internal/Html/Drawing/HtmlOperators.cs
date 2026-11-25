@@ -155,7 +155,7 @@ internal static class HtmlOperators
     /// font size wide (D-012).</param>
     /// <param name="fakeItalic">Whether to synthesize italic: slant the text 12 degrees (D-012).</param>
     /// <returns>The operators.</returns>
-    public static string ShapedText(FontSegment segment, double fontSize, PdfColor color, double x, double baseline, PageDrawSink sink, double wordSpacing = 0, double characterSpacing = 0, bool fakeBold = false, bool fakeItalic = false)
+    public static string ShapedText(FontSegment segment, double fontSize, PdfColor color, double x, double baseline, PageDrawSink sink, double wordSpacing = 0, double characterSpacing = 0, bool fakeBold = false, bool fakeItalic = false, bool spans = true)
     {
         // q/Q = save and restore state, BT/ET = text object, rg/RG = fill and stroke color, w = line width, Tr = text
         // render mode (2 = fill, then stroke); the segment sets its font and position
@@ -163,9 +163,16 @@ internal static class HtmlOperators
         if (fakeBold) sb.Append(Color(color)).Append(" RG ").Append(N(fontSize / 30)).Append(" w ");
         sb.Append("BT ").Append(Color(color)).Append(" rg");
         if (fakeBold) sb.Append(" 2 Tr");
-        TextPipeline.DrawShaped(sb, segment, x, baseline, fontSize, sink, characterSpacing, wordSpacing, fakeItalic ? ItalicSkew : 0);
+        TextPipeline.DrawShaped(sb, segment, x, baseline, fontSize, sink, characterSpacing, wordSpacing, fakeItalic ? ItalicSkew : 0, spans);
         return sb.Append(" ET Q").ToString();
     }
+
+    /// <summary>
+    /// Returns the operator that starts a marked-content span whose <c>ActualText</c> is <paramref name="text"/>
+    /// (UTF-16BE hex), so copy and search read a reordered line in logical order (WR-041).
+    /// </summary>
+    public static string ActualTextBegin(string text) =>
+        "/Span << /ActualText <FEFF" + Convert.ToHexString(Encoding.BigEndianUnicode.GetBytes(text)) + "> >> BDC"; // BDC = begin marked content
 
     #endregion
 

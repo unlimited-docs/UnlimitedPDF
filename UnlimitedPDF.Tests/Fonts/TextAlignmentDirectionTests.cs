@@ -66,7 +66,6 @@ public class TextAlignmentDirectionTests
         english.Body.AddText(English, font);
 
         Assert.Equal(X(Content(rtl)), X(Content(right)));
-        Assert.Equal(X(Content(right)) - X(Content(rtl)), 0, 3);
         // An English line in a right-to-left document reads from the right too.
         Assert.True(X(Content(english)) > 300);
     }

@@ -347,7 +347,7 @@ internal sealed partial class HtmlLayoutEngine
         double contentTop = _y;
         int contentPage = _page;
         double contentLeft = borderLeft + bl + pl;
-        if (box.Marker is { Inside: false } marker) _pendingMarkers.Add(new PendingMarker(marker, s, contentLeft));
+        if (box.Marker is { Inside: false } marker) _pendingMarkers.Add(new PendingMarker(marker, s, contentLeft, contentLeft + cw, s.Direction == CssDirection.Rtl));
 
         if (box.Inlines.Count > 0)
         {
@@ -511,17 +511,17 @@ internal sealed partial class HtmlLayoutEngine
             case CssListStyleType.Disc:
             case CssListStyleType.Circle:
                 double r = size * 0.18;
-                Emit(new CircleCommand(pending.ContentLeft - gap - r, baseline + size * 0.3, r, s.Color, pending.Marker.Type == CssListStyleType.Disc));
+                Emit(new CircleCommand(pending.RightToLeft ? pending.ContentRight + gap + r : pending.ContentLeft - gap - r, baseline + size * 0.3, r, s.Color, pending.Marker.Type == CssListStyleType.Disc));
                 break;
             case CssListStyleType.Square:
                 double side = size * 0.36;
-                Emit(new FillCommand(pending.ContentLeft - gap - side, baseline + size * 0.3 - side / 2, side, side, s.Color));
+                Emit(new FillCommand(pending.RightToLeft ? pending.ContentRight + gap : pending.ContentLeft - gap - side, baseline + size * 0.3 - side / 2, side, side, s.Color));
                 break;
             default:
                 if (pending.Marker.Text is not { } text) return;
                 var codes = WinAnsiEncoding.Encode(text);
                 double width = StandardFontMetrics.Measure(font, text, size);
-                Emit(new TextCommand(font, size, s.Color, pending.ContentLeft - size * 0.3 - width, baseline, codes, 0, 0, text));
+                Emit(new TextCommand(font, size, s.Color, pending.RightToLeft ? pending.ContentRight + size * 0.3 : pending.ContentLeft - size * 0.3 - width, baseline, codes, 0, 0, text));
                 break;
         }
     }
@@ -627,7 +627,8 @@ internal sealed partial class HtmlLayoutEngine
         public double? StartY { get; set; }
     }
 
-    private sealed record PendingMarker(ListMarker Marker, ComputedStyle Style, double ContentLeft);
+    // A right-to-left list item's marker sits right of its content (WR-041).
+    private sealed record PendingMarker(ListMarker Marker, ComputedStyle Style, double ContentLeft, double ContentRight = 0, bool RightToLeft = false);
 
     // A box laid out on one page of unlimited height: its commands (top at 0, left at 0), height, and warnings.
     private sealed record CachedLayout(List<HtmlCommand> Commands, double Height, List<PdfHtmlWarning> Warnings);

@@ -187,13 +187,27 @@ internal static class TextPipeline
 
     // Whether the text needs the bidirectional algorithm: a right-to-left letter, an Arabic number, or a bidirectional
     // control or mark.
-    private static bool NeedsBidi(string text)
+    internal static bool NeedsBidi(string text)
     {
         for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
         {
             int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
             if (codePoint < 0x0590) continue;
             if (BidiParagraph.IsFormatCharacter(codePoint) || BidiData.ClassOf(codePoint) is BidiClass.R or BidiClass.AL or BidiClass.AN) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns whether <paramref name="text"/> holds an Arabic-script letter, whose joined letters take no letter spacing
+    /// (WR-041, AC-12).
+    /// </summary>
+    internal static bool IsArabic(string text)
+    {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+        {
+            int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
+            if (codePoint >= 0x0600 && ScriptOf(codePoint) == "arab") return true;
         }
         return false;
     }

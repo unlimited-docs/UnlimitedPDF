@@ -142,7 +142,7 @@ internal sealed class BoxTreeBuilder
 
             anonymous ??= new BlockBox(Anonymous(parent.Style), null);
             var promoted = new List<HtmlElement>();
-            AddInline(anonymous, node, parent.Style, null, null, promoted);
+            AddInline(anonymous, node, parent.Style, null, null, promoted, Array.Empty<BidiScope>());
             foreach (var block in promoted)
             {
                 // A block inside an inline element breaks the inline run around it.
@@ -205,11 +205,11 @@ internal sealed class BoxTreeBuilder
         return block;
     }
 
-    private void AddInline(BlockBox block, HtmlNode node, ComputedStyle parentStyle, string? link, PdfColor? background, List<HtmlElement> promoted)
+    private void AddInline(BlockBox block, HtmlNode node, ComputedStyle parentStyle, string? link, PdfColor? background, List<HtmlElement> promoted, IReadOnlyList<BidiScope> scopes)
     {
         if (node is HtmlText text)
         {
-            if (text.Text.Length > 0) block.Inlines.Add(new TextItem(text.Text, parentStyle) { Link = link, Background = background });
+            if (text.Text.Length > 0) block.Inlines.Add(new TextItem(text.Text, parentStyle) { Link = link, Background = background, Scopes = scopes });
             return;
         }
         if (node is not HtmlElement element) return;
@@ -224,17 +224,21 @@ internal sealed class BoxTreeBuilder
         int start = block.Inlines.Count;
         string? ownLink = element.Name == "a" && element.Attribute("href") is { } href ? href : link;
         var ownBackground = style.BackgroundColor ?? background;
+        // An inline element with dir, a bdi, or a bdo isolates its content; a bdo also overrides it (WR-041).
+        var ownScopes = element.Name == "bdo" || CssCascade.DirectionOf(element) is not null
+            ? scopes.Append(new BidiScope(style.Direction == CssDirection.Rtl, element.Name == "bdo")).ToArray()
+            : scopes;
 
         if (element.Name == "br")
         {
-            block.Inlines.Add(new BreakItem(style) { Link = ownLink });
+            block.Inlines.Add(new BreakItem(style) { Link = ownLink, Scopes = ownScopes });
         }
         else if (element.Name == "img")
         {
             if (_model.Images.TryGetValue(element, out var image))
-                block.Inlines.Add(new AtomicItem(new HtmlImageBox(style, element, image)) { Link = ownLink });
+                block.Inlines.Add(new AtomicItem(new HtmlImageBox(style, element, image)) { Link = ownLink, Scopes = ownScopes });
             else if (element.Attribute("alt") is { Length: > 0 } alt)
-                block.Inlines.Add(new TextItem(alt, style) { Link = ownLink, Background = ownBackground });
+                block.Inlines.Add(new TextItem(alt, style) { Link = ownLink, Background = ownBackground, Scopes = ownScopes });
         }
         else if (style.Display == CssDisplay.InlineBlock && _inlineBlockDepth < MaxInlineBlockNesting)
         {
@@ -242,18 +246,18 @@ internal sealed class BoxTreeBuilder
             _inlineBlockDepth++;
             BuildBlockChildren(inner, element.Children);
             _inlineBlockDepth--;
-            block.Inlines.Add(new AtomicItem(inner) { Link = ownLink });
+            block.Inlines.Add(new AtomicItem(inner) { Link = ownLink, Scopes = ownScopes });
         }
         else
         {
             if (style.Display == CssDisplay.InlineBlock) FlattenedInlineBlock ??= element;
-            foreach (var child in element.Children) AddInline(block, child, style, ownLink, ownBackground, promoted);
+            foreach (var child in element.Children) AddInline(block, child, style, ownLink, ownBackground, promoted, ownScopes);
         }
 
         // Ids and headings start at the element's first inline item; an empty element gets an empty text item.
         if (element.Attribute("id") is not null)
         {
-            if (block.Inlines.Count == start) block.Inlines.Add(new TextItem(string.Empty, style));
+            if (block.Inlines.Count == start) block.Inlines.Add(new TextItem(string.Empty, style) { Scopes = ownScopes });
             block.Inlines[start].Starts.Add(element);
         }
     }

@@ -18,7 +18,7 @@ internal sealed class HtmlFonts
     // Laid-out texts kept per layout; words repeat, so most lookups hit. Cleared when it grows past this many entries.
     private const int CacheLimit = 20_000;
 
-    private readonly Dictionary<(string Text, string Families, int Weight, bool Italic, StandardFontFamily Standard, double Size), LaidOutText> _cache = new();
+    private readonly Dictionary<(string Text, string Families, int Weight, bool Italic, StandardFontFamily Standard, double Size, int? BaseLevel), LaidOutText> _cache = new();
     private readonly IReadOnlyList<PdfFont> _fallback;
     private readonly IReadOnlyDictionary<string, IReadOnlyList<PdfFont>> _fonts;
 
@@ -132,14 +132,16 @@ internal sealed class HtmlFonts
     /// </summary>
     /// <param name="text">The text.</param>
     /// <param name="style">The style.</param>
+    /// <param name="baseLevel">The run's direction (0 left to right, 1 right to left), or null to take it from the first
+    /// strong character (WR-041).</param>
     /// <returns>The laid-out text.</returns>
-    public LaidOutText Layout(string text, ComputedStyle style)
+    public LaidOutText Layout(string text, ComputedStyle style, int? baseLevel = null)
     {
-        var key = (text, string.Join("\u0001", style.FontFamilies), style.FontWeight, style.Italic, style.FontFamily, style.FontSize);
+        var key = (text, string.Join("\u0001", style.FontFamilies), style.FontWeight, style.Italic, style.FontFamily, style.FontSize, baseLevel);
         if (_cache.TryGetValue(key, out var known)) return known;
         var standard = StandardFonts.Select(style.FontFamily, style.FontWeight, style.Italic);
         double size = style.FontSize;
-        var layout = TextPipeline.Layout(text, Candidates(style), size, run => StandardFontMetrics.Measure(standard, run, size));
+        var layout = TextPipeline.Layout(text, Candidates(style), size, run => StandardFontMetrics.Measure(standard, run, size), baseLevel);
         if (_cache.Count >= CacheLimit) _cache.Clear();
         _cache[key] = layout;
         return layout;
@@ -161,7 +163,9 @@ internal sealed class HtmlFonts
     /// <summary>
     /// Returns the number of places letter spacing goes in a segment.
     /// </summary>
-    public static int Slots(TextSegment segment) => segment is FontSegment shaped ? TextPipeline.Clusters(shaped) : segment.Text.Length;
+    public static int Slots(TextSegment segment) => segment is FontSegment shaped
+        ? TextPipeline.IsArabic(shaped.Text) ? 0 : TextPipeline.Clusters(shaped) // joined Arabic letters take none (AC-12)
+        : segment.Text.Length;
 
     #endregion
 

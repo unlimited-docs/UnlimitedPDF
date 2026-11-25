@@ -31,7 +31,18 @@ internal sealed record TextCommand(StandardFont Font, double FontSize, PdfColor 
 /// <summary>
 /// A run of text shaped in a caller font (WR-039), with the bold and italic styles to synthesize (D-012).
 /// </summary>
-internal sealed record ShapedTextCommand(FontSegment Segment, double FontSize, PdfColor Color, double X, double Baseline, double WordSpacing, double CharacterSpacing, bool FakeBold = false, bool FakeItalic = false) : HtmlCommand;
+internal sealed record ShapedTextCommand(FontSegment Segment, double FontSize, PdfColor Color, double X, double Baseline, double WordSpacing, double CharacterSpacing, bool FakeBold = false, bool FakeItalic = false, bool Spans = true) : HtmlCommand;
+
+/// <summary>
+/// Starts an <c>ActualText</c> span holding a reordered line's text in logical order (WR-041); the shaped text inside
+/// draws without spans of its own.
+/// </summary>
+internal sealed record ActualTextBeginCommand(string Text) : HtmlCommand;
+
+/// <summary>
+/// Ends the span an <see cref="ActualTextBeginCommand"/> started.
+/// </summary>
+internal sealed record ActualTextEndCommand : HtmlCommand;
 
 /// <summary>
 /// An image drawn into a box.

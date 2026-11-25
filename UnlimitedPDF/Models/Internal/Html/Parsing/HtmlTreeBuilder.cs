@@ -39,7 +39,7 @@ internal sealed class HtmlTreeBuilder
         "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "pre", "address", "section", "article", "header", "footer",
         "main", "nav", "aside", "figure", "figcaption", "b", "strong", "i", "em", "u", "s", "del", "ins", "small",
         "sub", "sup", "code", "kbd", "mark", "a", "ul", "ol", "li", "dl", "dt", "dd", "table", "caption", "thead",
-        "tbody", "tfoot", "tr", "th", "td", "colgroup", "col", "img");
+        "tbody", "tfoot", "tr", "th", "td", "colgroup", "col", "img", "bdi", "bdo");
 
     private static readonly HashSet<string> TableContext = Set("table", "tbody", "thead", "tfoot", "tr");
 

@@ -142,6 +142,8 @@ internal static class CssCascade
             else if (name == "table" && lower == "center") { Add("margin-left", "auto"); Add("margin-right", "auto"); }
         }
         if (element.Attribute("valign") is { } valign && name is "td" or "th" or "tr" or "thead" or "tbody" or "tfoot") Add("vertical-align", valign);
+        // dir (ltr, rtl, auto; bdi defaults to auto) sets the element's direction, as the HTML standard maps it (WR-041).
+        if (DirectionOf(element) is { } direction) Add("direction", direction);
         if (element.Attribute("nowrap") is not null && name is "td" or "th") Add("white-space", "nowrap");
 
         if (name == "table")
@@ -172,6 +174,19 @@ internal static class CssCascade
             if (listType is not null) Add("list-style-type", listType);
         }
         return result;
+    }
+
+    /// <summary>
+    /// Returns the direction an element's <c>dir</c> attribute gives it: "ltr" or "rtl", "auto" resolved from the
+    /// first strong character of its text (left to right when there is none), or null when it sets none. A
+    /// <c>bdi</c> element without a valid <c>dir</c> is auto (WR-041).
+    /// </summary>
+    internal static string? DirectionOf(HtmlElement element)
+    {
+        string? dir = element.Attribute("dir")?.Trim().ToLowerInvariant();
+        if (dir is not ("ltr" or "rtl" or "auto")) dir = element.Name == "bdi" ? "auto" : null;
+        if (dir != "auto") return dir;
+        return Text.Bidi.BidiParagraph.FirstStrongLevel(element.TextContent()) == 1 ? "rtl" : "ltr";
     }
 
     private static HtmlElement? Ancestor(HtmlElement element, string name)
