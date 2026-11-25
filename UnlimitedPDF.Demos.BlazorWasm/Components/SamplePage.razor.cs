@@ -213,9 +213,31 @@ public partial class SamplePage
     [Parameter] public string? ContentLanguage { get; set; }
 
     /// <summary>
+    /// Gets or sets the page's canonical address relative to the site, or null for the demo's route. A page with its
+    /// own address per item, such as a common HTML problem, names that address (QF-26112601).
+    /// </summary>
+    [Parameter] public string? CanonicalPath { get; set; }
+
+    /// <summary>
     /// Gets or sets the demo shown on this page.
     /// </summary>
     [Parameter, EditorRequired] public SampleDemo Demo { get; set; } = default!;
+
+    /// <summary>
+    /// Gets or sets the page's description, for search results and the lead under the heading, or null for the demo's
+    /// own (QF-26112601).
+    /// </summary>
+    [Parameter] public string? Description { get; set; }
+
+    /// <summary>
+    /// Gets or sets the page's full title, or null for the demo's own (QF-26112601).
+    /// </summary>
+    [Parameter] public string? DocumentTitle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the page's heading, or null for the demo's own (QF-26112601).
+    /// </summary>
+    [Parameter] public string? Heading { get; set; }
 
     /// <summary>
     /// Gets or sets the PDF's file name, or null for the demo's own (<see cref="SampleDemo.FileName"/>).

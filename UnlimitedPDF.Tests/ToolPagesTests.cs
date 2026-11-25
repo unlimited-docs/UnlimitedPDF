@@ -154,10 +154,16 @@ public class ToolPagesTests
     [Fact]
     public void Each_matching_scenario_links_to_its_tool_under_its_description()
     {
-        foreach (string frame in new[] { "Components/SamplePage.razor", "Components/SplitPartsPage.razor" })
+        // SamplePage's lead is the page's own description when it names one, as each common HTML problem does
+        // (QF-26112601); the tool link stays right under it.
+        foreach (var (frame, lead) in new[]
+        {
+            ("Components/SamplePage.razor", "@(Description ?? Demo.Description)"),
+            ("Components/SplitPartsPage.razor", "@Demo.Description"),
+        })
         {
             string text = DemosFile(frame).Replace("\r\n", "\n", StringComparison.Ordinal);
-            Assert.Contains("<p class=\"demo-lead\">@Demo.Description</p>\n        <ScenarioToolLink Demo=\"Demo\" />", text, StringComparison.Ordinal);
+            Assert.Contains($"<p class=\"demo-lead\">{lead}</p>\n        <ScenarioToolLink Demo=\"Demo\" />", text, StringComparison.Ordinal);
         }
 
         string link = DemosFile("Components/Tools/ScenarioToolLink.razor");

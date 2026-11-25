@@ -2,9 +2,15 @@
 @page "/playground/html/common-problems/{ScenarioId}"
 @inject HtmlSampleImages Images
 
-@* A new SamplePage per scenario, so each one generates its PDF as soon as it opens. *@
+@* A new SamplePage per scenario, so each one generates its PDF as soon as it opens. A scenario's own address is its own
+   page for search (QF-26112601): its title, description, heading, and canonical address name the problem. The bare
+   address, and an unknown scenario, stay the demo's page. *@
 <SamplePage @key="_scenario.Id" @ref="_page" Demo="SampleCatalog.CommonProblems" Build="BuildAsync" PageCount="null" OnReset="Reset"
-            ShapeProgram="program => ProgramText.WithHtml(program, _html)" WrapCode="true">
+            ShapeProgram="program => ProgramText.WithHtml(program, _html)" WrapCode="true"
+            DocumentTitle="@(_ownPage ? HtmlScenarios.DocumentTitle(_scenario) : null)"
+            Description="@(_ownPage ? HtmlScenarios.Description(_scenario) : null)"
+            Heading="@(_ownPage ? _scenario.Title : null)"
+            CanonicalPath="@(_ownPage ? HtmlScenarios.Route(_scenario) : null)">
     <Inputs>
         <CollapsibleSection Title="Scenario">
             @if (_notFound)
@@ -66,6 +72,7 @@
 @code {
     private string _html = HtmlScenarios.All[0].Html;
     private bool _notFound;
+    private bool _ownPage;
     private SamplePage? _page;
     private HtmlScenario _scenario = HtmlScenarios.All[0];
     private IReadOnlyList<PdfHtmlWarning> _warnings = Array.Empty<PdfHtmlWarning>();
@@ -81,6 +88,7 @@
         // The id only selects from the fixed list; it is never shown back.
         var found = HtmlScenarios.Find(ScenarioId);
         _notFound = ScenarioId is not null && found is null;
+        _ownPage = found is not null;
         var scenario = found ?? HtmlScenarios.All[0];
         if (!ReferenceEquals(scenario, _scenario))
         {
@@ -90,7 +98,7 @@
         }
     }
 
-    private static string Link(HtmlScenario scenario) => SampleCatalog.CommonProblems.Route + "/" + scenario.Id;
+    private static string Link(HtmlScenario scenario) => HtmlScenarios.Route(scenario);
 
     private async Task<PdfDocument> BuildAsync()
     {

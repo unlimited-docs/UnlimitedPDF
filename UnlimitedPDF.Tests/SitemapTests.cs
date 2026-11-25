@@ -27,8 +27,11 @@ public class SitemapTests
     {
         var sitemap = XDocument.Parse(DemosFile("wwwroot/sitemap.xml"));
         var urls = sitemap.Root!.Elements(Sitemaps + "url").Select(u => u.Element(Sitemaps + "loc")!.Value).ToList();
+        // Each common HTML problem has its own page, listed right after the problems demo (QF-26112601).
         var expected = new[] { "", "playground", "faq", "getting-started", ToolCatalog.HubRoute }
-            .Concat(SampleCatalog.Pages.Select(d => d.Route))
+            .Concat(SampleCatalog.Pages.SelectMany(d => d == SampleCatalog.CommonProblems
+                ? [d.Route, .. HtmlScenarios.All.Select(HtmlScenarios.Route)]
+                : new[] { d.Route }))
             .Concat(ToolCatalog.All.Select(t => t.Route))
             .Distinct()
             .Select(SiteLinks.For);
@@ -36,6 +39,31 @@ public class SitemapTests
         Assert.Equal(Sitemaps + "urlset", sitemap.Root.Name);
         Assert.Equal(expected, urls);
         Assert.DoesNotContain(urls, u => u.Contains("not-found", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Each_common_html_problem_has_its_own_title_description_heading_and_canonical_address()
+    {
+        // QF-26112601: a problem's address names the problem to search engines, with a unique title of 60 characters
+        // or fewer and a description that fits a search result; the bare address and an unknown id stay the demo's page.
+        var titles = HtmlScenarios.All.Select(HtmlScenarios.DocumentTitle).ToList();
+        Assert.Equal(titles.Count, titles.Distinct().Count());
+        Assert.DoesNotContain(SampleCatalog.CommonProblems.DocumentTitle, titles);
+        Assert.All(titles, t => Assert.True(t.Length <= 60, $"'{t}' is {t.Length} characters."));
+        Assert.All(HtmlScenarios.All, s => Assert.StartsWith(s.Title, HtmlScenarios.PageTitle(s), StringComparison.Ordinal));
+        Assert.All(HtmlScenarios.All.Select(HtmlScenarios.Description), d => Assert.InRange(d.Length, 70, 160));
+        Assert.Equal("playground/html/common-problems/row-cut-in-half", HtmlScenarios.Route(HtmlScenarios.Find("row-cut-in-half")!));
+        Assert.Equal("Table row cut in half: HTML to PDF in C# · UnlimitedPDF", HtmlScenarios.DocumentTitle(HtmlScenarios.All[0]));
+
+        var page = DemosFile("Pages/Playground/Html/CommonProblems.razor");
+        Assert.Contains("_ownPage = found is not null;", page, StringComparison.Ordinal);
+        Assert.Contains("DocumentTitle=\"@(_ownPage ? HtmlScenarios.DocumentTitle(_scenario) : null)\"", page, StringComparison.Ordinal);
+        Assert.Contains("Description=\"@(_ownPage ? HtmlScenarios.Description(_scenario) : null)\"", page, StringComparison.Ordinal);
+        Assert.Contains("Heading=\"@(_ownPage ? _scenario.Title : null)\"", page, StringComparison.Ordinal);
+        Assert.Contains("CanonicalPath=\"@(_ownPage ? HtmlScenarios.Route(_scenario) : null)\"", page, StringComparison.Ordinal);
+        var frame = DemosFile("Components/SamplePage.razor");
+        Assert.Contains("<CanonicalLink Path=\"@(CanonicalPath ?? Demo.Route)\" />", frame, StringComparison.Ordinal);
+        Assert.Contains("<PageTitle>@(DocumentTitle ?? Demo.DocumentTitle)</PageTitle>", frame, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,6 +114,12 @@ public class SitemapTests
             var entry = entries.Single(e => e.Url == SiteLinks.For(demo.Route));
             Assert.Equal(demo.PageTitle, entry.Title);
             Assert.Equal(demo.Description, entry.Description);
+        }
+        foreach (var scenario in HtmlScenarios.All)
+        {
+            var entry = entries.Single(e => e.Url == SiteLinks.For(HtmlScenarios.Route(scenario)));
+            Assert.Equal(HtmlScenarios.PageTitle(scenario), entry.Title);
+            Assert.Equal(HtmlScenarios.Description(scenario), entry.Description);
         }
         foreach (var tool in ToolCatalog.All)
         {

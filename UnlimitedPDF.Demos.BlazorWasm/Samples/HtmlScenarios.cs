@@ -84,9 +84,47 @@ public static class HtmlScenarios
     public static HtmlScenario? Find(string? id) =>
         id is null ? null : All.FirstOrDefault(s => string.Equals(s.Id, id, StringComparison.Ordinal));
 
+    /// <summary>
+    /// Returns the scenario page's address relative to the site, for example
+    /// <c>playground/html/common-problems/row-cut-in-half</c>: its own page in the sitemap and its canonical address
+    /// (QF-26112601).
+    /// </summary>
+    /// <param name="scenario">The scenario.</param>
+    /// <returns>The address.</returns>
+    public static string Route(HtmlScenario scenario) => $"{SampleCatalog.CommonProblems.Route}/{scenario.Id}";
+
+    /// <summary>
+    /// Returns the scenario page's title without the site name: the problem's title, then "HTML to PDF in C#", or
+    /// "HTML to PDF" alone, whichever keeps the full title to 60 characters or fewer (QF-26112601).
+    /// </summary>
+    /// <param name="scenario">The scenario.</param>
+    /// <returns>The title, for example "Table row cut in half: HTML to PDF in C#".</returns>
+    public static string PageTitle(HtmlScenario scenario)
+    {
+        string[] titles = [$"{scenario.Title}: HTML to PDF in C#", $"{scenario.Title}: HTML to PDF", scenario.Title];
+        return titles.First(t => DocumentTitleOf(t).Length <= 60 || t == scenario.Title);
+    }
+
+    /// <summary>
+    /// Returns the scenario page's full title: <see cref="PageTitle"/> followed by the site name.
+    /// </summary>
+    /// <param name="scenario">The scenario.</param>
+    /// <returns>The full title.</returns>
+    public static string DocumentTitle(HtmlScenario scenario) => DocumentTitleOf(PageTitle(scenario));
+
+    /// <summary>
+    /// Returns the scenario page's description: the problem as developers meet it, then what the page lets them do
+    /// (QF-26112601).
+    /// </summary>
+    /// <param name="scenario">The scenario.</param>
+    /// <returns>The description.</returns>
+    public static string Description(HtmlScenario scenario) => $"{scenario.Problem} See the PDF and edit the HTML.";
+
     #endregion
 
     #region Private Methods
+
+    private static string DocumentTitleOf(string pageTitle) => $"{pageTitle} · {SampleDemo.SiteName}";
 
     private static IReadOnlyList<HtmlScenario> Build() => new[]
     {
