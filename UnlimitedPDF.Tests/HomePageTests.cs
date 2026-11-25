@@ -258,12 +258,16 @@ public class HomePageTests
     }
 
     [Fact]
-    public void The_footer_has_four_columns_and_every_link_opens_a_page_that_exists()
+    public void The_footer_has_six_columns_and_every_link_opens_a_page_that_exists()
     {
         // QF-26112201: C# guides, free tools, languages, and resources, on every page, in the words people search with.
-        // The languages, the longest list, are one wide column with their links in two columns.
-        Assert.Equal(["C# guides", ToolCatalog.HubHeading, "Languages", "Resources"], FooterLinks.Columns.Select(c => c.Title));
-        Assert.Equal(["Languages"], FooterLinks.Columns.Where(c => c.IsWide).Select(c => c.Title));
+        // QF-26112503: the languages in three groups, each its own column.
+        Assert.Equal(["C# guides", ToolCatalog.HubHeading, "Indian languages", "European languages", "Right to left and more", "Resources"], FooterLinks.Columns.Select(c => c.Title));
+        string[] Hrefs(string title) => [.. FooterLinks.Columns.Single(c => c.Title == title).Links.Select(l => l.Href)];
+        string[] Routes(params string[] ids) => [.. ids.Select(id => FooterLinks.LanguageRoute(LanguageInvoices.Find(id)))];
+        Assert.Equal(Routes("hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam"), Hrefs("Indian languages"));
+        Assert.Equal(Routes("french", "polish", "czech", "turkish", "greek", "russian", "ukrainian", "armenian", "georgian"), Hrefs("European languages"));
+        Assert.Equal([.. Routes("arabic", "persian", "urdu", "hebrew", "dhivehi", "filipino", "mixed"), SampleCatalog.FontsAndLanguages.Route, SampleCatalog.RightToLeftDocuments.Route], Hrefs("Right to left and more"));
         var pages = SampleCatalog.Pages.Select(d => d.Route)
             .Concat(ToolCatalog.All.Select(t => t.Route))
             .Concat([ToolCatalog.HubRoute, ScenarioGallery.Route, "faq", "getting-started"]).ToHashSet();
@@ -272,7 +276,8 @@ public class HomePageTests
         Assert.Equal(links.Count, links.Select(l => l.Href).Distinct().Count());
         Assert.All(links.Where(l => !l.External), link => Assert.Contains(link.Href.Split('?')[0], pages));
         Assert.All(links.Where(l => l.External), link => Assert.StartsWith("https://", link.Href, StringComparison.Ordinal));
-        Assert.Equal(LanguageInvoices.All.Select(FooterLinks.LanguageRoute), FooterLinks.Columns.Single(c => c.Title == "Languages").Links.Take(LanguageInvoices.All.Count).Select(l => l.Href));
+        // Every language is in the footer exactly once.
+        Assert.All(LanguageInvoices.All, language => Assert.Single(links, l => l.Href == FooterLinks.LanguageRoute(language)));
 
         var layout = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Layout/MainLayout.razor"));
         Assert.Contains("@foreach (var column in FooterLinks.Columns)", layout, StringComparison.Ordinal);
@@ -301,11 +306,12 @@ public class HomePageTests
         Assert.Equal(2, Regex.Matches(row, @"@DemoLinks\(\w+\.Demos\)").Count);
         Assert.Equal(2, Regex.Matches(card, "<a class=\"scenario-link\" href=\"@Demo.Route\">").Count);
 
-        // The approved order ("Two paths", QF-26112201): hero and illustration, the developer path with the install
-        // command and the first PDF, the tools path, documents, capabilities, benefits, How do I, FAQ band. The install
-        // command is only in the developer path.
+        // The approved order ("Two paths", QF-26112201; hero "Code first", QF-26112503): the hero with Get started, the
+        // facts, the install command, and the first PDF; the developer path with where to go next; the tools path,
+        // documents, capabilities, benefits, How do I, FAQ band. The install command is only in the hero.
         Assert.Single(Regex.Matches(home, "<InstallCommand />"));
-        string[] order = ["class=\"hero\"", "class=\"hero-actions\"", "class=\"showcase\"", "For developers", "<InstallCommand />", "first-pdf-code", "For your files", "Documents.Demos", "<CapabilityRow ", "class=\"benefits\"", "id=\"how-do-i\"", "class=\"faq-band\""];
+        Assert.DoesNotContain("class=\"showcase\"", home, StringComparison.Ordinal);
+        string[] order = ["class=\"hero\"", "class=\"hero-actions\"", "href=\"getting-started\">Get started", "class=\"hero-facts\"", "<InstallCommand />", "first-pdf-code", "For developers", "NextSteps", "For your files", "Documents.Demos", "<CapabilityRow ", "class=\"benefits\"", "id=\"how-do-i\"", "class=\"faq-band\""];
         var positions = order.Select(marker => home.IndexOf(marker, StringComparison.Ordinal)).ToList();
         Assert.All(positions, position => Assert.True(position >= 0));
         Assert.Equal(positions.Order(), positions);
@@ -315,16 +321,16 @@ public class HomePageTests
     [Fact]
     public void The_first_pdf_and_documents_samples_run_as_shown()
     {
-        string folder = Path.Combine(Path.GetTempPath(), "unlimitedpdf-first-" + Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(folder);
+        // The first PDF saves hello.pdf in the current folder, as a pasted Program.cs does (QF-26112503).
+        string hello = Path.GetFullPath("hello.pdf");
         try
         {
-            HomeSnippets.First(folder);
-            Assert.Equal(1, PdfFile.FromBytes(File.ReadAllBytes(Path.Combine(folder, "hello.pdf"))).PageCount);
+            HomeSnippets.First();
+            Assert.Equal(1, PdfFile.FromBytes(File.ReadAllBytes(hello)).PageCount);
         }
         finally
         {
-            Directory.Delete(folder, recursive: true);
+            File.Delete(hello);
         }
 
         using var stream = new MemoryStream();
@@ -344,7 +350,11 @@ public class HomePageTests
         var project = File.ReadAllText(RepositoryFile("UnlimitedPDF/UnlimitedPDF.csproj"));
 
         Assert.Contains("No engine required: it runs wherever .NET 6 or later runs", home, StringComparison.Ordinal);
-        Assert.Matches("alt=\"Stylized illustration titled UnlimitedPDF Demos[^\"]*certificate cards\"", home);
+        // The hero's code is a console app's whole Program.cs, and its facts match the package (QF-26112503).
+        Assert.Contains("_firstPdf = \"using UnlimitedPDF;\\n\\n\" + SnippetText.Extract(", home, StringComparison.Ordinal);
+        Assert.Contains("document.Save(\"hello.pdf\");", File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Samples/HomeSnippets.cs")), StringComparison.Ordinal);
+        Assert.Contains("net6.0;net8.0;net9.0;net10.0;net11.0", project, StringComparison.Ordinal);
+        Assert.Contains("<li><Icon Name=\"check\" Size=\"16\" /> .NET 6, 8, 9, 10, and 11</li>", home, StringComparison.Ordinal);
         Assert.DoesNotContain("made with UnlimitedPDF", home, StringComparison.Ordinal);
         Assert.Contains("<CodeView Source=\"@_firstPdf\"", home, StringComparison.Ordinal);
         Assert.Contains("SnippetText.Extract(SampleSource.Read(\"HomeSnippets.cs\"), \"first\")", home, StringComparison.Ordinal);
@@ -353,6 +363,7 @@ public class HomePageTests
         Assert.Contains("<h3 class=\"scenario-title\">", card, StringComparison.Ordinal);
         string license = Regex.Match(project, "<PackageLicenseExpression>([^<]+)</PackageLicenseExpression>").Groups[1].Value;
         Assert.Contains($"(\"Free and open\", \"{license} licensed", home, StringComparison.Ordinal);
+        Assert.Contains($"<Icon Name=\"check\" Size=\"16\" /> {license} license</li>", home, StringComparison.Ordinal);
         Assert.Contains("net6.0", project, StringComparison.Ordinal);
 
         foreach (var file in new[] { "Pages/Home.razor", "Pages/NotFound.razor", "Layout/MainLayout.razor" })

@@ -126,7 +126,9 @@ public class SitemapTests
         string image = Meta("property", "og:image");
         Assert.StartsWith(SiteLinks.Address, image, StringComparison.Ordinal);
         Assert.True(File.Exists(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/wwwroot/" + image[SiteLinks.Address.Length..])), image);
-        Assert.Contains($"alt=\"{Meta("property", "og:image:alt")}\"", DemosFile("Pages/Home.razor"), StringComparison.Ordinal);
+        // The picture is the stylized illustration, no longer on the home page itself (QF-26112503), described as one.
+        Assert.EndsWith("images/unlimitedpdf-demos-hero-1200.jpg", image, StringComparison.Ordinal);
+        Assert.StartsWith("Stylized illustration titled UnlimitedPDF Demos", Meta("property", "og:image:alt"), StringComparison.Ordinal);
         Assert.DoesNotContain("og:url", index, StringComparison.Ordinal);
     }
 
