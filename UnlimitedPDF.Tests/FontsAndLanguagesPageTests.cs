@@ -73,6 +73,13 @@ public class FontsAndLanguagesPageTests
         Assert.Contains("allowed to embed", page, StringComparison.Ordinal);
         Assert.Contains("check its license", page, StringComparison.Ordinal);
         Assert.Contains("@foreach (var script in FontSlots.Scripts)", page, StringComparison.Ordinal);
+
+        // QF-26112504: one script at a time. The needed scripts come first in the picker and are named as needed; every
+        // slot stays in the page, hidden unless picked; the page opens on, and goes back to, the first needed script.
+        Assert.Contains("_needed.Concat(FontSlots.Scripts.Except(_needed))", page, StringComparison.Ordinal);
+        Assert.Contains("<span class=\"visually-hidden\"> (needed)</span>", page, StringComparison.Ordinal);
+        Assert.Contains("<div @key=\"script\" hidden=\"@(script != _selected)\">", page, StringComparison.Ordinal);
+        Assert.Equal(3, Regex.Matches(page, @"SelectFirstNeeded\(\);").Count);
         Assert.Contains("href=\"@FontSlots.FreeFontLink(Script)\" target=\"_blank\" rel=\"noopener noreferrer\"", slot, StringComparison.Ordinal);
         Assert.Contains(">Get a free one ", slot, StringComparison.Ordinal);
         Assert.Contains("I have the right to embed this font", slot, StringComparison.Ordinal);
