@@ -152,6 +152,18 @@ public sealed class FontsAndLanguagesInput
     };
 
     /// <summary>
+    /// Gets or sets the invoice's base direction, or null (the default) for the preset's own: right to left for a
+    /// right-to-left invoice, else automatic. The Right-to-left documents demo sets it to show what the setting changes
+    /// (WR-041, CR-001).
+    /// </summary>
+    public PdfTextDirection? Direction { get; set; }
+
+    /// <summary>
+    /// Gets the direction the invoice is drawn in: <see cref="Direction"/>, else the preset's.
+    /// </summary>
+    public PdfTextDirection DrawnDirection => Direction ?? (Preset.RightToLeft ? PdfTextDirection.RightToLeft : PdfTextDirection.Auto);
+
+    /// <summary>
     /// Gets the direction of the chosen invoice's text, for the page's <c>dir</c> attributes: <c>rtl</c> for a
     /// right-to-left invoice, else null, so left-to-right fields keep their markup (WR-041).
     /// </summary>

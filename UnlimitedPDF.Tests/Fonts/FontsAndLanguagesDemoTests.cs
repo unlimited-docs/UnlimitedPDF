@@ -209,6 +209,42 @@ public class FontsAndLanguagesDemoTests
         Assert.Null(english.TextDirection);
     }
 
+    [Theory]
+    [InlineData(PdfTextDirection.RightToLeft, true)]
+    [InlineData(PdfTextDirection.LeftToRight, false)]
+    [InlineData(PdfTextDirection.Auto, true)]
+    public void A_chosen_direction_overrides_the_presets_in_both_modes(PdfTextDirection direction, bool fromTheRight)
+    {
+        // CR-001, V-22: the Right-to-left documents demo sets Direction; Fonts and languages never does.
+        var input = new FontsAndLanguagesInput { Direction = direction };
+        input.Apply(LanguageInvoices.Find("hebrew"));
+        var fonts = DemoFonts.For(input);
+
+        var document = FontsAndLanguagesSample.Build(input, fonts, fonts);
+        var htmlDocument = FontsAndLanguagesHtmlSample.Build(input, DemoFonts.Slots(input), out _);
+
+        Assert.Equal(direction, document.TextDirection);
+        Assert.Equal(direction, input.DrawnDirection);
+        string Content(PdfDocument d) => Assert.Single(PdfPageReader.Read(PdfPageReader.SaveBytes(d))).Content;
+        double FirstX(string content) => double.Parse(System.Text.RegularExpressions.Regex.Match(content, @"1 0 (?:-?[\d.]+ )?1 (-?[\d.]+) -?[\d.]+ Tm").Groups[1].Value, CultureInfo.InvariantCulture);
+        Assert.Equal(fromTheRight, FirstX(Content(document)) > 250);
+        Assert.Equal(fromTheRight, FirstX(Content(htmlDocument)) > 250);
+        Assert.Equal("rtl", input.TextDirection); // the page's fields stay right to left for Hebrew text
+    }
+
+    [Fact]
+    public void Without_a_chosen_direction_each_preset_keeps_its_own()
+    {
+        var english = new FontsAndLanguagesInput();
+        english.Apply(LanguageInvoices.Find("french"));
+        var arabic = new FontsAndLanguagesInput();
+        arabic.Apply(LanguageInvoices.Find("arabic"));
+
+        Assert.Null(english.Direction);
+        Assert.Equal(PdfTextDirection.Auto, english.DrawnDirection);
+        Assert.Equal(PdfTextDirection.RightToLeft, arabic.DrawnDirection);
+    }
+
     [Fact]
     public void Every_slot_has_a_free_font_link()
     {

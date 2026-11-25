@@ -41,8 +41,8 @@ public static class FontsAndLanguagesSample
         var document = new PdfDocument { MarginBottom = 24, FailOnMissingCharacters = input.FailOnMissingCharacters };
 
         // A right-to-left invoice reads from the right: text starts at the right edge, and tables put their first
-        // column at the right (WR-041).
-        if (invoice.RightToLeft) document.TextDirection = PdfTextDirection.RightToLeft;
+        // column at the right (WR-041). Left to right shows what the setting changes.
+        document.TextDirection = input.DrawnDirection;
 
         // No text below names a font, so each character is drawn with the first of these fonts that has it: one
         // font per script, in slot order. A Western European character none of them has uses the built-in font.

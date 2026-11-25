@@ -99,8 +99,13 @@ public static class FontsAndLanguagesHtmlSample
           .Append("<td class=\"num\">").Append(E(invoice.Money(input.Total))).Append("</td></tr>")
           .Append("</tbody></table>");
         sb.Append("<p class=\"thanks\">").Append(E(labels.Thanks)).Append("</p>");
-        // A right-to-left invoice sets its direction and language on the page, as right-to-left HTML does (WR-041).
-        if (invoice.RightToLeft) sb.Insert(0, $"<html dir=\"rtl\" lang=\"{input.LanguageTag}\">").Append("</html>");
+        // A right-to-left invoice sets its direction and language on the page, as right-to-left HTML does (WR-041);
+        // a direction chosen on the page goes there too.
+        if (invoice.RightToLeft || input.Direction is not null)
+        {
+            string dir = input.DrawnDirection switch { PdfTextDirection.RightToLeft => "rtl", PdfTextDirection.LeftToRight => "ltr", _ => "auto" };
+            sb.Insert(0, $"<html dir=\"{dir}\" lang=\"{input.LanguageTag}\">").Append("</html>");
+        }
         return sb.ToString();
     }
 
