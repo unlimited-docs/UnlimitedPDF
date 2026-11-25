@@ -21,6 +21,34 @@
   <url><loc>https://unlimitedpdf.dev/playground/split/remove-pages</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/html/html-to-pdf</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/html/common-problems</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/row-cut-in-half</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/header-not-repeating</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/row-taller-than-page</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/break-inside-avoid</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/forced-page-breaks</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/line-sliced</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/image-split</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/blank-page-before-tall-content</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/nested-tables</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/email-table-800px</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/long-word-in-cell</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/cell-styles-at-break</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/numbering-across-pages</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/mixed-nested-lists</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/lists-in-cells</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/long-url</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/wide-pre</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/non-latin-characters</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/nbsp-and-whitespace</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/relative-and-data-images</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/image-wider-than-page</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/svg-and-webp</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/anchor-links</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/external-links</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/print-media</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/flex-and-grid</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/backgrounds</loc></url>
+  <url><loc>https://unlimitedpdf.dev/playground/html/common-problems/malformed-html</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/languages/fonts-and-languages</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/languages/right-to-left-documents</loc></url>
   <url><loc>https://unlimitedpdf.dev/playground/documents/invoice</loc></url>

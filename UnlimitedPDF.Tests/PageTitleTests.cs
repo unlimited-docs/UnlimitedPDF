@@ -41,13 +41,14 @@ public class PageTitleTests
     [Fact]
     public void Demo_pages_use_the_demo_title_and_description()
     {
-        foreach (var frame in new[] { "Components/SamplePage.razor", "Components/SplitPartsPage.razor" })
-        {
-            var source = DemosFile(frame);
-
-            Assert.Contains("<PageTitle>@Demo.DocumentTitle</PageTitle>", source, StringComparison.Ordinal);
-            Assert.Contains("<PageDescription Text=\"@Demo.Description\" />", source, StringComparison.Ordinal);
-        }
+        // SamplePage takes the demo's title and description unless a page names its own, as each common HTML problem
+        // does (QF-26112601).
+        var sample = DemosFile("Components/SamplePage.razor");
+        Assert.Contains("<PageTitle>@(DocumentTitle ?? Demo.DocumentTitle)</PageTitle>", sample, StringComparison.Ordinal);
+        Assert.Contains("<PageDescription Text=\"@(Description ?? Demo.Description)\" />", sample, StringComparison.Ordinal);
+        var split = DemosFile("Components/SplitPartsPage.razor");
+        Assert.Contains("<PageTitle>@Demo.DocumentTitle</PageTitle>", split, StringComparison.Ordinal);
+        Assert.Contains("<PageDescription Text=\"@Demo.Description\" />", split, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,7 +87,7 @@ public class PageTitleTests
         // tag there would name the home page as the address of every page (QF-26111204).
         var canonical = new Dictionary<string, string>
         {
-            ["Components/SamplePage.razor"] = "<CanonicalLink Path=\"@Demo.Route\" />",
+            ["Components/SamplePage.razor"] = "<CanonicalLink Path=\"@(CanonicalPath ?? Demo.Route)\" />",
             ["Components/SplitPartsPage.razor"] = "<CanonicalLink Path=\"@Demo.Route\" />",
             ["Pages/Home.razor"] = "<CanonicalLink Path=\"\" />",
             ["Pages/Faq.razor"] = "<CanonicalLink Path=\"faq\" />",

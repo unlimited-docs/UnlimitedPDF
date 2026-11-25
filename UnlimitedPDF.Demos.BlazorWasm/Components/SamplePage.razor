@@ -1,13 +1,13 @@
-<PageTitle>@Demo.DocumentTitle</PageTitle>
-<PageDescription Text="@Demo.Description" />
-<CanonicalLink Path="@Demo.Route" />
+<PageTitle>@(DocumentTitle ?? Demo.DocumentTitle)</PageTitle>
+<PageDescription Text="@(Description ?? Demo.Description)" />
+<CanonicalLink Path="@(CanonicalPath ?? Demo.Route)" />
 
 @* A demo page (D-023): the visitor's data beside the output on wide screens, stacked on phones. The output has two tabs
    (QF-26112501): the PDF, and the C# code as a complete console program, which can also open full screen. *@
 <article class="demo">
     <header class="demo-header">
-        <h1>@(Demo.Heading ?? Demo.Title)</h1>
-        <p class="demo-lead">@Demo.Description</p>
+        <h1>@(Heading ?? Demo.Heading ?? Demo.Title)</h1>
+        <p class="demo-lead">@(Description ?? Demo.Description)</p>
         <ScenarioToolLink Demo="Demo" />
     </header>
 
