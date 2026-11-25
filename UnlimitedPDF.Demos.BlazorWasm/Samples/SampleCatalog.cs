@@ -235,7 +235,7 @@ public static class SampleCatalog
     /// </summary>
     public static SampleDemo FontsAndLanguages { get; } = new(
         "Fonts and languages",
-        "An invoice in 19 languages, from Hindi and Tamil to Filipino, Czech, Greek, Russian, and Georgian, or a mix, drawn with included free fonts or your own.",
+        "An invoice in 24 languages, from Hindi and Tamil to Arabic, Urdu, Hebrew, Greek, and Russian, or a mix, drawn with included free fonts or your own.",
         "playground/languages/fonts-and-languages",
         "FontsAndLanguagesSample.cs",
         "fonts-and-languages.pdf",

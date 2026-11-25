@@ -10,8 +10,8 @@ Key facts:
 - Every public type is in the `UnlimitedPDF` namespace, so `using UnlimitedPDF;` is the only `using` needed.
 - Main types: `PdfDocument` (pages, header, footer, body flow, save), `PdfPage` (text, rectangles, images, tables), `PdfTable`, `PdfImage`, `PdfColor`, `PdfFont` (load a font), `PdfFile` (load an existing PDF), `PdfHtml`, and `PdfOperations` (`Merge`, `Split`, `ConvertHtml`).
 - Positions and sizes are in PDF points (1/72 inch); `PdfUnits` converts from millimeters, centimeters, inches, and pixels.
-- Fonts and languages: load `.ttf` and `.otf` fonts (TrueType or CFF outlines, including variable fonts) with `PdfFont` and use them in every text call and in HTML (`PdfHtmlLoadOptions.Fonts`). Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari (Hindi), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, and Tamil text is shaped with the font's rules, PDFs embed only the glyphs used, and copied text reads back as written. Without a font, text uses the PDF standard fonts with Western European characters; a character no font has is written as `?`.
-- Not supported yet: right-to-left scripts (Arabic, Hebrew), Chinese, Japanese, and Korean, font collections (`.ttc`) and web fonts (WOFF, WOFF2), encryption, digital signatures, and PDF/A.
+- Fonts and languages: load `.ttf` and `.otf` fonts (TrueType or CFF outlines, including variable fonts) with `PdfFont` and use them in every text call and in HTML (`PdfHtmlLoadOptions.Fonts`). Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari (Hindi), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, Tamil, Arabic (also Persian and Urdu), Hebrew, and Thaana (Dhivehi) text is shaped with the font's rules, PDFs embed only the glyphs used, and copied text reads back as written. Right-to-left text is ordered by the Unicode Bidirectional Algorithm; `PdfDocument.TextDirection`, `PdfTextOptions`, `PdfTable.Direction`, `Start` and `End` alignment, and HTML `dir` set its direction. Without a font, text uses the PDF standard fonts with Western European characters; a character no font has is written as `?`.
+- Not supported yet: right-to-left scripts other than Arabic, Hebrew, and Thaana (such as Syriac and N'Ko, reported as missing characters), Chinese, Japanese, and Korean, font collections (`.ttc`) and web fonts (WOFF, WOFF2), encryption, digital signatures, and PDF/A.
 
 Quick start:
 
@@ -61,7 +61,7 @@ pdfDocument.Save("sample.pdf");
 
 ## Languages
 
-- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in 19 languages, from Hindi and Tamil to Filipino, Czech, Greek, Russian, and Georgian, or a mix, drawn with included free fonts or your own.
+- [Multilingual PDFs with your own fonts in C#](https://unlimitedpdf.dev/playground/languages/fonts-and-languages): An invoice in 24 languages, from Hindi and Tamil to Arabic, Urdu, Hebrew, Greek, and Russian, or a mix, drawn with included free fonts or your own.
 
 ## Complete business documents
 

@@ -146,9 +146,9 @@ public class PageTitleTests
         string fonts = Assert.Single(lines, l => l.StartsWith("- Fonts and languages:", StringComparison.Ordinal));
         string notSupported = Assert.Single(lines, l => l.StartsWith("- Not supported yet:", StringComparison.Ordinal));
 
-        foreach (string term in new[] { "`PdfFont`", "`.ttf`", "`.otf`", "variable fonts", "`PdfHtmlLoadOptions.Fonts`", "Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari (Hindi), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, and Tamil", "only the glyphs used", "`?`" })
+        foreach (string term in new[] { "`PdfFont`", "`.ttf`", "`.otf`", "variable fonts", "`PdfHtmlLoadOptions.Fonts`", "Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari (Hindi), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, Tamil, Arabic (also Persian and Urdu), Hebrew, and Thaana (Dhivehi)", "`PdfDocument.TextDirection`", "HTML `dir`", "only the glyphs used", "`?`" })
             Assert.Contains(term, fonts, StringComparison.Ordinal);
-        foreach (string term in new[] { "right-to-left scripts", "Chinese, Japanese, and Korean", "`.ttc`", "WOFF", "encryption", "digital signatures", "PDF/A" })
+        foreach (string term in new[] { "right-to-left scripts other than Arabic, Hebrew, and Thaana", "Chinese, Japanese, and Korean", "`.ttc`", "WOFF", "encryption", "digital signatures", "PDF/A" })
             Assert.Contains(term, notSupported, StringComparison.Ordinal);
         Assert.DoesNotContain("custom fonts", notSupported, StringComparison.Ordinal);
     }
