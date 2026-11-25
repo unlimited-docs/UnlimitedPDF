@@ -55,9 +55,11 @@ internal static class LayoutDrawing
     /// <returns>The operators.</returns>
     public static string Text(string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top, PageDrawSink sink, PdfFont? font = null, PdfTextDirection? direction = null)
     {
-        var layout = TextPipeline.Layout(text, font, sink.EmbeddedFonts.Fallback, fontSize, TextDirections.BaseLevel(direction, sink.EmbeddedFonts.TextDirection));
+        int? baseLevel = TextDirections.BaseLevel(direction, sink.EmbeddedFonts.TextDirection);
+        var layout = TextPipeline.Layout(text, font, sink.EmbeddedFonts.Fallback, fontSize, baseLevel);
         double width = layout?.Width ?? StandardText.Width(text, fontSize);
-        double textX = alignment switch
+        // Start and End stand for the edge the line's direction reads from and towards (WR-041).
+        double textX = TextDirections.Physical(alignment, TextDirections.IsRightToLeft(text, baseLevel)) switch
         {
             PdfTextAlignment.Right => right - x - width,
             PdfTextAlignment.Center => left + (right - left - width) / 2 + x,

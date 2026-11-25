@@ -100,15 +100,15 @@ public class PdfSectionContent
     /// </summary>
     /// <param name="text">The text.</param>
     /// <param name="x">The offset: from the band's left edge for left alignment, before its right edge for right
-    /// alignment, or from its middle for center alignment, in points.</param>
+    /// alignment, or from its middle for center alignment, in points; start and end measure from the edge they stand for.</param>
     /// <param name="y">The offset of the line's top edge below the band's top edge, in points.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the band width. The default is left.</param>
+    /// <param name="alignment">The alignment across the band width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the font size is zero, negative, or not finite.</exception>
     [AddedVersion("1.0.0")]
     [Description("Adds a line of text to the band at the given offsets from its top-left corner.")]
-    public void AddText(string text, double x, double y, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left)
+    public void AddText(string text, double x, double y, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start)
     {
         if (text is null) throw new ArgumentNullException(nameof(text));
         Guard.Finite(x, nameof(x));
@@ -125,15 +125,15 @@ public class PdfSectionContent
     /// <param name="text">The text.</param>
     /// <param name="font">The font to draw with.</param>
     /// <param name="x">The offset: from the band's left edge for left alignment, before its right edge for right
-    /// alignment, or from its middle for center alignment, in points.</param>
+    /// alignment, or from its middle for center alignment, in points; start and end measure from the edge they stand for.</param>
     /// <param name="y">The offset of the line's top edge below the band's top edge, in points.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the band width. The default is left.</param>
+    /// <param name="alignment">The alignment across the band width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="font"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the font size is zero, negative, or not finite.</exception>
     [AddedVersion("1.1.0")]
     [Description("Adds a line of text to the band at the given offsets, drawn with a caller font.")]
-    public void AddText(string text, PdfFont font, double x, double y, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left)
+    public void AddText(string text, PdfFont font, double x, double y, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start)
     {
         if (text is null) throw new ArgumentNullException(nameof(text));
         if (font is null) throw new ArgumentNullException(nameof(font));
@@ -152,12 +152,12 @@ public class PdfSectionContent
     /// <param name="y">The offset of the line's top edge below the band's top edge, in points.</param>
     /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the band width. The default is left.</param>
+    /// <param name="alignment">The alignment across the band width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="options"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the font size is zero, negative, or not finite.</exception>
     [AddedVersion("1.2.0")]
     [Description("Adds a line of text to the band with text options, such as its direction.")]
-    public void AddText(string text, double x, double y, PdfTextOptions options, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left) =>
+    public void AddText(string text, double x, double y, PdfTextOptions options, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start) =>
         AddSectionText(text, null, x, y, options ?? throw new ArgumentNullException(nameof(options)), fontSize, alignment);
 
     /// <summary>
@@ -171,12 +171,12 @@ public class PdfSectionContent
     /// <param name="y">The offset of the line's top edge below the band's top edge, in points.</param>
     /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the band width. The default is left.</param>
+    /// <param name="alignment">The alignment across the band width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/>, <paramref name="font"/>, or <paramref name="options"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">An offset is not finite, or the font size is zero, negative, or not finite.</exception>
     [AddedVersion("1.2.0")]
     [Description("Adds a line of text to the band with text options, drawn with a caller font.")]
-    public void AddText(string text, PdfFont font, double x, double y, PdfTextOptions options, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left) =>
+    public void AddText(string text, PdfFont font, double x, double y, PdfTextOptions options, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start) =>
         AddSectionText(text, font ?? throw new ArgumentNullException(nameof(font)), x, y, options ?? throw new ArgumentNullException(nameof(options)), fontSize, alignment);
 
     private void AddSectionText(string text, PdfFont? font, double x, double y, PdfTextOptions options, double fontSize, PdfTextAlignment alignment)

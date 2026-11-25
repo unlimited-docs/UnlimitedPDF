@@ -31,6 +31,34 @@ internal static class TextDirections
     }
 
     /// <summary>
+    /// Returns whether <paramref name="text"/> reads right to left at <paramref name="baseLevel"/> (null: from its first
+    /// strong character).
+    /// </summary>
+    public static bool IsRightToLeft(string text, int? baseLevel) =>
+        baseLevel == 1 || (baseLevel is null && Bidi.BidiParagraph.FirstStrongLevel(text) == 1);
+
+    /// <summary>
+    /// Returns the physical alignment <paramref name="alignment"/> stands for in a line of the given direction:
+    /// <c>Start</c> and <c>End</c> become <c>Left</c> or <c>Right</c>.
+    /// </summary>
+    public static PdfTextAlignment Physical(PdfTextAlignment alignment, bool rightToLeft) => alignment switch
+    {
+        PdfTextAlignment.Start => rightToLeft ? PdfTextAlignment.Right : PdfTextAlignment.Left,
+        PdfTextAlignment.End => rightToLeft ? PdfTextAlignment.Left : PdfTextAlignment.Right,
+        _ => alignment
+    };
+
+    /// <summary>
+    /// Returns the physical cell alignment <paramref name="alignment"/> stands for in content of the given direction.
+    /// </summary>
+    public static PdfCellHorizontalAlignment Physical(PdfCellHorizontalAlignment alignment, bool rightToLeft) => alignment switch
+    {
+        PdfCellHorizontalAlignment.Start => rightToLeft ? PdfCellHorizontalAlignment.Right : PdfCellHorizontalAlignment.Left,
+        PdfCellHorizontalAlignment.End => rightToLeft ? PdfCellHorizontalAlignment.Left : PdfCellHorizontalAlignment.Right,
+        _ => alignment
+    };
+
+    /// <summary>
     /// Returns <paramref name="direction"/>, or throws when it is not a defined value.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is not defined.</exception>

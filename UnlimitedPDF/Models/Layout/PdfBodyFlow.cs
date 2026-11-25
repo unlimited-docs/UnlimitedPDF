@@ -122,15 +122,15 @@ public sealed class PdfBodyFlow
     /// <param name="text">The text.</param>
     /// <param name="spacing">The space above the line, in points; dropped when it is the first item on a page.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="alignment">The alignment across the body width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <param name="x">The offset: from the body's left edge for left alignment, before its right edge for right
-    /// alignment, or from its middle for center alignment, in points.</param>
+    /// alignment, or from its middle for center alignment, in points; start and end measure from the edge they stand for.</param>
     /// <param name="keepWithNext">Whether the line stays on the same page as the next item, for example a heading.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
     [AddedVersion("1.0.0")]
     [Description("Adds a line of text to the body flow.")]
-    public void AddText(string text, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0, bool keepWithNext = false) =>
+    public void AddText(string text, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start, double x = 0, bool keepWithNext = false) =>
         Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext));
 
     /// <summary>
@@ -141,15 +141,15 @@ public sealed class PdfBodyFlow
     /// <param name="font">The font to draw with.</param>
     /// <param name="spacing">The space above the line, in points; dropped at the top of a page.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="alignment">The alignment across the body width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <param name="x">The offset: from the body's left edge for left alignment, before its right edge for right
-    /// alignment, or from its middle for center alignment, in points.</param>
+    /// alignment, or from its middle for center alignment, in points; start and end measure from the edge they stand for.</param>
     /// <param name="keepWithNext">Whether the line stays on the same page as the next item, for example a heading.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="font"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
     [AddedVersion("1.1.0")]
     [Description("Adds a line of text to the body flow, drawn with a caller font.")]
-    public void AddText(string text, PdfFont font, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0, bool keepWithNext = false) =>
+    public void AddText(string text, PdfFont font, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start, double x = 0, bool keepWithNext = false) =>
         Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext, font ?? throw new ArgumentNullException(nameof(font))));
 
     /// <summary>
@@ -160,14 +160,14 @@ public sealed class PdfBodyFlow
     /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
     /// <param name="spacing">The space above the line, in points; dropped when it is the first item on a page.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="alignment">The alignment across the body width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <param name="x">The offset used by the alignment, in points.</param>
     /// <param name="keepWithNext">Whether the line stays on the same page as the next item, for example a heading.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="options"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
     [AddedVersion("1.2.0")]
     [Description("Adds a line of text to the body flow with text options, such as its direction.")]
-    public void AddText(string text, PdfTextOptions options, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0, bool keepWithNext = false) =>
+    public void AddText(string text, PdfTextOptions options, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start, double x = 0, bool keepWithNext = false) =>
         Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext, options: options ?? throw new ArgumentNullException(nameof(options))));
 
     /// <summary>
@@ -180,14 +180,14 @@ public sealed class PdfBodyFlow
     /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
     /// <param name="spacing">The space above the line, in points; dropped at the top of a page.</param>
     /// <param name="fontSize">The font size in points. The default is 12.</param>
-    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="alignment">The alignment across the body width. The default is start: the left edge for left-to-right text, the right edge for right-to-left text (WR-041).</param>
     /// <param name="x">The offset used by the alignment, in points.</param>
     /// <param name="keepWithNext">Whether the line stays on the same page as the next item, for example a heading.</param>
     /// <exception cref="ArgumentNullException"><paramref name="text"/>, <paramref name="font"/>, or <paramref name="options"/> is null.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
     [AddedVersion("1.2.0")]
     [Description("Adds a line of text to the body flow with text options, drawn with a caller font.")]
-    public void AddText(string text, PdfFont font, PdfTextOptions options, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0, bool keepWithNext = false) =>
+    public void AddText(string text, PdfFont font, PdfTextOptions options, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Start, double x = 0, bool keepWithNext = false) =>
         Add(CreateText(text, spacing, fontSize, alignment, x, keepWithNext, font ?? throw new ArgumentNullException(nameof(font)), options ?? throw new ArgumentNullException(nameof(options))));
 
     /// <summary>

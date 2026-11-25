@@ -18,5 +18,17 @@ public enum PdfTextAlignment
     /// <summary>
     /// The text ends the given offset before the area's right edge.
     /// </summary>
-    Right
+    Right,
+
+    /// <summary>
+    /// The text starts the given offset after the edge its direction reads from: the left edge for left-to-right text,
+    /// the right edge for right-to-left text (WR-041). This is the default.
+    /// </summary>
+    Start,
+
+    /// <summary>
+    /// The text ends the given offset before the edge its direction reads towards: the right edge for left-to-right
+    /// text, the left edge for right-to-left text (WR-041).
+    /// </summary>
+    End
 }
