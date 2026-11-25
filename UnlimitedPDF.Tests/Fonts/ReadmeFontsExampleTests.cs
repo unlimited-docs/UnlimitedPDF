@@ -71,6 +71,33 @@ public sealed class ReadmeFontsExampleTests : IDisposable
     }
 
     [Fact]
+    public void Readme_right_to_left_sample_runs_as_written()
+    {
+        // The readme's right-to-left code, with its font generated (WR-041).
+        Directory.CreateDirectory(Path.Combine(_root, "fonts"));
+        Write("fonts/BrandArabic-Regular.ttf", "Brand Arabic", "فاتورةرقم42iPhone15السعرلمنتج ModelX", 400);
+        string At(string path) => Path.Combine(_root, path);
+
+        var arabic = PdfFont.FromFile(At("fonts/BrandArabic-Regular.ttf"));
+
+        var document = new PdfDocument { TextDirection = PdfTextDirection.RightToLeft };
+        document.FontFallback.Add(arabic);
+
+        document.Body.AddText("فاتورة رقم 42", arabic, fontSize: 18); // starts at the right edge
+        document.Body.AddText("iPhone 15 السعر", arabic); // still reads from the right
+        document.Body.AddText("Model X1", new PdfTextOptions { Direction = PdfTextDirection.LeftToRight }); // one left-to-right line
+
+        var table = document.Body.AddTable(400); // column 0 is drawn at the right
+        table.SetText(0, 0, "المنتج", arabic);
+        table.SetText(0, 1, "السعر", arabic);
+        document.Save(At("invoice-ar.pdf"));
+
+        var pdf = File.ReadAllBytes(At("invoice-ar.pdf"));
+        PdfStructureChecker.AssertValid(pdf);
+        Assert.Equal("فاتورة رقم 42\niPhone 15 السعر\nModel X1\nالمنتج\nالسعر", Assert.Single(PdfInspector.Read(pdf).PageText()));
+    }
+
+    [Fact]
     public void Both_readmes_show_the_same_fonts_section_and_the_1_1_0_changes()
     {
         string readme = File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n");
@@ -82,7 +109,7 @@ public sealed class ReadmeFontsExampleTests : IDisposable
         string fonts = Section(readme, "## Fonts and languages");
         Assert.Contains("PdfFont.FromFile(\"fonts/BrandSans-Regular.ttf\")", fonts, StringComparison.Ordinal);
         Assert.Contains("document.FindMissingCharacters(\"Thank you 🙏\", latin); // [\"🙏\"]", fonts, StringComparison.Ordinal);
-        foreach (string limit in new[] { "Right-to-left scripts", "Chinese, Japanese, and Korean are not supported", "Font collections (`.ttc`) and web fonts (WOFF, WOFF2) can't be loaded", "`@font-face` rules are ignored" })
+        foreach (string limit in new[] { "Right-to-left scripts other than Arabic, Hebrew, and Thaana", "Chinese, Japanese, and Korean are not supported", "Font collections (`.ttc`) and web fonts (WOFF, WOFF2) can't be loaded", "`@font-face` rules are ignored", "`unicode-bidi` is not supported" })
             Assert.Contains(limit, fonts, StringComparison.Ordinal);
 
         foreach (string text in new[] { readme, nuget })
@@ -103,12 +130,15 @@ public sealed class ReadmeFontsExampleTests : IDisposable
         // right-to-left Indian languages named as not supported.
         string fonts = Section(File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n"), "## Fonts and languages");
 
-        Assert.Contains("- A supported script: Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, or Tamil.", fonts, StringComparison.Ordinal);
+        Assert.Contains("- A supported script: Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, Tamil, Arabic, Hebrew, or Thaana.", fonts, StringComparison.Ordinal);
         Assert.Contains("Latin, Greek, Cyrillic, Armenian, and Georgian (accents, ligatures, kerning, each with its own script's font rules)", fonts, StringComparison.Ordinal);
         Assert.Contains("Polish `ł`, Czech `č`, Romanian `ș`, and Turkish `ğ` and `ı`", fonts, StringComparison.Ordinal);
         Assert.Contains("`text-transform` follows the `lang` attribute for Turkish and Azerbaijani", fonts, StringComparison.Ordinal);
         Assert.Contains("Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, and Tamil are shaped", fonts, StringComparison.Ordinal);
-        Assert.Contains("Urdu, Kashmiri, and Sindhi", fonts, StringComparison.Ordinal);
+        // WR-041 (65-right-to-left-scripts): the ten right-to-left languages, direction, alignment, and HTML.
+        Assert.Contains("Arabic, Persian, Urdu, Pashto, Kurdish (Sorani), Sindhi, Uyghur, Malay (Jawi), Hebrew, Dhivehi", fonts, StringComparison.Ordinal);
+        foreach (string api in new[] { "`PdfDocument.TextDirection`", "`PdfTextOptions.Direction`", "`PdfTable.Direction`", "`PdfCellText.Direction`", "`PdfTextAlignment.Start` and `End`", "`<bdi>`, and `<bdo>`" })
+            Assert.Contains(api, fonts, StringComparison.Ordinal);
         Assert.Equal(9, UnlimitedPDF.Models.Internal.Text.IndicScript.All.Count); // the nine Indic scripts listed above
     }
 
