@@ -209,6 +209,11 @@ internal sealed class EmbeddedFonts
     /// </summary>
     public IReadOnlyList<PdfFont> Fallback { get; set; } = Array.Empty<PdfFont>();
 
+    /// <summary>
+    /// Gets or sets the document's text direction (<see cref="PdfDocument.TextDirection"/>, WR-041).
+    /// </summary>
+    public PdfTextDirection TextDirection { get; set; } = PdfTextDirection.Auto;
+
     #endregion
 }
 

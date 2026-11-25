@@ -6,6 +6,8 @@ sealed class UnlimitedPDF.PdfBodyFlow
   public System.Void AddRectangle(System.Double width, System.Double height, UnlimitedPDF.PdfColor color, System.Double spacing = 0, System.Double x = 0, System.Boolean keepWithNext = False)
   public System.Void AddText(System.String text, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0, System.Boolean keepWithNext = False)
   public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0, System.Boolean keepWithNext = False)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, UnlimitedPDF.PdfTextOptions options, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0, System.Boolean keepWithNext = False)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfTextOptions options, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0, System.Boolean keepWithNext = False)
   public System.Void PageBreak()
   public UnlimitedPDF.PdfFlowBlock AddBlock(System.Double spacing = 0, System.Boolean keepWithNext = False)
   public UnlimitedPDF.PdfTable AddTable(System.Double width, System.Double spacing = 0, System.Double x = 0, System.Boolean keepWithNext = False)
@@ -49,6 +51,7 @@ sealed class UnlimitedPDF.PdfCellImage : UnlimitedPDF.PdfCellContent
   UnlimitedPDF.PdfImage Image { public get }
   public .ctor(UnlimitedPDF.PdfImage image)
 sealed class UnlimitedPDF.PdfCellText : UnlimitedPDF.PdfCellContent
+  System.Nullable<UnlimitedPDF.PdfTextDirection> Direction { public get; public set }
   System.String Text { public get }
   UnlimitedPDF.PdfFont? Font { public get }
   public .ctor(System.String text)
@@ -97,6 +100,7 @@ class UnlimitedPDF.PdfDocument
   UnlimitedPDF.PdfPageSection Footer { public get }
   UnlimitedPDF.PdfPageSection Header { public get }
   UnlimitedPDF.PdfPageSize PageSize { public get; public set }
+  UnlimitedPDF.PdfTextDirection TextDirection { public get; public set }
   public .ctor(UnlimitedPDF.PdfPageSize pageSize = 4)
   public System.Collections.Generic.IReadOnlyList<System.String> FindMissingCharacters(System.String text, UnlimitedPDF.PdfFont? font = null)
   public System.Threading.Tasks.Task SaveAsync(System.IO.Stream stream, System.Threading.CancellationToken cancellationToken = null)
@@ -138,6 +142,8 @@ sealed class UnlimitedPDF.PdfFlowBlock
   public System.Void AddRectangle(System.Double width, System.Double height, UnlimitedPDF.PdfColor color, System.Double spacing = 0, System.Double x = 0)
   public System.Void AddText(System.String text, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0)
   public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, UnlimitedPDF.PdfTextOptions options, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfTextOptions options, System.Double spacing = 0, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0, System.Double x = 0)
   public UnlimitedPDF.PdfTable AddTable(System.Double width, System.Double spacing = 0, System.Double x = 0)
 sealed class UnlimitedPDF.PdfFont
   System.Boolean IsItalic { public get }
@@ -296,7 +302,9 @@ class UnlimitedPDF.PdfPage
   public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Double x, System.Double y, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, UnlimitedPDF.PdfImagePlacementOptions? options = null)
   public System.Void AddRectangle(System.Double x, System.Double y, System.Double width, System.Double height, UnlimitedPDF.PdfColor color)
   public System.Void AddText(System.String text, System.Double x, System.Double y, System.Double fontSize = 12)
+  public System.Void AddText(System.String text, System.Double x, System.Double y, UnlimitedPDF.PdfTextOptions options, System.Double fontSize = 12)
   public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double x, System.Double y, System.Double fontSize = 12)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double x, System.Double y, UnlimitedPDF.PdfTextOptions options, System.Double fontSize = 12)
   public UnlimitedPDF.PdfTable AddTable(System.Double x, System.Double y, System.Double width)
 sealed class UnlimitedPDF.PdfPageInfo
   System.Boolean IsFirst { public get }
@@ -359,7 +367,9 @@ class UnlimitedPDF.PdfSectionContent
   public System.Void AddImage(UnlimitedPDF.PdfImage image, System.Double x, System.Double y, System.Nullable<System.Double> width = null, System.Nullable<System.Double> height = null, UnlimitedPDF.PdfImagePlacementOptions? options = null)
   public System.Void AddRectangle(System.Double x, System.Double y, System.Double width, System.Double height, UnlimitedPDF.PdfColor color)
   public System.Void AddText(System.String text, System.Double x, System.Double y, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0)
+  public System.Void AddText(System.String text, System.Double x, System.Double y, UnlimitedPDF.PdfTextOptions options, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0)
   public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double x, System.Double y, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0)
+  public System.Void AddText(System.String text, UnlimitedPDF.PdfFont font, System.Double x, System.Double y, UnlimitedPDF.PdfTextOptions options, System.Double fontSize = 12, UnlimitedPDF.PdfTextAlignment alignment = 0)
   public UnlimitedPDF.PdfTable AddTable(System.Double x, System.Double y, System.Double width)
 class UnlimitedPDF.PdfSplitException : System.Exception, System.Runtime.Serialization.ISerializable
   System.Int32 PartNumber { public get }
@@ -401,11 +411,18 @@ enum UnlimitedPDF.PdfTextAlignment : Int32, System.IComparable, System.IConverti
   Center = 1
   Left = 0
   Right = 2
+enum UnlimitedPDF.PdfTextDirection : Int32, System.IComparable, System.IConvertible, System.IFormattable, System.ISpanFormattable
+  Auto = 0
+  LeftToRight = 1
+  RightToLeft = 2
 class UnlimitedPDF.PdfTextException : System.Exception, System.Runtime.Serialization.ISerializable
   System.Int32 PageNumber { public get }
   System.String Character { public get }
   System.String Text { public get }
   public .ctor(System.String character, System.String text, System.Int32 pageNumber)
+sealed class UnlimitedPDF.PdfTextOptions
+  System.Nullable<UnlimitedPDF.PdfTextDirection> Direction { public get; public set }
+  public .ctor()
 static class UnlimitedPDF.PdfUnits
   public static System.Double FromCentimeters(System.Double centimeters)
   public static System.Double FromInches(System.Double inches)

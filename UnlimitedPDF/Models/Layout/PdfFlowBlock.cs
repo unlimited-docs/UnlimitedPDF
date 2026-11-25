@@ -107,6 +107,42 @@ public sealed class PdfFlowBlock
     public void AddText(string text, PdfFont font, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0) =>
         _block.Children.Add(PdfBodyFlow.CreateText(text, spacing, fontSize, alignment, x, keepWithNext: false, font ?? throw new ArgumentNullException(nameof(font))));
 
+    /// <summary>
+    /// Adds a line of text to the block with settings of its own, such as its direction (WR-041). The library escapes
+    /// the text.
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
+    /// <param name="spacing">The space above the line, in points; ignored for the block's first item.</param>
+    /// <param name="fontSize">The font size in points. The default is 12.</param>
+    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="x">The offset used by the alignment, in points.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="options"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
+    [AddedVersion("1.2.0")]
+    [Description("Adds a line of text to the block with text options, such as its direction.")]
+    public void AddText(string text, PdfTextOptions options, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0) =>
+        _block.Children.Add(PdfBodyFlow.CreateText(text, spacing, fontSize, alignment, x, keepWithNext: false, options: options ?? throw new ArgumentNullException(nameof(options))));
+
+    /// <summary>
+    /// Adds a line of text to the block with settings of its own, such as its direction, drawn with a caller font:
+    /// characters the font lacks use the document's <see cref="PdfDocument.FontFallback"/> fonts, then the built-in
+    /// font (WR-039, WR-041).
+    /// </summary>
+    /// <param name="text">The text.</param>
+    /// <param name="font">The font to draw with.</param>
+    /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
+    /// <param name="spacing">The space above the line, in points; ignored for the block's first item.</param>
+    /// <param name="fontSize">The font size in points. The default is 12.</param>
+    /// <param name="alignment">The alignment across the body width. The default is left.</param>
+    /// <param name="x">The offset used by the alignment, in points.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/>, <paramref name="font"/>, or <paramref name="options"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">The spacing, font size, or offset is out of range.</exception>
+    [AddedVersion("1.2.0")]
+    [Description("Adds a line of text to the block with text options, drawn with a caller font.")]
+    public void AddText(string text, PdfFont font, PdfTextOptions options, double spacing = 0, double fontSize = 12, PdfTextAlignment alignment = PdfTextAlignment.Left, double x = 0) =>
+        _block.Children.Add(PdfBodyFlow.CreateText(text, spacing, fontSize, alignment, x, keepWithNext: false, font ?? throw new ArgumentNullException(nameof(font)), options ?? throw new ArgumentNullException(nameof(options))));
+
     #endregion
 
     #endregion

@@ -614,7 +614,7 @@ public class PdfDocument
         switch (item)
         {
             case FlowText text:
-                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink, text.Font));
+                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink, text.Font, text.Direction));
                 break;
             case FlowImage image:
                 var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
@@ -674,7 +674,7 @@ public class PdfDocument
             switch (band.Items[i])
             {
                 case SectionText text:
-                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink, text.Font));
+                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink, text.Font, text.Direction));
                     break;
                 case SectionImage image:
                     var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
@@ -1340,6 +1340,22 @@ public class PdfDocument
     /// Helvetica when it is a Western European (WinAnsi) character, else as '?'. Null entries are rejected.
     /// </summary>
     public IList<PdfFont> FontFallback => _fontFallback;
+
+    /// <summary>
+    /// Gets or sets the base direction of text drawn on pages, headers and footers, the body flow, and tables when the
+    /// text, its cell, or its table sets none (WR-041). The default is <see cref="PdfTextDirection.Auto"/>: each text
+    /// takes the direction of its first strong character, so documents with no right-to-left text draw as before. Set
+    /// <see cref="PdfTextDirection.RightToLeft"/> for an Arabic, Persian, Urdu, Hebrew, or Dhivehi document, so a line
+    /// that starts with a Latin word or a number still reads from the right. HTML follows its own <c>dir</c> and
+    /// <c>direction</c> instead.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="PdfTextDirection"/>.</exception>
+    [AddedVersion("1.2.0")]
+    public PdfTextDirection TextDirection
+    {
+        get => _embeddedFonts.TextDirection;
+        set => _embeddedFonts.TextDirection = TextDirections.Checked(value, nameof(value));
+    }
 
     // The same list, read-only, for layout.
     internal IReadOnlyList<PdfFont> FallbackFonts => _fontFallback;

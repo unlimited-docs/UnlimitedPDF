@@ -155,7 +155,7 @@ internal static class PdfTableRenderer
             {
                 // Each line box is centered on its baseline the same way the single-line case is (center - size / 3).
                 double baseline = top - item.Height / 2 - text.FontSize / 3;
-                if (TextPipeline.Layout(text.Text, text.Font, sink.EmbeddedFonts.Fallback, text.FontSize) is { } laidOut)
+                if (TextPipeline.Layout(text.Text, text.Font, sink.EmbeddedFonts.Fallback, text.FontSize, TextDirections.BaseLevel(text.Direction, sink.EmbeddedFonts.TextDirection)) is { } laidOut)
                 {
                     sb.AppendLine(TextPipeline.Draw(laidOut, AlignedX(cell, currentX, cellWidth, laidOut.Width), baseline, text.FontSize, sink));
                     continue;
@@ -223,7 +223,7 @@ internal static class PdfTableRenderer
     {
         string text = item.Text;
         double middleBaseline = currentY - (rowHeight / 2) - 4; // Simple middle alignment
-        if (TextPipeline.Layout(text, item.Font, sink.EmbeddedFonts.Fallback, 12) is { } layout)
+        if (TextPipeline.Layout(text, item.Font, sink.EmbeddedFonts.Fallback, 12, TextDirections.BaseLevel(item.Direction, sink.EmbeddedFonts.TextDirection)) is { } layout)
         {
             // Caller fonts are placed with their real shaped width (G-012).
             sb.AppendLine(TextPipeline.Draw(layout, AlignedX(cell, currentX, cellWidth, layout.Width), middleBaseline, 12, sink));
