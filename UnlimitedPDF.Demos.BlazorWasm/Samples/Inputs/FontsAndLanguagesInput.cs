@@ -143,8 +143,19 @@ public sealed class FontsAndLanguagesInput
         "ukrainian" => "uk",
         "armenian" => "hy",
         "georgian" => "ka",
+        "arabic" => "ar",
+        "persian" => "fa",
+        "urdu" => "ur",
+        "hebrew" => "he",
+        "dhivehi" => "dv",
         _ => null,
     };
+
+    /// <summary>
+    /// Gets the direction of the chosen invoice's text, for the page's <c>dir</c> attributes: <c>rtl</c> for a
+    /// right-to-left invoice, else null, so left-to-right fields keep their markup (WR-041).
+    /// </summary>
+    public string? TextDirection => Preset.RightToLeft ? "rtl" : null;
 
     /// <summary>
     /// Gets or sets how the invoice is drawn. The default is the programmatic calls.

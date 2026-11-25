@@ -69,8 +69,8 @@ public static class FontsAndLanguagesHtmlSample
           .Append(".parties { width: 100%; margin-top: 14pt } .parties td { vertical-align: top; width: 50% }")
           .Append(".items { width: 100%; border-collapse: collapse; margin-top: 12pt }")
           .Append(".items th, .items td { border: 0.75pt solid #1f2937; padding: 4pt 6pt }")
-          .Append(".items th { background-color: #d1ebdd; text-align: left }")
-          .Append(".num { text-align: right } .total td { background-color: #d1ebdd }")
+          .Append(".items th { background-color: #d1ebdd; text-align: start }")
+          .Append(".num { text-align: end } .total td { background-color: #d1ebdd }")
           .Append(".thanks { margin-top: 16pt; color: #475569 }")
           .Append("</style>");
 
@@ -99,6 +99,8 @@ public static class FontsAndLanguagesHtmlSample
           .Append("<td class=\"num\">").Append(E(invoice.Money(input.Total))).Append("</td></tr>")
           .Append("</tbody></table>");
         sb.Append("<p class=\"thanks\">").Append(E(labels.Thanks)).Append("</p>");
+        // A right-to-left invoice sets its direction and language on the page, as right-to-left HTML does (WR-041).
+        if (invoice.RightToLeft) sb.Insert(0, $"<html dir=\"rtl\" lang=\"{input.LanguageTag}\">").Append("</html>");
         return sb.ToString();
     }
 

@@ -3,8 +3,8 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 /// <summary>
 /// The sample invoices of the Fonts and languages demo (D-024; WR-039; QF-26112401): Hindi, Telugu, Tamil, Bengali,
 /// Gujarati, Punjabi, Odia, Kannada, Malayalam, French, Polish, Czech, Turkish, Filipino, Greek, Russian, Ukrainian,
-/// Armenian, Georgian, and a mixed one with English labels and Telugu and Hindi names. All businesses and addresses are
-/// fictional.
+/// Armenian, Georgian, the right-to-left Arabic, Persian, Urdu, Hebrew, and Dhivehi (WR-041), and a mixed one with
+/// English labels and Telugu and Hindi names. All businesses and addresses are fictional.
 /// </summary>
 public static class LanguageInvoices
 {
@@ -135,6 +135,36 @@ public static class LanguageInvoices
             "კაფე „ბათუმი“", "გორგილაძის ქუჩა 20, ბათუმი 6000",
             [("შოთის პური", 10, 1.50m), ("ჩურჩხელა", 6, 4.00m), ("ხაჭაპური", 3, 12.00m)],
             Currency: "₾"),
+        new("arabic", "Arabic",
+            new InvoiceLabels("فاتورة ضريبية", "رقم الفاتورة", "التاريخ", "البائع", "المشتري", "الوصف", "الكمية", "السعر", "المبلغ", "الإجمالي", "شكراً لتعاملكم معنا!"),
+            "مؤسسة النخيل للتمور", "شارع الملك فهد، الرياض 12211",
+            "مقهى الواحة", "شارع الكورنيش، جدة 23521",
+            [("تمر سكري", 5, 45.00m), ("قهوة عربية", 2, 60.00m), ("عسل سدر", 1, 150.00m)],
+            Currency: "ر.س", RightToLeft: true),
+        new("persian", "Persian",
+            new InvoiceLabels("صورتحساب فروش", "شماره صورتحساب", "تاریخ", "فروشنده", "خریدار", "شرح کالا", "تعداد", "قیمت واحد", "مبلغ", "جمع کل", "از خرید شما سپاسگزاریم!"),
+            "فروشگاه فرش پارس", "خیابان ولیعصر، تهران ۱۵۹۴۷",
+            "کافه گلستان", "خیابان چهارباغ، اصفهان ۸۱۳۳۷",
+            [("زعفران ممتاز", 2, 850000m), ("پسته اکبری", 3, 420000m), ("گز اصفهان", 4, 180000m)],
+            Currency: "ریال", RightToLeft: true),
+        new("urdu", "Urdu",
+            new InvoiceLabels("ٹیکس انوائس", "انوائس نمبر", "تاریخ", "فروخت کنندہ", "خریدار", "تفصیل", "مقدار", "نرخ", "رقم", "کل رقم", "آپ کے کاروبار کا شکریہ!"),
+            "رحمان کپڑا گھر", "انارکلی بازار، لاہور 54000",
+            "صدیقی ٹریڈرز", "صدر، کراچی 74400",
+            [("لان کا سوٹ", 2, 3500m), ("ریشمی دوپٹہ", 1, 1800m), ("کاٹن شلوار قمیض", 1, 2600m)],
+            Currency: "روپے", RightToLeft: true),
+        new("hebrew", "Hebrew",
+            new InvoiceLabels("חשבונית מס", "מספר חשבונית", "תאריך", "מוכר", "קונה", "תיאור", "כמות", "מחיר", "סכום", "סה״כ לתשלום", "תודה על שיתוף הפעולה!"),
+            "מאפיית הכרמל בע״מ", "רחוב הרצל 12, חיפה 3303112",
+            "בית קפה הגפן", "שדרות רוטשילד 40, תל אביב 6688312",
+            [("חלה", 10, 18.00m), ("עוגת שמרים", 2, 45.00m), ("בורקס גבינה", 12, 9.50m)],
+            Currency: "₪", RightToLeft: true),
+        new("dhivehi", "Dhivehi",
+            new InvoiceLabels("ބިލު", "ބިލު ނަންބަރު", "ތާރީޚު", "ވިއްކާ ފަރާތް", "ގަންނަ ފަރާތް", "ތަފުސީލު", "ޢަދަދު", "އަގު", "ޖުމްލަ", "ޖުމްލަ އަގު", "ޝުކުރިއްޔާ!"),
+            "މާލެ ބޭކަރީ", "މަޖީދީ މަގު، މާލެ 20026",
+            "ހިރިޔާ ކެފޭ", "ބޮޑުތަކުރުފާނު މަގު، މާލެ 20077",
+            [("ބޯކިބާ", 6, 15.00m), ("ގުލަ", 20, 2.50m), ("ބިސްކޯދު", 3, 25.00m)],
+            Currency: "ރ.", RightToLeft: true),
         new("mixed", "Mixed",
             new InvoiceLabels("Tax invoice", "Invoice number", "Date", "Seller", "Buyer", "Description", "Qty", "Rate", "Amount", "Total", "Thank you · ధన్యవాదాలు · धन्यवाद"),
             "Lakshmi Textiles · శ్రీ లక్ష్మి టెక్స్‌టైల్స్", "Besant Road, Vijayawada 520002",

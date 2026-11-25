@@ -68,19 +68,19 @@
         <CollapsibleSection Title="Seller and buyer" InitiallyOpen="false">
             <div class="field">
                 <label for="fl-seller-name">Seller name</label>
-                <input id="fl-seller-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-name" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-seller-address">Seller address</label>
-                <input id="fl-seller-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-address" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-name">Buyer name</label>
-                <input id="fl-buyer-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-name" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-address">Buyer address</label>
-                <input id="fl-buyer-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-address" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field-row">
                 <div class="field">
@@ -107,7 +107,7 @@
                                 <Icon Name="close" Size="16" />
                             </button>
                         </div>
-                        <input class="form-control" lang="@_input.LanguageTag" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
+                        <input class="form-control" lang="@_input.LanguageTag" dir="@_input.TextDirection" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
                         <div class="field-row">
                             <div class="field">
                                 <label for="@($"fonts-and-languages-1-{number}-qty")">Qty</label>

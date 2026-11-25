@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components.Forms;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
@@ -26,7 +27,7 @@ public class FontsAndLanguagesDemoTests
     public void The_presets_are_the_nine_indian_languages_eight_european_ones_filipino_and_mixed_with_their_money_style()
     {
         Assert.Equal(
-            new[] { "hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam", "french", "polish", "czech", "turkish", "filipino", "greek", "russian", "ukrainian", "armenian", "georgian", "mixed" },
+            new[] { "hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam", "french", "polish", "czech", "turkish", "filipino", "greek", "russian", "ukrainian", "armenian", "georgian", "arabic", "persian", "urdu", "hebrew", "dhivehi", "mixed" },
             LanguageInvoices.All.Select(p => p.Id));
         Assert.All(LanguageInvoices.All, p => Assert.True(p.Items.Count >= 2, p.Id));
         Assert.Equal("₹ 1,500.00", LanguageInvoices.Find("telugu").Money(1500m));
@@ -35,6 +36,10 @@ public class FontsAndLanguagesDemoTests
         Assert.Equal("396,00 Kč", LanguageInvoices.Find("czech").Money(396m));
         Assert.Equal("₱1,500.50", LanguageInvoices.Find("filipino").Money(1500.5m));
         Assert.Equal("15 000,00 ֏", LanguageInvoices.Find("armenian").Money(15000m));
+        // Right-to-left invoices (WR-041): comma thousands, point decimals, the currency after.
+        Assert.Equal("1,500.50 ₪", LanguageInvoices.Find("hebrew").Money(1500.5m));
+        Assert.Equal("850,000.00 ریال", LanguageInvoices.Find("persian").Money(850000m));
+        Assert.Equal(new[] { "arabic", "persian", "urdu", "hebrew", "dhivehi" }, LanguageInvoices.All.Where(p => p.RightToLeft).Select(p => p.Id));
         Assert.Same(LanguageInvoices.All[0], LanguageInvoices.Find("klingon"));
     }
 
@@ -54,6 +59,11 @@ public class FontsAndLanguagesDemoTests
     [InlineData("ukrainian", "uk")]
     [InlineData("armenian", "hy")]
     [InlineData("georgian", "ka")]
+    [InlineData("arabic", "ar")]
+    [InlineData("persian", "fa")]
+    [InlineData("urdu", "ur")]
+    [InlineData("hebrew", "he")]
+    [InlineData("dhivehi", "dv")]
     public void Each_added_language_invoice_names_its_language_for_the_page(string id, string tag)
     {
         var input = new FontsAndLanguagesInput();
@@ -162,6 +172,41 @@ public class FontsAndLanguagesDemoTests
         Assert.True(FontSlots.Covers(Font(letter.ToString()), script));
         Assert.False(FontSlots.Covers(Font(letter.ToString()), FontScript.Devanagari));
         Assert.Null(FontSlots.ScriptOf('।'));
+    }
+
+    [Theory]
+    [InlineData("arabic", "ar")]
+    [InlineData("persian", "fa")]
+    [InlineData("urdu", "ur")]
+    [InlineData("hebrew", "he")]
+    [InlineData("dhivehi", "dv")]
+    public void A_right_to_left_invoice_reads_from_the_right_in_both_modes(string id, string tag)
+    {
+        // WR-041, V-14: the document reads right to left, the items table puts its first column at the right, the HTML
+        // sets dir and lang, and the page's fields carry dir="rtl"; left-to-right invoices set none of it.
+        var input = new FontsAndLanguagesInput();
+        input.Apply(LanguageInvoices.Find(id));
+        var fonts = DemoFonts.For(input);
+
+        var document = FontsAndLanguagesSample.Build(input, fonts, fonts);
+        var htmlDocument = FontsAndLanguagesHtmlSample.Build(input, DemoFonts.Slots(input), out _);
+
+        Assert.Equal(PdfTextDirection.RightToLeft, document.TextDirection);
+        Assert.Equal("rtl", input.TextDirection);
+        Assert.Equal(tag, input.LanguageTag);
+        // The HTML invoice's title is drawn at the right of the page.
+        var htmlContent = Assert.Single(PdfPageReader.Read(PdfPageReader.SaveBytes(htmlDocument))).Content;
+        var firstText = System.Text.RegularExpressions.Regex.Match(htmlContent, @"1 0 (?:-?[\d.]+ )?1 (-?[\d.]+) -?[\d.]+ Tm");
+        Assert.True(double.Parse(firstText.Groups[1].Value, CultureInfo.InvariantCulture) > 250, firstText.Value);
+        var content = Assert.Single(PdfPageReader.Read(PdfPageReader.SaveBytes(document))).Content;
+        var cells = System.Text.RegularExpressions.Regex.Matches(content, @"(-?[\d.]+) -?[\d.]+ 195 -?[\d.]+ re f");
+        Assert.NotEmpty(cells); // the 195-point description column
+        Assert.All(cells, m => Assert.True(double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) > 300, m.Value));
+
+        var english = new FontsAndLanguagesInput();
+        english.Apply(LanguageInvoices.Find("french"));
+        Assert.Equal(PdfTextDirection.Auto, FontsAndLanguagesSample.Build(english, DemoFonts.For(english), DemoFonts.For(english)).TextDirection);
+        Assert.Null(english.TextDirection);
     }
 
     [Fact]

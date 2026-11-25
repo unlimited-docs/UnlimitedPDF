@@ -40,6 +40,10 @@ public static class FontsAndLanguagesSample
         // With FailOnMissingCharacters, saving stops on a character no font has instead of drawing it as '?'.
         var document = new PdfDocument { MarginBottom = 24, FailOnMissingCharacters = input.FailOnMissingCharacters };
 
+        // A right-to-left invoice reads from the right: text starts at the right edge, and tables put their first
+        // column at the right (WR-041).
+        if (invoice.RightToLeft) document.TextDirection = PdfTextDirection.RightToLeft;
+
         // No text below names a font, so each character is drawn with the first of these fonts that has it: one
         // font per script, in slot order. A Western European character none of them has uses the built-in font.
         foreach (var font in fonts) document.FontFallback.Add(font);
@@ -54,7 +58,7 @@ public static class FontsAndLanguagesSample
 
         document.Footer.Height = 26;
         document.Footer.AddText(labels.Thanks, Left, 10, 9);
-        document.Footer.AddText("{page} / {pages}", Left, 10, 9, PdfTextAlignment.Right);
+        document.Footer.AddText("{page} / {pages}", Left, 10, 9, PdfTextAlignment.End);
 
         document.BodyMarginTop = 18;
         var body = document.Body;
@@ -149,7 +153,7 @@ public static class FontsAndLanguagesSample
     private static void SetRight(PdfCell cell, string text)
     {
         cell.Text = text;
-        cell.HorizontalAlignment = PdfCellHorizontalAlignment.Right;
+        cell.HorizontalAlignment = PdfCellHorizontalAlignment.End;
     }
 
     #endregion

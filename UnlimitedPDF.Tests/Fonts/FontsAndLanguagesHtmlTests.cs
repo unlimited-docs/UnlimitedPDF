@@ -26,6 +26,11 @@ public class FontsAndLanguagesHtmlTests
     [InlineData("kannada")]
     [InlineData("malayalam")]
     [InlineData("french")]
+    [InlineData("arabic")]
+    [InlineData("persian")]
+    [InlineData("urdu")]
+    [InlineData("hebrew")]
+    [InlineData("dhivehi")]
     [InlineData("mixed")]
     public void Each_language_reads_back_exactly_with_the_fonts_registered_as_families(string language)
     {

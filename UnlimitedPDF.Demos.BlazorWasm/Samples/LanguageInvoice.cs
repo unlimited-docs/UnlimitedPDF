@@ -18,6 +18,9 @@ namespace UnlimitedPDF.Demos.BlazorWasm.Samples;
 /// for rupees (<c>₹ 1,500.00</c>).</param>
 /// <param name="SignFirst">Whether <paramref name="Currency"/> goes before the amount, with comma thousands and a point
 /// for decimals (<c>₱1,500.00</c>), as the Philippines writes pesos.</param>
+/// <param name="RightToLeft">Whether the invoice is written right to left (Arabic, Persian, Urdu, Hebrew, Dhivehi):
+/// the document and its tables read from the right, and amounts are written <c>1,500.00</c> with the currency after
+/// (WR-041).</param>
 public sealed record LanguageInvoice(
     string Id,
     string Name,
@@ -28,7 +31,8 @@ public sealed record LanguageInvoice(
     string BuyerAddress,
     IReadOnlyList<(string Description, int Quantity, decimal Rate)> Items,
     string? Currency = null,
-    bool SignFirst = false)
+    bool SignFirst = false,
+    bool RightToLeft = false)
 {
     #region Methods
 
@@ -45,6 +49,7 @@ public sealed record LanguageInvoice(
     {
         string number = amount.ToString("#,##0.00", CultureInfo.InvariantCulture);
         if (Currency is null) return "₹ " + number;
+        if (RightToLeft) return number + " " + Currency;
         return SignFirst ? Currency + number : number.Replace(",", " ", StringComparison.Ordinal).Replace(".", ",", StringComparison.Ordinal) + " " + Currency;
     }
 
