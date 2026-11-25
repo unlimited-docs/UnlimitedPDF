@@ -25,7 +25,24 @@
         </CollapsibleSection>
 
         <CollapsibleSection Title="Fonts">
-            <p class="field-hint">Every slot starts with a free Noto Sans font included for this demo; one Noto Sans file fills the Latin, Greek, and Cyrillic slots, so it also draws French and English text. Drop your own font on a slot to replace its font. Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
+            <p class="field-hint">Every script starts with a free Noto Sans font included for this demo; one Noto Sans file covers Latin, Greek, and Cyrillic, so it also draws French and English text. Pick a script, then drop your own font on it to replace its font. Your fonts stay in your browser; nothing is uploaded. Use fonts you're allowed to embed in a PDF. Each "Get a free one" link opens a free font family on a public font site; check its license.</p>
+            @* One script at a time (QF-26112504): the scripts the invoice needs come first and are marked; the page
+               opens on the first of them and goes back to it when the language changes. *@
+            <div class="field">
+                <span class="field-label">Script</span>
+                <div class="segmented wrap" role="group" aria-label="Script">
+                    @foreach (var script in PickerOrder)
+                    {
+                        <button type="button" aria-pressed="@(script == _selected ? "true" : "false")" @onclick="() => _selected = script">
+                            @script
+                            @if (_needed.Contains(script))
+                            {
+                                <span class="script-needed" aria-hidden="true"></span><span class="visually-hidden"> (needed)</span>
+                            }
+                        </button>
+                    }
+                </div>
+            </div>
             @if (_loadingDefaults)
             {
                 <div class="upload-reading" role="status">
@@ -36,12 +53,20 @@
             {
                 <p class="field-hint" role="status">Some included fonts couldn't be loaded. Add your own font to each empty slot.</p>
             }
+            @* Every slot stays in the page and only the picked one shows, so a font being read, an error, or the
+               embedding-rights check survives switching scripts. *@
             <div class="font-slots">
                 @foreach (var script in FontSlots.Scripts)
                 {
-                    <FontSlot @key="script" Script="script" Needed="_needed.Contains(script)" Value="SlotFont(script)" ValueChanged="font => SetFont(script, font)" />
+                    <div @key="script" hidden="@(script != _selected)">
+                        <FontSlot Script="script" Needed="_needed.Contains(script)" Value="SlotFont(script)" ValueChanged="font => SetFont(script, font)" />
+                    </div>
                 }
             </div>
+            @if (!_loadingDefaults)
+            {
+                <p class="font-summary"><Icon Name="check" Size="16" /> @FontSummary</p>
+            }
             @if (_missing.Count > 0 && !_loadingDefaults)
             {
                 <p class="missing-note" role="status">
@@ -202,7 +227,27 @@
     private IReadOnlyList<string> _missing = Array.Empty<string>();
     private IReadOnlyList<FontScript> _needed = Array.Empty<FontScript>();
     private SamplePage? _page;
+    private FontScript _selected = FontSlots.Scripts[0];
     private (int Min, int Max)? _variable;
+
+    // The picker's order: the scripts the invoice needs, then the others in slot order (QF-26112504).
+    private IEnumerable<FontScript> PickerOrder => _needed.Concat(FontSlots.Scripts.Except(_needed));
+
+    // How many scripts have a font, and which are the visitor's own or empty (QF-26112504).
+    private string FontSummary
+    {
+        get
+        {
+            int total = FontSlots.Scripts.Count;
+            var own = FontSlots.Scripts.Where(s => _slots.TryGetValue(s, out var font) && font.Bundled is null).ToList();
+            var empty = FontSlots.Scripts.Where(s => !_slots.ContainsKey(s)).ToList();
+            if (own.Count == 0 && empty.Count == 0) return $"All {total} scripts have an included font. Pick a script to replace its font.";
+            string text = $"{total - empty.Count} of {total} scripts have a font";
+            if (own.Count > 0) text += $"; yours for {string.Join(", ", own)}";
+            if (empty.Count > 0) text += $"; none for {string.Join(", ", empty)}";
+            return text + ".";
+        }
+    }
 
     /// <summary>
     /// Gets or sets the language to start with, from the address (a language id such as <c>telugu</c>), so a link can open
@@ -215,8 +260,12 @@
         if (LanguageInvoices.All.FirstOrDefault(l => l.Id == Language) is { } preset)
             _input.Apply(preset);
         Refresh();
+        SelectFirstNeeded();
         _defaults = LoadDefaultsAsync();
     }
+
+    // Shows the first script the invoice needs, or the first slot when it needs none.
+    private void SelectFirstNeeded() => _selected = _needed.Count > 0 ? _needed[0] : FontSlots.Scripts[0];
 
     private void AddItem()
     {
@@ -292,6 +341,7 @@
         _html = null;
         FillEmptySlots();
         Refresh();
+        SelectFirstNeeded();
     }
 
     private void SetFont(FontScript script, UploadedFont? font)
@@ -314,6 +364,7 @@
     {
         _input.Apply(preset);
         Refresh();
+        SelectFirstNeeded();
         _page?.NotifyInputsChanged();
     }
 

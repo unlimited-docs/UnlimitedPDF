@@ -798,8 +798,13 @@ input[type="file"] { max-width: 100%; }
     cursor: pointer;
 }
 
-/* Fonts and languages: one slot per script; a slot the chosen invoice needs is outlined. */
+/* Fonts and languages: one slot per script, shown one at a time from the Script picker (QF-26112504); a slot the
+   chosen invoice needs is outlined, and its picker button carries a dot (light on the pressed button, 3:1 or more). */
 .font-slots { display: grid; gap: 0.6rem; }
+.script-needed { display: inline-block; width: 7px; height: 7px; margin-left: 0.35rem; border-radius: 50%; background: var(--cap-languages); vertical-align: 0.1em; }
+.segmented button[aria-pressed="true"] .script-needed { background: #86efac; }
+.font-summary { display: flex; align-items: flex-start; gap: 0.35rem; margin: 0.6rem 0 0; color: var(--app-muted); font-size: 0.85rem; }
+.font-summary .icon { flex: none; margin-top: 0.1rem; color: var(--cap-languages); }
 .font-slot { border: 1px solid var(--app-line); border-radius: 12px; padding: 0.6rem 0.7rem; display: grid; gap: 0.4rem; }
 .font-slot.is-needed { border-color: var(--cap-languages); background: var(--cap-languages-soft); }
 .font-slot-head { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9rem; }
