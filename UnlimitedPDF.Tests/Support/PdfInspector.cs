@@ -351,7 +351,10 @@ internal sealed class PdfInspector
         var lines = new List<string>();
         var line = new StringBuilder();
         var operands = new List<object?>();
-        var spans = new Stack<(string? Actual, bool Written)>();
+        // Open marked content: each span's /ActualText and whether it is in a line yet. A span opened outside a text
+        // object gives its text to the first text object it encloses, as the library's page renderer does (WR-041).
+        var spans = new List<ActualTextSpan>();
+        bool inText = false;
         Func<byte[], List<string>, string>? decode = null;
         string fontName = string.Empty;
 
@@ -370,10 +373,13 @@ internal sealed class PdfInspector
             {
                 case "BT":
                     line.Clear();
+                    inText = true;
+                    if (spans.LastOrDefault(s => s.Actual is not null) is { Written: false } enclosing) { line.Append(enclosing.Actual); enclosing.Written = true; }
                     break;
                 case "ET":
                     lines.Add(line.ToString());
                     line.Clear();
+                    inText = false;
                     break;
                 case "Tf" when operands.Count >= 2 && operands[^2] is PdfName name:
                     fontName = name.Value;
@@ -395,16 +401,22 @@ internal sealed class PdfInspector
                 case "BDC":
                 {
                     string? actual = operands.Count >= 1 && Resolve(operands[^1]) is Dictionary<string, object?> props && props.GetValueOrDefault("ActualText") is byte[] a ? TextString(a) : null;
-                    spans.Push((actual, false));
-                    if (actual is not null) line.Append(actual);
+                    var span = new ActualTextSpan(actual);
+                    spans.Add(span);
+                    if (actual is not null && inText) { line.Append(actual); span.Written = true; }
                     break;
                 }
                 case "BMC":
-                    spans.Push((null, false));
+                    spans.Add(new ActualTextSpan(null));
                     break;
                 case "EMC":
                     if (spans.Count == 0) errors.Add($"Page {page}: EMC without a matching BDC or BMC.");
-                    else spans.Pop();
+                    else
+                    {
+                        var closed = spans[^1];
+                        spans.RemoveAt(spans.Count - 1);
+                        if (closed.Actual is not null && !closed.Written) line.Append(closed.Actual);
+                    }
                     break;
             }
             operands.Clear();
@@ -454,4 +466,16 @@ internal sealed class PdfInspector
     public int Root { get; }
 
     #endregion
+}
+
+/// <summary>
+/// An open marked-content span while page text is read: its /ActualText, or null, and whether that text is in a line.
+/// </summary>
+internal sealed class ActualTextSpan
+{
+    public ActualTextSpan(string? actual) => Actual = actual;
+
+    public string? Actual { get; }
+
+    public bool Written { get; set; }
 }

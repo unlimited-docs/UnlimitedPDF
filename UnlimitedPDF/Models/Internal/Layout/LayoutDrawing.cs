@@ -51,12 +51,15 @@ internal static class LayoutDrawing
     /// <param name="top">The y-coordinate of the line's top edge.</param>
     /// <param name="sink">The page's draw sink, which records the font the text uses.</param>
     /// <param name="font">The caller font, or null for the built-in font (with the document's fallback fonts).</param>
+    /// <param name="direction">The text's own direction, or null for the document's (WR-041).</param>
     /// <returns>The operators.</returns>
-    public static string Text(string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top, PageDrawSink sink, PdfFont? font = null)
+    public static string Text(string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top, PageDrawSink sink, PdfFont? font = null, PdfTextDirection? direction = null)
     {
-        var layout = TextPipeline.Layout(text, font, sink.EmbeddedFonts.Fallback, fontSize);
+        int? baseLevel = TextDirections.BaseLevel(direction, sink.EmbeddedFonts.TextDirection);
+        var layout = TextPipeline.Layout(text, font, sink.EmbeddedFonts.Fallback, fontSize, baseLevel);
         double width = layout?.Width ?? StandardText.Width(text, fontSize);
-        double textX = alignment switch
+        // Start and End stand for the edge the line's direction reads from and towards (WR-041).
+        double textX = TextDirections.Physical(alignment, TextDirections.IsRightToLeft(text, baseLevel)) switch
         {
             PdfTextAlignment.Right => right - x - width,
             PdfTextAlignment.Center => left + (right - left - width) / 2 + x,

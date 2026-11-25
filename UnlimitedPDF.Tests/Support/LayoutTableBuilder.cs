@@ -368,6 +368,29 @@ internal sealed class LayoutTableBuilder
     }
 
     /// <summary>
+    /// A cursive attachment subtable (GPOS 3): each glyph with an optional entry and exit anchor.
+    /// </summary>
+    public static byte[] Cursive(params (int Glyph, (short X, short Y)? Entry, (short X, short Y)? Exit)[] records)
+    {
+        var ordered = records.OrderBy(r => r.Glyph).ToArray();
+        int head = 6 + 4 * ordered.Length;
+        int anchors = ordered.Sum(r => (r.Entry is null ? 0 : 6) + (r.Exit is null ? 0 : 6));
+        var w = new BigEndianWriter().U16(1).U16((ushort)(head + anchors)).U16((ushort)ordered.Length);
+        int at = head;
+        foreach (var r in ordered)
+        {
+            w.U16((ushort)(r.Entry is null ? 0 : at)); if (r.Entry is not null) at += 6;
+            w.U16((ushort)(r.Exit is null ? 0 : at)); if (r.Exit is not null) at += 6;
+        }
+        foreach (var r in ordered)
+        {
+            if (r.Entry is { } entry) w.U16(1).I16(entry.X).I16(entry.Y);
+            if (r.Exit is { } exit) w.U16(1).I16(exit.X).I16(exit.Y);
+        }
+        return w.Bytes(Coverage(ordered.Select(r => r.Glyph).ToArray())).ToArray();
+    }
+
+    /// <summary>
     /// A mark-to-ligature subtable (GPOS 5): one mark class; a ligature with one anchor per component.
     /// </summary>
     public static byte[] MarkToLigature(int mark, short markX, short markY, int ligature, (short X, short Y)[] componentAnchors)

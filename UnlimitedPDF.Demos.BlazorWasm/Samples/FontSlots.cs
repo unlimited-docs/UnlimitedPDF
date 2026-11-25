@@ -28,7 +28,10 @@ public static class FontSlots
         [FontScript.Gurmukhi] = "ਕਖਗਘਚਛਜਝਟਠਡਢਤਥਦਧਨਪਬਮ",
         [FontScript.Odia] = "କଖଗଘଚଛଜଝଟଠଡଢତଥଦଧନପବମ",
         [FontScript.Kannada] = "ಕಖಗಘಚಛಜಝಟಠಡಢತಥದಧನಪಬಮ",
-        [FontScript.Malayalam] = "കഖഗഘചഛജഝടഠഡഢതഥദധനപബമ"
+        [FontScript.Malayalam] = "കഖഗഘചഛജഝടഠഡഢതഥദധനപബമ",
+        [FontScript.Arabic] = "ابتثجحخدذرزسشصضطظعغفقكلمنهوي",
+        [FontScript.Hebrew] = "אבגדהוזחטיכלמנסעפצקרשת",
+        [FontScript.Thaana] = "ހށނރބޅކއވމފދތލގޏސޑޒޓޔޕޖޗ"
     };
 
     // The built-in font draws every Western European letter a font lacks, so the library never reports a Latin letter
@@ -78,6 +81,9 @@ public static class FontSlots
         FontScript.Odia => "https://fonts.google.com/noto/specimen/Noto+Sans+Oriya",
         FontScript.Kannada => "https://fonts.google.com/noto/specimen/Noto+Sans+Kannada",
         FontScript.Malayalam => "https://fonts.google.com/noto/specimen/Noto+Sans+Malayalam",
+        FontScript.Arabic => "https://fonts.google.com/noto/specimen/Noto+Sans+Arabic",
+        FontScript.Hebrew => "https://fonts.google.com/noto/specimen/Noto+Sans+Hebrew",
+        FontScript.Thaana => "https://fonts.google.com/noto/specimen/Noto+Sans+Thaana",
         _ => "https://fonts.google.com/noto/specimen/Noto+Sans"
     };
 
@@ -120,6 +126,11 @@ public static class FontSlots
         >= '଀' and <= '୿' => FontScript.Odia,
         >= 'ಀ' and <= '೿' => FontScript.Kannada,
         >= 'ഀ' and <= 'ൿ' => FontScript.Malayalam,
+        // Arabic comma, semicolon, question mark, tatweel, and Arabic-Indic digits are shared, as in the library.
+        '\u060C' or '\u061B' or '\u061F' or '\u0640' or >= '\u0660' and <= '\u0669' => null,
+        >= '\u0600' and <= '\u06FF' or >= '\u0750' and <= '\u077F' or >= '\u08A0' and <= '\u08FF' or >= '\uFB50' and <= '\uFDFF' or >= '\uFE70' and <= '\uFEFE' => FontScript.Arabic,
+        >= '\u0591' and <= '\u05F4' or >= '\uFB1D' and <= '\uFB4F' => FontScript.Hebrew,
+        >= '\u0780' and <= '\u07BF' => FontScript.Thaana,
         _ => null
     };
 
@@ -148,7 +159,7 @@ public static class FontSlots
     public static IReadOnlyList<FontScript> Scripts { get; } =
     [
         FontScript.Latin, FontScript.Greek, FontScript.Cyrillic, FontScript.Armenian, FontScript.Georgian, FontScript.Devanagari, FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
-        FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam
+        FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam, FontScript.Arabic, FontScript.Hebrew, FontScript.Thaana
     ];
 
     #endregion

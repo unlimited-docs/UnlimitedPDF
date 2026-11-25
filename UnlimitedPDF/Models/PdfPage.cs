@@ -163,6 +163,41 @@ public class PdfPage
         });
     }
 
+    /// <summary>
+    /// Adds text at a page position with settings of its own, such as its direction, drawn with the document's font
+    /// (Helvetica) and its <see cref="PdfDocument.FontFallback"/> fonts. The text's start is its left end in either
+    /// direction; a right-to-left text reads from that line's right end.
+    /// </summary>
+    /// <param name="text">The text to add. Cannot be null.</param>
+    /// <param name="x">The x-coordinate of the text's left end, in points from the page's left edge.</param>
+    /// <param name="y">The y-coordinate of the text's baseline, in points from the page's bottom edge.</param>
+    /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
+    /// <param name="fontSize">The font size, in points. The default is 12.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> or <paramref name="options"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or the font size is zero, negative, or not finite.</exception>
+    [AddedVersion("1.2.0")]
+    [Description("Adds text at a page position with text options, such as its direction.")]
+    public void AddText(string text, double x, double y, PdfTextOptions options, double fontSize = 12) =>
+        AddTextElement(text, null, x, y, fontSize, options ?? throw new ArgumentNullException(nameof(options)));
+
+    /// <summary>
+    /// Adds text at a page position with settings of its own, such as its direction, drawn with a caller font:
+    /// characters the font lacks use the document's <see cref="PdfDocument.FontFallback"/> fonts, then the built-in
+    /// font (WR-039). The text's start is its left end in either direction.
+    /// </summary>
+    /// <param name="text">The text to add. Cannot be null.</param>
+    /// <param name="font">The font to draw with. Cannot be null.</param>
+    /// <param name="x">The x-coordinate of the text's left end, in points from the page's left edge.</param>
+    /// <param name="y">The y-coordinate of the text's baseline, in points from the page's bottom edge.</param>
+    /// <param name="options">Settings for this text, such as its direction (WR-041). Cannot be null.</param>
+    /// <param name="fontSize">The font size, in points. The default is 12.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/>, <paramref name="font"/>, or <paramref name="options"/> is null.</exception>
+    /// <exception cref="ArgumentOutOfRangeException">A coordinate is not finite, or the font size is zero, negative, or not finite.</exception>
+    [AddedVersion("1.2.0")]
+    [Description("Adds text at a page position with text options, drawn with a caller font.")]
+    public void AddText(string text, PdfFont font, double x, double y, PdfTextOptions options, double fontSize = 12) =>
+        AddTextElement(text, font ?? throw new ArgumentNullException(nameof(font)), x, y, fontSize, options ?? throw new ArgumentNullException(nameof(options)));
+
     #endregion
 
     #region Internal Methods
@@ -178,6 +213,24 @@ public class PdfPage
     /// </summary>
     internal void AddGlyphs(PdfFont font, IReadOnlyList<(int Glyph, string Text)> glyphs, double x, double y, double fontSize = 12) =>
         _contentElements.Add(new PdfGlyphRunElement(font, glyphs, x, y, fontSize));
+
+    private void AddTextElement(string text, PdfFont? font, double x, double y, double fontSize, PdfTextOptions options)
+    {
+        if (text is null) throw new ArgumentNullException(nameof(text));
+        Guard.Finite(x, nameof(x));
+        Guard.Finite(y, nameof(y));
+        Guard.Positive(fontSize, nameof(fontSize));
+
+        _contentElements.Add(new PdfTextElement
+        {
+            Text = text,
+            Font = font,
+            X = x,
+            Y = y,
+            FontSize = fontSize,
+            Direction = options.Direction
+        });
+    }
 
     internal PdfPageContent BuildContent() => BuildContent(plans: null, carriedParts: Array.Empty<(PdfTable, TablePart)>(), after: null);
 

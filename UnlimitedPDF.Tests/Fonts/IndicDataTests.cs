@@ -88,9 +88,13 @@ public class IndicDataTests
         string generator = File.ReadAllText(Path.Combine(repository, "tools", "unicode-tables", "Generate.cs"));
         string generated = File.ReadAllText(Path.Combine(repository, "UnlimitedPDF", "Models", "Internal", "Text", "IndicData.g.cs"));
 
+        // Two Indic sources, four bidirectional and joining sources (BidiDataTests), two conformance test files
+        // (BidiConformanceTests); the Indic table names exactly its own two.
         var hashes = Regex.Matches(generator, "\"([0-9a-f]{64})\"").Select(m => m.Groups[1].Value).ToList();
-        Assert.Equal(2, hashes.Count);
-        Assert.All(hashes, hash => Assert.Contains(hash, generated));
+        Assert.Equal(8, hashes.Count);
+        Assert.Equal(2, hashes.Count(generated.Contains));
+        Assert.Contains("IndicSyllabicCategory.txt (SHA-256 3fc122f4cf58b0c19268d5f810263b04ab4e1e67743386ec0e0ada9c76aec5be)", generated);
+        Assert.Contains("IndicPositionalCategory.txt (SHA-256 68cedc29a7e57f984d90fe2c7712f2e6d0c717e253db219607daea8997d6c480)", generated);
         Assert.Contains("const string Version = \"17.0.0\";", generator);
         Assert.Contains("Unicode Character Database 17.0.0", generated);
     }

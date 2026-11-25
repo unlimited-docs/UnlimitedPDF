@@ -1,3 +1,5 @@
+using UnlimitedPDF.Models.Internal.Text.Bidi;
+
 namespace UnlimitedPDF.Models.Internal.Text;
 
 /// <summary>
@@ -23,14 +25,21 @@ internal sealed record FontSegment(PdfFont Font, ShapedRun Run, string[] GlyphTe
 internal readonly record struct ActualTextSpan(int Start, int End, string Text);
 
 /// <summary>
-/// A line of text laid out in fonts: its segments in reading order and its total width in points.
+/// A line of text laid out in fonts: its segments in drawing order (left to right) and its total width in points. A
+/// line the bidirectional algorithm reordered (WR-041) also keeps its text in logical order; RightToLeft is its
+/// paragraph direction.
 /// </summary>
-internal sealed record LaidOutText(IReadOnlyList<TextSegment> Segments, double Width)
+internal sealed record LaidOutText(IReadOnlyList<TextSegment> Segments, double Width, string? LogicalText = null, bool RightToLeft = false)
 {
     /// <summary>
-    /// Gets the whole line's text.
+    /// Gets the whole line's text, in logical order.
     /// </summary>
-    public string Text => string.Concat(Segments.Select(s => s.Text));
+    public string Text => LogicalText ?? string.Concat(Segments.Select(s => s.Text));
+
+    /// <summary>
+    /// Gets whether the segments are not in logical order, so the line is drawn inside one <c>ActualText</c> span.
+    /// </summary>
+    public bool Reordered => LogicalText is not null;
 }
 
 /// <summary>
@@ -49,13 +58,13 @@ internal static class TextPipeline
     /// Lays out <paramref name="text"/>, or returns null when it takes the built-in path unchanged: no font on the
     /// call and no fallback fonts (D-009 keeps those documents byte-identical).
     /// </summary>
-    public static LaidOutText? Layout(string text, PdfFont? font, IReadOnlyList<PdfFont> fallback, double fontSize)
+    public static LaidOutText? Layout(string text, PdfFont? font, IReadOnlyList<PdfFont> fallback, double fontSize, int? baseLevel = null)
     {
         if (font is null && fallback.Count == 0) return null;
         var candidates = new List<PdfFont?>();
         if (font is not null) candidates.Add(font);
         candidates.AddRange(fallback.Where(f => !ReferenceEquals(f, font)));
-        return Layout(text, candidates, fontSize, run => StandardText.Width(run, fontSize));
+        return Layout(text, candidates, fontSize, run => StandardText.Width(run, fontSize), baseLevel);
     }
 
     /// <summary>
@@ -67,8 +76,18 @@ internal static class TextPipeline
     /// <param name="candidates">The fonts in order; null for the built-in font.</param>
     /// <param name="fontSize">The font size in points.</param>
     /// <param name="standardWidth">The width of a run drawn with the built-in font, in points.</param>
+    /// <param name="baseLevel">The paragraph direction (0 left to right, 1 right to left), or null to take it from the
+    /// first strong character (WR-041).</param>
     /// <returns>The laid-out text.</returns>
-    public static LaidOutText Layout(string text, IReadOnlyList<PdfFont?> candidates, double fontSize, Func<string, double> standardWidth)
+    public static LaidOutText Layout(string text, IReadOnlyList<PdfFont?> candidates, double fontSize, Func<string, double> standardWidth, int? baseLevel = null)
+    {
+        // Text with no right-to-left character, Arabic number, or bidirectional control, in a paragraph that is not
+        // right to left, keeps the left-to-right path unchanged, so its output is byte-identical (WR-041).
+        if (baseLevel != 1 && !NeedsBidi(text)) return LayoutLeftToRight(text, candidates, fontSize, standardWidth);
+        return LayoutBidi(text, candidates, fontSize, standardWidth, baseLevel);
+    }
+
+    private static LaidOutText LayoutLeftToRight(string text, IReadOnlyList<PdfFont?> candidates, double fontSize, Func<string, double> standardWidth)
     {
         // Split into text elements, choose each one's font, and group runs by font and script.
         var runs = new List<(PdfFont? Font, string Script, StringBuilder Text)>();
@@ -107,6 +126,101 @@ internal static class TextPipeline
         return new LaidOutText(segments, segments.Sum(s => s.Width));
     }
 
+    // Bidirectional layout (WR-041): levels from the algorithm; runs split by font, script, and level; each run shaped
+    // in its direction (a right-to-left run comes back in visual order); runs ordered by rule L2. Bidirectional format
+    // characters draw nothing; mirrored characters in right-to-left runs take their mirror glyph (TextShaper).
+    private static LaidOutText LayoutBidi(string text, IReadOnlyList<PdfFont?> candidates, double fontSize, Func<string, double> standardWidth, int? baseLevel)
+    {
+        var paragraph = BidiParagraph.Create(text, baseLevel);
+        var levels = paragraph.LineLevels(0, paragraph.Count);
+        var runs = new List<(PdfFont? Font, string Script, byte Level, StringBuilder Text)>();
+        var elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            string element = elements.GetTextElement();
+            var codePoints = CodePoints(element).ToList();
+            if (codePoints.All(BidiParagraph.IsFormatCharacter)) continue;
+            byte level = levels[paragraph.IndexOf(elements.ElementIndex)];
+            var chosen = candidates.FirstOrDefault(f => f is null ? !StandardText.IsMissing(element) : codePoints.All(f.Draws));
+            string? script = codePoints.Select(ScriptOf).FirstOrDefault(s => s is not null);
+            bool sameRun = runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) && runs[^1].Level == level;
+            if (sameRun && (script is null || runs[^1].Script == script || runs[^1].Script == string.Empty))
+            {
+                runs[^1].Text.Append(element);
+                if (script is not null && runs[^1].Script == string.Empty) runs[^1] = (runs[^1].Font, script, level, runs[^1].Text);
+            }
+            else
+            {
+                runs.Add((chosen, script ?? (sameRun ? runs[^1].Script : string.Empty), level, new StringBuilder(element)));
+            }
+        }
+
+        var segments = new TextSegment[runs.Count];
+        var runLevels = new byte[runs.Count];
+        for (int r = 0; r < runs.Count; r++)
+        {
+            var (runFont, script, level, builder) = runs[r];
+            string runText = builder.ToString();
+            runLevels[r] = level;
+            bool rightToLeft = (level & 1) == 1;
+            if (runFont is null)
+            {
+                // The built-in font draws only Western European characters; a right-to-left run of them reads reversed.
+                string drawn = rightToLeft ? Reverse(runText) : runText;
+                segments[r] = new StandardSegment(drawn, standardWidth(drawn));
+                continue;
+            }
+            var shaped = IndicScript.For(script) is not null
+                ? IndicShaper.Shape(runFont, runText, script)
+                : script == "arab"
+                    ? ArabicShaper.Shape(runFont, runText, ScriptTags(script), rightToLeft)
+                    : TextShaper.Shape(runFont, runText, ScriptTags(script), rightToLeft);
+            var spans = new List<ActualTextSpan>();
+            var texts = GlyphTexts(runFont, shaped, runText, spans);
+            segments[r] = new FontSegment(runFont, shaped, texts, spans, runText, shaped.Advance * fontSize / runFont.Font.UnitsPerEm);
+        }
+
+        bool reordered = runLevels.Any(l => (l & 1) == 1);
+        BidiParagraph.Reverse(segments, runLevels);
+        return new LaidOutText(segments, segments.Sum(s => s.Width), reordered ? text : null, paragraph.BaseLevel == 1);
+    }
+
+    // Whether the text needs the bidirectional algorithm: a right-to-left letter, an Arabic number, or a bidirectional
+    // control or mark.
+    internal static bool NeedsBidi(string text)
+    {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+        {
+            int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
+            if (codePoint < 0x0590) continue;
+            if (BidiParagraph.IsFormatCharacter(codePoint) || BidiData.ClassOf(codePoint) is BidiClass.R or BidiClass.AL or BidiClass.AN) return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Returns whether <paramref name="text"/> holds an Arabic-script letter, whose joined letters take no letter spacing
+    /// (WR-041, AC-12).
+    /// </summary>
+    internal static bool IsArabic(string text)
+    {
+        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
+        {
+            int codePoint = char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
+            if (codePoint >= 0x0600 && ScriptOf(codePoint) == "arab") return true;
+        }
+        return false;
+    }
+
+    private static string Reverse(string text)
+    {
+        var elements = new List<string>();
+        var enumerator = StringInfo.GetTextElementEnumerator(text);
+        while (enumerator.MoveNext()) elements.Add(enumerator.GetTextElement());
+        elements.Reverse();
+        return string.Concat(elements);
+    }
+
     /// <summary>
     /// Returns the operators that draw laid-out text with its baseline starting at (<paramref name="x"/>,
     /// <paramref name="baseline"/>), in black, recording fonts and glyphs in <paramref name="sink"/>.
@@ -116,10 +230,13 @@ internal static class TextPipeline
         // One text object for the whole line, so a line in several fonts stays one line of text for copy and search.
         // BT/ET = text object, rg = black fill; each segment sets its font (Tf) and position (Tm).
         var sb = new StringBuilder("BT 0 0 0 rg");
+        // A reordered line is one ActualText span holding its logical text, so copy and search read it in order
+        // (WR-041); its segments then draw without spans of their own. BDC = begin marked content.
+        if (layout.Reordered) sb.Append(" /Span << /ActualText <FEFF").Append(Convert.ToHexString(Encoding.BigEndianUnicode.GetBytes(layout.Text))).Append("> >> BDC");
         double pen = x;
         foreach (var segment in layout.Segments)
         {
-            if (segment is FontSegment shaped) DrawShaped(sb, shaped, pen, baseline, fontSize, sink);
+            if (segment is FontSegment shaped) DrawShaped(sb, shaped, pen, baseline, fontSize, sink, spans: !layout.Reordered);
             else
             {
                 // Tj = show text in the built-in font
@@ -129,6 +246,8 @@ internal static class TextPipeline
             }
             pen += segment.Width;
         }
+        // EMC = end marked content
+        if (layout.Reordered) sb.Append(" EMC");
         return sb.Append(" ET").ToString();
     }
 
@@ -147,6 +266,9 @@ internal static class TextPipeline
     private static string? ScriptOf(int codePoint) => codePoint switch
     {
         0x0964 or 0x0965 => null, // danda and double danda: Bengali, Gurmukhi, Oriya, and others use them too (WR-039)
+        // Arabic comma, semicolon, question mark, tatweel, and Arabic-Indic digits are shared with other scripts (Thaana
+        // among them) and join the run around them (WR-039).
+        0x060C or 0x061B or 0x061F or 0x0640 or >= 0x0660 and <= 0x0669 => null,
         >= 0x0900 and <= 0x097F or >= 0xA8E0 and <= 0xA8FF => "deva",
         >= 0x0980 and <= 0x09FF => "beng",
         >= 0x0A00 and <= 0x0A7F => "guru",
@@ -161,6 +283,10 @@ internal static class TextPipeline
         >= 0x0400 and <= 0x052F or >= 0x1C80 and <= 0x1C8F or >= 0x2DE0 and <= 0x2DFF or >= 0xA640 and <= 0xA69F => "cyrl",
         >= 0x0531 and <= 0x058F or >= 0xFB13 and <= 0xFB17 => "armn",
         >= 0x10A0 and <= 0x10FF or >= 0x1C90 and <= 0x1CBF or >= 0x2D00 and <= 0x2D2F => "geor",
+        >= 0x0591 and <= 0x05F4 or >= 0xFB1D and <= 0xFB4F => "hebr",
+        >= 0x0780 and <= 0x07BF => "thaa",
+        >= 0x0600 and <= 0x06FF or >= 0x0750 and <= 0x077F or >= 0x0870 and <= 0x089F or >= 0x08A0 and <= 0x08FF
+            or >= 0xFB50 and <= 0xFDFF or >= 0xFE70 and <= 0xFEFF => "arab",
         _ => null
     };
 
@@ -168,7 +294,7 @@ internal static class TextPipeline
     // after the defaults, for fonts that list their features under Latin only, as these scripts used before.
     internal static string[] ScriptTags(string script) => IndicScript.For(script) is { } indic
         ? new[] { indic.Version2Tag, indic.Version1Tag, "DFLT", "dflt" }
-        : script is "grek" or "cyrl" or "armn" or "geor"
+        : script is "grek" or "cyrl" or "armn" or "geor" or "hebr" or "thaa" or "arab"
             ? new[] { script, "DFLT", "dflt", "latn" }
             : new[] { "latn", "DFLT", "dflt" };
 
@@ -256,10 +382,12 @@ internal static class TextPipeline
     /// a marked-content span with its ActualText. Extra letter spacing goes after each cluster and extra word spacing
     /// after each space, in points; a skew slants the text (the text matrix's horizontal shear).
     /// </summary>
-    public static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink, double letterSpacing = 0, double wordSpacing = 0, double skew = 0)
+    public static void DrawShaped(StringBuilder sb, FontSegment segment, double x, double baseline, double fontSize, PageDrawSink sink, double letterSpacing = 0, double wordSpacing = 0, double skew = 0, bool spans = true)
     {
         var font = segment.Font;
         double unitsPerEm = font.Font.UnitsPerEm;
+        // Right-to-left letters the library does not shape are drawn, but recorded like missing characters (WR-039).
+        foreach (string unshaped in RightToLeftSupport.UnshapedElements(segment.Text)) sink.RecordMissing(unshaped, segment.Text);
         string resource = string.Empty;
         for (int i = 0; i < segment.Run.Glyphs.Count; i++) resource = sink.FaceResource(font, segment.Run.Glyphs[i].Glyph, segment.GlyphTexts[i]);
         if (segment.Run.Glyphs.Count == 0) return;
@@ -277,7 +405,7 @@ internal static class TextPipeline
         for (int i = 0; i < glyphs.Count; i++)
         {
             var glyph = glyphs[i];
-            if (span < segment.Spans.Count && segment.Spans[span].Start == i)
+            if (spans && span < segment.Spans.Count && segment.Spans[span].Start == i)
             {
                 // BDC = begin marked content: a /Span whose ActualText (UTF-16BE hex) replaces the glyphs' own text
                 if (open) { sb.Append("] TJ"); open = false; }
@@ -307,7 +435,7 @@ internal static class TextPipeline
                 if (letterSpacing != 0) shift += letterSpacing * 1000 / fontSize;
                 if (wordSpacing != 0 && glyph.Cluster < segment.Text.Length && segment.Text[glyph.Cluster] == ' ') shift += wordSpacing * 1000 / fontSize;
             }
-            if (span < segment.Spans.Count && segment.Spans[span].End == i + 1)
+            if (spans && span < segment.Spans.Count && segment.Spans[span].End == i + 1)
             {
                 // EMC = end marked content
                 if (open) { sb.Append("] TJ"); open = false; }

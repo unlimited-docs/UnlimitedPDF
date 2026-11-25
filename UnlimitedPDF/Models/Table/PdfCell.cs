@@ -151,10 +151,11 @@ public class PdfCell
     public IReadOnlyList<PdfCellContent> Content => _content;
 
     /// <summary>
-    /// Gets or sets the horizontal alignment of every content item. The default is left.
+    /// Gets or sets the horizontal alignment of every content item. The default is start: the left side for
+    /// left-to-right text, the right side for right-to-left text (WR-041).
     /// </summary>
     [AddedVersion("1.0.0")]
-    public PdfCellHorizontalAlignment HorizontalAlignment { get; set; } = PdfCellHorizontalAlignment.Left;
+    public PdfCellHorizontalAlignment HorizontalAlignment { get; set; } = PdfCellHorizontalAlignment.Start;
 
     /// <summary>
     /// Gets whether the cell has nothing to draw: no images and no non-empty text. Trimming removes empty trailing

@@ -10,6 +10,7 @@ public class PdfTable
     private readonly List<PdfColumn> _cols = new();
     private int _headerRowCount;
     private readonly List<PdfRow> _rows = new();
+    private PdfTextDirection? _direction;
 
     #endregion
 
@@ -365,6 +366,21 @@ public class PdfTable
                 throw new ArgumentOutOfRangeException(nameof(value), value, "The header row count cannot be negative.");
             _headerRowCount = value;
         }
+    }
+
+    /// <summary>
+    /// Gets or sets the table's direction (WR-041), or null (the default) for the document's
+    /// <see cref="PdfDocument.TextDirection"/>. A right-to-left table draws column 0 at its right edge and each later
+    /// column to the left of the one before, each keeping its width, and its cells' text reads right to left unless
+    /// the text sets its own direction. <see cref="PdfTextDirection.Auto"/> lays columns out from the left, and each
+    /// cell's text takes its first strong character's direction.
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="PdfTextDirection"/>.</exception>
+    [AddedVersion("1.2.0")]
+    public PdfTextDirection? Direction
+    {
+        get => _direction;
+        set => _direction = value is { } direction ? TextDirections.Checked(direction, nameof(value)) : null;
     }
 
     /// <summary>

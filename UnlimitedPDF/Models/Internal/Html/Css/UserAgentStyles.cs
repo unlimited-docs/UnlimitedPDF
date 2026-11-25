@@ -34,6 +34,10 @@ ol { list-style-type: decimal }
 ul ul, ol ul { list-style-type: circle }
 ul ul ul, ul ol ul, ol ul ul, ol ol ul { list-style-type: square }
 dd { margin-left: 40px }
+[dir=rtl] ul, [dir=rtl] ol, ul[dir=rtl], ol[dir=rtl] { padding-left: 0; padding-right: 40px }
+[dir=ltr] ul, [dir=ltr] ol, ul[dir=ltr], ol[dir=ltr] { padding-left: 40px; padding-right: 0 }
+[dir=rtl] dd, dd[dir=rtl] { margin-left: 0; margin-right: 40px }
+[dir=ltr] dd, dd[dir=ltr] { margin-left: 40px; margin-right: 0 }
 h1 { font-size: 2em; margin-top: 0.67em; margin-bottom: 0.67em; font-weight: bold }
 h2 { font-size: 1.5em; margin-top: 0.83em; margin-bottom: 0.83em; font-weight: bold }
 h3 { font-size: 1.17em; margin-top: 1em; margin-bottom: 1em; font-weight: bold }

@@ -16,6 +16,11 @@ internal class PdfTextElement
     public PdfFont? Font { get; set; }
 
     /// <summary>
+    /// Gets or sets the text's own direction, or null for the document's (WR-041).
+    /// </summary>
+    public PdfTextDirection? Direction { get; set; }
+
+    /// <summary>
     /// Gets or sets the font size in points.
     /// </summary>
     public double FontSize { get; set; } = 12;
@@ -53,7 +58,7 @@ internal class PdfTextElement
         // The text is escaped like every other string the library writes (WR-005); text without a backslash or an
         // unbalanced parenthesis is written unchanged.
         // Caller fonts (the element's, or the document's fallback list) go through the text pipeline (WR-039).
-        if (TextPipeline.Layout(Text, Font, sink.EmbeddedFonts.Fallback, FontSize) is { } layout)
+        if (TextPipeline.Layout(Text, Font, sink.EmbeddedFonts.Fallback, FontSize, TextDirections.BaseLevel(Direction, sink.EmbeddedFonts.TextDirection)) is { } layout)
             return TextPipeline.Draw(layout, X, Y, FontSize, sink);
 
         // Text with characters outside ASCII uses the WinAnsi Helvetica resource instead of /F1 (WR-039).

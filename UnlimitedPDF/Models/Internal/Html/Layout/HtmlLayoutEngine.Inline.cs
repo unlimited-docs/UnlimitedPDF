@@ -163,6 +163,80 @@ internal sealed partial class HtmlLayoutEngine
         return (Math.Max(0, width), Math.Max(0, height));
     }
 
+    // Gives each token the bidirectional level of its first character (WR-041). The block's inline content is one
+    // paragraph in the block's direction; isolating and overriding elements add their controls around their content.
+    // Returns false, leaving every level 0, for a left-to-right block with no right-to-left text and no such element.
+    private static bool AssignLevels(List<Token> tokens, bool rightToLeft)
+    {
+        if (!rightToLeft && !tokens.Any(t => t.Item.Scopes.Count > 0 || TextPipeline.NeedsBidi(t.Text))) return false;
+        var text = new StringBuilder();
+        var starts = new int[tokens.Count];
+        IReadOnlyList<BidiScope> open = Array.Empty<BidiScope>();
+        void Close(int keep)
+        {
+            for (int k = open.Count - 1; k >= keep; k--)
+            {
+                if (open[k].Overrides) text.Append('\u202C'); // PDF
+                text.Append('\u2069'); // PDI
+            }
+        }
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            var scopes = tokens[i].Item.Scopes;
+            int common = 0;
+            while (common < open.Count && common < scopes.Count && ReferenceEquals(open[common], scopes[common])) common++;
+            Close(common);
+            for (int k = common; k < scopes.Count; k++)
+            {
+                text.Append(scopes[k].RightToLeft ? '\u2067' : '\u2066'); // RLI or LRI
+                if (scopes[k].Overrides) text.Append(scopes[k].RightToLeft ? '\u202E' : '\u202D'); // RLO or LRO
+            }
+            open = scopes;
+            starts[i] = text.Length;
+            text.Append(tokens[i].Kind switch
+            {
+                TokenKind.Break => "\u2028", // a line separator: whitespace for the algorithm
+                TokenKind.Atomic => "\uFFFC", // an object replacement character: a neutral
+                _ => tokens[i].Text
+            });
+        }
+        Close(0);
+
+        var paragraph = Text.Bidi.BidiParagraph.Create(text.ToString(), rightToLeft ? 1 : 0);
+        int length = text.Length;
+        for (int i = 0; i < tokens.Count; i++)
+        {
+            int level = starts[i] < length ? paragraph.LevelAt(paragraph.IndexOf(starts[i])) : paragraph.BaseLevel;
+            tokens[i] = tokens[i] with { Level = (byte)level };
+        }
+        return true;
+    }
+
+    // A line's units in logical order: each break and atomic alone, and runs of words and spaces of one item at one
+    // level, a run ending where another element starts.
+    private static List<(int Start, int End)> Units(Line line)
+    {
+        var units = new List<(int Start, int End)>();
+        int i = 0;
+        while (i < line.Tokens.Count)
+        {
+            var token = line.Tokens[i];
+            if (token.Kind is TokenKind.Break or TokenKind.Atomic)
+            {
+                units.Add((i, i + 1));
+                i++;
+                continue;
+            }
+            int j = i;
+            while (j < line.Tokens.Count && line.Tokens[j].Kind is TokenKind.Word or TokenKind.Space && line.Tokens[j].Item == token.Item
+                   && (j == i || line.Tokens[j].Starts.Count == 0) && line.Tokens[j].Level == token.Level)
+                j++;
+            units.Add((i, j));
+            i = j;
+        }
+        return units;
+    }
+
     private static bool LastIsBreakOpportunity(Line line) =>
         line.Tokens.Count > 0 && (line.Tokens[line.Tokens.Count - 1].Kind is TokenKind.Space or TokenKind.Atomic || line.Tokens[line.Tokens.Count - 1].Kind == TokenKind.Word);
 
@@ -170,6 +244,8 @@ internal sealed partial class HtmlLayoutEngine
     {
         var s = box.Style;
         var tokens = Tokenize(box, width);
+        bool rightToLeft = s.Direction == CssDirection.Rtl;
+        bool bidi = AssignLevels(tokens, rightToLeft);
         double indent = Resolve(s.TextIndent, width);
         var lines = BreakLines(tokens, width, indent);
         bool clipReported = false;
@@ -201,13 +277,15 @@ internal sealed partial class HtmlLayoutEngine
             foreach (var marker in _pendingMarkers) DrawMarker(marker, baseline, fragment);
             _pendingMarkers.Clear();
 
-            double lineLeft = left + (first ? indent : 0);
+            // The first line's indent is on its start side (WR-041).
+            double lineLeft = left + (first && !rightToLeft ? indent : 0);
             double lineWidth = width - (first ? indent : 0);
             double free = lineWidth - line.Width;
             bool last = index == lines.Count - 1 || line.Forced;
             int spaces = line.Tokens.Count(t => t.Kind == TokenKind.Space && t.Collapsible);
             double extra = s.TextAlign == CssTextAlign.Justify && !last && spaces > 0 && free > 0 ? free / spaces : 0;
-            double x = lineLeft + (s.TextAlign switch
+            var align = s.TextAlign == CssTextAlign.Justify && (last || extra == 0) && rightToLeft ? CssTextAlign.Right : s.PhysicalTextAlign;
+            double x = lineLeft + (align switch
             {
                 CssTextAlign.Right => free,
                 CssTextAlign.Center => free / 2,
@@ -217,8 +295,19 @@ internal sealed partial class HtmlLayoutEngine
 
             var texts = new List<HtmlCommand>();
             var backgrounds = new List<HtmlCommand>();
-            int i = 0;
-            while (i < line.Tokens.Count)
+            // Units in logical order: a break, an atomic, or a run of words and spaces of one item at one level; a line
+            // with bidirectional levels puts its units in visual order by rule L2 (WR-041).
+            var units = Units(line);
+            bool reordered = false;
+            if (bidi)
+            {
+                var levels = units.Select(u => line.Tokens[u.Start].Level).ToArray();
+                reordered = levels.Any(l => (l & 1) == 1);
+                var ordered = units.ToArray();
+                Text.Bidi.BidiParagraph.Reverse(ordered, levels);
+                units = ordered.ToList();
+            }
+            foreach (var (i, j) in units)
             {
                 var token = line.Tokens[i];
                 foreach (var start in token.Starts)
@@ -226,13 +315,12 @@ internal sealed partial class HtmlLayoutEngine
                     if (start.Attribute("id") is { } id) texts.Add(new MarkCommand(id, 0, null, x, top));
                 }
 
-                if (token.Kind == TokenKind.Break) { i++; continue; }
+                if (token.Kind == TokenKind.Break) continue;
                 if (token.Kind == TokenKind.Atomic)
                 {
                     PlaceAtomic(token, x, baseline, s, texts);
                     AddLink(token.Item, x, baseline - below, token.Width, height, texts);
                     x += token.Width;
-                    i++;
                     continue;
                 }
 
@@ -241,14 +329,12 @@ internal sealed partial class HtmlLayoutEngine
                 var run = new StringBuilder();
                 double runWidth = 0;
                 int runSpaces = 0;
-                int j = i;
-                while (j < line.Tokens.Count && line.Tokens[j].Kind is TokenKind.Word or TokenKind.Space && line.Tokens[j].Item == item && (j == i || line.Tokens[j].Starts.Count == 0))
+                for (int k = i; k < j; k++)
                 {
-                    var part = line.Tokens[j];
+                    var part = line.Tokens[k];
                     run.Append(part.Text);
                     runWidth += part.Width;
                     if (part.Kind == TokenKind.Space && part.Collapsible) runSpaces++;
-                    j++;
                 }
                 // Justified spaces at the end of a run belong to it.
                 runWidth += runSpaces * extra;
@@ -262,7 +348,14 @@ internal sealed partial class HtmlLayoutEngine
                     string runText = run.ToString();
                     if (item.Background is { } bg) backgrounds.Add(new FillCommand(x, runBaseline - Descent * size, runWidth, size, bg));
                     if (Fonts.Simple) texts.Add(new TextCommand(font, size, style.Color, x, runBaseline, WinAnsiEncoding.Encode(runText), extra, style.LetterSpacing, runText));
-                    else AddRun(runText, style, x, runBaseline, extra, texts);
+                    else
+                    {
+                        // Inside a bdo, the run keeps its override when it is laid out (WR-041); the controls draw nothing.
+                        string laidOut = item.Scopes.Count > 0 && item.Scopes[^1] is { Overrides: true } over
+                            ? (over.RightToLeft ? "\u202E" : "\u202D") + runText + "\u202C"
+                            : runText;
+                        AddRun(laidOut, style, x, runBaseline, extra, texts, bidi ? token.Level & 1 : null, spans: !reordered);
+                    }
                     ReportMissing(runText, style);
                     double thickness = Math.Max(0.5, size * 0.05);
                     if (style.Underline) texts.Add(new LineCommand(x, runBaseline - size * 0.12, x + runWidth, runBaseline - size * 0.12, thickness, style.Color, HtmlBorderStyle.Solid));
@@ -270,7 +363,12 @@ internal sealed partial class HtmlLayoutEngine
                     AddLink(item, x, runBaseline - Descent * size, runWidth, size, texts);
                 }
                 x += runWidth;
-                i = j;
+            }
+            // A reordered line copies and searches in logical order (WR-041).
+            if (reordered)
+            {
+                texts.Insert(0, new ActualTextBeginCommand(string.Concat(line.Tokens.Where(t => t.Kind is TokenKind.Word or TokenKind.Space).Select(t => t.Text))));
+                texts.Add(new ActualTextEndCommand());
             }
             // A line that cannot wrap and passes the body edge is clipped there (D-016). A line taller than the body (an
             // inline-block taller than a page) is clipped at the body bottom on its page, and later content continues
@@ -301,18 +399,21 @@ internal sealed partial class HtmlLayoutEngine
         }
     }
 
-    // A run in caller fonts (WR-039): one command per font segment, placed one after another.
-    private void AddRun(string text, ComputedStyle style, double x, double baseline, double wordSpacing, List<HtmlCommand> commands)
+    // A run in caller fonts (WR-039): one command per font segment, placed one after another. A run of a reordered
+    // line takes its level's direction and draws without spans of its own (WR-041); joined Arabic letters take no
+    // letter spacing (AC-12).
+    private void AddRun(string text, ComputedStyle style, double x, double baseline, double wordSpacing, List<HtmlCommand> commands, int? baseLevel = null, bool spans = true)
     {
         var standard = Font(style);
         double size = style.FontSize, letterSpacing = style.LetterSpacing;
-        foreach (var segment in Fonts.Layout(text, style).Segments)
+        foreach (var segment in Fonts.Layout(text, style, baseLevel).Segments)
         {
             int spaces = segment.Text.Count(c => c == ' ');
             if (segment is FontSegment shaped)
             {
                 var (fakeBold, fakeItalic) = Fonts.Synthesis(style, shaped.Font);
-                commands.Add(new ShapedTextCommand(shaped, size, style.Color, x, baseline, wordSpacing, letterSpacing, fakeBold, fakeItalic));
+                double spacing = HtmlFonts.Slots(segment) == 0 ? 0 : letterSpacing;
+                commands.Add(new ShapedTextCommand(shaped, size, style.Color, x, baseline, wordSpacing, spacing, fakeBold, fakeItalic, spans));
             }
             else commands.Add(new TextCommand(standard, size, style.Color, x, baseline, WinAnsiEncoding.Encode(segment.Text), wordSpacing, letterSpacing, segment.Text));
             x += segment.Width + letterSpacing * HtmlFonts.Slots(segment) + wordSpacing * spaces;
@@ -344,6 +445,16 @@ internal sealed partial class HtmlLayoutEngine
             if (!_reportedMissing.Add(element)) continue;
             string codes = string.Join(" ", CodePointsOf(element).Select(c => "U+" + c.ToString("X4", CultureInfo.InvariantCulture)));
             Warn(PdfHtmlWarningKind.MissingCharacter, element, $"The character {codes} is in no font; it is drawn as '?'. Register a font that has it, or add one to the fallback fonts.");
+        }
+        // Right-to-left letters of scripts the library does not shape are drawn in their font without joining (WR-039).
+        if (!Fonts.Simple)
+        {
+            foreach (string element in Fonts.Layout(text, style).Segments.OfType<FontSegment>().SelectMany(segment => RightToLeftSupport.UnshapedElements(segment.Text)))
+            {
+                if (!_reportedMissing.Add(element)) continue;
+                string codes = string.Join(" ", CodePointsOf(element).Select(c => "U+" + c.ToString("X4", CultureInfo.InvariantCulture)));
+                Warn(PdfHtmlWarningKind.MissingCharacter, element, $"The character {codes} is in a right-to-left script that is not shaped; it is drawn without its script's joining. Supported right-to-left scripts are Arabic, Hebrew, and Thaana.");
+            }
         }
     }
 
@@ -612,6 +723,11 @@ internal sealed partial class HtmlLayoutEngine
     private sealed record Token(TokenKind Kind, string Text, InlineItem Item, double Width, bool Collapsible, List<HtmlElement> Starts)
     {
         public double Height { get; init; }
+
+        /// <summary>
+        /// Gets the bidirectional level of the token's first character (0 unless the block needs the algorithm).
+        /// </summary>
+        public byte Level { get; init; }
 
         public CachedLayout? Inner { get; init; }
     }

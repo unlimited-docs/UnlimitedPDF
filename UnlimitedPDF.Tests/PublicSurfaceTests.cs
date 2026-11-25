@@ -23,7 +23,7 @@ public class PublicSurfaceTests
     [Fact]
     public void AddText_on_a_page_has_a_double_overload_and_a_caller_font_overload_but_no_font_name()
     {
-        var methods = typeof(PdfPage).GetMethods().Where(m => m.Name == nameof(PdfPage.AddText)).OrderBy(m => m.GetParameters().Length).ToList();
+        var methods = typeof(PdfPage).GetMethods().Where(m => m.Name == nameof(PdfPage.AddText) && !TakesOptions(m)).OrderBy(m => m.GetParameters().Length).ToList();
 
         Assert.Equal(2, methods.Count);
         Assert.Equal(new[] { typeof(string), typeof(double), typeof(double), typeof(double) }, methods[0].GetParameters().Select(p => p.ParameterType));
@@ -41,7 +41,7 @@ public class PublicSurfaceTests
     public void Font_overloads_take_the_font_after_the_text(Type type, string name, string parameters)
     {
         // The font is part of the content, so the PR-016 order of position, size, spacing, and x after it is kept.
-        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && TakesFont(m));
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && TakesFont(m) && !TakesOptions(m));
 
         Assert.Equal(parameters, ParameterNames(method));
         Assert.Equal("1.1.0", VersionOf(method));
@@ -60,10 +60,36 @@ public class PublicSurfaceTests
     [InlineData(typeof(PdfTable), nameof(PdfTable.SetText), "0.0.3")]
     public void Edited_shipped_methods_record_their_first_version_and_a_description(Type type, string name, string version)
     {
-        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && !TakesFont(m));
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && !TakesFont(m) && !TakesOptions(m));
 
         Assert.Equal(version, VersionOf(method));
         Assert.False(string.IsNullOrWhiteSpace(method.GetCustomAttribute<DescriptionAttribute>()?.Description));
+    }
+
+    [Theory]
+    [InlineData(typeof(PdfPage), "text,x,y,options,fontSize", "text,font,x,y,options,fontSize")]
+    [InlineData(typeof(PdfSectionContent), "text,x,y,options,fontSize,alignment", "text,font,x,y,options,fontSize,alignment")]
+    [InlineData(typeof(PdfBodyFlow), "text,options,spacing,fontSize,alignment,x,keepWithNext", "text,font,options,spacing,fontSize,alignment,x,keepWithNext")]
+    [InlineData(typeof(PdfFlowBlock), "text,options,spacing,fontSize,alignment,x", "text,font,options,spacing,fontSize,alignment,x")]
+    public void Text_option_overloads_take_the_options_after_the_required_arguments(Type type, string plain, string withFont)
+    {
+        // WR-041 (65 D-011): the options follow the call's required arguments, so no existing call becomes ambiguous.
+        var methods = type.GetMethods(PublicMembers).Where(m => m.Name == "AddText" && TakesOptions(m)).ToList();
+
+        Assert.Equal(2, methods.Count);
+        Assert.Equal(plain, ParameterNames(Assert.Single(methods, m => !TakesFont(m))));
+        Assert.Equal(withFont, ParameterNames(Assert.Single(methods, TakesFont)));
+        Assert.All(methods, m => Assert.Equal("1.2.0", VersionOf(m)));
+        Assert.All(methods, m => Assert.False(string.IsNullOrWhiteSpace(m.GetCustomAttribute<DescriptionAttribute>()?.Description)));
+    }
+
+    [Fact]
+    public void The_text_direction_members_record_their_version()
+    {
+        Assert.Equal("1.2.0", VersionOf(typeof(PdfDocument).GetProperty(nameof(PdfDocument.TextDirection))!));
+        Assert.Equal("1.2.0", VersionOf(typeof(PdfTextOptions).GetProperty(nameof(PdfTextOptions.Direction))!));
+        Assert.Equal("1.2.0", VersionOf(typeof(PdfCellText).GetProperty(nameof(PdfCellText.Direction))!));
+        Assert.Equal(new[] { "Auto", "LeftToRight", "RightToLeft" }, Enum.GetNames(typeof(PdfTextDirection)));
     }
 
     [Fact]
@@ -104,7 +130,7 @@ public class PublicSurfaceTests
     public void Methods_have_their_1_0_0_parameter_order(Type type, string name, string parameters)
     {
         // The 1.1.0 caller-font overloads are checked by Font_overloads_take_the_font_after_the_text.
-        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && !TakesFont(m));
+        var method = Assert.Single(type.GetMethods(PublicMembers), m => m.Name == name && !TakesFont(m) && !TakesOptions(m));
         Assert.Equal(parameters, ParameterNames(method));
     }
 
@@ -303,6 +329,9 @@ public class PublicSurfaceTests
 
     // True for the 1.1.0 overloads that take a caller font (WR-039).
     private static bool TakesFont(MethodBase method) => method.GetParameters().Any(p => p.ParameterType == typeof(PdfFont));
+
+    // True for the 1.2.0 overloads that take text options (WR-041).
+    private static bool TakesOptions(MethodBase method) => method.GetParameters().Any(p => p.ParameterType == typeof(PdfTextOptions));
 
     private static string ParameterNames(MethodBase method) => string.Join(",", method.GetParameters().Select(p => p.Name));
 

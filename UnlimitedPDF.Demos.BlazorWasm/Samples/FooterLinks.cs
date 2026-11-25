@@ -63,6 +63,7 @@ public static class FooterLinks
         [
             .. LanguageInvoices.All.Select(language => new FooterLink(LanguageText(language), LanguageRoute(language))),
             new("Use your own fonts", SampleCatalog.FontsAndLanguages.Route),
+            new("Right-to-left PDFs", SampleCatalog.RightToLeftDocuments.Route),
         ]),
         new(ToolCatalog.HubHeading,
         [

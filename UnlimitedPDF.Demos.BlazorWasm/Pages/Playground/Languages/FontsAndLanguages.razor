@@ -60,7 +60,7 @@
                 <li>The right to embed the font in a PDF. Check its license; a font whose license forbids embedding fails to load unless you set <code>IgnoreEmbeddingRestrictions</code> in <code>PdfFontLoadOptions</code>.</li>
                 <li>Load each font once with <code>PdfFont.FromFile</code>, <code>FromStream</code>, or <code>FromBytes</code>, and ship the file with your app. Pass it to a text call, or add it to <code>document.FontFallback</code> for characters the call's font doesn't have.</li>
                 <li>For HTML, register each font in <code>PdfHtmlLoadOptions.Fonts</code> under the family name your CSS uses.</li>
-                <li>Scripts: Latin, Greek, Cyrillic (Russian, Ukrainian, Bulgarian, and others), Armenian, Georgian, Devanagari (Hindi, Marathi, and others), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, and Tamil. Right-to-left scripts, including Urdu, Kashmiri, and Sindhi, and Chinese, Japanese, and Korean aren't supported yet.</li>
+                <li>Scripts: Latin, Greek, Cyrillic (Russian, Ukrainian, Bulgarian, and others), Armenian, Georgian, Devanagari (Hindi, Marathi, and others), Bengali-Assamese, Gujarati, Gurmukhi (Punjabi), Odia, Kannada, Malayalam, Telugu, Tamil, and, right to left, Arabic (Arabic, Persian, Urdu, and others), Hebrew, and Thaana (Dhivehi). For a right-to-left document, set <code>document.TextDirection = PdfTextDirection.RightToLeft</code>. Other right-to-left scripts, such as Syriac, and Chinese, Japanese, and Korean aren't supported yet.</li>
                 <li>Check for characters no font has with <code>FindMissingCharacters</code>, or set <code>FailOnMissingCharacters</code> so saving fails instead of drawing ?.</li>
             </ul>
         </CollapsibleSection>
@@ -68,19 +68,19 @@
         <CollapsibleSection Title="Seller and buyer" InitiallyOpen="false">
             <div class="field">
                 <label for="fl-seller-name">Seller name</label>
-                <input id="fl-seller-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-name" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.SellerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-seller-address">Seller address</label>
-                <input id="fl-seller-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-seller-address" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.SellerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-name">Buyer name</label>
-                <input id="fl-buyer-name" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-name" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.BuyerName" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field">
                 <label for="fl-buyer-address">Buyer address</label>
-                <input id="fl-buyer-address" lang="@_input.LanguageTag" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
+                <input id="fl-buyer-address" lang="@_input.LanguageTag" dir="@_input.TextDirection" class="form-control" @bind="_input.BuyerAddress" @bind:event="oninput" @bind:after="Refresh" />
             </div>
             <div class="field-row">
                 <div class="field">
@@ -107,7 +107,7 @@
                                 <Icon Name="close" Size="16" />
                             </button>
                         </div>
-                        <input class="form-control" lang="@_input.LanguageTag" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
+                        <input class="form-control" lang="@_input.LanguageTag" dir="@_input.TextDirection" aria-label="Description of item @number" @bind="line.Description" @bind:event="oninput" @bind:after="Refresh" />
                         <div class="field-row">
                             <div class="field">
                                 <label for="@($"fonts-and-languages-1-{number}-qty")">Qty</label>

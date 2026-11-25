@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Components.Forms;
 using UnlimitedPDF.Demos.BlazorWasm.Samples;
 using UnlimitedPDF.Demos.BlazorWasm.Samples.Inputs;
@@ -26,7 +27,7 @@ public class FontsAndLanguagesDemoTests
     public void The_presets_are_the_nine_indian_languages_eight_european_ones_filipino_and_mixed_with_their_money_style()
     {
         Assert.Equal(
-            new[] { "hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam", "french", "polish", "czech", "turkish", "filipino", "greek", "russian", "ukrainian", "armenian", "georgian", "mixed" },
+            new[] { "hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam", "french", "polish", "czech", "turkish", "filipino", "greek", "russian", "ukrainian", "armenian", "georgian", "arabic", "persian", "urdu", "hebrew", "dhivehi", "mixed" },
             LanguageInvoices.All.Select(p => p.Id));
         Assert.All(LanguageInvoices.All, p => Assert.True(p.Items.Count >= 2, p.Id));
         Assert.Equal("₹ 1,500.00", LanguageInvoices.Find("telugu").Money(1500m));
@@ -35,6 +36,10 @@ public class FontsAndLanguagesDemoTests
         Assert.Equal("396,00 Kč", LanguageInvoices.Find("czech").Money(396m));
         Assert.Equal("₱1,500.50", LanguageInvoices.Find("filipino").Money(1500.5m));
         Assert.Equal("15 000,00 ֏", LanguageInvoices.Find("armenian").Money(15000m));
+        // Right-to-left invoices (WR-041): comma thousands, point decimals, the currency after.
+        Assert.Equal("1,500.50 ₪", LanguageInvoices.Find("hebrew").Money(1500.5m));
+        Assert.Equal("850,000.00 ریال", LanguageInvoices.Find("persian").Money(850000m));
+        Assert.Equal(new[] { "arabic", "persian", "urdu", "hebrew", "dhivehi" }, LanguageInvoices.All.Where(p => p.RightToLeft).Select(p => p.Id));
         Assert.Same(LanguageInvoices.All[0], LanguageInvoices.Find("klingon"));
     }
 
@@ -54,6 +59,11 @@ public class FontsAndLanguagesDemoTests
     [InlineData("ukrainian", "uk")]
     [InlineData("armenian", "hy")]
     [InlineData("georgian", "ka")]
+    [InlineData("arabic", "ar")]
+    [InlineData("persian", "fa")]
+    [InlineData("urdu", "ur")]
+    [InlineData("hebrew", "he")]
+    [InlineData("dhivehi", "dv")]
     public void Each_added_language_invoice_names_its_language_for_the_page(string id, string tag)
     {
         var input = new FontsAndLanguagesInput();
@@ -97,9 +107,14 @@ public class FontsAndLanguagesDemoTests
         {
             FontScript.Latin, FontScript.Greek, FontScript.Cyrillic, FontScript.Armenian, FontScript.Georgian, FontScript.Devanagari,
             FontScript.Telugu, FontScript.Tamil, FontScript.Bengali, FontScript.Gujarati,
-            FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam
+            FontScript.Gurmukhi, FontScript.Odia, FontScript.Kannada, FontScript.Malayalam,
+            FontScript.Arabic, FontScript.Hebrew, FontScript.Thaana // right to left, after every other slot (WR-041)
         }, FontSlots.Scripts);
         Assert.Null(FontSlots.ScriptOf('×'));
+        Assert.Equal(FontScript.Arabic, FontSlots.ScriptOf('پ')); // Persian
+        Assert.Equal(FontScript.Arabic, FontSlots.ScriptOf('ے')); // Urdu
+        Assert.Null(FontSlots.ScriptOf('١')); // Arabic-Indic digits are shared, as in the library
+        Assert.Null(FontSlots.ScriptOf('،'));
         Assert.Null(FontSlots.ScriptOf('₹'));
         Assert.Null(FontSlots.ScriptOf('₽'));
         Assert.Equal(FontScript.Greek, FontSlots.ScriptOf('ά'));
@@ -148,6 +163,9 @@ public class FontsAndLanguagesDemoTests
     [InlineData(FontScript.Odia, 'କ')]
     [InlineData(FontScript.Kannada, 'ಕ')]
     [InlineData(FontScript.Malayalam, 'ക')]
+    [InlineData(FontScript.Arabic, 'ب')]
+    [InlineData(FontScript.Hebrew, 'ש')]
+    [InlineData(FontScript.Thaana, 'ހ')]
     public void Each_added_slot_finds_its_script_letters(FontScript script, char letter)
     {
         Assert.Equal(script, FontSlots.ScriptOf(letter));
@@ -156,11 +174,82 @@ public class FontsAndLanguagesDemoTests
         Assert.Null(FontSlots.ScriptOf('।'));
     }
 
+    [Theory]
+    [InlineData("arabic", "ar")]
+    [InlineData("persian", "fa")]
+    [InlineData("urdu", "ur")]
+    [InlineData("hebrew", "he")]
+    [InlineData("dhivehi", "dv")]
+    public void A_right_to_left_invoice_reads_from_the_right_in_both_modes(string id, string tag)
+    {
+        // WR-041, V-14: the document reads right to left, the items table puts its first column at the right, the HTML
+        // sets dir and lang, and the page's fields carry dir="rtl"; left-to-right invoices set none of it.
+        var input = new FontsAndLanguagesInput();
+        input.Apply(LanguageInvoices.Find(id));
+        var fonts = DemoFonts.For(input);
+
+        var document = FontsAndLanguagesSample.Build(input, fonts, fonts);
+        var htmlDocument = FontsAndLanguagesHtmlSample.Build(input, DemoFonts.Slots(input), out _);
+
+        Assert.Equal(PdfTextDirection.RightToLeft, document.TextDirection);
+        Assert.Equal("rtl", input.TextDirection);
+        Assert.Equal(tag, input.LanguageTag);
+        // The HTML invoice's title is drawn at the right of the page.
+        var htmlContent = Assert.Single(PdfPageReader.Read(PdfPageReader.SaveBytes(htmlDocument))).Content;
+        var firstText = System.Text.RegularExpressions.Regex.Match(htmlContent, @"1 0 (?:-?[\d.]+ )?1 (-?[\d.]+) -?[\d.]+ Tm");
+        Assert.True(double.Parse(firstText.Groups[1].Value, CultureInfo.InvariantCulture) > 250, firstText.Value);
+        var content = Assert.Single(PdfPageReader.Read(PdfPageReader.SaveBytes(document))).Content;
+        var cells = System.Text.RegularExpressions.Regex.Matches(content, @"(-?[\d.]+) -?[\d.]+ 195 -?[\d.]+ re f");
+        Assert.NotEmpty(cells); // the 195-point description column
+        Assert.All(cells, m => Assert.True(double.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture) > 300, m.Value));
+
+        var english = new FontsAndLanguagesInput();
+        english.Apply(LanguageInvoices.Find("french"));
+        Assert.Equal(PdfTextDirection.Auto, FontsAndLanguagesSample.Build(english, DemoFonts.For(english), DemoFonts.For(english)).TextDirection);
+        Assert.Null(english.TextDirection);
+    }
+
+    [Theory]
+    [InlineData(PdfTextDirection.RightToLeft, true)]
+    [InlineData(PdfTextDirection.LeftToRight, false)]
+    [InlineData(PdfTextDirection.Auto, true)]
+    public void A_chosen_direction_overrides_the_presets_in_both_modes(PdfTextDirection direction, bool fromTheRight)
+    {
+        // CR-001, V-22: the Right-to-left documents demo sets Direction; Fonts and languages never does.
+        var input = new FontsAndLanguagesInput { Direction = direction };
+        input.Apply(LanguageInvoices.Find("hebrew"));
+        var fonts = DemoFonts.For(input);
+
+        var document = FontsAndLanguagesSample.Build(input, fonts, fonts);
+        var htmlDocument = FontsAndLanguagesHtmlSample.Build(input, DemoFonts.Slots(input), out _);
+
+        Assert.Equal(direction, document.TextDirection);
+        Assert.Equal(direction, input.DrawnDirection);
+        string Content(PdfDocument d) => Assert.Single(PdfPageReader.Read(PdfPageReader.SaveBytes(d))).Content;
+        double FirstX(string content) => double.Parse(System.Text.RegularExpressions.Regex.Match(content, @"1 0 (?:-?[\d.]+ )?1 (-?[\d.]+) -?[\d.]+ Tm").Groups[1].Value, CultureInfo.InvariantCulture);
+        Assert.Equal(fromTheRight, FirstX(Content(document)) > 250);
+        Assert.Equal(fromTheRight, FirstX(Content(htmlDocument)) > 250);
+        Assert.Equal("rtl", input.TextDirection); // the page's fields stay right to left for Hebrew text
+    }
+
+    [Fact]
+    public void Without_a_chosen_direction_each_preset_keeps_its_own()
+    {
+        var english = new FontsAndLanguagesInput();
+        english.Apply(LanguageInvoices.Find("french"));
+        var arabic = new FontsAndLanguagesInput();
+        arabic.Apply(LanguageInvoices.Find("arabic"));
+
+        Assert.Null(english.Direction);
+        Assert.Equal(PdfTextDirection.Auto, english.DrawnDirection);
+        Assert.Equal(PdfTextDirection.RightToLeft, arabic.DrawnDirection);
+    }
+
     [Fact]
     public void Every_slot_has_a_free_font_link()
     {
         Assert.All(FontSlots.Scripts, s => Assert.StartsWith("https://fonts.google.com/noto/specimen/Noto+Sans", FontSlots.FreeFontLink(s), StringComparison.Ordinal));
-        Assert.Equal(12, FontSlots.Scripts.Select(FontSlots.FreeFontLink).Distinct().Count()); // Noto Sans covers Latin, Greek, and Cyrillic
+        Assert.Equal(15, FontSlots.Scripts.Select(FontSlots.FreeFontLink).Distinct().Count()); // Noto Sans covers Latin, Greek, and Cyrillic
         Assert.Equal("https://fonts.google.com/noto/specimen/Noto+Sans+Oriya", FontSlots.FreeFontLink(FontScript.Odia));
     }
 

@@ -12,6 +12,8 @@ public sealed class PdfCellText : PdfCellContent
     /// </summary>
     internal const double DefaultFontSize = 12;
 
+    private PdfTextDirection? _direction;
+
     #endregion
 
     #region Constructors and Finalizers
@@ -53,6 +55,17 @@ public sealed class PdfCellText : PdfCellContent
     #endregion
 
     #region Properties, Indexers
+
+    /// <summary>
+    /// Gets or sets the text's base direction, or null (the default) for its table's or document's (WR-041).
+    /// </summary>
+    /// <exception cref="ArgumentOutOfRangeException">The value is not a defined <see cref="PdfTextDirection"/>.</exception>
+    [AddedVersion("1.2.0")]
+    public PdfTextDirection? Direction
+    {
+        get => _direction;
+        set => _direction = value is { } direction ? TextDirections.Checked(direction, nameof(value)) : null;
+    }
 
     /// <summary>
     /// Gets the font size in points.

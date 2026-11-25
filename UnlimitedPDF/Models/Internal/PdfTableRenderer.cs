@@ -103,7 +103,8 @@ internal static class PdfTableRenderer
 
     #region Private Methods
 
-    private static double AlignedX(PdfCell cell, double currentX, double cellWidth, double contentWidth) => cell.HorizontalAlignment switch
+    // Start and End stand for the side the content's direction reads from and towards (WR-041).
+    private static double AlignedX(PdfCell cell, double currentX, double cellWidth, double contentWidth, bool rightToLeft) => TextDirections.Physical(cell.HorizontalAlignment, rightToLeft) switch
     {
         PdfCellHorizontalAlignment.Right => currentX + cellWidth - contentWidth - cell.Padding,
         PdfCellHorizontalAlignment.Center => currentX + (cellWidth - contentWidth) / 2,
@@ -128,7 +129,8 @@ internal static class PdfTableRenderer
         double currentY,
         double cellWidth,
         double rowHeight,
-        PageDrawSink sink)
+        PageDrawSink sink,
+        PdfTextDirection? tableDirection)
     {
         if (layout.Items.Count == 0) return;
 
@@ -137,7 +139,7 @@ internal static class PdfTableRenderer
         if (layout.Items.Count == 1 && layout.Items[0].Item is PdfCellText single
             && single.FontSize == PdfCellText.DefaultFontSize && cell.VerticalAlignment == PdfCellVerticalAlignment.Middle)
         {
-            DrawSingleMiddleLine(sb, cell, single, currentX, currentY, cellWidth, rowHeight, sink);
+            DrawSingleMiddleLine(sb, cell, single, currentX, currentY, cellWidth, rowHeight, sink, tableDirection);
             return;
         }
 
@@ -155,12 +157,14 @@ internal static class PdfTableRenderer
             {
                 // Each line box is centered on its baseline the same way the single-line case is (center - size / 3).
                 double baseline = top - item.Height / 2 - text.FontSize / 3;
-                if (TextPipeline.Layout(text.Text, text.Font, sink.EmbeddedFonts.Fallback, text.FontSize) is { } laidOut)
+                int? baseLevel = TextDirections.BaseLevel(text.Direction, tableDirection, sink.EmbeddedFonts.TextDirection);
+                bool rightToLeft = TextDirections.IsRightToLeft(text.Text, baseLevel);
+                if (TextPipeline.Layout(text.Text, text.Font, sink.EmbeddedFonts.Fallback, text.FontSize, baseLevel) is { } laidOut)
                 {
-                    sb.AppendLine(TextPipeline.Draw(laidOut, AlignedX(cell, currentX, cellWidth, laidOut.Width), baseline, text.FontSize, sink));
+                    sb.AppendLine(TextPipeline.Draw(laidOut, AlignedX(cell, currentX, cellWidth, laidOut.Width, rightToLeft), baseline, text.FontSize, sink));
                     continue;
                 }
-                double textX = AlignedX(cell, currentX, cellWidth, GetTextWidth(text.Text, text.FontSize));
+                double textX = AlignedX(cell, currentX, cellWidth, GetTextWidth(text.Text, text.FontSize), rightToLeft);
                 var (resource, literal) = StandardText.Prepare(text.Text, sink);
                 sb.AppendLine("BT"); // Begin text
                 sb.AppendLine("0 0 0 rg"); // Set text color to black
@@ -171,7 +175,7 @@ internal static class PdfTableRenderer
             }
             else if (item.Item is PdfCellImage image)
             {
-                double imageX = AlignedX(cell, currentX, cellWidth, item.Width);
+                double imageX = AlignedX(cell, currentX, cellWidth, item.Width, TextDirections.BaseLevel(tableDirection, sink.EmbeddedFonts.TextDirection) == 1);
                 var element = new PdfImageElement(image.Image.Data, imageX, top - item.Height, item.Width, item.Height);
                 sb.AppendLine(element.ToContent(sink.ImageName(image.Image.Data)));
             }
@@ -185,15 +189,22 @@ internal static class PdfTableRenderer
     private static void DrawRows(StringBuilder sb, PdfTable table, TableLayout layout, IEnumerable<int> rows, double left, double top, PageDrawSink sink)
     {
         double currentY = top;
+        // A right-to-left table (its own direction, else the document's; Auto counts as left to right) lays column 0
+        // at its right edge and each later column to the left (WR-041).
+        var tableDirection = table.Direction;
+        bool rightToLeft = TextDirections.BaseLevel(tableDirection, sink.EmbeddedFonts.TextDirection) == 1;
+        double tableWidth = 0;
+        for (int c = 0; c < table.ColumnCount; c++) tableWidth += layout.ColumnWidths[c];
 
         foreach (int r in rows)
         {
             double rowHeight = layout.RowHeights[r];
-            double currentX = left;
+            double currentX = rightToLeft ? left + tableWidth : left;
             for (int c = 0; c < table.ColumnCount; c++)
             {
                 var cell = table.GetCell(r, c);
                 double cellWidth = layout.ColumnWidths[c];
+                if (rightToLeft) currentX -= cellWidth;
 
                 sb.AppendLine("q"); // Save graphics state
 
@@ -208,25 +219,27 @@ internal static class PdfTableRenderer
                 sb.AppendLine($"{PdfNumber.Format(border.Width)} w"); // Border width
                 sb.AppendLine($"{PdfNumber.Format(currentX)} {PdfNumber.Format(currentY - rowHeight)} {PdfNumber.Format(cellWidth)} {PdfNumber.Format(rowHeight)} re s"); // Stroke rectangle
 
-                DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, sink);
+                DrawContent(sb, cell, layout.Cells[r, c], currentX, currentY, cellWidth, rowHeight, sink, tableDirection);
 
                 sb.AppendLine("Q"); // Restore graphics state
 
-                currentX += cellWidth;
+                if (!rightToLeft) currentX += cellWidth;
             }
             currentY -= rowHeight;
         }
     }
 
     // The original single-line text placement, kept verbatim apart from escaping and invariant numbers.
-    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, PdfCellText item, double currentX, double currentY, double cellWidth, double rowHeight, PageDrawSink sink)
+    private static void DrawSingleMiddleLine(StringBuilder sb, PdfCell cell, PdfCellText item, double currentX, double currentY, double cellWidth, double rowHeight, PageDrawSink sink, PdfTextDirection? tableDirection)
     {
         string text = item.Text;
         double middleBaseline = currentY - (rowHeight / 2) - 4; // Simple middle alignment
-        if (TextPipeline.Layout(text, item.Font, sink.EmbeddedFonts.Fallback, 12) is { } layout)
+        int? baseLevel = TextDirections.BaseLevel(item.Direction, tableDirection, sink.EmbeddedFonts.TextDirection);
+        bool rightToLeft = TextDirections.IsRightToLeft(text, baseLevel);
+        if (TextPipeline.Layout(text, item.Font, sink.EmbeddedFonts.Fallback, 12, baseLevel) is { } layout)
         {
             // Caller fonts are placed with their real shaped width (G-012).
-            sb.AppendLine(TextPipeline.Draw(layout, AlignedX(cell, currentX, cellWidth, layout.Width), middleBaseline, 12, sink));
+            sb.AppendLine(TextPipeline.Draw(layout, AlignedX(cell, currentX, cellWidth, layout.Width, rightToLeft), middleBaseline, 12, sink));
             return;
         }
 
@@ -237,7 +250,7 @@ internal static class PdfTableRenderer
 
         // Calculate text position based on horizontal alignment
         double textWidth = GetTextWidth(text, 12);
-        double textX = AlignedX(cell, currentX, cellWidth, textWidth);
+        double textX = AlignedX(cell, currentX, cellWidth, textWidth, rightToLeft);
 
         double textY = currentY - (rowHeight / 2) - 4; // Simple middle alignment
         sb.AppendLine($"1 0 0 1 {PdfNumber.Format(textX)} {PdfNumber.Format(textY)} Tm"); // Set text matrix for absolute position

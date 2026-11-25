@@ -47,7 +47,11 @@ internal sealed partial class HtmlLayoutEngine
             }
         }
         foreach (var key in taken.Keys) columns = Math.Max(columns, key.Column + 1);
-        return (cells, Math.Max(columns, table.Columns.Count));
+        columns = Math.Max(columns, table.Columns.Count);
+        // A right-to-left table puts its first column at the right (WR-041): the grid is mirrored, so layout and
+        // drawing stay left to right.
+        if (table.Style.Direction == CssDirection.Rtl) cells = cells.Select(g => g with { Column = columns - g.Column - g.Cell.ColumnSpan }).ToList();
+        return (cells, columns);
     }
 
     // Column widths (border-box widths of the cells in that column) for the room available. When the columns'
@@ -95,9 +99,11 @@ internal sealed partial class HtmlLayoutEngine
         var min = new double[columns];
         var max = new double[columns];
         var percent = new double?[columns];
-        for (int c = 0; c < table.Columns.Count && c < columns; c++)
+        bool mirrored = table.Style.Direction == CssDirection.Rtl;
+        for (int column = 0; column < table.Columns.Count && column < columns; column++)
         {
-            if (table.Columns[c].Width is { } w)
+            int c = mirrored ? columns - 1 - column : column;
+            if (table.Columns[column].Width is { } w)
             {
                 if (w.Unit == CssUnit.Percent) percent[c] = w.Value;
                 else { min[c] = Math.Max(min[c], Resolve(w, 0)); max[c] = Math.Max(max[c], Resolve(w, 0)); }

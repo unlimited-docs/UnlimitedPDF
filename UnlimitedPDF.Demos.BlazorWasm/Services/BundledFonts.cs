@@ -42,13 +42,24 @@ public static class BundledFonts
     /// </summary>
     /// <param name="http">The site's HTTP client.</param>
     /// <returns>The loaded fonts by script.</returns>
-    public static async Task<IReadOnlyDictionary<FontScript, UploadedFont>> LoadAsync(HttpClient http)
+    public static Task<IReadOnlyDictionary<FontScript, UploadedFont>> LoadAsync(HttpClient http) => LoadAsync(http, All.Select(f => f.Script).ToList());
+
+    /// <summary>
+    /// Downloads and loads the included fonts of some scripts only, each file once (for example the right-to-left
+    /// scripts for HTML to PDF).
+    /// </summary>
+    /// <param name="http">The site's HTTP client.</param>
+    /// <param name="scripts">The scripts whose fonts to load.</param>
+    /// <returns>The loaded fonts by script.</returns>
+    public static async Task<IReadOnlyDictionary<FontScript, UploadedFont>> LoadAsync(HttpClient http, IReadOnlyCollection<FontScript> scripts)
     {
         ArgumentNullException.ThrowIfNull(http);
-        var files = All.Select(font => font.FileName).Distinct().ToList();
+        ArgumentNullException.ThrowIfNull(scripts);
+        var wanted = All.Where(font => scripts.Contains(font.Script)).ToList();
+        var files = wanted.Select(font => font.FileName).Distinct().ToList();
         var loaded = await Task.WhenAll(files.Select(file => LoadOneAsync(http, file)));
         var byFile = files.Zip(loaded).Where(pair => pair.Second is not null).ToDictionary(pair => pair.First, pair => pair.Second!);
-        return All.Where(font => byFile.ContainsKey(font.FileName)).ToDictionary(font => font.Script, font => byFile[font.FileName] with { Bundled = font });
+        return wanted.Where(font => byFile.ContainsKey(font.FileName)).ToDictionary(font => font.Script, font => byFile[font.FileName] with { Bundled = font });
     }
 
     #endregion
@@ -96,7 +107,10 @@ public static class BundledFonts
         new(FontScript.Gurmukhi, "Noto Sans Gurmukhi", "NotoSansGurmukhi-Regular.ttf"),
         new(FontScript.Odia, "Noto Sans Oriya", "NotoSansOriya-Regular.ttf"),
         new(FontScript.Kannada, "Noto Sans Kannada", "NotoSansKannada-Regular.ttf"),
-        new(FontScript.Malayalam, "Noto Sans Malayalam", "NotoSansMalayalam-Regular.ttf")
+        new(FontScript.Malayalam, "Noto Sans Malayalam", "NotoSansMalayalam-Regular.ttf"),
+        new(FontScript.Arabic, "Noto Sans Arabic", "NotoSansArabic-Regular.ttf"),
+        new(FontScript.Hebrew, "Noto Sans Hebrew", "NotoSansHebrew-Regular.ttf"),
+        new(FontScript.Thaana, "Noto Sans Thaana", "NotoSansThaana-Regular.ttf")
     ];
 
     #endregion

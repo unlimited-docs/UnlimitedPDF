@@ -23,7 +23,19 @@ internal enum CssTextAlign
     Left,
     Right,
     Center,
-    Justify
+    Justify,
+    Start,
+    End
+}
+
+/// <summary>
+/// The CSS <c>direction</c> of an element (WR-041), inherited: the base direction of its text, and of its table columns
+/// and list markers.
+/// </summary>
+internal enum CssDirection
+{
+    Ltr,
+    Rtl
 }
 
 internal enum CssWhiteSpace
@@ -112,7 +124,7 @@ internal sealed class ComputedStyle
     {
         "color", "font-family", "font-size", "font-weight", "font-style", "text-align", "text-indent", "text-transform",
         "line-height", "letter-spacing", "white-space", "list-style-type", "list-style-position", "border-collapse",
-        "border-spacing"
+        "border-spacing", "direction"
     };
 
     private static readonly HashSet<string> SupportedProperties = new(StringComparer.Ordinal)
@@ -126,7 +138,7 @@ internal sealed class ComputedStyle
         "border-top-style", "border-right-style", "border-bottom-style", "border-left-style",
         "border-top-color", "border-right-color", "border-bottom-color", "border-left-color",
         "list-style-type", "list-style-position", "border-collapse", "border-spacing",
-        "break-before", "break-after", "break-inside"
+        "break-before", "break-after", "break-inside", "direction"
     };
 
     // Which border colors follow the element's color (the initial currentcolor).
@@ -356,11 +368,19 @@ internal sealed class ComputedStyle
                 if (lower is not ("normal" or "italic" or "oblique") && !lower.StartsWith("oblique ", StringComparison.Ordinal)) return false;
                 Italic = lower != "normal";
                 return true;
+            case "direction":
+                CssDirection? direction = lower switch { "ltr" => CssDirection.Ltr, "rtl" => CssDirection.Rtl, _ => null };
+                if (direction is null) return false;
+                Direction = direction.Value;
+                return true;
             case "text-align":
+                // start and end follow the element's direction (WR-041).
                 CssTextAlign? align = lower switch
                 {
-                    "left" or "start" => CssTextAlign.Left,
-                    "right" or "end" => CssTextAlign.Right,
+                    "left" => CssTextAlign.Left,
+                    "right" => CssTextAlign.Right,
+                    "start" => CssTextAlign.Start,
+                    "end" => CssTextAlign.End,
                     "center" or "-webkit-center" => CssTextAlign.Center,
                     "justify" => CssTextAlign.Justify,
                     _ => null
@@ -558,6 +578,7 @@ internal sealed class ComputedStyle
             case "font-weight": FontWeight = copy.FontWeight; break;
             case "font-style": Italic = copy.Italic; break;
             case "text-align": TextAlign = copy.TextAlign; break;
+            case "direction": Direction = copy.Direction; break;
             case "text-indent": TextIndent = copy.TextIndent; break;
             case "text-transform": TextTransform = copy.TextTransform; break;
             case "line-height": LineHeightFactor = copy.LineHeightFactor; LineHeightPoints = copy.LineHeightPoints; break;
@@ -591,6 +612,7 @@ internal sealed class ComputedStyle
         FontWeight = FontWeight,
         Italic = Italic,
         TextAlign = TextAlign,
+        Direction = Direction,
         TextIndent = TextIndent,
         TextTransform = TextTransform,
         Language = Language,
@@ -683,7 +705,22 @@ internal sealed class ComputedStyle
     /// </summary>
     public CssLength[] Paddings { get; } = { CssLength.Zero, CssLength.Zero, CssLength.Zero, CssLength.Zero };
 
-    public CssTextAlign TextAlign { get; private set; }
+    public CssTextAlign TextAlign { get; private set; } = CssTextAlign.Start;
+
+    /// <summary>
+    /// Gets the element's direction (WR-041). The initial value is left to right.
+    /// </summary>
+    public CssDirection Direction { get; private set; }
+
+    /// <summary>
+    /// Gets the physical alignment the element's text-align stands for: start and end follow its direction.
+    /// </summary>
+    public CssTextAlign PhysicalTextAlign => TextAlign switch
+    {
+        CssTextAlign.Start => Direction == CssDirection.Rtl ? CssTextAlign.Right : CssTextAlign.Left,
+        CssTextAlign.End => Direction == CssDirection.Rtl ? CssTextAlign.Left : CssTextAlign.Right,
+        _ => TextAlign
+    };
 
     public CssLength TextIndent { get; private set; } = CssLength.Zero;
 

@@ -3,7 +3,8 @@ namespace UnlimitedPDF;
 /// <summary>
 /// The exception <see cref="PdfDocument.Save(Stream)"/> and the other save methods throw when
 /// <see cref="PdfDocument.FailOnMissingCharacters"/> is set and text holds a character that no font can draw, which
-/// would otherwise be drawn as '?' (D-015). Nothing is written when it is thrown.
+/// would otherwise be drawn as '?' (D-015), or a right-to-left letter of a script the library does not shape, which
+/// would otherwise be drawn without its script's joining. Nothing is written when it is thrown.
 /// </summary>
 public class PdfTextException : Exception
 {
@@ -34,6 +35,8 @@ public class PdfTextException : Exception
     private static string Describe(string character, string text, int pageNumber)
     {
         string codes = string.Join(" ", EnumerateCodePoints(character ?? string.Empty).Select(cp => "U+" + cp.ToString("X4", CultureInfo.InvariantCulture)));
+        if (Models.Internal.Text.RightToLeftSupport.HasUnshaped(character ?? string.Empty))
+            return string.Format(CultureInfo.InvariantCulture, "The character {0} '{1}' in the text \"{2}\" on page {3} is in a right-to-left script that is not shaped, so it would be drawn without its script's joining. Supported right-to-left scripts are Arabic, Hebrew, and Thaana; remove it from the text.", codes, character, text, pageNumber);
         return string.Format(CultureInfo.InvariantCulture, "No font has the character {0} '{1}' in the text \"{2}\" on page {3}. Add a font that has it to PdfDocument.FontFallback, or remove it from the text.", codes, character, text, pageNumber);
     }
 

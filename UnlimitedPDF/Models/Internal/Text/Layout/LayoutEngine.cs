@@ -3,9 +3,10 @@ using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 namespace UnlimitedPDF.Models.Internal.Text.Layout;
 
 /// <summary>
-/// Applies GSUB and GPOS lookups to a glyph buffer (D-003): GSUB types 1, 2, 4, 5, 6, and 8 and GPOS types 1, 2, 4, 5,
-/// 6, 7, and 8 (extension types 7 and 9 are resolved by <see cref="LayoutTable"/>), honoring lookup flags, mark
-/// attachment classes, and mark filtering sets. Contextual lookups call nested lookups at most 16 levels deep; applied
+/// Applies GSUB and GPOS lookups to a glyph buffer (D-003): GSUB types 1, 2, 4, 5, 6, and 8 and GPOS types 1 to 8
+/// (extension types 7 and 9 are resolved by <see cref="LayoutTable"/>), honoring lookup flags, mark attachment classes,
+/// and mark filtering sets. The buffer is in logical order; cursive attachment (GPOS type 3, WR-039) adjusts advances
+/// by the run's direction and chains vertical offsets as the lookup's right-to-left flag says. Contextual lookups call nested lookups at most 16 levels deep; applied
 /// rules are counted against a budget of 64 operations per glyph, and the search for rules (subtables, rules, and
 /// glyphs tried, applied or not) against a step budget per glyph. Rule arrays are read one entry per glyph compared,
 /// never ahead. A font that exceeds a limit, or grows the text too far, fails with <see cref="PdfFontException"/>
@@ -25,6 +26,7 @@ internal sealed class LayoutEngine
     public const int StepsBase = 262_144;
 
     // Lookup flags.
+    private const int RightToLeft = 0x0001;
     private const int IgnoreBaseGlyphs = 0x0002;
     private const int IgnoreLigatures = 0x0004;
     private const int IgnoreMarks = 0x0008;
@@ -35,6 +37,7 @@ internal sealed class LayoutEngine
     private readonly List<ShapingGlyph> _buffer;
     private readonly int _maxLength;
     private readonly int _glyphCount;
+    private readonly bool _rightToLeft;
     private long _budget;
     private long _steps;
     private int _nextLigatureId = 1;
@@ -43,9 +46,10 @@ internal sealed class LayoutEngine
 
     #region Constructors and Finalizers
 
-    public LayoutEngine(LayoutTable table, GlyphDefinitions? gdef, List<ShapingGlyph> buffer, int glyphCount)
+    public LayoutEngine(LayoutTable table, GlyphDefinitions? gdef, List<ShapingGlyph> buffer, int glyphCount, bool rightToLeft = false)
     {
         _glyphCount = glyphCount;
+        _rightToLeft = rightToLeft;
         _table = table;
         _gdef = gdef;
         _buffer = buffer;
@@ -346,6 +350,8 @@ internal sealed class LayoutEngine
             }
             case 2:
                 return Pair(lookup, subtable, position, out next);
+            case 3:
+                return Cursive(lookup, subtable, position);
             case 4:
             case 5:
             case 6:
@@ -354,8 +360,59 @@ internal sealed class LayoutEngine
             case 8:
                 return Context(lookup, subtable, position, depth, chained: lookup.Type == 8, out next);
             default:
-                return false; // type 3 (cursive attachment) is for joining scripts, which are out of scope
+                return false;
         }
+    }
+
+    // Cursive attachment (3): the previous glyph's exit anchor meets this glyph's entry anchor. Horizontally the advances
+    // change so the anchors touch, by the run's direction; vertically the child (the later glyph in logical order, or
+    // the earlier one when the lookup flag says right to left) is chained to its parent with the anchors' difference.
+    private bool Cursive(LayoutLookup lookup, int subtable, int position)
+    {
+        var data = _table.Data;
+        if (data.U16(subtable) != 1) return false;
+        int coverage = subtable + data.U16(subtable + 2);
+        int count = data.U16(subtable + 4);
+        data.Require(subtable + 6, 4L * count, "cursive entry and exit records");
+
+        int j = position;
+        int jIndex = LayoutData.Coverage(data, coverage, _buffer[j].Glyph);
+        if (jIndex < 0 || jIndex >= count) return false;
+        int entryOffset = data.U16(subtable + 6 + 4 * jIndex);
+        if (entryOffset == 0) return false;
+        int i = PreviousIndex(position, lookup);
+        if (i < 0) return false;
+        int iIndex = LayoutData.Coverage(data, coverage, _buffer[i].Glyph);
+        if (iIndex < 0 || iIndex >= count) return false;
+        int exitOffset = data.U16(subtable + 6 + 4 * iIndex + 2);
+        if (exitOffset == 0) return false;
+        var entry = Anchor(data, subtable + entryOffset);
+        var exit = Anchor(data, subtable + exitOffset);
+
+        var previous = _buffer[i];
+        var current = _buffer[j];
+        if (_rightToLeft)
+        {
+            int d = exit.X + previous.XOffset;
+            previous.XAdvance -= d;
+            previous.XOffset -= d;
+            current.XAdvance = entry.X + current.XOffset;
+        }
+        else
+        {
+            previous.XAdvance = exit.X + previous.XOffset;
+            int d = entry.X + current.XOffset;
+            current.XAdvance -= d;
+            current.XOffset -= d;
+        }
+
+        int child = i, parent = j, dy = entry.Y - exit.Y;
+        if ((lookup.Flags & RightToLeft) == 0) (child, parent, dy) = (j, i, -dy);
+        // A parent already chained to the child would make a cycle; the newer attachment wins.
+        if (_buffer[parent].CursiveTo == child) _buffer[parent].CursiveTo = -1;
+        _buffer[child].CursiveTo = parent;
+        _buffer[child].CursiveDy = dy;
+        return true;
     }
 
     private void AddValue(ShapingGlyph glyph, int record, int format)

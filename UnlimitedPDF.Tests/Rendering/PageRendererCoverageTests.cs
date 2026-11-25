@@ -178,6 +178,25 @@ public class PageRendererCoverageTests
                 return FontsAndLanguagesHtmlSample.Build(input, Fonts.DemoFonts.Slots(input), out _);
             }));
         }
+        foreach (var language in LanguageInvoices.All.Where(l => l.RightToLeft))
+        {
+            foreach (var direction in new[] { PdfTextDirection.RightToLeft, PdfTextDirection.Auto, PdfTextDirection.LeftToRight })
+            {
+                yield return ("Right-to-left documents", $"{language.Id}-{direction}", One(() =>
+                {
+                    var input = LanguageInput(language.Id);
+                    input.Direction = direction;
+                    var fonts = Fonts.DemoFonts.For(input);
+                    return FontsAndLanguagesSample.Build(input, fonts, fonts);
+                }));
+                yield return ("Right-to-left documents", $"{language.Id}-{direction}-html", One(() =>
+                {
+                    var input = LanguageInput(language.Id);
+                    input.Direction = direction;
+                    return FontsAndLanguagesHtmlSample.Build(input, Fonts.DemoFonts.Slots(input), out _);
+                }));
+            }
+        }
         yield return ("Invoice", "", One(() => InvoiceSample.Build(new InvoiceInput(), images)));
         yield return ("Quotation", "", One(() => QuotationSample.Build(new QuotationInput(), images)));
         yield return ("Purchase order", "", One(() => PurchaseOrderSample.Build(new PurchaseOrderInput(), images)));
