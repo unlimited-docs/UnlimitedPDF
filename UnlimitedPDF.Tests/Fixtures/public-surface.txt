@@ -393,6 +393,7 @@ class UnlimitedPDF.PdfTable
   System.Int32 ColumnCount { public get }
   System.Int32 HeaderRowCount { public get; public set }
   System.Int32 RowCount { public get }
+  System.Nullable<UnlimitedPDF.PdfTextDirection> Direction { public get; public set }
   UnlimitedPDF.PdfRowHeightMode RowHeightMode { public get; public set }
   public .ctor()
   public System.Void EnsureSize(System.Int32 rows, System.Int32 columns)
