@@ -37,6 +37,7 @@ public class RightToLeftTemplateTests
         string text = string.Concat(RightToLeftScriptTests.PageText(pdf).Split('\n'));
         Assert.DoesNotContain("?", text, StringComparison.Ordinal);
         Assert.Contains("Northwind Traders Ltd.", text, StringComparison.Ordinal);
+        Assert.Contains("12 Harbour Street, Bristol", text, StringComparison.Ordinal);
         Assert.Contains(template == "invoice" ? "billing@nakheel.example" : "orders@carmel-bakery.example", text, StringComparison.Ordinal);
         Assert.Contains(template == "invoice" ? "فاتورة ضريبية" : "הנדון: הצעת מחיר למוצרי מאפה", text, StringComparison.Ordinal);
         Assert.Contains("Page 1 of 1", text, StringComparison.Ordinal);

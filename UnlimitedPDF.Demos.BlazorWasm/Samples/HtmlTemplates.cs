@@ -89,7 +89,7 @@ public static class HtmlTemplates
 
     /// <summary>
     /// A right-to-left invoice in Arabic (WR-041, 65-right-to-left-scripts CR-001): <c>dir</c> and <c>lang</c> on the
-    /// page, an English customer name and email kept in order with <c>bdi</c>, an items table whose first column is at
+    /// page, an English customer name, address, and email kept in order with <c>bdi</c>, an items table whose first column is at
     /// the right, a list of terms with its bullets at the right, and amounts aligned with <c>text-align: end</c>. All
     /// names are fictional.
     /// </summary>
@@ -97,7 +97,7 @@ public static class HtmlTemplates
         <!DOCTYPE html>
         <html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة 2026/0042</title>
         <style>
-          body { font-size: 11pt; color: #1f2937; margin: 0 }
+          body { font-family: Helvetica, Arial, sans-serif; font-size: 11pt; color: #1f2937; margin: 0 }
           h1 { color: #002A73; font-size: 22pt; margin: 0 }
           h2 { color: #002A73; font-size: 13pt; margin: 18pt 0 4pt }
           .muted { color: #6b7280 }
@@ -112,7 +112,7 @@ public static class HtmlTemplates
           <p class="muted">رقم الفاتورة 2026/0042 · التاريخ 25/11/2026</p>
           <table width="100%" style="margin-top: 12pt"><tr>
             <td><b>البائع</b><br>مؤسسة النخيل للتمور<br>شارع الملك فهد، الرياض 12211</td>
-            <td><b>العميل</b><br><bdi>Northwind Traders Ltd.</bdi><br>12 Harbour Street, Bristol</td>
+            <td><b>العميل</b><br><bdi>Northwind Traders Ltd.</bdi><br><bdi>12 Harbour Street, Bristol</bdi></td>
           </tr></table>
           <table class="items">
             <thead><tr><th>الوصف</th><th class="num">الكمية</th><th class="num">السعر</th><th class="num">المبلغ</th></tr></thead>
@@ -135,14 +135,14 @@ public static class HtmlTemplates
     /// <summary>
     /// A right-to-left letter in Hebrew (WR-041, 65-right-to-left-scripts CR-001): <c>dir</c> and <c>lang</c> on the
     /// page, the sender at the start (right) and the date at the end (left) with <c>text-align: end</c>, paragraphs
-    /// with dates and a phone number, and an English company name and email kept in order with <c>bdi</c>. All names
+    /// with dates and a phone number, and an English company name, address, and email kept in order with <c>bdi</c>. All names
     /// are fictional.
     /// </summary>
     public const string RightToLeftLetter = """
         <!DOCTYPE html>
         <html dir="rtl" lang="he"><head><meta charset="utf-8"><title>הצעת מחיר</title>
         <style>
-          body { font-size: 12pt; line-height: 1.5; color: #1f2937; margin: 24pt 36pt }
+          body { font-family: Helvetica, Arial, sans-serif; font-size: 12pt; line-height: 1.5; color: #1f2937; margin: 24pt 36pt }
           .sender { color: #374151 }
           .date { text-align: end }
           .subject { font-weight: bold; margin-top: 16pt }
@@ -150,7 +150,7 @@ public static class HtmlTemplates
         <body>
           <p class="sender">מאפיית הכרמל בע״מ<br>רחוב הרצל 12, חיפה 3303112<br>טלפון 04-8123456</p>
           <p class="date">חיפה, 25 בנובמבר 2026</p>
-          <p>לכבוד<br><bdi>Northwind Traders Ltd.</bdi><br>12 Harbour Street, Bristol</p>
+          <p>לכבוד<br><bdi>Northwind Traders Ltd.</bdi><br><bdi>12 Harbour Street, Bristol</bdi></p>
           <p class="subject">הנדון: הצעת מחיר למוצרי מאפה</p>
           <p>שלום רב,</p>
           <p>תודה על פנייתכם מיום 18 בנובמבר. מצורפת הצעת המחיר שביקשתם עבור חלות, עוגות שמרים ובורקס, בתוקף עד 31 בדצמבר 2026. המחירים כוללים משלוח לכל אזור חיפה.</p>
