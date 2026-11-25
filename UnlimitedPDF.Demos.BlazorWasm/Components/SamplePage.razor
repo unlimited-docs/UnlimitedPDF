@@ -2,8 +2,8 @@
 <PageDescription Text="@Demo.Description" />
 <CanonicalLink Path="@Demo.Route" />
 
-@* A demo page (D-023): the visitor's data, the PDF, and the C# code side by side on wide screens, stacked in that order
-   on phones. *@
+@* A demo page (D-023): the visitor's data beside the output on wide screens, stacked on phones. The output has two tabs
+   (QF-26112501): the PDF, and the C# code as a complete console program, which can also open full screen. *@
 <article class="demo">
     <header class="demo-header">
         <h1>@(Demo.Heading ?? Demo.Title)</h1>
@@ -36,50 +36,64 @@
             </div>
         </section>
 
-        <section class="panel demo-output" @ref="_outputSection" aria-labelledby="@($"{_id}-pdf")">
+        <section class="panel demo-output" @ref="_outputSection" aria-label="@($"{Demo.Title}: PDF and C# code")">
             <div class="output-head">
-                <h2 class="demo-column-title" id="@($"{_id}-pdf")">PDF</h2>
+                <DemoTabs Id="@_id" CodeSelected="_codeSelected" CodeSelectedChanged="OnTabChanged" />
                 <div class="output-actions">
                     @* Where the data sits above the PDF, this brings it back in one tap. *@
                     <button type="button" class="btn btn-sm btn-text back-to-options" @onclick="BackToOptionsAsync" title="Scroll up to this demo's options">
                         <Icon Name="pen" Size="16" /> Back to options
                     </button>
+                    @if (_codeSelected)
+                    {
+                        <button type="button" class="btn btn-sm btn-outline" @onclick="() => _codeView!.OpenFullScreenAsync()">
+                            <Icon Name="expand" Size="16" /> Full screen
+                        </button>
+                    }
                 </div>
             </div>
 
-            @if (_error is not null)
-            {
-                <div class="error-box" role="alert">
-                    <p><strong>Couldn't generate the PDF.</strong> @_error</p>
-                    <button type="button" class="btn btn-sm btn-outline" @onclick="() => GenerateAsync(userStarted: true)">Try again</button>
+            @* Both tabs' panels share one grid cell: the hidden one keeps its size, so the PDF viewer measures and draws
+               its pages while the code is shown. *@
+            <div class="demo-tab-panels">
+                <div class="demo-tab-panel@(_codeSelected ? " is-away" : "")" role="tabpanel" id="@DemoTabs.OutputPanelIdOf(_id)"
+                     aria-labelledby="@DemoTabs.OutputTabIdOf(_id)" inert="@_codeSelected">
+                    @if (_error is not null)
+                    {
+                        <div class="error-box" role="alert">
+                            <p><strong>Couldn't generate the PDF.</strong> @_error</p>
+                            <button type="button" class="btn btn-sm btn-outline" @onclick="() => GenerateAsync(userStarted: true)">Try again</button>
+                        </div>
+                    }
+
+                    <PdfPreview @ref="_preview" Busy="_busy" Language="@ContentLanguage" />
+
+                    <div class="status-bar">
+                        @if (_result is { } result)
+                        {
+                            <span class="status-meta">
+                                <span><strong>@result.Pages</strong> @(result.Pages == 1 ? "page" : "pages")</span>
+                                <span><strong>@FormatSize(result.Bytes)</strong></span>
+                                <span>generated in <strong>@result.Milliseconds ms</strong></span>
+                            </span>
+                        }
+                        else if (!_busy)
+                        {
+                            <span>Every PDF is generated locally. Nothing is uploaded.</span>
+                        }
+                        @if (_stale && !_busy)
+                        {
+                            <span class="stale-note">Inputs changed. <button type="button" @onclick="() => GenerateAsync(userStarted: true)">Generate to update</button></span>
+                        }
+                    </div>
                 </div>
-            }
 
-            <PdfPreview @ref="_preview" Busy="_busy" Language="@ContentLanguage" />
-
-            <div class="status-bar">
-                @if (_result is { } result)
-                {
-                    <span class="status-meta">
-                        <span><strong>@result.Pages</strong> @(result.Pages == 1 ? "page" : "pages")</span>
-                        <span><strong>@FormatSize(result.Bytes)</strong></span>
-                        <span>generated in <strong>@result.Milliseconds ms</strong></span>
-                    </span>
-                }
-                else if (!_busy)
-                {
-                    <span>Every PDF is generated locally. Nothing is uploaded.</span>
-                }
-                @if (_stale && !_busy)
-                {
-                    <span class="stale-note">Inputs changed. <button type="button" @onclick="() => GenerateAsync(userStarted: true)">Generate to update</button></span>
-                }
+                <div class="demo-tab-panel demo-code-panel@(_codeSelected ? "" : " is-away")" role="tabpanel" id="@DemoTabs.CodePanelIdOf(_id)"
+                     aria-labelledby="@DemoTabs.CodeTabIdOf(_id)" inert="@(!_codeSelected)">
+                    <CodeView @ref="_codeView" Source="@_source" AriaLabel="@($"{ShownProgramFile} source")" WrapLines="WrapCode"
+                              FullScreenTitle="@($"{Demo.Title} · Program.cs")" FullScreenNote="A complete console program: paste it into Program.cs and run it" />
+                </div>
             </div>
-        </section>
-
-        <section class="panel demo-code" aria-labelledby="@($"{_id}-code")">
-            <h2 class="demo-column-title" id="@($"{_id}-code")">C# code</h2>
-            <CodeView Source="@_source" AriaLabel="@($"{ShownSourceFile} source")" />
         </section>
     </div>
 

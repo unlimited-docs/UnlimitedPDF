@@ -41,10 +41,39 @@ public sealed record SampleDemo(
     public string DocumentTitle => $"{PageTitle} · {SiteName}";
 
     /// <summary>
+    /// Gets the complete console program the demo's code tab shows, for example "InvoiceProgram.cs" (see
+    /// <see cref="ProgramFileOf"/>).
+    /// </summary>
+    public string ProgramFile => ProgramFileOf(SourceFile);
+
+    /// <summary>
     /// Gets the business domains the demo's scenario belongs to, for the gallery's domain filter; "General" for demos
     /// of a capability rather than a business scenario.
     /// </summary>
     public IReadOnlyList<string> Domains { get; init; } = ["General"];
+
+    #endregion
+
+    #region Methods
+
+    #region Public Methods
+
+    /// <summary>
+    /// Returns the complete console program that does what a sample builder does with the demo's default data: the
+    /// file in <c>Programs</c> named after the builder, for example "InvoiceProgram.cs" for "InvoiceSample.cs".
+    /// </summary>
+    /// <param name="sourceFile">The sample builder file, for example "InvoiceSample.cs".</param>
+    /// <returns>The program file name.</returns>
+    public static string ProgramFileOf(string sourceFile)
+    {
+        ArgumentNullException.ThrowIfNull(sourceFile);
+        const string suffix = "Sample.cs";
+        return sourceFile.EndsWith(suffix, StringComparison.Ordinal)
+            ? string.Concat(sourceFile.AsSpan(0, sourceFile.Length - suffix.Length), "Program.cs")
+            : sourceFile;
+    }
+
+    #endregion
 
     #endregion
 }

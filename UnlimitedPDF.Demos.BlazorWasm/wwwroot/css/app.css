@@ -257,16 +257,12 @@ summary:focus-visible,
 
 /* Three columns (D-023): the visitor's data, the PDF, and the C# code. Below 1,280 px the code goes under the data and
    the PDF; below 900 px all three stack in that order. */
+/* The visitor's data beside the output; the output's tabs switch between the PDF and the C# code (QF-26112501). */
 .demo-grid {
     display: grid;
-    grid-template-columns: minmax(280px, 340px) minmax(0, 1.25fr) minmax(300px, 0.85fr);
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
     gap: 1.25rem;
     align-items: start;
-}
-
-@media (max-width: 1279.98px) {
-    .demo-grid { grid-template-columns: minmax(280px, 340px) minmax(0, 1fr); }
-    .demo-code { grid-column: 1 / -1; }
 }
 
 @media (max-width: 899.98px) {
@@ -350,6 +346,74 @@ summary:focus-visible,
     .output-head { padding-inline: 0.5rem; }
     .output-actions { gap: 0.15rem; }
     .output-actions .btn-sm { padding-inline: 0.5rem; }
+}
+
+/* The output's tabs: the result and the C# code (QF-26112501). */
+.demo-tabs { display: flex; gap: 0.25rem; align-self: flex-end; }
+.demo-tab {
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: none;
+    padding: 0.55rem 0.85rem 0.5rem;
+    font: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--app-muted);
+    cursor: pointer;
+}
+.demo-tab:hover { color: var(--app-accent); }
+.demo-tab[aria-selected="true"] { color: var(--app-accent); border-bottom-color: var(--app-accent); }
+.demo-tab:focus-visible { outline: 2px solid var(--app-accent); outline-offset: -2px; }
+
+/* Both panels share one grid cell, so the hidden one keeps its size: the PDF viewer measures and draws while the code
+   is shown. The code panel takes the result panel's height and scrolls inside it. */
+.demo-tab-panels { display: grid; }
+.demo-tab-panel { grid-area: 1 / 1; min-width: 0; }
+.demo-tab-panel.is-away { visibility: hidden; }
+.demo-code-panel { contain: size; display: flex; flex-direction: column; }
+.demo-code-panel .code-view { flex: 1 1 auto; height: auto; min-height: 0; }
+
+/* Code holding text the visitor edits (HTML) wraps its long lines instead of scrolling sideways. */
+.code-wrap pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Full screen code: the browser's modal dialog over the whole window. */
+.code-dialog {
+    width: calc(100vw - 2rem);
+    max-width: none;
+    height: calc(100dvh - 2rem);
+    max-height: none;
+    margin: 1rem;
+    padding: 0;
+    border: 0;
+    border-radius: 12px;
+    background: var(--app-code-bg);
+    color: #dbe5ff;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+.code-dialog[open] { display: flex; flex-direction: column; }
+.code-dialog::backdrop { background: rgba(10, 18, 34, 0.55); }
+.code-dialog-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    padding: 0.6rem 0.9rem;
+    border-bottom: 1px solid rgba(219, 229, 255, 0.18);
+}
+.code-dialog-title { margin: 0; font-size: 1rem; font-weight: 700; color: #fff; }
+.code-dialog-note { flex: 1 1 auto; font-size: 0.9rem; color: #c3cee6; }
+.code-dialog-actions { display: inline-flex; gap: 0.5rem; margin-left: auto; }
+.code-dialog .code-copy { position: static; }
+.code-dialog pre {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin: 0;
+    overflow: auto;
+    padding: 1rem 1.25rem 2rem;
+    color: #dbe5ff;
+    font-family: var(--app-mono);
+    font-size: 0.82rem;
+    line-height: 1.55;
 }
 
 /* Split demos: one row per part, above the preview of the selected part. */
@@ -561,8 +625,6 @@ summary:focus-visible,
 /* ---------- Code view ---------- */
 
 .code-view { position: relative; height: min(78vh, 900px); min-height: 420px; background: var(--app-code-bg); }
-.demo-code { overflow: hidden; }
-.demo-code .code-view { border-top: 1px solid var(--app-line); }
 
 .code-view pre {
     margin: 0;

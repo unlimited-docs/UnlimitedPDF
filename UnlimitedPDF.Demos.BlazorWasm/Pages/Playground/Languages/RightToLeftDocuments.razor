@@ -2,6 +2,7 @@
 
 <SamplePage @ref="_page" Demo="SampleCatalog.RightToLeftDocuments" Build="BuildAsync" PageCount="null" OnReset="Reset"
             SourceFile="@(_input.Mode == DrawMode.Html ? "FontsAndLanguagesHtmlSample.cs" : "FontsAndLanguagesSample.cs")"
+            ProgramFile="@(_input.Mode == DrawMode.Html ? "RightToLeftHtmlProgram.cs" : "RightToLeftProgram.cs")"
             FileName="@($"right-to-left-{_input.Language}.pdf")" ContentLanguage="@_input.LanguageTag">
     <Inputs>
         <CollapsibleSection Title="Invoice">

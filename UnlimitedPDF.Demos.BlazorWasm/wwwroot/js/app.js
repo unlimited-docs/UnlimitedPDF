@@ -39,6 +39,24 @@ export async function copyText(text) {
     }
 }
 
+// A visitor's small preferences, such as the demo tab last chosen. Storage can be blocked or unavailable (private
+// windows, cleared site data); the page then works with its defaults.
+export function readSetting(key) {
+    try {
+        return window.localStorage.getItem(key);
+    } catch {
+        return null;
+    }
+}
+
+export function writeSetting(key, value) {
+    try {
+        window.localStorage.setItem(key, value);
+    } catch {
+        // Not kept; nothing else depends on it.
+    }
+}
+
 export function scrollIntoViewOnNarrow(element) {
     if (element && window.matchMedia("(max-width: 1279.98px)").matches) {
         const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;

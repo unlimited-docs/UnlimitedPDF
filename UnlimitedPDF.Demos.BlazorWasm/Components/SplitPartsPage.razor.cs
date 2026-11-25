@@ -23,6 +23,8 @@ public partial class SplitPartsPage : IAsyncDisposable
     private ElementReference _optionsSection;
     private ElementReference _outputSection;
     private IReadOnlyList<SplitPartFile> _parts = Array.Empty<SplitPartFile>();
+    private bool _codeSelected;
+    private CodeView? _codeView;
     private PdfPreview? _preview;
     private SplitResult? _result;
     private int _selected;
@@ -47,7 +49,7 @@ public partial class SplitPartsPage : IAsyncDisposable
     }
 
     /// <inheritdoc />
-    protected override void OnParametersSet() => _source = SampleSource.Read(Demo.SourceFile);
+    protected override void OnParametersSet() => _source = SampleSource.Read(Demo.ProgramFile);
 
     #endregion
 
@@ -127,6 +129,8 @@ public partial class SplitPartsPage : IAsyncDisposable
         await Interop.DownloadAsync(_zipUrl, Demo.FileName);
         await Interop.RevokeObjectUrlAsync(previous);
     }
+
+    private void OnTabChanged(bool code) => _codeSelected = code;
 
     private void OnInputsChanged(ChangeEventArgs _)
     {
@@ -212,6 +216,9 @@ public partial class SplitPartsPage : IAsyncDisposable
 
         if (userStarted && _error is null)
         {
+            // The visitor asked for the parts: show them, even if the code tab was open.
+            _codeSelected = false;
+            StateHasChanged();
             await Interop.ScrollIntoViewOnNarrowAsync(_outputSection);
         }
     }

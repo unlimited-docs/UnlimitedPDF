@@ -51,6 +51,20 @@ public sealed class BrowserInterop : IAsyncDisposable
     public Task CloseDialogAsync(ElementReference dialog) => InvokeVoidAsync("closeDialog", dialog);
 
     /// <summary>
+    /// Reads a visitor preference kept in the browser, such as the demo tab last chosen.
+    /// </summary>
+    /// <param name="key">The preference's name.</param>
+    /// <returns>The kept value, or null when there is none or the browser keeps nothing.</returns>
+    public Task<string?> ReadSettingAsync(string key) => InvokeAsync<string?>("readSetting", null, key);
+
+    /// <summary>
+    /// Keeps a visitor preference in the browser; nothing happens when the browser keeps nothing.
+    /// </summary>
+    /// <param name="key">The preference's name.</param>
+    /// <param name="value">The value to keep.</param>
+    public Task WriteSettingAsync(string key, string value) => InvokeVoidAsync("writeSetting", key, value);
+
+    /// <summary>
     /// Copies text to the clipboard.
     /// </summary>
     /// <param name="text">The text to copy.</param>

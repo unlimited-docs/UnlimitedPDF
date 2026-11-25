@@ -1,7 +1,8 @@
 @page "/playground/html/html-to-pdf"
 @inject HtmlSampleImages Images
 
-<SamplePage @ref="_page" Demo="SampleCatalog.HtmlToPdf" Build="BuildAsync" PageCount="null" OnReset="Reset">
+<SamplePage @ref="_page" Demo="SampleCatalog.HtmlToPdf" Build="BuildAsync" PageCount="null" OnReset="Reset"
+            ShapeProgram="program => ProgramText.WithHtml(program, _html)" WrapCode="true">
     <Inputs>
         <CollapsibleSection Title="Template">
             <div class="field">
