@@ -135,15 +135,16 @@ public class ToolPagesTests
     }
 
     [Fact]
-    public void The_home_page_shows_the_tools_path_after_the_banner_and_before_the_documents()
+    public void The_home_page_shows_the_tools_path_after_the_hero_and_before_the_documents()
     {
-        // 26112201 AC-07, now the "For your files" path beside the developer path (QF-26112201).
+        // 26112201 AC-07, now the "For your files" path beside the developer path (QF-26112201), after the hero
+        // (QF-26112503).
         string home = DemosFile("Pages/Home.razor");
-        int banner = home.IndexOf("class=\"showcase\"", StringComparison.Ordinal);
+        int hero = home.IndexOf("class=\"hero\"", StringComparison.Ordinal);
         int strip = home.IndexOf("aria-labelledby=\"home-tools-title\"", StringComparison.Ordinal);
         int documents = home.IndexOf("aria-labelledby=\"documents-title\"", StringComparison.Ordinal);
 
-        Assert.True(banner >= 0 && strip > banner && documents > strip, "The tools path sits after the banner and before the documents.");
+        Assert.True(hero >= 0 && strip > hero && documents > strip, "The tools path sits after the hero and before the documents.");
         Assert.Contains("For your files", home, StringComparison.Ordinal);
         Assert.Contains("@ToolCatalog.HubHeading that run in your browser. Nothing is uploaded.", home, StringComparison.Ordinal);
         Assert.Contains("@foreach (var tool in ToolCatalog.All)", home, StringComparison.Ordinal);

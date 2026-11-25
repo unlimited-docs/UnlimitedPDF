@@ -56,15 +56,15 @@ public static class HomeSnippets
     }
 
     /// <summary>
-    /// The home page's first PDF: a page with a line of text, saved as hello.pdf in a folder.
+    /// The home page's first PDF: a page with a line of text, saved as hello.pdf in the current folder. With
+    /// <c>using UnlimitedPDF;</c> above it, the snippet is a console app's whole Program.cs (QF-26112503).
     /// </summary>
-    /// <param name="folder">The folder to write hello.pdf to.</param>
-    public static void First(string folder)
+    public static void First()
     {
         // snippet:first
         var document = new PdfDocument();
         document.AddPage().AddText("Hello, PDF!", 72, 720, 24);
-        document.Save(Path.Combine(folder, "hello.pdf"));
+        document.Save("hello.pdf");
         // end
     }
 

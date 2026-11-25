@@ -847,26 +847,35 @@ input[type="file"] { max-width: 100%; }
 /* Hover lightens the teal, keeping 5.7:1 with the dark text. */
 .btn-cta:hover { background: #26bc9f; color: #04342c; }
 
+/* The hero, "Code first" (QF-26112503): the headline, Get started, and the facts on the left; the install command and
+   the first PDF on the right, on the sections' edges. One column below 900 px, the code under the words. */
 .hero {
-    padding: 3.5rem 1.25rem 2.5rem;
-    text-align: center;
+    padding: 3rem 1.25rem 2.75rem;
     background: var(--app-surface);
     border-bottom: 1px solid var(--app-line);
 }
+.hero-inner { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 3rem; align-items: center; max-width: calc(1200px - 2.5rem); margin: 0 auto; }
 .hero h1 {
-    max-width: 52rem;
-    margin: 0.9rem auto 0.75rem;
+    margin: 1.1rem 0 0.9rem;
     color: var(--app-accent);
-    font-size: clamp(2.1rem, 5vw, 3.2rem);
+    font-size: clamp(2.1rem, 4.2vw, 3.2rem);
     font-weight: 800;
     letter-spacing: -0.025em;
     line-height: 1.12;
 }
 /* Large text in dark teal, 5.3:1 (brand teal itself is under 3:1 on white). */
 .hero h1 span { color: var(--app-focus); }
-.hero-lead { max-width: 40rem; margin: 0 auto; color: var(--app-muted); font-size: 1.1rem; line-height: 1.6; }
-.hero-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.75rem; margin: 1.5rem 0 2rem; }
+.hero-lead { max-width: 34rem; margin: 0; color: var(--app-muted); font-size: 1.1rem; line-height: 1.6; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin: 1.6rem 0 1.25rem; }
 .hero-actions .btn { display: inline-flex; align-items: center; gap: 0.4rem; }
+.hero-facts { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin: 0; padding: 0; list-style: none; color: var(--app-muted); font-size: 0.95rem; }
+.hero-facts li { display: inline-flex; align-items: center; gap: 0.35rem; }
+.hero-facts .icon { color: var(--app-focus); }
+.hero-code { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+.hero-code-note { margin: 0; color: var(--app-muted); font-size: 0.9rem; }
+@media (max-width: 899.98px) {
+    .hero-inner { grid-template-columns: minmax(0, 1fr); gap: 1.75rem; }
+}
 
 /* The release announcement above the headline (QF-26111209): a filled version pill, then what the release adds. */
 .hero-release {
@@ -883,18 +892,6 @@ input[type="file"] { max-width: 100%; }
 }
 .hero-release-version { padding: 0.1rem 0.5rem; border-radius: 999px; background: var(--app-teal-ink); color: #ffffff; font-variant-numeric: tabular-nums; }
 .hero-release:hover .hero-release-text { text-decoration: underline; }
-
-/* The production illustration; width and height attributes reserve its 16:9 box before it loads. */
-.showcase { max-width: 900px; margin: 0 auto; }
-.showcase img {
-    display: block;
-    width: 100%;
-    height: auto;
-    border-radius: 16px;
-    border: 1px solid var(--app-line);
-    box-shadow: 0 10px 30px rgba(0, 42, 115, 0.12);
-    background: var(--app-canvas);
-}
 
 .section { max-width: 1200px; margin: 0 auto; padding: 2.75rem 1.25rem 0.5rem; }
 .home-section { scroll-margin-top: calc(var(--app-topbar-h) + 1rem); }
@@ -916,19 +913,22 @@ input[type="file"] { max-width: 100%; }
 .first-pdf-code .code-view { height: auto; min-height: 0; border-radius: 14px; overflow: hidden; }
 .first-pdf-code .code-view pre { height: auto; padding-top: 2.9rem; }
 
+/* The command fills its line and Copy sits at its right end, like Copy code on a code block (QF-26112503). */
 .install {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 0.75rem;
     max-width: 100%;
     background: var(--app-code-bg);
     color: #dbe5ff;
     border-radius: 12px;
-    padding: 0.55rem 0.6rem 0.55rem 1rem;
+    /* The right padding matches Copy code's inset on a code block, so the two Copy buttons share a right edge. */
+    padding: 0.55rem 0.9rem 0.55rem 1rem;
     font-family: var(--app-mono);
     font-size: 0.9rem;
 }
-.install code { color: inherit; white-space: nowrap; overflow: auto; }
+.install code { flex: 1 1 auto; min-width: 0; color: inherit; white-space: nowrap; overflow: auto; }
+.install button { flex: none; margin-left: auto; }
 .install code::before { content: "$ "; color: #9aa7c4; }
 .install.is-file code::before { content: none; }
 .install button { border: 1px solid rgba(219, 229, 255, 0.5); background: transparent; color: inherit; border-radius: 8px; padding: 0.25rem 0.55rem; display: inline-flex; align-items: center; gap: 0.3rem; font-family: var(--app-font); font-size: 0.8rem; }
@@ -1051,7 +1051,7 @@ input[type="file"] { max-width: 100%; }
     .hero { padding: 2.25rem 1rem 1.75rem; }
     .section { padding: 2rem 1rem 0.5rem; }
     .benefits, .questions { grid-template-columns: minmax(0, 1fr); }
-    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.5rem 0.5rem 0.75rem; }
+    .install { font-size: 0.74rem; gap: 0.5rem; padding: 0.5rem 0.9rem 0.5rem 0.75rem; }
     .install button { padding: 0.3rem 0.5rem; min-height: 36px; }
     .hero h1 span { white-space: nowrap; }
     .faq-band { padding: 1.4rem 1.25rem; }
@@ -1059,7 +1059,7 @@ input[type="file"] { max-width: 100%; }
 
 /* The narrowest phones (320 px): the command keeps fitting beside Copy. */
 @media (max-width: 359.98px) {
-    .install { font-size: 0.64rem; gap: 0.35rem; padding-left: 0.6rem; }
+    .install { font-size: 0.64rem; gap: 0.35rem; padding-left: 0.6rem; padding-right: 0.5rem; }
 }
 
 /* The site footer, on every page (MainLayout): the credit line, then the platform, license, and demo-data notes. */
@@ -1069,15 +1069,10 @@ input[type="file"] { max-width: 100%; }
 .footer a { text-decoration: underline; text-underline-offset: 2px; }
 .footer-heart { fill: currentColor; color: var(--app-danger); vertical-align: -2px; }
 
-/* The footer's links (QF-26112201): columns by task, tool, language, and resource, above the credit lines, on the same
-   left and right edges as the page's sections. The languages, the longest list, take two tracks and list their links
-   in two columns with the grid's own gap, so each half lines up with a track. Two tracks on tablets and phones, where
-   the languages take a row of their own. */
-.footer-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1.25rem 2rem; max-width: calc(1200px - 2.5rem); margin: 0 auto 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--app-line); text-align: left; }
-.footer-col.is-wide { grid-column: span 2; }
-.footer-col.is-wide ul { columns: 2; column-gap: 2rem; }
-.footer-col.is-wide li { break-inside: avoid; padding-bottom: 0.2rem; }
-.footer-col.is-wide li + li { margin-top: 0; }
+/* The footer's links (QF-26112201): six columns, by task, tool, the three language groups (QF-26112503), and resource,
+   above the credit lines, on the same left and right edges as the page's sections. Two columns on tablets and phones:
+   guides and tools, Indian and European languages, then right to left and resources. */
+.footer-links { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 1.25rem 2rem; max-width: calc(1200px - 2.5rem); margin: 0 auto 1.5rem; padding-bottom: 1.25rem; border-bottom: 1px solid var(--app-line); text-align: left; }
 .footer-title { margin: 0 0 0.5rem; color: var(--app-accent); font-size: 0.95rem; font-weight: 750; }
 .footer-col ul { margin: 0; padding: 0; list-style: none; }
 .footer-col li + li { margin-top: 0.2rem; }
@@ -1583,7 +1578,8 @@ input[type="file"] { max-width: 100%; }
 .gs-head { text-align: center; margin-bottom: 1.75rem; }
 .gs-head h1 { margin: 0 0 0.5rem; color: var(--app-accent); font-size: clamp(2rem, 4vw, 2.75rem); font-weight: 800; }
 .gs-head p { margin: 0; color: var(--app-muted); font-size: 1.1rem; }
-.gs-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.25rem; }
+/* minmax(0, 1fr): a long install line scrolls inside its box instead of widening the page on a phone (QF-26112503). */
+.gs-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.25rem; }
 .gs-step { position: relative; padding: 1.4rem 1.5rem 1.4rem 4.5rem; }
 .gs-step-number { position: absolute; left: 1.4rem; top: 1.35rem; width: 2.2rem; height: 2.2rem; border-radius: 50%; display: grid; place-items: center; background: var(--app-accent); color: #fff; font-weight: 800; }
 .gs-step h2 { margin: 0.2rem 0 0.6rem; color: var(--app-accent); font-size: 1.35rem; font-weight: 800; }

@@ -4,60 +4,71 @@
 <PageDescription Text="Try UnlimitedPDF, the C# PDF library for .NET, in your browser: create PDFs with text, tables, and images, merge and split PDFs, and convert HTML to PDF." />
 <CanonicalLink Path="" />
 
-@* The home page (D-026, D-027; layout "Two paths", QF-26112201): a centered hero over the production illustration;
-   two paths, one for developers (install and the first PDF) and one for visitors' own files (the free tools); the
-   real-life documents as cards; the other capabilities as rows with their demos, code, and tools; the benefits;
-   "How do I...?"; and the FAQ band. *@
+@* The home page (D-026; layout "Two paths", QF-26112201; hero "Code first", QF-26112503): the hero with the install
+   command and a first PDF that compiles as pasted; two paths, one for developers (where to go next) and one for
+   visitors' own files (the free tools); the real-life documents as cards; the other capabilities as rows with their
+   demos, code, and tools; the benefits; "How do I...?"; and the FAQ band. *@
 <section class="hero">
-    @* The current release and what it adds (QF-26111209); the version is read from the built library. Update the
-       sentence with each release. *@
-    @if (LibraryRelease.Version.Length > 0)
-    {
-        <a class="hero-release" href="@LibraryRelease.NotesUrl" target="_blank" rel="noopener">
-            <span class="hero-release-version">v@(LibraryRelease.Version)</span>
-            <span class="hero-release-text">Your own fonts and more languages</span>
-            <Icon Name="arrow" Size="14" /><span class="visually-hidden"> release notes (opens in a new tab)</span>
-        </a>
-    }
-    <h1>The pure .NET <span>PDF library</span></h1>
-    <p class="hero-lead">
-        Create, merge, split, and convert HTML to PDF. No engine required: it runs wherever .NET 6 or later runs, and
-        every demo below runs right here.
-    </p>
-    <div class="hero-actions">
-        <a class="btn btn-lg btn-cta" href="@ScenarioGallery.Route">Browse @ScenarioGallery.Scenarios.Count scenarios <Icon Name="arrow" Size="18" /></a>
-        <a class="btn btn-lg btn-outline" href="https://github.com/unlimited-docs/UnlimitedPDF" target="_blank" rel="noopener">
-            View on GitHub<span class="visually-hidden"> (opens in a new tab)</span>
-        </a>
-    </div>
-    <div class="showcase">
-        @* The production illustration (D-027); the phone-sized copy is chosen by srcset. It is in the first screen at
-           every width and is the page's largest picture, so it loads at once, ahead of other images. *@
-        <img src="images/unlimitedpdf-demos-hero-1200.jpg"
-             srcset="images/unlimitedpdf-demos-hero-800.jpg 800w, images/unlimitedpdf-demos-hero-1200.jpg 1200w"
-             sizes="(max-width: 940px) calc(100vw - 2.5rem), 900px"
-             width="1200" height="675" fetchpriority="high" decoding="async"
-             alt="Stylized illustration titled UnlimitedPDF Demos, Explore sample outputs and ready-to-use PDF scenarios, with invoice, medical report, receipt, and certificate cards" />
+    <div class="hero-inner">
+        <div class="hero-text">
+            @* The current release and what it adds (QF-26111209); the version is read from the built library. Update
+               the sentence with each release. *@
+            @if (LibraryRelease.Version.Length > 0)
+            {
+                <a class="hero-release" href="@LibraryRelease.NotesUrl" target="_blank" rel="noopener">
+                    <span class="hero-release-version">v@(LibraryRelease.Version)</span>
+                    <span class="hero-release-text">Your own fonts and more languages</span>
+                    <Icon Name="arrow" Size="14" /><span class="visually-hidden"> release notes (opens in a new tab)</span>
+                </a>
+            }
+            <h1>The pure .NET <span>PDF library</span></h1>
+            <p class="hero-lead">
+                Create, merge, split, and convert HTML to PDF from C#.
+                No engine required: it runs wherever .NET 6 or later runs.
+            </p>
+            <div class="hero-actions">
+                <a class="btn btn-lg btn-cta" href="getting-started">Get started <Icon Name="arrow" Size="18" /></a>
+                <a class="btn btn-lg btn-outline" href="@ScenarioGallery.Route">Browse @ScenarioGallery.Scenarios.Count scenarios</a>
+            </div>
+            @* What developers check first, each true of the shipped package (PR-012: the csproj's target frameworks
+               and license, PR-005). *@
+            <ul class="hero-facts">
+                <li><Icon Name="check" Size="16" /> .NET 6, 8, 9, 10, and 11</li>
+                <li><Icon Name="check" Size="16" /> Apache-2.0 license</li>
+                <li><Icon Name="check" Size="16" /> No PDF engine or native code</li>
+            </ul>
+        </div>
+        @* The first PDF, ready to paste into a console app's Program.cs: the install command, then the code. *@
+        <div class="hero-code" role="region" aria-labelledby="first-title">
+            <h2 id="first-title" class="visually-hidden">Your first PDF</h2>
+            <InstallCommand />
+            <div class="first-pdf-code">
+                <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
+            </div>
+            <p class="hero-code-note">Run it, and hello.pdf holds one page with a line of text.</p>
+        </div>
     </div>
 </section>
 
-@* Two paths (QF-26112201): developers start with the package and the first PDF in three lines; visitors with their
-   own files start with the free tools (26112201 AC-07, D-004), one tile per tool and all tools. *@
+@* Two paths (QF-26112201): developers go on to the C# for what they're building (QF-26112503: the hero holds the
+   install command and the first PDF); visitors with their own files start with the free tools (26112201 AC-07,
+   D-004), one tile per tool and all tools. *@
 <section class="section home-section home-paths">
-    <div class="home-path" aria-labelledby="first-title" role="region">
-        <h2 id="first-title" class="home-path-title">For developers</h2>
-        <p class="home-path-lead">Install the package, then write your first PDF in three lines.</p>
-        <InstallCommand />
-        <div class="first-pdf-code">
-            <CodeView Source="@_firstPdf" AriaLabel="Code sample: your first PDF" />
-        </div>
-        @* What it runs on, the first thing developers check, and the step-by-step guide (true per the getting-started
-           page and the csproj, PR-012). They also fill the card to the tools card's height, so its links line up. *@
-        <p class="home-path-note"><Icon Name="check" Size="16" /> One package targets .NET 6, .NET 8, .NET 9, .NET 10, and .NET 11.</p>
-        <div class="home-path-links">
-            <a class="home-path-more" href="getting-started">Get started step by step <Icon Name="arrow" Size="16" /></a>
-            <a class="home-path-more" href="#capabilities">See the C# for each capability <Icon Name="arrow" Size="16" /></a>
-        </div>
+    <div class="home-path" aria-labelledby="next-title" role="region">
+        <h2 id="next-title" class="home-path-title">For developers</h2>
+        <p class="home-path-lead">Next, the C# for what you're building. Each opens a demo you can edit.</p>
+        <ul class="home-tools-list">
+            @foreach (var (name, text, iconName, href) in NextSteps)
+            {
+                <li>
+                    <a class="home-tool" href="@href">
+                        <span class="tool-card-icon" aria-hidden="true"><Icon Name="@iconName" Size="18" /></span>
+                        <span>@name<small>@text</small></span>
+                    </a>
+                </li>
+            }
+        </ul>
+        <a class="home-path-more" href="#capabilities">See the C# for each capability <Icon Name="arrow" Size="16" /></a>
     </div>
     <div class="home-path home-tools" aria-labelledby="home-tools-title" role="region">
         <h2 id="home-tools-title" class="home-path-title">For your files</h2>
@@ -167,6 +178,18 @@
 
     private string _firstPdf = string.Empty;
 
+    // Where a developer goes after the first PDF (QF-26112503): the guide, then the demos for the common tasks, each
+    // described by what the demo shows (PR-012).
+    private static (string Name, string Text, string Icon, string Href)[] NextSteps =>
+    [
+        ("Get started", "Install, the first PDF, and where to go next.", "spark", "getting-started"),
+        ("Tables", "Columns, borders, and a header row on every page.", "table", SampleCatalog.Tables.Route),
+        ("Images", "JPG and PNG pictures on a page or in a table cell.", "image", SampleCatalog.Images.Route),
+        ("Merge and split", "Join PDFs, pick pages, and add bookmarks.", "merge", SampleCatalog.JoinFiles.Route),
+        ("HTML to PDF", "Turn HTML and CSS into a PDF.", "html", SampleCatalog.HtmlToPdf.Route),
+        ("Fonts and languages", $"Your own fonts and text in {LanguageInvoices.All.Count(l => l.Id != "mixed")} languages.", "language", SampleCatalog.FontsAndLanguages.Route),
+    ];
+
     // The real-life documents, shown as picture cards in their own section (QF-26112201 F-1).
     private static SampleCategory Documents => SampleCatalog.Categories.Single(c => c.Id == "documents");
 
@@ -174,6 +197,7 @@
     // click from the home page.
     private static IEnumerable<SampleCategory> Capabilities => SampleCatalog.Categories.Where(c => c != Documents);
 
+    // The first PDF as a console app's whole Program.cs: the using line, then the snippet (QF-26112503).
     /// <inheritdoc />
-    protected override void OnInitialized() => _firstPdf = SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "first");
+    protected override void OnInitialized() => _firstPdf = "using UnlimitedPDF;\n\n" + SnippetText.Extract(SampleSource.Read("HomeSnippets.cs"), "first");
 }

@@ -16,13 +16,13 @@ public sealed record FooterLink(string Text, string Href, bool External = false)
 /// </summary>
 /// <param name="Title">The column heading.</param>
 /// <param name="Links">The links, in the order shown.</param>
-/// <param name="IsWide">Whether the column is twice as wide and lists its links in two columns, for a long list.</param>
-public sealed record FooterColumn(string Title, IReadOnlyList<FooterLink> Links, bool IsWide = false);
+public sealed record FooterColumn(string Title, IReadOnlyList<FooterLink> Links);
 
 /// <summary>
 /// The site footer's links, on every page (QF-26112201): the common C# tasks by the words people search with, the
-/// free tools, the languages, and the site's other pages and project links. Every address comes from the
-/// catalogs, so a link cannot point to a page that does not exist.
+/// free tools, the languages in three groups (Indian, European, and right to left and more; QF-26112503), and the
+/// site's other pages and project links. Every address comes from the catalogs, so a link cannot point to a page that
+/// does not exist.
 /// </summary>
 public static class FooterLinks
 {
@@ -37,6 +37,11 @@ public static class FooterLinks
     /// The package's page on NuGet.
     /// </summary>
     public const string NuGetUrl = "https://www.nuget.org/packages/UnlimitedPDF";
+
+    // The language groups (QF-26112503), by preset id. A preset in neither group and not right to left goes under
+    // "Right to left and more" (Filipino, and the mixed-language invoice).
+    private static readonly string[] IndianIds = ["hindi", "telugu", "tamil", "bengali", "gujarati", "punjabi", "odia", "kannada", "malayalam"];
+    private static readonly string[] EuropeanIds = ["french", "polish", "czech", "turkish", "greek", "russian", "ukrainian", "armenian", "georgian"];
 
     private static IReadOnlyList<FooterColumn>? _columns;
 
@@ -65,14 +70,15 @@ public static class FooterLinks
             .. ToolCatalog.All.Select(tool => new FooterLink(tool.Name, tool.Route)),
             new("All tools", ToolCatalog.HubRoute),
         ]),
-        // The longest list, in two columns. It comes after the tools so that, where the footer has two columns, the
-        // guides and the tools share the first row and the languages take the next row whole, in reading order.
-        new("Languages",
+        new("Indian languages", LanguageLinks(l => IndianIds.Contains(l.Id))),
+        new("European languages", LanguageLinks(l => EuropeanIds.Contains(l.Id))),
+        new("Right to left and more",
         [
-            .. LanguageInvoices.All.Select(language => new FooterLink(LanguageText(language), LanguageRoute(language))),
+            .. LanguageLinks(l => l.RightToLeft),
+            .. LanguageLinks(l => !l.RightToLeft && !IndianIds.Contains(l.Id) && !EuropeanIds.Contains(l.Id)),
             new("Use your own fonts", SampleCatalog.FontsAndLanguages.Route),
             new("Right-to-left PDFs", SampleCatalog.RightToLeftDocuments.Route),
-        ], IsWide: true),
+        ]),
         new("Resources",
         [
             new("Getting started", "getting-started"),
@@ -104,6 +110,9 @@ public static class FooterLinks
 
     private static string LanguageText(LanguageInvoice language) =>
         language.Id == "mixed" ? "Mixed-language PDF" : $"PDF in {language.Name}";
+
+    private static FooterLink[] LanguageLinks(Func<LanguageInvoice, bool> include) =>
+        [.. LanguageInvoices.All.Where(include).Select(language => new FooterLink(LanguageText(language), LanguageRoute(language)))];
 
     #endregion
 

@@ -23,7 +23,7 @@ The files here are size-optimized copies made by [`assets/New-DerivedImages.ps1`
 | `unlimitedpdf-logo.png` | Top bar wordmark |
 | `unlimitedpdf-icon.png` | Top bar logo on phones |
 | `favicon.png` | Browser tab icon |
-| `unlimitedpdf-demos-hero-1200.jpg`, `unlimitedpdf-demos-hero-800.jpg` | Home page showcase (a stylized illustration) |
+| `unlimitedpdf-demos-hero-1200.jpg`, `unlimitedpdf-demos-hero-800.jpg` | A stylized illustration: the link preview picture (`og:image`, 1200), the Images to PDF tool's sample, and the HTML to PDF demo's banner (800). The home page no longer shows it (QF-26112503). |
 | `invoice-logo.png` | Invoice demo |
 | `medical-report-logo.png` | Medical report demo |
 | `receipt-logo.png` | Receipt demo |
