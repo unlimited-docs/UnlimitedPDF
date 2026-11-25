@@ -88,6 +88,78 @@ public static class HtmlTemplates
         """;
 
     /// <summary>
+    /// A right-to-left invoice in Arabic (WR-041, 65-right-to-left-scripts CR-001): <c>dir</c> and <c>lang</c> on the
+    /// page, an English customer name and email kept in order with <c>bdi</c>, an items table whose first column is at
+    /// the right, a list of terms with its bullets at the right, and amounts aligned with <c>text-align: end</c>. All
+    /// names are fictional.
+    /// </summary>
+    public const string RightToLeftInvoice = """
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>فاتورة 2026/0042</title>
+        <style>
+          body { font-size: 11pt; color: #1f2937; margin: 0 }
+          h1 { color: #002A73; font-size: 22pt; margin: 0 }
+          h2 { color: #002A73; font-size: 13pt; margin: 18pt 0 4pt }
+          .muted { color: #6b7280 }
+          table.items { width: 100%; border-collapse: collapse; margin-top: 16pt }
+          table.items th { background-color: #002A73; color: white; text-align: start; padding: 6pt }
+          table.items td { border-bottom: 1px solid #d1d5db; padding: 6pt }
+          .num { text-align: end }
+          .total td { font-weight: bold; border-bottom: 2px solid #002A73 }
+        </style></head>
+        <body>
+          <h1>فاتورة ضريبية</h1>
+          <p class="muted">رقم الفاتورة 2026/0042 · التاريخ 25/11/2026</p>
+          <table width="100%" style="margin-top: 12pt"><tr>
+            <td><b>البائع</b><br>مؤسسة النخيل للتمور<br>شارع الملك فهد، الرياض 12211</td>
+            <td><b>العميل</b><br><bdi>Northwind Traders Ltd.</bdi><br>12 Harbour Street, Bristol</td>
+          </tr></table>
+          <table class="items">
+            <thead><tr><th>الوصف</th><th class="num">الكمية</th><th class="num">السعر</th><th class="num">المبلغ</th></tr></thead>
+            <tbody>
+              <tr><td>تمر سكري</td><td class="num">5</td><td class="num">45.00 ر.س</td><td class="num">225.00 ر.س</td></tr>
+              <tr><td>قهوة عربية</td><td class="num">2</td><td class="num">60.00 ر.س</td><td class="num">120.00 ر.س</td></tr>
+              <tr><td>عسل سدر</td><td class="num">1</td><td class="num">150.00 ر.س</td><td class="num">150.00 ر.س</td></tr>
+              <tr class="total"><td colspan="3">الإجمالي</td><td class="num">495.00 ر.س</td></tr>
+            </tbody>
+          </table>
+          <h2>شروط الدفع</h2>
+          <ul>
+            <li>الدفع خلال 30 يوماً من تاريخ الفاتورة.</li>
+            <li>الأسعار تشمل ضريبة القيمة المضافة 15%.</li>
+            <li>للاستفسار: <bdi>billing@nakheel.example</bdi></li>
+          </ul>
+        </body></html>
+        """;
+
+    /// <summary>
+    /// A right-to-left letter in Hebrew (WR-041, 65-right-to-left-scripts CR-001): <c>dir</c> and <c>lang</c> on the
+    /// page, the sender at the start (right) and the date at the end (left) with <c>text-align: end</c>, paragraphs
+    /// with dates and a phone number, and an English company name and email kept in order with <c>bdi</c>. All names
+    /// are fictional.
+    /// </summary>
+    public const string RightToLeftLetter = """
+        <!DOCTYPE html>
+        <html dir="rtl" lang="he"><head><meta charset="utf-8"><title>הצעת מחיר</title>
+        <style>
+          body { font-size: 12pt; line-height: 1.5; color: #1f2937; margin: 24pt 36pt }
+          .sender { color: #374151 }
+          .date { text-align: end }
+          .subject { font-weight: bold; margin-top: 16pt }
+        </style></head>
+        <body>
+          <p class="sender">מאפיית הכרמל בע״מ<br>רחוב הרצל 12, חיפה 3303112<br>טלפון 04-8123456</p>
+          <p class="date">חיפה, 25 בנובמבר 2026</p>
+          <p>לכבוד<br><bdi>Northwind Traders Ltd.</bdi><br>12 Harbour Street, Bristol</p>
+          <p class="subject">הנדון: הצעת מחיר למוצרי מאפה</p>
+          <p>שלום רב,</p>
+          <p>תודה על פנייתכם מיום 18 בנובמבר. מצורפת הצעת המחיר שביקשתם עבור חלות, עוגות שמרים ובורקס, בתוקף עד 31 בדצמבר 2026. המחירים כוללים משלוח לכל אזור חיפה.</p>
+          <p>לשאלות ניתן לפנות אלינו בטלפון 04-8123456 או בדוא״ל <bdi>orders@carmel-bakery.example</bdi>.</p>
+          <p>בברכה,<br>מרים כהן<br>מנהלת מכירות</p>
+        </body></html>
+        """;
+
+    /// <summary>
     /// A letter: sender and recipient blocks, date, justified paragraphs, a signature, and an enclosure on its own page.
     /// </summary>
     public const string Letter = """

@@ -9,8 +9,9 @@ namespace UnlimitedPDF.Tests;
 /// <summary>
 /// The free fonts the Fonts and languages demo includes (CR-001, D-030, D-031, FD-016, QF-26112401): every language
 /// invoice draws without a missing character in both drawing modes, the files match their readme and carry their
-/// license, each file downloads once, only that page downloads them, and neither the package nor its tests carry a font
-/// file.
+/// license, each file downloads once, only the pages that draw other scripts download them (Fonts and languages,
+/// Right-to-left documents, and HTML to PDF for right-to-left HTML, 65-right-to-left-scripts CR-001), the right-to-left
+/// HTML templates draw with them without a missing character, and neither the package nor its tests carry a font file.
 /// </summary>
 public class BundledFontsTests
 {
@@ -87,6 +88,35 @@ public class BundledFontsTests
     }
 
     [Fact]
+    public async Task The_right_to_left_scripts_alone_download_only_their_fonts()
+    {
+        var requests = new List<string>();
+        using var http = new HttpClient(new FontsFolderHandler(requests)) { BaseAddress = new Uri("http://localhost/") };
+
+        var slots = await BundledFonts.LoadAsync(http, [FontScript.Arabic, FontScript.Hebrew, FontScript.Thaana]);
+
+        Assert.Equal(new[] { FontScript.Arabic, FontScript.Hebrew, FontScript.Thaana }.Order(), slots.Keys.Order());
+        Assert.Equal(new[] { "/fonts/NotoSansArabic-Regular.ttf", "/fonts/NotoSansHebrew-Regular.ttf", "/fonts/NotoSansThaana-Regular.ttf" }, requests.Order(StringComparer.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("invoice")]
+    [InlineData("letter")]
+    public async Task The_right_to_left_html_templates_draw_without_a_missing_character_with_the_included_fonts(string template)
+    {
+        string html = template == "invoice" ? HtmlTemplates.RightToLeftInvoice : HtmlTemplates.RightToLeftLetter;
+        var fonts = LoadAll().Where(s => s.Script is FontScript.Arabic or FontScript.Hebrew or FontScript.Thaana).Select(s => s.Font.Font).ToList();
+
+        var (document, loaded) = await HtmlToPdfSample.BuildAsync(html, (_, _) => Task.FromResult<Stream?>(null), fonts);
+        document.FailOnMissingCharacters = true;
+
+        Assert.Empty(loaded.Warnings);
+        using var output = new MemoryStream();
+        document.Save(output);
+        Assert.True(output.Length > 0, template);
+    }
+
+    [Fact]
     public void The_license_goes_with_the_fonts_and_each_slot_credits_it()
     {
         string license = File.ReadAllText(FontsFile("OFL.txt"));
@@ -106,7 +136,7 @@ public class BundledFontsTests
     }
 
     [Fact]
-    public void Only_the_fonts_and_languages_page_downloads_the_fonts_and_its_first_preview_waits_for_them()
+    public void Only_the_pages_that_draw_other_scripts_download_the_fonts_and_their_first_preview_waits_for_them()
     {
         string page = DemosFile("Pages/Playground/Languages/FontsAndLanguages.razor");
         Assert.Contains("_defaults = LoadDefaultsAsync();", page, StringComparison.Ordinal);
@@ -114,6 +144,20 @@ public class BundledFontsTests
         Assert.Contains("if (_defaults is not null) await _defaults;", page, StringComparison.Ordinal);
         Assert.Contains("foreach (var (script, font) in _bundled) _slots.TryAdd(script, font);", page, StringComparison.Ordinal);
         Assert.Contains("Loading the included fonts...", page, StringComparison.Ordinal);
+
+        // Right-to-left documents waits for them too; HTML to PDF loads only the right-to-left fonts, and only for HTML
+        // that has their letters.
+        string rightToLeft = DemosFile("Pages/Playground/Languages/RightToLeftDocuments.razor");
+        Assert.Contains("_fonts = await BundledFonts.LoadAsync(Http);", rightToLeft, StringComparison.Ordinal);
+        Assert.Contains("if (_loading is not null) await _loading;", rightToLeft, StringComparison.Ordinal);
+        string htmlToPdf = DemosFile("Pages/Playground/Html/HtmlToPdf.razor");
+        Assert.Contains("if (needed.Count > 0)", htmlToPdf, StringComparison.Ordinal);
+        Assert.Contains("await BundledFonts.LoadAsync(Http, RightToLeftScripts);", htmlToPdf, StringComparison.Ordinal);
+        var callers = Directory.EnumerateFiles(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/Pages"), "*.razor", SearchOption.AllDirectories)
+            .Where(path => File.ReadAllText(path).Contains("BundledFonts.LoadAsync", StringComparison.Ordinal))
+            .Select(Path.GetFileName)
+            .Order(StringComparer.Ordinal);
+        Assert.Equal(["FontsAndLanguages.razor", "HtmlToPdf.razor", "RightToLeftDocuments.razor"], callers);
 
         // Nothing else on the site names the font folder, so the first visit downloads no font.
         string root = RepositoryFile("UnlimitedPDF.Demos.BlazorWasm");

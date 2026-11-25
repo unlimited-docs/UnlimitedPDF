@@ -52,6 +52,8 @@
     </Inputs>
 </SamplePage>
 
+@inject HttpClient Http
+
 @code {
     // Uploaded HTML is limited here to keep the browser responsive; the library's own limit is 50 MB.
     private const long MaxUpload = 5 * 1024 * 1024;
@@ -63,8 +65,14 @@
         ["Newsletter (lists and images)"] = () => HtmlTemplates.Newsletter,
         ["Letter"] = () => HtmlTemplates.Letter,
         ["Résumé"] = () => HtmlTemplates.Resume,
-        ["Account statement (several pages)"] = () => HtmlTemplates.Statement()
+        ["Account statement (several pages)"] = () => HtmlTemplates.Statement(),
+        ["Right-to-left invoice (Arabic)"] = () => HtmlTemplates.RightToLeftInvoice,
+        ["Right-to-left letter (Hebrew)"] = () => HtmlTemplates.RightToLeftLetter
     };
+
+    // The right-to-left scripts whose included fonts the page loads, once, for HTML that has their letters (CR-001).
+    private static readonly FontScript[] RightToLeftScripts = [FontScript.Arabic, FontScript.Hebrew, FontScript.Thaana];
+    private IReadOnlyDictionary<FontScript, UploadedFont>? _rightToLeftFonts;
 
     private string _html = HtmlTemplates.Invoice;
     private SamplePage? _page;
@@ -74,7 +82,15 @@
 
     private async Task<PdfDocument> BuildAsync()
     {
-        var (document, html) = await HtmlToPdfSample.BuildAsync(_html, Images.ResolveAsync);
+        // HTML with Arabic, Hebrew, or Thaana letters draws them with the included fonts; other HTML is unchanged.
+        var needed = FontSlots.Needed(_html).Where(RightToLeftScripts.Contains).ToList();
+        IReadOnlyList<PdfFont>? fallback = null;
+        if (needed.Count > 0)
+        {
+            _rightToLeftFonts ??= await BundledFonts.LoadAsync(Http, RightToLeftScripts);
+            fallback = needed.Where(_rightToLeftFonts.ContainsKey).Select(script => _rightToLeftFonts[script].Font).ToList();
+        }
+        var (document, html) = await HtmlToPdfSample.BuildAsync(_html, Images.ResolveAsync, fallback);
         _warnings = html.Warnings;
         StateHasChanged();
         return document;
