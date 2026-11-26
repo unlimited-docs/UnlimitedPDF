@@ -1,4 +1,4 @@
-﻿﻿<p align="center">
+﻿<p align="center">
   <img src="assets/derived/unlimitedpdf-github-banner.jpg" alt="UnlimitedPDF: a lightweight .NET library for programmatically creating PDF files" />
 </p>
 
@@ -27,8 +27,8 @@ A free, open-source, pure .NET PDF library for C#: create PDFs with text, tables
 
 ## Install
 
-- .NET CLI: `dotnet add package UnlimitedPDF --version 1.1.0`
-- Package reference: `<PackageReference Include="UnlimitedPDF" Version="1.1.0" />`
+- .NET CLI: `dotnet add package UnlimitedPDF --version 1.2.0`
+- Package reference: `<PackageReference Include="UnlimitedPDF" Version="1.2.0" />`
 
 One package for `net6.0` to `net11.0`, with no third-party dependencies.
 
@@ -68,7 +68,7 @@ pdfDocument.Save("unlimited-pdf-sample.pdf");
 | Split PDFs | Every N pages or by page range, to a folder or to streams | [Split PDFs](docs/guides/split-pdfs.md) | [Demo](https://unlimitedpdf.dev/playground/split/every-n-pages) |
 | Extract and remove pages | The pages you choose, in your order, or a PDF without them | [Extract and remove pages](docs/guides/extract-and-remove-pages.md) | [Demo](https://unlimitedpdf.dev/playground/split/extract-pages) |
 | HTML to PDF | HTML and CSS drawn by the library's own renderer: no browser, no network | [HTML to PDF](docs/guides/html-to-pdf.md) | [Demo](https://unlimitedpdf.dev/playground/html/html-to-pdf) |
-| Fonts and languages | Your own fonts for Latin, Hindi, Telugu, and Tamil text. Next release: 13 more scripts and right-to-left documents | [Fonts and languages](docs/guides/fonts-and-languages.md) | [Demo](https://unlimitedpdf.dev/playground/languages/fonts-and-languages) |
+| Fonts and languages | Your own fonts for 17 scripts, from Latin and Hindi to Arabic and Hebrew, and documents that read right to left | [Fonts and languages](docs/guides/fonts-and-languages.md) | [Demo](https://unlimitedpdf.dev/playground/languages/fonts-and-languages) |
 
 ## Screenshots
 
@@ -87,7 +87,7 @@ PDFs made by the live demos. Select one to open its guide.
 <td align="center"><a href="docs/guides/extract-and-remove-pages.md"><img src="assets/derived/readme/gallery/extracted-pages.jpg" width="150" alt="Pages extracted from a report into a new PDF" /></a><br /><sub>Extract pages</sub></td>
 <td align="center"><a href="docs/guides/html-to-pdf.md"><img src="assets/derived/readme/gallery/html-to-pdf.jpg" width="150" alt="An invoice converted from HTML with a logo, addresses, and an items table" /></a><br /><sub>HTML to PDF</sub></td>
 <td align="center"><a href="docs/guides/fonts-and-languages.md"><img src="assets/derived/readme/gallery/fonts-and-languages.jpg" width="150" alt="A French invoice drawn with an embedded font" /></a><br /><sub>Fonts and languages</sub></td>
-<td align="center"><a href="docs/guides/fonts-and-languages.md"><img src="assets/derived/readme/gallery/right-to-left.jpg" width="150" alt="An Arabic invoice that reads from the right" /></a><br /><sub>Right to left (next release)</sub></td>
+<td align="center"><a href="docs/guides/fonts-and-languages.md"><img src="assets/derived/readme/gallery/right-to-left.jpg" width="150" alt="An Arabic invoice that reads from the right" /></a><br /><sub>Right to left</sub></td>
 </tr>
 </table>
 
@@ -112,11 +112,11 @@ Run on 2026-11-25 with .NET 10.0.14, an Intel Core i5-9400F, and Windows 11. [Fu
 | Hindi text, 100 pages | 2.88 s | SkiaSharp 4.157.0 | 187 ms | 0.06 |
 | HTML to PDF, 1 page | 4.6 ms | none of the compared libraries converts HTML | | |
 
-## What's new in 1.1.0
+## What's new in 1.2.0
 
-- Your own fonts, for text in Hindi, Telugu, Tamil, and languages written in Latin letters, with fallback fonts and checks for missing characters.
-- Extract and remove pages, with page lists as text such as `10, 1-3`.
-- Text drawn without a font now shows Western European characters such as `é`, `ü`, and `€` instead of `?`.
+- Right-to-left documents in Arabic, Persian, Urdu, Hebrew, Dhivehi, and more: numbers and English words stay in place, tables start at the right, and HTML follows `dir`.
+- Ten more scripts: Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Greek, Cyrillic, Armenian, and Georgian.
+- `Start` and `End` alignment, with `Start` as the default; left-to-right text draws as before.
 
 Every change is in the [changelog](CHANGELOG.md). Upgrading from 0.0.x? See [Upgrading to 1.0.0](docs/guides/upgrading-to-1.0.0.md).
 

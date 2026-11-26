@@ -2,6 +2,20 @@
 
 What changed in each release of the [UnlimitedPDF package](https://www.nuget.org/packages/UnlimitedPDF). Upgrading from 0.0.x? See [Upgrading to 1.0.0](docs/guides/upgrading-to-1.0.0.md).
 
+## 1.2.0
+
+- New: right-to-left documents (`PdfTextDirection`, `PdfDocument.TextDirection`, `PdfTextOptions`, `PdfTable.Direction`, `PdfCellText.Direction`): text in Arabic, Persian, Urdu, Pashto, Kurdish (Sorani), Sindhi, Uyghur, Malay (Jawi), Hebrew, and Dhivehi reads from the right, and a right-to-left table draws its first column at the right. Set the direction once on the document, for one call with a `PdfTextOptions` argument after the call's required arguments, for one table, or for one cell. See [Fonts and languages](docs/guides/fonts-and-languages.md).
+- New: lines are ordered by the Unicode Bidirectional Algorithm (Unicode 17.0.0), so Latin words, numbers, and brackets inside Arabic or Hebrew text read correctly. Copy, search, and read-aloud return the text in reading order.
+- New: Arabic-script letters take their joined forms, required ligatures such as Lam with Alef, their marks, and the cursive attachment Nastaliq fonts use; Hebrew points and Thaana vowel signs sit on their letters.
+- New: `Start` and `End` alignment (`PdfTextAlignment`, `PdfCellHorizontalAlignment`), which follow the text's direction.
+- New: direction in HTML: the `dir` attribute (`ltr`, `rtl`, `auto`), CSS `direction`, `<bdi>`, and `<bdo>`; `text-align: start` and `end`, table columns, and list markers follow it.
+- New: ten more scripts. Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, and Malayalam are shaped with the font's own rules, and Greek, Cyrillic, Armenian, and Georgian each use their own script's font rules.
+- Changed: every alignment default is `Start` instead of `Left`. Left-to-right text draws byte for byte as before, and right-to-left text lands at the right edge without an argument. Text that sets no direction takes it from its first letter, so documents without right-to-left text keep their direction and alignment.
+- Changed: Devanagari, Telugu, and Tamil use the same OpenType Indic rules as the new scripts. A Devanagari reph goes after the vowel signs that come before post-base forms, Telugu vowel signs go before or after below-base forms as the model places them, and halant + ZWJ forms an explicit half form in every script, so some Hindi and Telugu words draw differently from 1.1.0.
+- Changed: HTML `text-transform` follows the `lang` attribute for Turkish and Azerbaijani, so `istanbul` in uppercase is `İSTANBUL`, and uppercase turns dotless `ı` into `I` in every language.
+- Changed: right-to-left letters of scripts that aren't shaped, such as Syriac and N'Ko, are reported by `FindMissingCharacters`, `FailOnMissingCharacters`, and the HTML `MissingCharacter` warning even when the font has them. Bidirectional marks and controls are no longer reported, since they draw nothing.
+- The package's copyright holder is Vikram Reddy.
+
 ## 1.1.0
 
 - New: your own fonts and more languages (`PdfFont`, `PdfFontLoadOptions`, `PdfFontException`, `PdfFontErrorReason`): text in Hindi, Telugu, Tamil, and languages written in Latin letters, shaped by the font's rules, on every text call (`PdfPage.AddText`, headers, footers, the body flow, flow blocks, and table cells with `PdfCellText` and `PdfTable.SetText`). PDFs embed only the glyphs they use. See [Fonts and languages](docs/guides/fonts-and-languages.md).
