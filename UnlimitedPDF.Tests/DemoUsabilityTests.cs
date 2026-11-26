@@ -86,8 +86,9 @@ public class DemoUsabilityTests
         Assert.True(main >= 0 && footer > main, "The footer follows the page content.");
         Assert.Contains("Designed and built with <Icon Name=\"heart\"", layout, StringComparison.Ordinal);
         Assert.Contains("<span class=\"visually-hidden\">love</span>", layout, StringComparison.Ordinal);
-        Assert.Contains(">UnlimitedDocs team</a>", layout, StringComparison.Ordinal);
-        Assert.Contains("href=\"https://github.com/unlimited-docs/UnlimitedPDF/graphs/contributors\"", layout, StringComparison.Ordinal);
+        // QF-26112602: one author and no contributors, so the credit names the copyright owner.
+        Assert.Contains("<span class=\"visually-hidden\">love</span> by Vikram Reddy.</p>", layout, StringComparison.Ordinal);
+        Assert.DoesNotContain("contributors", layout, StringComparison.Ordinal);
         Assert.Contains("Powered by .NET 11 · Open source under the <span class=\"text-nowrap\">Apache-2.0</span> license · Demo data is fictional.", layout, StringComparison.Ordinal);
         Assert.DoesNotContain("<footer", Read("Pages/Home.razor"), StringComparison.Ordinal);
     }
