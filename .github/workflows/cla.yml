@@ -1,0 +1,216 @@
+name: CLA
+
+# Every outside contribution needs its authors' signatures on the current CLA.md before it is merged (PR-026): this
+# workflow sets the "CLA" commit status that branch protection on main requires. It runs with write access on pull
+# requests from forks, so it never checks out or runs pull-request code, pins its one action to a full commit SHA, and
+# keeps event text out of ${{ }} expressions inside the script (PR-027).
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+  issue_comment:
+    types: [created]
+
+permissions: {}
+
+concurrency:
+  group: cla-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  cla-check:
+    if: github.event_name == 'pull_request_target' || github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      statuses: write
+    env:
+      # A new CLA.md version starts a new signature file, so every contributor signs it again.
+      CLA_VERSION: v1.0
+    steps:
+      - name: Check CLA signatures
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const SIGN_SENTENCE = 'I have read the CLA Document and I hereby sign the CLA';
+            const RECHECK = 'recheck';
+            const VERSION = process.env.CLA_VERSION;
+            const BRANCH = 'cla-signatures';
+            const PATH = `signatures/${VERSION}/cla.json`;
+            const EXEMPT = ['gvreddy04'];
+            const STATUS_CONTEXT = 'CLA';
+            const MARKER = '<!-- cla-check -->';
+            const MAX_COMMITS = 250;
+            const { owner, repo } = context.repo;
+
+            const isExempt = login => EXEMPT.includes(login) || login.endsWith('[bot]');
+            // Names and emails come from contributors; show them as code so Markdown and mentions do nothing.
+            const asCode = text => '`' + String(text).replace(/[`\r\n]/g, ' ') + '`';
+
+            // Which pull request, and who (if anyone) is signing.
+            let pullNumber;
+            let signing = null;
+            if (context.eventName === 'pull_request_target') {
+              pullNumber = context.payload.pull_request.number;
+            } else {
+              const body = (context.payload.comment.body || '').trim();
+              if (body !== SIGN_SENTENCE && body !== RECHECK) return;
+              pullNumber = context.payload.issue.number;
+              if (body === SIGN_SENTENCE) {
+                const comment = context.payload.comment;
+                signing = { login: comment.user.login, id: comment.user.id, commentId: comment.id, createdAt: comment.created_at };
+              }
+            }
+
+            const pull = (await github.rest.pulls.get({ owner, repo, pull_number: pullNumber })).data;
+            const claLink = `https://github.com/${owner}/${repo}/blob/${context.sha}/CLA.md`;
+
+            const setStatus = (state, description) => github.rest.repos.createCommitStatus({
+              owner, repo, sha: pull.head.sha, state, context: STATUS_CONTEXT, description: description.slice(0, 140)
+            });
+
+            async function findBotComment() {
+              const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: pullNumber, per_page: 100 });
+              return comments.find(c => c.user && c.user.type === 'Bot' && (c.body || '').startsWith(MARKER));
+            }
+
+            async function writeComment(body, onlyIfPresent) {
+              const existing = await findBotComment();
+              if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body });
+              else if (!onlyIfPresent) await github.rest.issues.createComment({ owner, repo, issue_number: pullNumber, body });
+            }
+
+            // Every commit author and co-author must sign; one without a linked GitHub account can't.
+            async function requiredAuthors() {
+              if (pull.commits > MAX_COMMITS) throw new Error(`The pull request has ${pull.commits} commits; the check reads at most ${MAX_COMMITS}.`);
+              const commits = await github.paginate(github.rest.pulls.listCommits, { owner, repo, pull_number: pullNumber, per_page: 100 });
+              const required = new Map();
+              const unlinked = new Map();
+              const byEmail = new Map();
+              for (const c of commits) {
+                if (c.author && c.author.login) {
+                  required.set(c.author.id, c.author.login);
+                  if (c.commit.author && c.commit.author.email) byEmail.set(c.commit.author.email.toLowerCase(), c.author);
+                } else {
+                  const a = c.commit.author || {};
+                  unlinked.set((a.email || a.name || '').toLowerCase(), `${a.name} <${a.email}>`);
+                }
+              }
+              for (const c of commits) {
+                for (const m of (c.commit.message || '').matchAll(/^co-authored-by:\s*(.*?)\s*<([^>]+)>\s*$/gim)) {
+                  const email = m[2].trim().toLowerCase();
+                  const known = byEmail.get(email);
+                  const noreply = email.match(/^(?:(\d+)\+)?([^@+]+)@users\.noreply\.github\.com$/);
+                  if (known) {
+                    required.set(known.id, known.login);
+                  } else if (noreply && noreply[1]) {
+                    required.set(Number(noreply[1]), noreply[2]);
+                  } else if (noreply) {
+                    try {
+                      const user = (await github.rest.users.getByUsername({ username: noreply[2] })).data;
+                      required.set(user.id, user.login);
+                    } catch (e) {
+                      if (e.status !== 404) throw e;
+                      unlinked.set(email, `${m[1]} <${m[2].trim()}>`);
+                    }
+                  } else {
+                    unlinked.set(email, `${m[1]} <${m[2].trim()}>`);
+                  }
+                }
+              }
+              for (const [id, login] of required) if (isExempt(login)) required.delete(id);
+              return { required, unlinked };
+            }
+
+            async function readSignatures() {
+              try {
+                const file = (await github.rest.repos.getContent({ owner, repo, path: PATH, ref: BRANCH })).data;
+                const data = JSON.parse(Buffer.from(file.content, 'base64').toString('utf8'));
+                if (!data || !Array.isArray(data.signedContributors)) throw new Error(`${PATH} on ${BRANCH} is not a signature file.`);
+                return { sha: file.sha, data };
+              } catch (e) {
+                if (e.status === 404) return { sha: null, data: { signedContributors: [] } };
+                throw e;
+              }
+            }
+
+            async function ensureBranch() {
+              try {
+                await github.rest.git.getRef({ owner, repo, ref: `heads/${BRANCH}` });
+                return;
+              } catch (e) {
+                if (e.status !== 404) throw e;
+              }
+              const readme = await github.rest.git.createBlob({ owner, repo, encoding: 'utf-8',
+                content: 'Signatures of the UnlimitedPDF Contributor License Agreement (CLA.md on main), one file per version.\nWritten only by .github/workflows/cla.yml.\n' });
+              const tree = await github.rest.git.createTree({ owner, repo, tree: [{ path: 'README.md', mode: '100644', type: 'blob', sha: readme.data.sha }] });
+              const commit = await github.rest.git.createCommit({ owner, repo, message: 'Start the CLA signatures branch', tree: tree.data.sha, parents: [] });
+              try {
+                await github.rest.git.createRef({ owner, repo, ref: `refs/heads/${BRANCH}`, sha: commit.data.sha });
+              } catch (e) {
+                if (e.status !== 422) throw e; // another run created it first
+              }
+            }
+
+            async function recordSignature(record) {
+              await ensureBranch();
+              for (let attempt = 1; ; attempt++) {
+                const current = await readSignatures();
+                if (current.data.signedContributors.some(s => s.id === record.id)) return;
+                current.data.signedContributors.push(record);
+                try {
+                  await github.rest.repos.createOrUpdateFileContents({
+                    owner, repo, branch: BRANCH, path: PATH,
+                    message: `${record.name} signed the CLA ${VERSION} in #${record.pullRequestNo}`,
+                    content: Buffer.from(JSON.stringify(current.data, null, 2) + '\n', 'utf8').toString('base64'),
+                    ...(current.sha ? { sha: current.sha } : {})
+                  });
+                  return;
+                } catch (e) {
+                  if (attempt >= 2 || (e.status !== 409 && e.status !== 422)) throw e;
+                }
+              }
+            }
+
+            try {
+              const { required, unlinked } = await requiredAuthors();
+              let signatures = await readSignatures();
+
+              if (signing && required.has(signing.id) && !signatures.data.signedContributors.some(s => s.id === signing.id)) {
+                await recordSignature({
+                  name: signing.login, id: signing.id, comment_id: signing.commentId, created_at: signing.createdAt,
+                  repoId: context.payload.repository.id, pullRequestNo: pullNumber
+                });
+                signatures = await readSignatures();
+              }
+
+              const signedIds = new Set(signatures.data.signedContributors.map(s => s.id));
+              const unsigned = [...required].filter(([id]) => !signedIds.has(id)).map(([, login]) => login);
+              const waiting = unsigned.length + unlinked.size;
+
+              if (waiting === 0) {
+                await setStatus('success', `All authors have signed the CLA ${VERSION}`);
+                await writeComment(`${MARKER}\n**Contributor License Agreement**\n\nAll authors have signed the CLA. Thank you.`, true);
+                return;
+              }
+
+              const lines = [MARKER, '**Contributor License Agreement**', '',
+                `Thank you for your pull request. Before it can be merged, every author of its commits signs the [UnlimitedPDF Contributor License Agreement](${claLink}) (${VERSION}), once.`, ''];
+              if (unsigned.length) lines.push('Still to sign:', ...unsigned.map(l => `- ${asCode(l)}`), '');
+              if (unlinked.size) lines.push("Can't sign yet, because no GitHub account is linked to the email; link the email to your GitHub account (or use your GitHub no-reply address) and push again:",
+                ...[...unlinked.values()].map(v => `- ${asCode(v)}`), '');
+              lines.push('To sign, add a comment of its own that says exactly:', '', '```', SIGN_SENTENCE, '```', '', `Comment ${asCode(RECHECK)} to run this check again.`);
+              await writeComment(lines.join('\n'), false);
+              await setStatus('failure', `${waiting} ${waiting === 1 ? 'author still needs' : 'authors still need'} to sign the CLA`);
+            } catch (e) {
+              core.error(e.stack || String(e));
+              try {
+                await setStatus('failure', 'The CLA check could not finish; comment recheck to try again');
+                await writeComment(`${MARKER}\n**Contributor License Agreement**\n\nThe CLA check could not finish. Comment ${asCode(RECHECK)} to try again.`, false);
+              } catch (inner) {
+                core.error(inner.stack || String(inner));
+              }
+              core.setFailed('The CLA check could not finish.');
+            }
