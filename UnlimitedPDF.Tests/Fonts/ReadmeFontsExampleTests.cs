@@ -4,9 +4,10 @@ using System.Text.RegularExpressions;
 namespace UnlimitedPDF.Tests.Fonts;
 
 /// <summary>
-/// The "Fonts and languages" example in README.md and nuget/README.md runs as written with generated fonts in place of
-/// the files it names, both readmes show the same section after "HTML to PDF" with its known limitations, and both list
-/// the release under "Changes in 1.1.0" at version 1.1.0 (AC-15, V-21, PR-004, PR-012).
+/// The "Fonts and languages" example in docs/guides/fonts-and-languages.md and nuget/README.md runs as written with
+/// generated fonts in place of the files it names, the guide and the package readme show the same section with its known
+/// limitations, and the changelog and the package readme list the same 1.1.0 changes at version 1.1.0 (AC-15, V-21,
+/// PR-004, PR-012, QF-26112603).
 /// </summary>
 public sealed class ReadmeFontsExampleTests : IDisposable
 {
@@ -98,29 +99,28 @@ public sealed class ReadmeFontsExampleTests : IDisposable
     }
 
     [Fact]
-    public void Both_readmes_show_the_same_fonts_section_and_the_1_1_0_changes()
+    public void The_fonts_guide_and_the_changelog_match_the_package_readme()
     {
-        string readme = File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n");
-        string nuget = File.ReadAllText(RepositoryFile(Path.Combine("nuget", "README.md"))).Replace("\r\n", "\n");
+        string readme = RepositoryDocs.Read("README.md");
+        string nuget = RepositoryDocs.Read(Path.Combine("nuget", "README.md"));
+        string fonts = RepositoryDocs.GuideBody("fonts-and-languages.md");
 
-        foreach (string heading in new[] { "## Fonts and languages", "## Changes in 1.1.0" })
-            Assert.Equal(Section(readme, heading), Section(nuget, heading));
+        Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Fonts and languages")), RepositoryDocs.WithoutLinkTargets(fonts));
+        Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Changes in 1.1.0")), RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(RepositoryDocs.Read("CHANGELOG.md"), "## 1.1.0")));
 
-        string fonts = Section(readme, "## Fonts and languages");
         Assert.Contains("PdfFont.FromFile(\"fonts/BrandSans-Regular.ttf\")", fonts, StringComparison.Ordinal);
         Assert.Contains("document.FindMissingCharacters(\"Thank you 🙏\", latin); // [\"🙏\"]", fonts, StringComparison.Ordinal);
         foreach (string limit in new[] { "Right-to-left scripts other than Arabic, Hebrew, and Thaana", "Chinese, Japanese, and Korean are not supported", "Font collections (`.ttc`) and web fonts (WOFF, WOFF2) can't be loaded", "`@font-face` rules are ignored", "`unicode-bidi` is not supported" })
             Assert.Contains(limit, fonts, StringComparison.Ordinal);
 
+        Assert.Contains("register your own", RepositoryDocs.GuideBody("html-to-pdf.md"), StringComparison.Ordinal);
+        Assert.Contains("(docs/guides/fonts-and-languages.md)", readme, StringComparison.Ordinal);
+        Assert.True(nuget.IndexOf("## HTML to PDF", StringComparison.Ordinal) < nuget.IndexOf("## Fonts and languages", StringComparison.Ordinal));
+        Assert.True(nuget.IndexOf("## Changes in 1.1.0", StringComparison.Ordinal) < nuget.IndexOf("## Changes in 1.0.1", StringComparison.Ordinal));
+        Assert.Contains("- [Fonts and languages](#fonts-and-languages)", nuget, StringComparison.Ordinal);
+        Assert.Contains("- [Changes in 1.1.0](#changes-in-110)", nuget, StringComparison.Ordinal);
         foreach (string text in new[] { readme, nuget })
-        {
-            Assert.True(text.IndexOf("## HTML to PDF", StringComparison.Ordinal) < text.IndexOf("## Fonts and languages", StringComparison.Ordinal));
-            Assert.True(text.IndexOf("## Changes in 1.1.0", StringComparison.Ordinal) < text.IndexOf("## Changes in 1.0.1", StringComparison.Ordinal));
-            Assert.Contains("- [Fonts and languages](#fonts-and-languages)", text, StringComparison.Ordinal);
-            Assert.Contains("- [Changes in 1.1.0](#changes-in-110)", text, StringComparison.Ordinal);
-            Assert.Contains("register your own", Section(text, "## HTML to PDF"), StringComparison.Ordinal);
             Assert.Contains("dotnet add package UnlimitedPDF --version 1.1.0`", text, StringComparison.Ordinal);
-        }
     }
 
     [Fact]
@@ -128,7 +128,7 @@ public sealed class ReadmeFontsExampleTests : IDisposable
     {
         // WR-039 and QF-26112401: the scripts the shaper handles, the letters the standard fonts lack, and
         // right-to-left Indian languages named as not supported.
-        string fonts = Section(File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n"), "## Fonts and languages");
+        string fonts = RepositoryDocs.GuideBody("fonts-and-languages.md");
 
         Assert.Contains("- A supported script: Latin, Greek, Cyrillic, Armenian, Georgian, Devanagari, Bengali-Assamese, Gujarati, Gurmukhi, Odia, Kannada, Malayalam, Telugu, Tamil, Arabic, Hebrew, or Thaana.", fonts, StringComparison.Ordinal);
         Assert.Contains("Latin, Greek, Cyrillic, Armenian, and Georgian (accents, ligatures, kerning, each with its own script's font rules)", fonts, StringComparison.Ordinal);
@@ -159,14 +159,6 @@ public sealed class ReadmeFontsExampleTests : IDisposable
 
     private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>
         Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(source)!)!)!, relative);
-
-    private static string Section(string text, string heading)
-    {
-        int start = text.IndexOf(heading + "\n", StringComparison.Ordinal);
-        Assert.True(start >= 0, heading);
-        int end = text.IndexOf("\n## ", start + 3, StringComparison.Ordinal);
-        return text.Substring(start, (end < 0 ? text.Length : end) - start);
-    }
 
     private void Write(string path, string family, string characters, ushort weight)
     {

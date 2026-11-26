@@ -1,8 +1,8 @@
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// The "Extract and remove pages" example in README.md and nuget/README.md compiles and runs as written, and both
-/// readmes show the same section (PR-012, AC-17).
+/// The "Extract and remove pages" example in docs/guides/extract-and-remove-pages.md and nuget/README.md compiles and
+/// runs as written, and the guide and the package readme show the same section (PR-012, AC-17, QF-26112603).
 /// </summary>
 public sealed class ReadmeExtractExampleTests : IDisposable
 {
@@ -49,21 +49,18 @@ public sealed class ReadmeExtractExampleTests : IDisposable
     }
 
     [Fact]
-    public void Both_readmes_show_the_same_extract_section_after_split()
+    public void The_extract_guide_matches_the_package_readme_section_after_split()
     {
-        string readme = Section(File.ReadAllText(RepositoryFile("README.md")));
-        string nuget = Section(File.ReadAllText(RepositoryFile(Path.Combine("nuget", "README.md"))));
+        string guide = RepositoryDocs.GuideBody("extract-and-remove-pages.md");
+        string nuget = RepositoryDocs.Read(Path.Combine("nuget", "README.md"));
 
-        Assert.Equal(readme, nuget);
-        Assert.Contains("PdfOperations.Extract(report, PdfPageRange.Parse(\"10, 1-3\"), \"summary.pdf\");", readme, StringComparison.Ordinal);
-        Assert.Contains("assets/derived/readme/extract.jpg", readme, StringComparison.Ordinal);
+        Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Extract and remove pages")), RepositoryDocs.WithoutLinkTargets(guide));
+        Assert.Contains("PdfOperations.Extract(report, PdfPageRange.Parse(\"10, 1-3\"), \"summary.pdf\");", guide, StringComparison.Ordinal);
+        Assert.Contains("assets/derived/readme/extract.jpg", guide, StringComparison.Ordinal);
         Assert.True(File.Exists(RepositoryFile(Path.Combine("assets", "derived", "readme", "extract.jpg"))));
-        foreach (var file in new[] { "README.md", Path.Combine("nuget", "README.md") })
-        {
-            string text = File.ReadAllText(RepositoryFile(file));
-            Assert.Contains("- [Extract and remove pages](#extract-and-remove-pages)", text, StringComparison.Ordinal);
-            Assert.True(text.IndexOf("## Split PDFs", StringComparison.Ordinal) < text.IndexOf("## Extract and remove pages", StringComparison.Ordinal), file);
-        }
+        Assert.Contains("(docs/guides/extract-and-remove-pages.md)", RepositoryDocs.Read("README.md"), StringComparison.Ordinal);
+        Assert.Contains("- [Extract and remove pages](#extract-and-remove-pages)", nuget, StringComparison.Ordinal);
+        Assert.True(nuget.IndexOf("## Split PDFs", StringComparison.Ordinal) < nuget.IndexOf("## Extract and remove pages", StringComparison.Ordinal));
     }
 
     #endregion
@@ -72,14 +69,6 @@ public sealed class ReadmeExtractExampleTests : IDisposable
 
     private static string RepositoryFile(string relative, [System.Runtime.CompilerServices.CallerFilePath] string source = "") =>
         Path.Combine(Path.GetDirectoryName(source)!, "..", relative);
-
-    private static string Section(string readme)
-    {
-        string text = readme.Replace("\r\n", "\n", StringComparison.Ordinal);
-        int start = text.IndexOf("## Extract and remove pages", StringComparison.Ordinal);
-        int end = text.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
-        return text[start..end];
-    }
 
     #endregion
 

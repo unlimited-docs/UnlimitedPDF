@@ -511,7 +511,7 @@ public class BodyFlowTests
     [Fact]
     public void Readme_headers_footers_and_flow_sample_runs_as_written()
     {
-        // The code of README.md and nuget/README.md "Headers, footers & flow", saved to memory instead of a file (PR-012).
+        // The code of docs/guides/headers-footers-and-flow.md and nuget/README.md "Headers, footers & flow", saved to memory instead of a file (PR-012).
         var pdfDocument = new PdfDocument { MarginTop = 30, MarginBottom = 30, MarginLeft = 40, MarginRight = 40 };
 
         pdfDocument.Header.Height = 40;

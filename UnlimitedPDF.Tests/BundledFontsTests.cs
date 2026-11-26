@@ -198,7 +198,7 @@ public class BundledFontsTests
         foreach (string need in new[] { "The right to embed the font in a PDF.", "<code>IgnoreEmbeddingRestrictions</code>", "<code>PdfHtmlLoadOptions.Fonts</code>", "<code>FindMissingCharacters</code>", "Scripts: Latin, Greek, Cyrillic (Russian, Ukrainian, Bulgarian, and others), Armenian, Georgian, Devanagari" })
             Assert.Contains(need, page, StringComparison.Ordinal);
 
-        foreach (string readme in new[] { "README.md", "nuget/README.md" })
+        foreach (string readme in new[] { "docs/guides/fonts-and-languages.md", "nuget/README.md" })
         {
             string text = File.ReadAllText(RepositoryFile(readme));
             Assert.Contains("Before you start, you need:", text, StringComparison.Ordinal);
