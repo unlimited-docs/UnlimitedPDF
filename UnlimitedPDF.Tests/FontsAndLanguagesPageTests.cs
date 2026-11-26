@@ -109,11 +109,10 @@ public class FontsAndLanguagesPageTests
     }
 
     [Fact]
-    public void The_readme_demos_paragraph_names_the_languages_category()
+    public void The_guides_demos_paragraph_names_the_languages_category()
     {
-        string readme = File.ReadAllText(RepositoryFile("README.md")).Replace("\r\n", "\n", StringComparison.Ordinal);
-        int start = readme.IndexOf("## Demos\n", StringComparison.Ordinal);
-        string demos = readme.Substring(start, readme.IndexOf("\n## ", start + 3, StringComparison.Ordinal) - start);
+        // The Demos section of the guides index (QF-26112603).
+        string demos = RepositoryDocs.SectionBody(RepositoryDocs.Read(Path.Combine("docs", "guides", "README.md")), "## Demos");
 
         Assert.Contains("Languages (Fonts and languages, with text calls or HTML)", demos, StringComparison.Ordinal);
         Assert.Contains("Hindi, Bengali, Gujarati, Punjabi, Odia, Kannada, Malayalam, Telugu, Tamil, French, Polish, Czech, Turkish, Filipino, Greek, Russian, Ukrainian, Armenian, Georgian, Arabic, Persian, Urdu, Hebrew, Dhivehi, or a mix, drawn with free fonts included for the demo or fonts you upload", demos, StringComparison.Ordinal);

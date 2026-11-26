@@ -54,12 +54,11 @@ public class ContributingFilesTests
     }
 
     [Fact]
-    public void The_readme_ends_with_a_contributing_section_listed_in_its_contents()
+    public void The_readme_ends_with_a_contributing_section()
     {
         string readme = Read("README.md");
 
         Assert.Equal("Contributing", Regex.Matches(readme, "^## (.+)$", RegexOptions.Multiline).Last().Groups[1].Value);
-        Assert.Contains("- [Changes in 1.0.0](#changes-in-100)\n- [Contributing](#contributing)\n", readme, StringComparison.Ordinal);
         Assert.Contains("See [CONTRIBUTING.md](CONTRIBUTING.md) for how to open a pull request. Every contributor signs the [Contributor License Agreement](CLA.md) once, on their first pull request.", ContributingSection(readme), StringComparison.Ordinal);
     }
 

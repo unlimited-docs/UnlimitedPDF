@@ -1,10 +1,9 @@
-using System.Runtime.CompilerServices;
 
 namespace UnlimitedPDF.Tests.Html;
 
 /// <summary>
-/// The "HTML to PDF" example in README.md and nuget/README.md runs as written, and both readmes show the same section
-/// after "Split PDFs" and list HTML to PDF under "Changes in 1.0.0" (AC-25, V-24).
+/// The "HTML to PDF" example in docs/guides/html-to-pdf.md and nuget/README.md runs as written, the guide and the
+/// package readme show the same section, and HTML to PDF is listed under 1.0.0 (AC-25, V-24, QF-26112603).
 /// </summary>
 public sealed class ReadmeHtmlExampleTests : IDisposable
 {
@@ -58,43 +57,27 @@ public sealed class ReadmeHtmlExampleTests : IDisposable
     }
 
     [Fact]
-    public void Both_readmes_show_the_same_html_section_and_list_it_in_1_0_0()
+    public void The_html_guide_matches_the_package_readme_and_html_is_listed_in_1_0_0()
     {
-        string readme = Section(File.ReadAllText(RepositoryFile("README.md")));
-        string nuget = Section(File.ReadAllText(RepositoryFile(Path.Combine("nuget", "README.md"))));
-        Assert.Equal(readme, nuget);
-        Assert.Contains("PdfOperations.ConvertHtml(invoice, \"invoice.pdf\");", readme, StringComparison.Ordinal);
-        Assert.Contains("never uses the network", readme, StringComparison.Ordinal);
-        Assert.Contains("not as a browser shows it", readme, StringComparison.Ordinal);
+        string guide = RepositoryDocs.GuideBody("html-to-pdf.md");
+        string nuget = RepositoryDocs.Read(Path.Combine("nuget", "README.md"));
+
+        Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## HTML to PDF")), RepositoryDocs.WithoutLinkTargets(guide));
+        Assert.Contains("PdfOperations.ConvertHtml(invoice, \"invoice.pdf\");", guide, StringComparison.Ordinal);
+        Assert.Contains("never uses the network", guide, StringComparison.Ordinal);
+        Assert.Contains("not as a browser shows it", guide, StringComparison.Ordinal);
 
         // Every scenario whose outcome is a fallback is listed as a known limitation, with the demo that shows it (AC-30).
-        Assert.Contains("- Known limitations:", readme, StringComparison.Ordinal);
-        Assert.Contains("Common problems demo", readme, StringComparison.Ordinal);
+        Assert.Contains("- Known limitations:", guide, StringComparison.Ordinal);
+        Assert.Contains("Common problems demo", guide, StringComparison.Ordinal);
         foreach (string topic in new[] { "Flexbox and grid", "Floats and positioning", "Background images", "SVG and WebP", "Characters outside Western European", "`pre` lines don't wrap" })
-            Assert.Contains(topic, readme, StringComparison.Ordinal);
-        Assert.Contains("Common problems: HTML that often goes wrong in PDF", File.ReadAllText(RepositoryFile("README.md")), StringComparison.Ordinal);
+            Assert.Contains(topic, guide, StringComparison.Ordinal);
+        Assert.Contains("Common problems: HTML that often goes wrong in PDF", RepositoryDocs.Read(Path.Combine("docs", "guides", "README.md")), StringComparison.Ordinal);
+        Assert.Contains("(docs/guides/html-to-pdf.md)", RepositoryDocs.Read("README.md"), StringComparison.Ordinal);
 
-        foreach (var file in new[] { "README.md", Path.Combine("nuget", "README.md") })
-        {
-            string text = File.ReadAllText(RepositoryFile(file));
+        foreach (string text in new[] { RepositoryDocs.Read("CHANGELOG.md"), nuget })
             Assert.Contains("- New: HTML to PDF (`PdfHtml`", text, StringComparison.Ordinal);
-            Assert.True(text.IndexOf("## Split PDFs", StringComparison.Ordinal) < text.IndexOf("## HTML to PDF", StringComparison.Ordinal), file);
-        }
-    }
-
-    #endregion
-
-    #region Private Methods
-
-    private static string RepositoryFile(string relative, [CallerFilePath] string source = "") =>
-        Path.Combine(Path.GetDirectoryName(Path.GetDirectoryName(Path.GetDirectoryName(source)!)!)!, relative);
-
-    private static string Section(string text)
-    {
-        text = text.Replace("\r\n", "\n");
-        int start = text.IndexOf("## HTML to PDF", StringComparison.Ordinal);
-        int end = text.IndexOf("\n## ", start + 3, StringComparison.Ordinal);
-        return text.Substring(start, end - start);
+        Assert.True(nuget.IndexOf("## Split PDFs", StringComparison.Ordinal) < nuget.IndexOf("## HTML to PDF", StringComparison.Ordinal));
     }
 
     #endregion

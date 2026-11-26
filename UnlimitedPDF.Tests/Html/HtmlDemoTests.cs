@@ -53,10 +53,10 @@ public class HtmlDemoTests
     }
 
     [Fact]
-    public void The_readme_names_every_scenario_of_the_site()
+    public void The_guides_index_names_every_scenario_of_the_site()
     {
-        string readme = File.ReadAllText(Path.Combine(Fixtures.DemoAssets(), "..", "..", "README.md"));
-        string demos = readme[readme.IndexOf("## Demos", StringComparison.Ordinal)..readme.IndexOf("## Sample Code", StringComparison.Ordinal)];
+        // The Demos section of the guides index (QF-26112603).
+        string demos = RepositoryDocs.SectionBody(RepositoryDocs.Read(Path.Combine("docs", "guides", "README.md")), "## Demos");
 
         Assert.Contains($"{UnlimitedPDF.Demos.BlazorWasm.Samples.ScenarioGallery.Scenarios.Count} scenarios", demos, StringComparison.Ordinal);
         Assert.All(UnlimitedPDF.Demos.BlazorWasm.Samples.SampleCatalog.Pages,

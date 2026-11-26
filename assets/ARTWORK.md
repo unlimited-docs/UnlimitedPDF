@@ -87,7 +87,7 @@ On 2026-11-11 the copy script was run on a machine whose imaging library writes 
 
 ## Readme screenshots added 2026-11-12
 
-The eight screenshots in `README.md` and `nuget/README.md` (QF-26111208) are not generated artwork. Each shows the PDF that a readme example writes when it runs as written, as the browser's built-in PDF viewer draws it at fit to width at 1.5 device pixels per CSS pixel, captured on 2026-11-12. Each page was cropped from the viewer and laid on a light gray background with a thin border; pictures with more than one page have a short caption under each. Only the inputs the examples read from disk were supplied:
+The eight screenshots in `README.md` and `nuget/README.md` (QF-26111208; since QF-26112603 they are in the guides under `docs/guides/` instead of `README.md`) are not generated artwork. Each shows the PDF that a readme example writes when it runs as written, as the browser's built-in PDF viewer draws it at fit to width at 1.5 device pixels per CSS pixel, captured on 2026-11-12. Each page was cropped from the viewer and laid on a light gray background with a thin border; pictures with more than one page have a short caption under each. Only the inputs the examples read from disk were supplied:
 
 - Add images: `logo.png` is the demo app's `images/invoice-logo.png`, and the uploaded picture is `images/unlimitedpdf-demos-hero-800.jpg`.
 - Merge PDFs: `report.pdf` is the "Headers, footers & flow" example's output, and `invoice.pdf` is the "Create a sample invoice" example's output.
@@ -109,6 +109,10 @@ Sample and invoice show the top of their page only (30% and 56%), where all thei
 | `originals/readme/html-to-pdf.png` | 832 x 1148 | HTML to PDF (`invoice.pdf`) |
 
 The Extract and remove pages screenshot (20-extract-pages, 2026-11-18) shows the two files that section's example writes from the same `report.pdf` as the Split PDFs screenshot (the "Headers, footers & flow" example with 330 rows, 10 pages): `summary.pdf` (pages 10, 1, 2, and 3) and `cover-and-sign-off.pdf` (pages 1 and 10). It was made the way the Extract pages and Remove pages card pictures were, because a headless browser does not draw its built-in PDF viewer: each page was drawn by the library's own preview renderer and laid out like the Split PDFs screenshot (light gray background, thin page borders, a caption under each page), then captured with a headless browser at 1.5 device pixels per CSS pixel and cropped to 1672 x 456. Its copy was made by `New-DerivedImages.ps1`; the other copies the script rewrote with different bytes were left as committed.
+
+## README screenshot grid added 2026-11-26
+
+The ten pictures in the `README.md` screenshot grid (QF-26112603) are 360-pixel copies of the scenario card captures described under [Document gallery pictures added 2026-11-11](#document-gallery-pictures-added-2026-11-11), one for each capability that the README links to a guide. No new capture was made. The copy script was run on a machine whose imaging library writes the earlier copies with different bytes, so those copies were left as committed and only the ten grid copies were added.
 
 ## Derived copies
 
@@ -170,12 +174,22 @@ Copies as of 2026-11-06 (two runs produce byte-identical files; the 2026-11-04 c
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/remaining-pages-320.jpg` | `originals/gallery/remaining-pages.png` | 320 x 453 | 36,051 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/tables-320.jpg` | `originals/gallery/tables.png` | 320 x 453 | 11,592 | Scenario card |
 | `UnlimitedPDF.Demos.BlazorWasm/wwwroot/images/gallery/text-and-pages-320.jpg` | `originals/gallery/text-and-pages.png` | 320 x 453 | 6,857 | Scenario card |
-| `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/invoice.jpg` | `originals/readme/invoice.png` | 1172 x 945, JPEG quality 90 | 114,508 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/images.jpg` | `originals/readme/images.png` | 832 x 1148, JPEG quality 90 | 50,537 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/tables-across-pages.jpg` | `originals/readme/tables-across-pages.png` | 1224 x 909, JPEG quality 90 | 215,240 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/headers-footers.jpg` | `originals/readme/headers-footers.png` | 1336 x 683, JPEG quality 90 | 168,527 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/merge.jpg` | `originals/readme/merge.png` | 1448 x 569, JPEG quality 90 | 111,547 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/split.jpg` | `originals/readme/split.png` | 1672 x 456, JPEG quality 90 | 157,268 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/extract.jpg` | `originals/readme/extract.png` | 1672 x 456, JPEG quality 90 | 162,570 | README.md and nuget/README.md screenshot |
-| `assets/derived/readme/html-to-pdf.jpg` | `originals/readme/html-to-pdf.png` | 832 x 1148, JPEG quality 90 | 77,154 | README.md and nuget/README.md screenshot |
+| `assets/derived/readme/sample.jpg` | `originals/readme/sample.png` | 1172 x 540, JPEG quality 90 | 40,333 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/invoice.jpg` | `originals/readme/invoice.png` | 1172 x 945, JPEG quality 90 | 114,508 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/images.jpg` | `originals/readme/images.png` | 832 x 1148, JPEG quality 90 | 50,537 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/tables-across-pages.jpg` | `originals/readme/tables-across-pages.png` | 1224 x 909, JPEG quality 90 | 215,240 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/headers-footers.jpg` | `originals/readme/headers-footers.png` | 1336 x 683, JPEG quality 90 | 168,527 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/merge.jpg` | `originals/readme/merge.png` | 1448 x 569, JPEG quality 90 | 111,547 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/split.jpg` | `originals/readme/split.png` | 1672 x 456, JPEG quality 90 | 157,268 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/extract.jpg` | `originals/readme/extract.png` | 1672 x 456, JPEG quality 90 | 162,570 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/html-to-pdf.jpg` | `originals/readme/html-to-pdf.png` | 832 x 1148, JPEG quality 90 | 77,154 | docs/guides and nuget/README.md screenshot |
+| `assets/derived/readme/gallery/invoice.jpg` | `originals/gallery/invoice.png` | 360 x 509, JPEG quality 90 | 25,573 | README.md screenshot grid |
+| `assets/derived/readme/gallery/tables.jpg` | `originals/gallery/tables.png` | 360 x 509, JPEG quality 90 | 14,481 | README.md screenshot grid |
+| `assets/derived/readme/gallery/images.jpg` | `originals/gallery/images.png` | 360 x 509, JPEG quality 90 | 12,862 | README.md screenshot grid |
+| `assets/derived/readme/gallery/headers-and-footers.jpg` | `originals/gallery/headers-and-footers.png` | 360 x 509, JPEG quality 90 | 47,061 | README.md screenshot grid |
+| `assets/derived/readme/gallery/joined.jpg` | `originals/gallery/joined.png` | 360 x 509, JPEG quality 90 | 16,807 | README.md screenshot grid |
+| `assets/derived/readme/gallery/every-n-pages.jpg` | `originals/gallery/every-n-pages.png` | 360 x 509, JPEG quality 85 | 44,086 | README.md screenshot grid |
+| `assets/derived/readme/gallery/extracted-pages.jpg` | `originals/gallery/extracted-pages.png` | 360 x 509, JPEG quality 85 | 45,211 | README.md screenshot grid |
+| `assets/derived/readme/gallery/html-to-pdf.jpg` | `originals/gallery/html-to-pdf.png` | 360 x 509, JPEG quality 90 | 19,431 | README.md screenshot grid |
+| `assets/derived/readme/gallery/fonts-and-languages.jpg` | `originals/gallery/fonts-and-languages.png` | 360 x 509, JPEG quality 90 | 17,362 | README.md screenshot grid |
+| `assets/derived/readme/gallery/right-to-left.jpg` | `originals/gallery/right-to-left.png` | 360 x 509, JPEG quality 90 | 16,591 | README.md screenshot grid |

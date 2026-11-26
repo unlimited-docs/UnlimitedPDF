@@ -3,8 +3,8 @@ using System.IO.Compression;
 namespace UnlimitedPDF.Tests;
 
 /// <summary>
-/// The "Split PDFs" example in README.md and nuget/README.md compiles and runs as written, and both readmes show the
-/// same code (PR-012, AC-16).
+/// The "Split PDFs" example in docs/guides/split-pdfs.md and nuget/README.md compiles and runs as written, and the guide
+/// and the package readme show the same section (PR-012, AC-16, QF-26112603).
 /// </summary>
 public sealed class ReadmeSplitExampleTests : IDisposable
 {
@@ -59,36 +59,18 @@ public sealed class ReadmeSplitExampleTests : IDisposable
     }
 
     [Fact]
-    public void Both_readmes_show_the_same_split_section_and_list_split_in_1_0_0()
+    public void The_split_guide_matches_the_package_readme_and_split_is_listed_in_1_0_0()
     {
-        string readme = Section(File.ReadAllText(RepositoryFile("README.md")));
-        string nuget = Section(File.ReadAllText(RepositoryFile(Path.Combine("nuget", "README.md"))));
+        string guide = RepositoryDocs.GuideBody("split-pdfs.md");
+        string nuget = RepositoryDocs.Read(Path.Combine("nuget", "README.md"));
 
-        Assert.Equal(readme, nuget);
-        Assert.Contains("PdfOperations.Split(report, 1, \"pages\");", readme, StringComparison.Ordinal);
-        Assert.Contains("entry?.Dispose();", readme, StringComparison.Ordinal);
-        foreach (var file in new[] { "README.md", Path.Combine("nuget", "README.md") })
-        {
-            string text = File.ReadAllText(RepositoryFile(file));
+        Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Split PDFs")), RepositoryDocs.WithoutLinkTargets(guide));
+        Assert.Contains("PdfOperations.Split(report, 1, \"pages\");", guide, StringComparison.Ordinal);
+        Assert.Contains("entry?.Dispose();", guide, StringComparison.Ordinal);
+        Assert.Contains("(docs/guides/split-pdfs.md)", RepositoryDocs.Read("README.md"), StringComparison.Ordinal);
+        foreach (string text in new[] { RepositoryDocs.Read("CHANGELOG.md"), nuget })
             Assert.Contains("- New: split PDFs (`PdfOperations.Split`", text, StringComparison.Ordinal);
-            Assert.True(text.IndexOf("## Merge PDFs", StringComparison.Ordinal) < text.IndexOf("## Split PDFs", StringComparison.Ordinal), file);
-        }
-    }
-
-    #endregion
-
-    #region Private Methods
-
-    private static string RepositoryFile(string relative, [System.Runtime.CompilerServices.CallerFilePath] string source = "") =>
-        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(source)!, "..", relative));
-
-    private static string Section(string text)
-    {
-        text = text.Replace("\r\n", "\n", StringComparison.Ordinal);
-        int start = text.IndexOf("## Split PDFs", StringComparison.Ordinal);
-        int end = text.IndexOf("\n## ", start + 1, StringComparison.Ordinal);
-        Assert.True(start >= 0, "The Split PDFs section is missing.");
-        return text[start..end];
+        Assert.True(nuget.IndexOf("## Merge PDFs", StringComparison.Ordinal) < nuget.IndexOf("## Split PDFs", StringComparison.Ordinal));
     }
 
     #endregion

@@ -231,7 +231,7 @@ public class TablePaginationTests
     [Fact]
     public void Readme_tables_across_pages_sample_runs_as_written()
     {
-        // The code of README.md and nuget/README.md "Tables across pages", saved to memory instead of a file (PR-012).
+        // The code of docs/guides/tables-across-pages.md and nuget/README.md "Tables across pages", saved to memory instead of a file (PR-012).
         var pdfDocument = new PdfDocument { MarginTop = 40, MarginBottom = 50 };
         var page = pdfDocument.AddPage();
 
