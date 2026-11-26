@@ -35,6 +35,7 @@ UnlimitedPDF is an enterprise-grade, pure .NET PDF library for creating PDF docu
 - [Changes in 1.1.0](#changes-in-110)
 - [Changes in 1.0.1](#changes-in-101)
 - [Changes in 1.0.0](#changes-in-100)
+- [Contributing](#contributing)
 
 ## Install
 
@@ -611,3 +612,7 @@ document.Save("invoice-ar.pdf");
 - Table cells with `VerticalAlignment` set to `Top` or `Bottom` are now drawn that way (it had no effect before).
 - Text containing a backslash or an unbalanced parenthesis is now escaped wherever it appears (table cells, `PdfPage.AddText`, headers, footers, and the body flow), so it displays as written. Text without those characters is written exactly as before.
 - Table numbers are written the same way in every culture, so documents saved under comma-decimal cultures are valid.
+
+## Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to open a pull request. Every contributor signs the [Contributor License Agreement](CLA.md) once, on their first pull request.
