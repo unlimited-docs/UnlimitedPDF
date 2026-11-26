@@ -106,7 +106,9 @@ public sealed class ReadmeFontsExampleTests : IDisposable
         string fonts = RepositoryDocs.GuideBody("fonts-and-languages.md");
 
         Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Fonts and languages")), RepositoryDocs.WithoutLinkTargets(fonts));
-        Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Changes in 1.1.0")), RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(RepositoryDocs.Read("CHANGELOG.md"), "## 1.1.0")));
+        string changelog = RepositoryDocs.Read("CHANGELOG.md");
+        foreach (string version in new[] { "1.2.0", "1.1.0" })
+            Assert.Equal(RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(nuget, "## Changes in " + version)), RepositoryDocs.WithoutLinkTargets(RepositoryDocs.SectionBody(changelog, "## " + version)));
 
         Assert.Contains("PdfFont.FromFile(\"fonts/BrandSans-Regular.ttf\")", fonts, StringComparison.Ordinal);
         Assert.Contains("document.FindMissingCharacters(\"Thank you 🙏\", latin); // [\"🙏\"]", fonts, StringComparison.Ordinal);
@@ -116,11 +118,13 @@ public sealed class ReadmeFontsExampleTests : IDisposable
         Assert.Contains("register your own", RepositoryDocs.GuideBody("html-to-pdf.md"), StringComparison.Ordinal);
         Assert.Contains("(docs/guides/fonts-and-languages.md)", readme, StringComparison.Ordinal);
         Assert.True(nuget.IndexOf("## HTML to PDF", StringComparison.Ordinal) < nuget.IndexOf("## Fonts and languages", StringComparison.Ordinal));
+        Assert.True(nuget.IndexOf("## Changes in 1.2.0", StringComparison.Ordinal) < nuget.IndexOf("## Changes in 1.1.0", StringComparison.Ordinal));
         Assert.True(nuget.IndexOf("## Changes in 1.1.0", StringComparison.Ordinal) < nuget.IndexOf("## Changes in 1.0.1", StringComparison.Ordinal));
         Assert.Contains("- [Fonts and languages](#fonts-and-languages)", nuget, StringComparison.Ordinal);
+        Assert.Contains("- [Changes in 1.2.0](#changes-in-120)", nuget, StringComparison.Ordinal);
         Assert.Contains("- [Changes in 1.1.0](#changes-in-110)", nuget, StringComparison.Ordinal);
         foreach (string text in new[] { readme, nuget })
-            Assert.Contains("dotnet add package UnlimitedPDF --version 1.1.0`", text, StringComparison.Ordinal);
+            Assert.Contains("dotnet add package UnlimitedPDF --version 1.2.0`", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -143,14 +147,17 @@ public sealed class ReadmeFontsExampleTests : IDisposable
     }
 
     [Fact]
-    public void The_package_version_and_release_notes_name_1_1_0()
+    public void The_package_version_and_release_notes_name_1_2_0()
     {
         string project = File.ReadAllText(RepositoryFile(Path.Combine("UnlimitedPDF", "UnlimitedPDF.csproj")));
 
-        Assert.Equal("1.1.0", Regex.Match(project, "<Version>([^<]+)</Version>").Groups[1].Value);
-        Assert.Equal("1.1.0", Regex.Match(project, "<PackageVersion>([^<]+)</PackageVersion>").Groups[1].Value);
-        Assert.StartsWith("1.1.0:", Regex.Match(project, "<PackageReleaseNotes>([^<]+)</PackageReleaseNotes>").Groups[1].Value, StringComparison.Ordinal);
-        Assert.Contains("#changes-in-110", project, StringComparison.Ordinal);
+        Assert.Equal("1.2.0", Regex.Match(project, "<Version>([^<]+)</Version>").Groups[1].Value);
+        Assert.Equal("1.2.0", Regex.Match(project, "<PackageVersion>([^<]+)</PackageVersion>").Groups[1].Value);
+        Assert.StartsWith("1.2.0:", Regex.Match(project, "<PackageReleaseNotes>([^<]+)</PackageReleaseNotes>").Groups[1].Value, StringComparison.Ordinal);
+        // The notes link the changelog: the README keeps only the latest release's highlights (QF-26112603, QF-26112605).
+        foreach (string anchor in new[] { "CHANGELOG.md#120", "CHANGELOG.md#110", "CHANGELOG.md#101", "CHANGELOG.md#100" })
+            Assert.Contains(anchor, project, StringComparison.Ordinal);
+        Assert.DoesNotContain("UnlimitedPDF#changes-in-", project, StringComparison.Ordinal);
     }
 
     #endregion
