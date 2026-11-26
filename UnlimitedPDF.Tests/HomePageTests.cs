@@ -371,9 +371,8 @@ public class HomePageTests
             var text = File.ReadAllText(RepositoryFile("UnlimitedPDF.Demos.BlazorWasm/" + file));
             foreach (Match link in Regex.Matches(text, "<a [^>]*target=\"_blank\"[^>]*>(?<body>.*?)</a>", RegexOptions.Singleline))
             {
-                bool footer = link.Value.Contains("unlimited-docs\"", StringComparison.Ordinal) || link.Value.Contains("contributors", StringComparison.Ordinal);
                 bool version = link.Value.Contains("version-link", StringComparison.Ordinal);
-                if (!footer && !version) Assert.Contains("opens in a new tab", link.Groups["body"].Value, StringComparison.Ordinal);
+                if (!version) Assert.Contains("opens in a new tab", link.Groups["body"].Value, StringComparison.Ordinal);
             }
         }
 
