@@ -363,7 +363,7 @@ public class HomePageTests
         Assert.Contains("<h3 class=\"scenario-title\">", card, StringComparison.Ordinal);
         string license = Regex.Match(project, "<PackageLicenseExpression>([^<]+)</PackageLicenseExpression>").Groups[1].Value;
         Assert.Contains($"(\"Free and open\", \"{license} licensed", home, StringComparison.Ordinal);
-        Assert.Contains($"<Icon Name=\"check\" Size=\"16\" /> {license} license</li>", home, StringComparison.Ordinal);
+        Assert.Contains($"<Icon Name=\"check\" Size=\"16\" /> Free and open source ({license})</li>", home, StringComparison.Ordinal);
         Assert.Contains("net6.0", project, StringComparison.Ordinal);
 
         foreach (var file in new[] { "Pages/Home.razor", "Pages/NotFound.razor", "Layout/MainLayout.razor" })
