@@ -47,7 +47,10 @@ internal static class StandardText
     /// </summary>
     /// <param name="element">One text element.</param>
     /// <returns>True when the element would become '?'.</returns>
-    public static bool IsMissing(string element)
+    public static bool IsMissing(string element) => IsMissing(element.AsSpan());
+
+    /// <inheritdoc cref="IsMissing(string)"/>
+    public static bool IsMissing(ReadOnlySpan<char> element)
     {
         for (int i = 0; i < element.Length; i++)
         {

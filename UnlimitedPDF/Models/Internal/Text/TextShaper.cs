@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 using UnlimitedPDF.Models.Internal.Text.Layout;
 
@@ -5,9 +8,9 @@ namespace UnlimitedPDF.Models.Internal.Text;
 
 /// <summary>
 /// One glyph of shaped text: its ID, the text cluster it stands for (index of the cluster's first character), its
-/// position relative to the run's start, and its advance, all in font units.
+/// position relative to the run's start, and its advance, all in font units. A value, so a run's glyphs are one array.
 /// </summary>
-internal sealed record ShapedGlyph(int Glyph, int Cluster, int X, int Y, int Advance);
+internal readonly record struct ShapedGlyph(int Glyph, int Cluster, int X, int Y, int Advance);
 
 /// <summary>
 /// Shaped text in one font: positioned glyphs and the total advance, in font units.
@@ -67,6 +70,11 @@ internal static class TextShaper
         new[] { "ccmp", "locl" },
         new[] { "rlig", "liga", "clig", "calt" }
     };
+
+    // Each font's lookups per table, script list, and stage list, merged in the order the stages apply them: built
+    // once and shared by every document and thread that draws with the font. The keys are the shapers' fixed script
+    // and stage lists, so a font holds a few plans at most.
+    private static readonly ConditionalWeakTable<PdfFont, ConcurrentDictionary<StagePlanKey, (int Lookup, ulong Mask)[][]>> StagePlans = new();
 
     #endregion
 
@@ -156,63 +164,94 @@ internal static class TextShaper
     public static ShapedRun Finish(PdfFont font, List<ShapingGlyph> buffer, IReadOnlyList<string> scriptTags, IReadOnlyList<string> positioningFeatures, bool rightToLeft = false)
     {
         foreach (var glyph in buffer) glyph.XAdvance = font.Instance.Advance(glyph.Glyph);
-        if (font.Layout.Gpos is { } gpos) RunStages(font, gpos, buffer, scriptTags, new[] { positioningFeatures.ToArray() }, rightToLeft);
+        if (font.Layout.Gpos is { } gpos) RunStages(font, gpos, buffer, scriptTags, new[] { positioningFeatures as string[] ?? positioningFeatures.ToArray() }, rightToLeft);
 
         int count = buffer.Count;
-        var x = new int[count];
-        var y = new int[count];
-        var advance = new int[count];
-        var chainY = ChainOffsets(buffer);
-        bool Attached(int i) => buffer[i].AttachTo >= 0 && buffer[i].AttachTo < i;
+        // Working positions come from the shared pool; only the shaped glyphs stay allocated.
+        int[] x = ArrayPool<int>.Shared.Rent(count);
+        int[] y = ArrayPool<int>.Shared.Rent(count);
+        int[] chainY = ArrayPool<int>.Shared.Rent(count);
+        try
+        {
+            ChainOffsets(buffer, chainY);
+            bool Attached(int i) => buffer[i].AttachTo >= 0 && buffer[i].AttachTo < i;
 
-        // Glyphs that are not attached marks take the pen in drawing order.
-        int pen = 0;
-        for (int k = 0; k < count; k++)
-        {
-            int i = rightToLeft ? count - 1 - k : k;
-            if (Attached(i)) continue;
-            var glyph = buffer[i];
-            x[i] = pen + glyph.XOffset;
-            y[i] = chainY[i];
-            advance[i] = glyph.XAdvance;
-            pen += glyph.XAdvance;
-        }
-        // Attached marks sit at their target's anchor; targets come earlier in logical order, so they are placed first.
-        for (int i = 0; i < count; i++)
-        {
-            if (!Attached(i)) continue;
-            var glyph = buffer[i];
-            int target = glyph.AttachTo;
-            x[i] = x[target] + glyph.AttachDx + glyph.XOffset;
-            y[i] = y[target] + glyph.AttachDy + glyph.YOffset;
-        }
+            // Glyphs that are not attached marks take the pen in drawing order.
+            int pen = 0;
+            for (int k = 0; k < count; k++)
+            {
+                int i = rightToLeft ? count - 1 - k : k;
+                if (Attached(i)) continue;
+                var glyph = buffer[i];
+                x[i] = pen + glyph.XOffset;
+                y[i] = chainY[i];
+                pen += glyph.XAdvance;
+            }
+            // Attached marks sit at their target's anchor; targets come earlier in logical order, so they are placed
+            // first.
+            for (int i = 0; i < count; i++)
+            {
+                if (!Attached(i)) continue;
+                var glyph = buffer[i];
+                int target = glyph.AttachTo;
+                x[i] = x[target] + glyph.AttachDx + glyph.XOffset;
+                y[i] = y[target] + glyph.AttachDy + glyph.YOffset;
+            }
 
-        var shaped = new ShapedGlyph[count];
-        for (int k = 0; k < count; k++)
-        {
-            int i = rightToLeft ? count - 1 - k : k;
-            shaped[k] = new ShapedGlyph(buffer[i].Glyph, buffer[i].Cluster, x[i], y[i], advance[i]);
+            // An attached mark takes no advance.
+            var shaped = new ShapedGlyph[count];
+            for (int k = 0; k < count; k++)
+            {
+                int i = rightToLeft ? count - 1 - k : k;
+                var glyph = buffer[i];
+                shaped[k] = new ShapedGlyph(glyph.Glyph, glyph.Cluster, x[i], y[i], Attached(i) ? 0 : glyph.XAdvance);
+            }
+            return new ShapedRun(shaped, pen);
         }
-        return new ShapedRun(shaped, pen);
+        finally
+        {
+            ArrayPool<int>.Shared.Return(x);
+            ArrayPool<int>.Shared.Return(y);
+            ArrayPool<int>.Shared.Return(chainY);
+        }
     }
 
     #endregion
 
     #region Private Methods
 
-    // The vertical offset of each glyph: its own, or for a glyph chained by cursive attachment its chain offset plus
-    // its parent's (parents resolved first; a chain longer than the run is cut, so a malformed font cannot loop).
-    private static int[] ChainOffsets(List<ShapingGlyph> buffer)
+    // The vertical offset of each glyph, into result: its own, or for a glyph chained by cursive attachment its chain
+    // offset plus its parent's (parents resolved first; a chain longer than the run is cut, so a malformed font cannot
+    // loop). A glyph in no chain, as in most text, is resolved without the path walk.
+    private static void ChainOffsets(List<ShapingGlyph> buffer, int[] result)
     {
         int count = buffer.Count;
-        var result = new int[count];
-        var state = new byte[count]; // 0 unresolved, 1 resolving, 2 resolved
-        for (int i = 0; i < count; i++) Resolve(i);
-        return result;
+        byte[] state = ArrayPool<byte>.Shared.Rent(count); // 0 unresolved, 1 resolving, 2 resolved
+        Array.Clear(state, 0, count);
+        List<int>? path = null;
+        try
+        {
+            for (int i = 0; i < count; i++)
+            {
+                if (state[i] != 0) continue;
+                if (buffer[i].CursiveTo < 0)
+                {
+                    result[i] = buffer[i].YOffset;
+                    state[i] = 2;
+                    continue;
+                }
+                Resolve(i);
+            }
+        }
+        finally
+        {
+            ArrayPool<byte>.Shared.Return(state);
+        }
 
         void Resolve(int start)
         {
-            var path = new List<int>();
+            path ??= new List<int>();
+            path.Clear();
             int at = start;
             while (at >= 0 && at < count && state[at] == 0 && path.Count <= count)
             {
@@ -234,21 +273,39 @@ internal static class TextShaper
 
     private static void RunStages(PdfFont font, LayoutTable table, List<ShapingGlyph> buffer, IReadOnlyList<string> scriptTags, IReadOnlyList<string[]> stages, bool rightToLeft = false)
     {
+        var plan = StagePlan(font, table, scriptTags, stages);
+        var engine = new LayoutEngine(table, font.Layout.Gdef, buffer, font.Font.GlyphCount, rightToLeft);
+        foreach (var stage in plan)
+        {
+            foreach (var (lookup, mask) in stage) engine.Apply(lookup, mask);
+        }
+    }
+
+    // The lookups each stage applies, in lookup-list order, with the mask bits of the stage's features that use them
+    // (bit i for the i-th feature counted across all stages). Built once per font, table, script list, and stage list.
+    private static (int Lookup, ulong Mask)[][] StagePlan(PdfFont font, LayoutTable table, IReadOnlyList<string> scriptTags, IReadOnlyList<string[]> stages)
+    {
+        var plans = StagePlans.GetValue(font, _ => new ConcurrentDictionary<StagePlanKey, (int, ulong)[][]>());
+        if (plans.TryGetValue(new StagePlanKey(table, scriptTags, stages), out var cached)) return cached;
+
         var allFeatures = stages.SelectMany(s => s).Distinct(StringComparer.Ordinal).ToList();
         var lookups = table.FeatureLookups(scriptTags, allFeatures, font.Instance.Coordinates, out _);
-        var engine = new LayoutEngine(table, font.Layout.Gdef, buffer, font.Font.GlyphCount, rightToLeft);
+        var plan = new (int Lookup, ulong Mask)[stages.Count][];
         int bit = 0;
-        foreach (var stage in stages)
+        for (int s = 0; s < stages.Count; s++)
         {
             var stageLookups = new SortedDictionary<int, ulong>();
-            foreach (var feature in stage)
+            foreach (var feature in stages[s])
             {
                 ulong mask = FeatureBit(bit++);
                 if (!lookups.TryGetValue(feature, out var list)) continue;
                 foreach (int lookup in list) stageLookups[lookup] = stageLookups.GetValueOrDefault(lookup) | mask;
             }
-            foreach (var (lookup, mask) in stageLookups) engine.Apply(lookup, mask);
+            plan[s] = stageLookups.Select(p => (p.Key, p.Value)).ToArray();
         }
+        // The stored key owns copies, so a caller's lists never change a cached plan (equal plans may race; either is kept).
+        plans.TryAdd(new StagePlanKey(table, scriptTags.ToArray(), stages.Select(stage => stage.ToArray()).ToArray()), plan);
+        return plan;
     }
 
     /// <summary>
@@ -257,6 +314,53 @@ internal static class TextShaper
     public static ulong FeatureBit(int index) => index < 64 ? 1UL << index : 0;
 
     #endregion
+
+    #endregion
+
+    #region Nested Types
+
+    // A stage plan's key: the table, and the script tags and stage features by value (ordinal), so equal lists from
+    // any caller share one plan.
+    private readonly struct StagePlanKey : IEquatable<StagePlanKey>
+    {
+        private readonly LayoutTable _table;
+        private readonly IReadOnlyList<string> _scriptTags;
+        private readonly IReadOnlyList<string[]> _stages;
+
+        public StagePlanKey(LayoutTable table, IReadOnlyList<string> scriptTags, IReadOnlyList<string[]> stages)
+        {
+            _table = table;
+            _scriptTags = scriptTags;
+            _stages = stages;
+        }
+
+        public bool Equals(StagePlanKey other)
+        {
+            if (!ReferenceEquals(_table, other._table) || _scriptTags.Count != other._scriptTags.Count || _stages.Count != other._stages.Count) return false;
+            for (int i = 0; i < _scriptTags.Count; i++)
+                if (!string.Equals(_scriptTags[i], other._scriptTags[i], StringComparison.Ordinal)) return false;
+            for (int s = 0; s < _stages.Count; s++)
+                if (!_stages[s].AsSpan().SequenceEqual(other._stages[s])) return false;
+            return true;
+        }
+
+        public override bool Equals(object? obj) => obj is StagePlanKey other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            var hash = new HashCode();
+            // Index loops: enumerating the lists through their interfaces would allocate on every lookup.
+            hash.Add(RuntimeHelpers.GetHashCode(_table));
+            for (int i = 0; i < _scriptTags.Count; i++) hash.Add(_scriptTags[i], StringComparer.Ordinal);
+            for (int s = 0; s < _stages.Count; s++)
+            {
+                var stage = _stages[s];
+                hash.Add(stage.Length);
+                for (int i = 0; i < stage.Length; i++) hash.Add(stage[i], StringComparer.Ordinal);
+            }
+            return hash.ToHashCode();
+        }
+    }
 
     #endregion
 }

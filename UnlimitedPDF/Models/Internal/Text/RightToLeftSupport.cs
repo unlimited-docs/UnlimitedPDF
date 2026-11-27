@@ -33,16 +33,8 @@ internal static class RightToLeftSupport
     /// Returns the text elements of <paramref name="text"/> that hold a right-to-left letter the library does not shape,
     /// each once, in order.
     /// </summary>
-    public static IEnumerable<string> UnshapedElements(string text)
-    {
-        var seen = new HashSet<string>(StringComparer.Ordinal);
-        var elements = StringInfo.GetTextElementEnumerator(text);
-        while (elements.MoveNext())
-        {
-            string element = elements.GetTextElement();
-            if (HasUnshaped(element) && seen.Add(element)) yield return element;
-        }
-    }
+    public static IEnumerable<string> UnshapedElements(string text) =>
+        HasUnshaped(text) ? EachUnshapedElement(text) : Array.Empty<string>();
 
     /// <summary>
     /// Returns whether <paramref name="text"/> holds a right-to-left letter the library does not shape.
@@ -55,6 +47,22 @@ internal static class RightToLeftSupport
             if (codePoint >= 0x0590 && IsUnshaped(codePoint)) return true;
         }
         return false;
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    // Walks the text elements only for text that has such a letter; most text has none.
+    private static IEnumerable<string> EachUnshapedElement(string text)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var elements = StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            string element = elements.GetTextElement();
+            if (HasUnshaped(element) && seen.Add(element)) yield return element;
+        }
     }
 
     #endregion

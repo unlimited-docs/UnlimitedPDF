@@ -55,6 +55,8 @@ internal static class TextPipeline
     // One string per code point below U+0800, filled as glyphs need them (equal strings, so a race is harmless).
     private static readonly string?[] SharedTexts = new string?[0x0800];
 
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, string[]> ScriptTagLists = new(StringComparer.Ordinal);
+
     #endregion
 
     #region Methods
@@ -96,29 +98,30 @@ internal static class TextPipeline
 
     private static LaidOutText LayoutLeftToRight(string text, IReadOnlyList<PdfFont?> candidates, double fontSize, Func<string, double> standardWidth)
     {
-        // Split into text elements, choose each one's font, and group runs by font and script.
-        var runs = new List<(PdfFont? Font, string Script, StringBuilder Text)>();
-        var elements = StringInfo.GetTextElementEnumerator(text);
-        while (elements.MoveNext())
+        // Split into text elements, choose each one's font, and group runs by font and script. Every element joins a
+        // run in text order, so a run is one range of the text.
+        var runs = new List<(PdfFont? Font, string Script, int Start, int Length)>();
+        for (int start = 0, length; start < text.Length; start += length)
         {
-            string element = elements.GetTextElement();
+            length = StringInfo.GetNextTextElementLength(text, start);
+            var element = text.AsSpan(start, length);
             var chosen = Choose(element, candidates);
             string? script = FirstScript(element);
             if (runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) && (script is null || runs[^1].Script == script || runs[^1].Script == string.Empty))
             {
-                runs[^1].Text.Append(element);
-                if (script is not null && runs[^1].Script == string.Empty) runs[^1] = (runs[^1].Font, script, runs[^1].Text);
+                var run = runs[^1];
+                runs[^1] = (run.Font, script is not null && run.Script == string.Empty ? script : run.Script, run.Start, run.Length + length);
             }
             else
             {
-                runs.Add((chosen, script ?? (runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) ? runs[^1].Script : string.Empty), new StringBuilder(element)));
+                runs.Add((chosen, script ?? (runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) ? runs[^1].Script : string.Empty), start, length));
             }
         }
 
-        var segments = new List<TextSegment>();
-        foreach (var (runFont, script, builder) in runs)
+        var segments = new List<TextSegment>(runs.Count);
+        foreach (var (runFont, script, runStart, runLength) in runs)
         {
-            string runText = builder.ToString();
+            string runText = text.Substring(runStart, runLength);
             if (runFont is null)
             {
                 segments.Add(new StandardSegment(runText, standardWidth(runText)));
@@ -261,16 +264,18 @@ internal static class TextPipeline
     #region Private Methods
 
     // The code point at text[i], and how many chars it takes (a lone surrogate is a code point of its own).
-    private static int CodePointAt(string text, int i, out int length)
+    private static int CodePointAt(string text, int i, out int length) => CodePointAt(text.AsSpan(), i, out length);
+
+    private static int CodePointAt(ReadOnlySpan<char> text, int i, out int length)
     {
-        bool pair = char.IsSurrogatePair(text, i);
+        bool pair = i + 1 < text.Length && char.IsSurrogatePair(text[i], text[i + 1]);
         length = pair ? 2 : 1;
-        return pair ? char.ConvertToUtf32(text, i) : text[i];
+        return pair ? char.ConvertToUtf32(text[i], text[i + 1]) : text[i];
     }
 
     // The first candidate that takes a text element: a caller font that has every character of it, or the built-in
     // font (null) when it draws no character of it as '?'; null when none does, so the built-in font draws it.
-    private static PdfFont? Choose(string element, IReadOnlyList<PdfFont?> candidates)
+    private static PdfFont? Choose(ReadOnlySpan<char> element, IReadOnlyList<PdfFont?> candidates)
     {
         for (int c = 0; c < candidates.Count; c++)
         {
@@ -280,7 +285,7 @@ internal static class TextPipeline
         return null;
     }
 
-    private static bool DrawsAll(PdfFont font, string element)
+    private static bool DrawsAll(PdfFont font, ReadOnlySpan<char> element)
     {
         for (int i = 0, length; i < element.Length; i += length)
             if (!font.Draws(CodePointAt(element, i, out length))) return false;
@@ -295,7 +300,7 @@ internal static class TextPipeline
     }
 
     // The script of a text element: that of its first character that has one.
-    private static string? FirstScript(string element)
+    private static string? FirstScript(ReadOnlySpan<char> element)
     {
         for (int i = 0, length; i < element.Length; i += length)
             if (ScriptOf(CodePointAt(element, i, out length)) is { } script) return script;
@@ -333,11 +338,13 @@ internal static class TextPipeline
 
     // Greek, Cyrillic, Armenian, and Georgian take their own script's features first (QF-26112401). Latin comes last,
     // after the defaults, for fonts that list their features under Latin only, as these scripts used before.
-    internal static string[] ScriptTags(string script) => IndicScript.For(script) is { } indic
+    // One list per script, built on first use: the scripts are the fixed set ScriptOf returns, so the cache stays small.
+    // Callers only read the lists.
+    internal static string[] ScriptTags(string script) => ScriptTagLists.GetOrAdd(script, static s => IndicScript.For(s) is { } indic
         ? new[] { indic.Version2Tag, indic.Version1Tag, "DFLT", "dflt" }
-        : script is "grek" or "cyrl" or "armn" or "geor" or "hebr" or "thaa" or "arab"
-            ? new[] { script, "DFLT", "dflt", "latn" }
-            : new[] { "latn", "DFLT", "dflt" };
+        : s is "grek" or "cyrl" or "armn" or "geor" or "hebr" or "thaa" or "arab"
+            ? new[] { s, "DFLT", "dflt", "latn" }
+            : new[] { "latn", "DFLT", "dflt" });
 
     // The text of each glyph for ToUnicode, and the spans that need ActualText. Glyphs are taken in groups: the
     // smallest runs of glyphs that hold every glyph of their clusters (a reordered syllable is one group). A glyph
@@ -355,10 +362,12 @@ internal static class TextPipeline
         Array.Sort(clusters);
         int distinct = 0;
         for (int i = 0; i < clusters.Length; i++) if (distinct == 0 || clusters[i] != clusters[distinct - 1]) clusters[distinct++] = clusters[i];
-        var last = new Dictionary<int, int>();
+        // The last glyph of each cluster, by cluster (clusters are character indexes, so an array of the largest + 1).
+        var last = new int[distinct == 0 ? 0 : clusters[distinct - 1] + 1];
         for (int i = 0; i < glyphs.Count; i++) last[glyphs[i].Cluster] = i;
 
-        var texts = new string[glyphs.Count];
+        // Each group's meanings are worked out in place in the result.
+        var texts = new string?[glyphs.Count];
         int at = 0;
         while (at < glyphs.Count)
         {
@@ -374,7 +383,7 @@ internal static class TextPipeline
             int groupLength = Math.Max(0, next - first);
             var group = text.AsSpan(first, groupLength);
 
-            var meanings = new string?[end - at];
+            var meanings = texts.AsSpan(at, end - at);
             for (int j = at; j < end; j++)
             {
                 int codePoint = font.Font.CharacterMap.CodePointFor(glyphs[j].Glyph);
@@ -398,14 +407,14 @@ internal static class TextPipeline
                 for (int k = 0; k < meanings.Length; k++) meanings[k] ??= formed;
                 spans.Add(new ActualTextSpan(at, end, groupText));
             }
-            for (int k = 0; k < meanings.Length; k++) texts[at + k] = meanings[k]!;
             at = end;
         }
-        return texts;
+        // Every group either reads back (each glyph has its meaning) or gave its formed text to the rest.
+        return texts!;
     }
 
     // Whether a group is drawn unchanged: one glyph per character of its text, each meaning that character, in order.
-    private static bool ReadsBack(ReadOnlySpan<char> group, string?[] meanings)
+    private static bool ReadsBack(ReadOnlySpan<char> group, ReadOnlySpan<string?> meanings)
     {
         int k = 0;
         for (int i = 0; i < group.Length; k++)

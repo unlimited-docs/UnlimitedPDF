@@ -38,6 +38,10 @@ internal sealed class LayoutEngine
     private readonly int _maxLength;
     private readonly int _glyphCount;
     private readonly bool _rightToLeft;
+
+    // The glyph positions of the ligature being matched. Ligature matching calls no other lookup, so one list serves
+    // every attempt in the run.
+    private readonly List<int> _ligatureMatch = new();
     private long _budget;
     private long _steps;
     private int _nextLigatureId = 1;
@@ -263,7 +267,9 @@ internal sealed class LayoutEngine
             if (components == 0) continue;
             data.Require(ligature + 4, 2L * (components - 1), "a ligature");
 
-            var matched = new List<int> { position };
+            var matched = _ligatureMatch;
+            matched.Clear();
+            matched.Add(position);
             int at = position;
             bool ok = true;
             for (int c = 1; c < components && ok; c++)
