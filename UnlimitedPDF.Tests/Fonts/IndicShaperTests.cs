@@ -188,6 +188,30 @@ public class IndicShaperTests
     }
 
     [Fact]
+    public void Threads_that_share_a_new_font_shape_as_one_thread_does()
+    {
+        // QF-26112701: a font keeps its shaping plans and lookup caches, filled on first use; threads that start on a
+        // new font together must each get what one thread gets.
+        static Font Build()
+        {
+            var f = new Font(Devanagari);
+            int reph = f.AddGlyph(), raBelow = f.AddGlyph(), kssa = f.AddGlyph();
+            f.Gsub.AddFeature("akhn", f.Gsub.AddLookup(4, 0, Ligature(f[Ka], new[] { f[Halant], f[Ssa] }, kssa)));
+            f.Gsub.AddFeature("rphf", f.Gsub.AddLookup(4, 0, Ligature(f[Ra], new[] { f[Halant] }, reph)));
+            f.Gsub.AddFeature("blwf", f.Gsub.AddLookup(4, 0, Ligature(f[Halant], new[] { f[Ra] }, raBelow)));
+            return f;
+        }
+        string text = "" + Ra + Halant + Ka + I + Ka + Halant + Ra + I + Ka + Halant + Ssa + I + Sa + Ii + Anusvara;
+        var expected = Glyphs(Build().Shape(text));
+        var shared = Build();
+        var results = new int[64][];
+
+        Parallel.For(0, results.Length, new ParallelOptions { MaxDegreeOfParallelism = 16 }, i => results[i] = Glyphs(shared.Shape(text)));
+
+        Assert.All(results, glyphs => Assert.Equal(expected, glyphs));
+    }
+
+    [Fact]
     public void A_below_base_form_makes_the_first_consonant_the_base_in_version_2_order()
     {
         var f = new Font(Devanagari);
@@ -634,15 +658,21 @@ public class IndicShaperTests
 
         public ShapedRun Shape(string text)
         {
-            if (_font is null)
+            // The font is built once, so threads that shape at the same time share one PdfFont.
+            PdfFont font;
+            lock (_builder)
             {
-                _builder.AddTable("GSUB", Gsub.Build(_script));
-                _builder.AddTable("GPOS", Gpos.Build(_script));
-                if (Gdef is not null) _builder.AddTable("GDEF", Gdef);
-                _font = PdfFont.FromBytes(_builder.Build());
+                if (_font is null)
+                {
+                    _builder.AddTable("GSUB", Gsub.Build(_script));
+                    _builder.AddTable("GPOS", Gpos.Build(_script));
+                    if (Gdef is not null) _builder.AddTable("GDEF", Gdef);
+                    _font = PdfFont.FromBytes(_builder.Build());
+                }
+                font = _font;
             }
             string script = IndicScript.All.First(s => s.Version2Tag == _script || s.Version1Tag == _script).Tag;
-            return IndicShaper.Shape(_font, text, script);
+            return IndicShaper.Shape(font, text, script);
         }
     }
 

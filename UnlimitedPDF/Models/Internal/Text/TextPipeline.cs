@@ -50,6 +50,13 @@ internal sealed record LaidOutText(IReadOnlyList<TextSegment> Segments, double W
 /// </summary>
 internal static class TextPipeline
 {
+    #region Fields and Constants
+
+    // One string per code point below U+0800, filled as glyphs need them (equal strings, so a race is harmless).
+    private static readonly string?[] SharedTexts = new string?[0x0800];
+
+    #endregion
+
     #region Methods
 
     #region Public Methods
@@ -95,9 +102,8 @@ internal static class TextPipeline
         while (elements.MoveNext())
         {
             string element = elements.GetTextElement();
-            var codePoints = CodePoints(element).ToList();
-            var chosen = candidates.FirstOrDefault(f => f is null ? !StandardText.IsMissing(element) : codePoints.All(f.Draws));
-            string? script = codePoints.Select(ScriptOf).FirstOrDefault(s => s is not null);
+            var chosen = Choose(element, candidates);
+            string? script = FirstScript(element);
             if (runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) && (script is null || runs[^1].Script == script || runs[^1].Script == string.Empty))
             {
                 runs[^1].Text.Append(element);
@@ -138,11 +144,10 @@ internal static class TextPipeline
         while (elements.MoveNext())
         {
             string element = elements.GetTextElement();
-            var codePoints = CodePoints(element).ToList();
-            if (codePoints.All(BidiParagraph.IsFormatCharacter)) continue;
+            if (AllFormatCharacters(element)) continue;
             byte level = levels[paragraph.IndexOf(elements.ElementIndex)];
-            var chosen = candidates.FirstOrDefault(f => f is null ? !StandardText.IsMissing(element) : codePoints.All(f.Draws));
-            string? script = codePoints.Select(ScriptOf).FirstOrDefault(s => s is not null);
+            var chosen = Choose(element, candidates);
+            string? script = FirstScript(element);
             bool sameRun = runs.Count > 0 && ReferenceEquals(runs[^1].Font, chosen) && runs[^1].Level == level;
             if (sameRun && (script is null || runs[^1].Script == script || runs[^1].Script == string.Empty))
             {
@@ -255,10 +260,46 @@ internal static class TextPipeline
 
     #region Private Methods
 
-    private static IEnumerable<int> CodePoints(string text)
+    // The code point at text[i], and how many chars it takes (a lone surrogate is a code point of its own).
+    private static int CodePointAt(string text, int i, out int length)
     {
-        for (int i = 0; i < text.Length; i += char.IsSurrogatePair(text, i) ? 2 : 1)
-            yield return char.IsSurrogatePair(text, i) ? char.ConvertToUtf32(text, i) : text[i];
+        bool pair = char.IsSurrogatePair(text, i);
+        length = pair ? 2 : 1;
+        return pair ? char.ConvertToUtf32(text, i) : text[i];
+    }
+
+    // The first candidate that takes a text element: a caller font that has every character of it, or the built-in
+    // font (null) when it draws no character of it as '?'; null when none does, so the built-in font draws it.
+    private static PdfFont? Choose(string element, IReadOnlyList<PdfFont?> candidates)
+    {
+        for (int c = 0; c < candidates.Count; c++)
+        {
+            var font = candidates[c];
+            if (font is null ? !StandardText.IsMissing(element) : DrawsAll(font, element)) return font;
+        }
+        return null;
+    }
+
+    private static bool DrawsAll(PdfFont font, string element)
+    {
+        for (int i = 0, length; i < element.Length; i += length)
+            if (!font.Draws(CodePointAt(element, i, out length))) return false;
+        return true;
+    }
+
+    private static bool AllFormatCharacters(string element)
+    {
+        for (int i = 0, length; i < element.Length; i += length)
+            if (!BidiParagraph.IsFormatCharacter(CodePointAt(element, i, out length))) return false;
+        return true;
+    }
+
+    // The script of a text element: that of its first character that has one.
+    private static string? FirstScript(string element)
+    {
+        for (int i = 0, length; i < element.Length; i += length)
+            if (ScriptOf(CodePointAt(element, i, out length)) is { } script) return script;
+        return null;
     }
 
     // The script of a character for run splitting and shaping; null for characters every script shares (spaces,
@@ -308,7 +349,12 @@ internal static class TextPipeline
     private static string[] GlyphTexts(PdfFont font, ShapedRun run, string text, List<ActualTextSpan> spans)
     {
         var glyphs = run.Glyphs;
-        var starts = glyphs.Select(g => g.Cluster).Distinct().OrderBy(c => c).ToList();
+        // The run's distinct clusters in order.
+        var clusters = new int[glyphs.Count];
+        for (int i = 0; i < glyphs.Count; i++) clusters[i] = glyphs[i].Cluster;
+        Array.Sort(clusters);
+        int distinct = 0;
+        for (int i = 0; i < clusters.Length; i++) if (distinct == 0 || clusters[i] != clusters[distinct - 1]) clusters[distinct++] = clusters[i];
         var last = new Dictionary<int, int>();
         for (int i = 0; i < glyphs.Count; i++) last[glyphs[i].Cluster] = i;
 
@@ -321,22 +367,24 @@ internal static class TextPipeline
 
             int first = int.MaxValue, final = int.MinValue;
             for (int j = at; j < end; j++) (first, final) = (Math.Min(first, glyphs[j].Cluster), Math.Max(final, glyphs[j].Cluster));
-            // final is a cluster of the run, so it is in starts; the next start ends the group's text (linear overall, A06).
-            int index = starts.BinarySearch(final);
-            int next = index + 1 < starts.Count ? starts[index + 1] : text.Length;
-            string groupText = text.Substring(first, Math.Max(0, next - first));
-            var characters = Characters(groupText);
+            // final is a cluster of the run, so it is a distinct cluster; the next one ends the group's text (linear
+            // overall, A06).
+            int index = Array.BinarySearch(clusters, 0, distinct, final);
+            int next = index + 1 < distinct ? clusters[index + 1] : text.Length;
+            int groupLength = Math.Max(0, next - first);
+            var group = text.AsSpan(first, groupLength);
 
             var meanings = new string?[end - at];
             for (int j = at; j < end; j++)
             {
                 int codePoint = font.Font.CharacterMap.CodePointFor(glyphs[j].Glyph);
-                meanings[j - at] = codePoint < 0 ? null : char.ConvertFromUtf32(codePoint);
+                meanings[j - at] = codePoint < 0 ? null : CodePointText(codePoint);
             }
 
-            bool unchanged = characters.Count == end - at && characters.Select((c, k) => meanings[k] == c).All(same => same);
-            if (!unchanged)
+            if (!ReadsBack(group, meanings))
             {
+                string groupText = group.ToString();
+                var characters = Characters(groupText);
                 // The characters no character glyph accounts for, in text order, go to the formed glyphs.
                 var accounted = new Dictionary<string, int>();
                 foreach (var meaning in meanings) if (meaning is not null) accounted[meaning] = accounted.GetValueOrDefault(meaning) + 1;
@@ -354,6 +402,27 @@ internal static class TextPipeline
             at = end;
         }
         return texts;
+    }
+
+    // Whether a group is drawn unchanged: one glyph per character of its text, each meaning that character, in order.
+    private static bool ReadsBack(ReadOnlySpan<char> group, string?[] meanings)
+    {
+        int k = 0;
+        for (int i = 0; i < group.Length; k++)
+        {
+            int size = i + 1 < group.Length && char.IsSurrogatePair(group[i], group[i + 1]) ? 2 : 1;
+            if (k >= meanings.Length || meanings[k] is not { } meaning || !group.Slice(i, size).SequenceEqual(meaning.AsSpan())) return false;
+            i += size;
+        }
+        return k == meanings.Length;
+    }
+
+    // The text of a code point. Glyphs below U+0800 (no surrogates among them) share one string per code point,
+    // so drawing common text does not allocate one per glyph.
+    private static string CodePointText(int codePoint)
+    {
+        if (codePoint >= SharedTexts.Length) return char.ConvertFromUtf32(codePoint);
+        return SharedTexts[codePoint] ??= ((char)codePoint).ToString();
     }
 
     private static List<string> Characters(string text)

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 
 namespace UnlimitedPDF.Models.Internal.Text.Layout;
@@ -24,7 +25,10 @@ internal sealed class LayoutTable
     private readonly int _features;
     private readonly int _lookups;
     private readonly int _featureVariations;
-    private readonly Dictionary<int, LayoutLookup> _lookupCache = new();
+
+    // A font's tables are shared by every document and thread that draws with it, so the caches take concurrent use.
+    private readonly ConcurrentDictionary<int, LayoutLookup> _lookupCache = new();
+    private readonly ConcurrentDictionary<int, ulong[]?> _firstGlyphs = new();
 
     #endregion
 
@@ -149,9 +153,78 @@ internal sealed class LayoutTable
         return result;
     }
 
+    /// <summary>
+    /// Returns the glyphs <paramref name="lookup"/> can apply at, one bit per glyph ID below
+    /// <paramref name="glyphCount"/>: every glyph the first coverage table of one of its subtables lists. At any other
+    /// glyph each subtable reads only what it reads for every glyph, then stops without applying, so
+    /// <see cref="LayoutEngine"/> skips it. Returns null when the lookup has a subtable format this does not model,
+    /// damaged data, or more coverage than a real font has (A06); its glyphs are then all tried, as before. Built once
+    /// per lookup.
+    /// </summary>
+    public ulong[]? FirstGlyphs(LayoutLookup lookup, int glyphCount)
+    {
+        // Read first: this runs for every glyph and lookup, and a GetOrAdd factory would allocate its closure each time.
+        if (_firstGlyphs.TryGetValue(lookup.Index, out var set)) return set;
+        set = BuildFirstGlyphs(lookup, glyphCount);
+        return _firstGlyphs.GetOrAdd(lookup.Index, set);
+    }
+
     #endregion
 
     #region Private Methods
+
+    private ulong[]? BuildFirstGlyphs(LayoutLookup lookup, int glyphCount)
+    {
+        if (glyphCount <= 0) return null;
+        var set = new ulong[(glyphCount + 63) >> 6];
+        long budget = 16L * glyphCount + 65_536;
+        try
+        {
+            foreach (int subtable in lookup.Subtables)
+            {
+                int coverage = FirstCoverage(lookup.Type, subtable);
+                if (coverage < 0) return null;
+                if (coverage > 0 && !LayoutData.AddCoverage(Data, coverage, glyphCount, set, ref budget)) return null;
+            }
+            return set;
+        }
+        catch (PdfFontException)
+        {
+            // The engine meets the same damage when it reads the subtable, and reports it there.
+            return null;
+        }
+    }
+
+    // The offset of the coverage table a subtable checks the current glyph against first, after the same reads the
+    // engine makes before it (LayoutEngine.Substitute and Position); 0 for a subtable that never applies; -1 for a
+    // format this does not model.
+    private int FirstCoverage(int type, int subtable)
+    {
+        int format = Data.U16(subtable);
+        switch (Tag == "GSUB" ? type : type + 100)
+        {
+            case 1 or 101 or 102 when format is 1 or 2: // single substitution; single and pair adjustment
+            case 2 or 4 or 8 or 104 or 105 or 106 when format == 1: // multiple, ligature, reverse chaining; mark attachment
+            case 5 or 6 or 107 or 108 when format is 1 or 2: // contextual and chained contextual, by glyph or by class
+                return subtable + Data.U16(subtable + 2);
+            case 103 when format == 1: // cursive attachment
+            {
+                int coverage = subtable + Data.U16(subtable + 2);
+                int count = Data.U16(subtable + 4);
+                Data.Require(subtable + 6, 4L * count, "cursive entry and exit records");
+                return coverage;
+            }
+            case 5 or 6 or 107 or 108 when format == 3: // contextual and chained contextual, by coverage
+            {
+                var rule = LayoutData.ReadCoverageRule(Data, subtable, chained: type is 6 or 8);
+                return rule.InputCount == 0 ? 0 : subtable + Data.U16(rule.InputAt);
+            }
+            case 3: // alternate substitution: no shaping feature uses it, so it never applies
+                return 0;
+            default:
+                return -1;
+        }
+    }
 
     private int FindLangSys(IReadOnlyList<string> scriptTags, out string? found)
     {

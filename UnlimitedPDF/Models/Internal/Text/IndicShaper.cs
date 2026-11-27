@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Runtime.CompilerServices;
 using UnlimitedPDF.Models.Internal.Text.Layout;
 
 namespace UnlimitedPDF.Models.Internal.Text;
@@ -45,6 +47,10 @@ internal static class IndicShaper
     private static readonly ulong PstfBit = TextShaper.FeatureBit(10);
     private static readonly ulong PrefBit = TextShaper.FeatureBit(6);
     private static readonly ulong PerPositionBits = RphfBit | BlwfBit | AbvfBit | HalfBit | PstfBit | PrefBit;
+
+    // One plan per font and script, so its checks of which features form a glyph are worked out once per font, not
+    // once per run. The table holds each font weakly: a plan lives only as long as its font.
+    private static readonly ConditionalWeakTable<PdfFont, ConcurrentDictionary<string, Plan>> Plans = new();
 
     #endregion
 
@@ -557,7 +563,8 @@ internal static class IndicShaper
     {
         private readonly PdfFont _font;
         private readonly Dictionary<string, List<int>> _lookups;
-        private readonly Dictionary<(string, int, int, int), bool> _cache = new();
+        // A plan is shared by every run in its font, so the cache takes concurrent use.
+        private readonly ConcurrentDictionary<(string, int, int, int), bool> _cache = new();
 
         private Plan(PdfFont font, IndicScript script, string[] scriptTags, bool oldSpec, Dictionary<string, List<int>> lookups)
         {
@@ -579,6 +586,12 @@ internal static class IndicShaper
         public string[] ScriptTags { get; }
 
         public static Plan For(PdfFont font, string script)
+        {
+            var plans = Plans.GetValue(font, _ => new ConcurrentDictionary<string, Plan>(StringComparer.Ordinal));
+            return plans.TryGetValue(script, out var plan) ? plan : plans.GetOrAdd(script, Create(font, script));
+        }
+
+        private static Plan Create(PdfFont font, string script)
         {
             var settings = IndicScript.For(script) ?? throw new ArgumentOutOfRangeException(nameof(script));
             var tags = new[] { settings.Version2Tag, settings.Version1Tag, "DFLT", "dflt" };

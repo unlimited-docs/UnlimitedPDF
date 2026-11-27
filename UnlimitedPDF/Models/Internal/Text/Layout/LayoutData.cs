@@ -3,6 +3,12 @@ using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 namespace UnlimitedPDF.Models.Internal.Text.Layout;
 
 /// <summary>
+/// The header of a coverage-based (format 3) contextual subtable: where its input coverage offsets start and how many
+/// there are, its backtrack and lookahead coverage arrays (chained subtables only), and its sequence lookup records.
+/// </summary>
+internal readonly record struct CoverageRule(int InputAt, int InputCount, (int Count, int At) Backtrack, (int Count, int At) Lookahead, int Records, int LookupCount);
+
+/// <summary>
 /// Shared OpenType layout structures (Coverage and ClassDef tables) read from font data with every offset checked
 /// (A06). Values are read in place on demand, so a large font costs no extra memory.
 /// </summary>
@@ -11,6 +17,76 @@ internal static class LayoutData
     #region Methods
 
     #region Public Methods
+
+    /// <summary>
+    /// Reads a count of 16-bit entries at <paramref name="p"/>, checks they are in the data, and moves
+    /// <paramref name="p"/> past them; returns the count and where the entries start.
+    /// </summary>
+    public static (int Count, int At) Array16(FontBytes data, ref int p, string what)
+    {
+        int count = data.U16(p);
+        data.Require(p + 2, 2L * count, what);
+        var array = (count, p + 2);
+        p += 2 + 2 * count;
+        return array;
+    }
+
+    /// <summary>
+    /// Reads the header of a format 3 contextual subtable (GSUB 5 and 6, GPOS 7 and 8). Each array is a count and
+    /// coverage offsets; the offsets are read one entry per glyph compared, never here (RV-20).
+    /// </summary>
+    public static CoverageRule ReadCoverageRule(FontBytes data, int subtable, bool chained)
+    {
+        int p = subtable + 2;
+        var backtrack = (Count: 0, At: 0);
+        var lookahead = (Count: 0, At: 0);
+        if (chained) backtrack = Array16(data, ref p, "a chained context rule");
+        int inputCount = data.U16(p);
+        int lookupCount = 0;
+        if (!chained) lookupCount = data.U16(p + 2);
+        int inputAt = p + (chained ? 2 : 4);
+        data.Require(inputAt, 2L * inputCount, "a context rule");
+        p = inputAt + 2 * inputCount;
+        if (chained)
+        {
+            lookahead = Array16(data, ref p, "a chained context rule");
+            lookupCount = data.U16(p);
+            p += 2;
+        }
+        return new CoverageRule(inputAt, inputCount, backtrack, lookahead, p, lookupCount);
+    }
+
+    /// <summary>
+    /// Sets in <paramref name="set"/> (one bit per glyph ID below <paramref name="glyphCount"/>) every glyph the
+    /// Coverage table at <paramref name="offset"/> lists, with the same checks <see cref="Coverage"/> makes. Each
+    /// entry and each glyph of a range spends one unit of <paramref name="budget"/>; returns false, with the set
+    /// incomplete, when the budget runs out (ranges a damaged or hostile table repeats, A06).
+    /// </summary>
+    public static bool AddCoverage(FontBytes data, int offset, int glyphCount, ulong[] set, ref long budget)
+    {
+        int format = data.U16(offset);
+        int count = data.U16(offset + 2);
+        if (format == 1)
+        {
+            data.Require(offset + 4, 2L * count, "a coverage table");
+            if ((budget -= count) < 0) return false;
+            for (int i = 0; i < count; i++) AddGlyph(set, data.U16(offset + 4 + 2 * i), glyphCount);
+            return true;
+        }
+        if (format == 2)
+        {
+            data.Require(offset + 4, 6L * count, "a coverage table");
+            for (int i = 0; i < count; i++)
+            {
+                int record = offset + 4 + 6 * i;
+                int start = data.U16(record), end = Math.Min((int)data.U16(record + 2), glyphCount - 1);
+                if ((budget -= 1 + Math.Max(0, end - start + 1)) < 0) return false;
+                for (int glyph = start; glyph <= end; glyph++) AddGlyph(set, glyph, glyphCount);
+            }
+            return true;
+        }
+        throw FontBytes.Corrupt($"has an unknown coverage format ({format})");
+    }
 
     /// <summary>
     /// Returns the coverage index of <paramref name="glyph"/> in the Coverage table at <paramref name="offset"/>, or -1.
@@ -93,6 +169,15 @@ internal static class LayoutData
     {
         int value = data.U16(at);
         return value == 0 ? 0 : baseOffset + value;
+    }
+
+    #endregion
+
+    #region Private Methods
+
+    private static void AddGlyph(ulong[] set, int glyph, int glyphCount)
+    {
+        if (glyph < glyphCount) set[glyph >> 6] |= 1UL << (glyph & 63);
     }
 
     #endregion

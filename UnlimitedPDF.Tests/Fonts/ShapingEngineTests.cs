@@ -333,6 +333,38 @@ public class ShapingEngineTests
     }
 
     [Fact]
+    public void Glyphs_no_subtable_covers_still_spend_the_step_budget()
+    {
+        // QF-26112701: the engine skips a glyph that no subtable of a lookup can start at, but the glyph still spends
+        // the steps that trying each subtable takes, so the budget stops a hostile font as before (A06): 64 lookups of
+        // 4,096 subtables that start only at 'b' take 262,208 steps for each 'a'.
+        var builder = Builder();
+        builder.AddTable("GSUB", AlwaysFailingGsub(subtables: 4096, inputLength: 2, G('b'), G('b'), lookups: 64));
+
+        var error = Assert.Throws<PdfFontException>(() => Shape(builder.Build(), "aaaa"));
+
+        Assert.Contains("take too long to match", error.Message);
+    }
+
+    [Fact]
+    public void Glyphs_a_lookup_covers_are_shaped_alongside_glyphs_it_skips()
+    {
+        // QF-26112701: skipped glyphs and shaped glyphs mix in one run, across lookups, formats, and both tables.
+        var gsub = new L();
+        int toZ = gsub.AddLookup(1, 0, L.SingleSubst(new Dictionary<int, int> { [G('b')] = G('z') }));
+        gsub.AddFeature("calt", gsub.AddLookup(6, 0, L.Chain3(new[] { new[] { G('a') } }, new[] { new[] { G('b') } }, new[] { new[] { G('c') } }, (0, toZ))));
+        int toY = gsub.AddLookup(1, 0, L.SingleSubst(new Dictionary<int, int> { [G('d')] = G('y') }));
+        gsub.AddFeature("clig", gsub.AddLookup(5, 0, L.Context1(G('c'), new[] { G('d') }, (1, toY))));
+        var gpos = new L();
+        gpos.AddFeature("kern", gpos.AddLookup(2, 0, L.PairPos1(new Dictionary<(int, int), short> { [(G('y'), G('e'))] = -80 })));
+
+        var run = Shape(Font(gsub: gsub, gpos: gpos), "qabcqcdeq");
+
+        Assert.Equal(new[] { G('q'), G('a'), G('z'), G('c'), G('q'), G('c'), G('y'), G('e'), G('q') }, Glyphs(run));
+        Assert.Equal(new[] { 0, 600, 1200, 1800, 2400, 3000, 3600, 4120, 4720 }, run.Glyphs.Select(g => g.X));
+    }
+
+    [Fact]
     public void Random_damage_to_layout_tables_never_escapes_as_another_exception()
     {
         var builder = Builder();
@@ -387,12 +419,15 @@ public class ShapingEngineTests
 
     // A GSUB with one context lookup (type 5, format 3) whose subtable offsets all point at one subtable: input
     // coverages of 'a' then one of 'b', so text of 'a' fails at the last position.
-    private static byte[] AlwaysFailingGsub(int subtables, int inputLength, int a, int b)
+    // With more than one lookup, the feature lists them all and each lookup-list entry points at the one lookup.
+    private static byte[] AlwaysFailingGsub(int subtables, int inputLength, int a, int b, int lookups = 1)
     {
         var script = new BigEndianWriter().U16(1).Bytes(Encoding.ASCII.GetBytes("DFLT")).U16(8)
             .U16(4).U16(0)
             .U16(0).U16(0xFFFF).U16(1).U16(0).ToArray();
-        var feature = new BigEndianWriter().U16(1).Bytes(Encoding.ASCII.GetBytes("ccmp")).U16(8).U16(0).U16(1).U16(0).ToArray();
+        var featureWriter = new BigEndianWriter().U16(1).Bytes(Encoding.ASCII.GetBytes("ccmp")).U16(8).U16(0).U16((ushort)lookups);
+        for (int i = 0; i < lookups; i++) featureWriter.U16((ushort)i);
+        var feature = featureWriter.ToArray();
         int shared = 6 + 2 * subtables;
         var subtable = new BigEndianWriter().U16(3).U16((ushort)inputLength).U16(0);
         int coverageA = 6 + 2 * inputLength, coverageB = coverageA + 6;
@@ -401,7 +436,9 @@ public class ShapingEngineTests
         var lookup = new BigEndianWriter().U16(5).U16(0).U16((ushort)subtables);
         for (int i = 0; i < subtables; i++) lookup.U16((ushort)shared);
         lookup.Bytes(subtable.ToArray());
-        var lookupList = new BigEndianWriter().U16(1).U16(4).Bytes(lookup.ToArray()).ToArray();
+        var lookupListWriter = new BigEndianWriter().U16((ushort)lookups);
+        for (int i = 0; i < lookups; i++) lookupListWriter.U16((ushort)(2 + 2 * lookups));
+        var lookupList = lookupListWriter.Bytes(lookup.ToArray()).ToArray();
         int scriptOffset = 10, featureOffset = scriptOffset + script.Length, lookupOffset = featureOffset + feature.Length;
         return new BigEndianWriter().U16(1).U16(0).U16((ushort)scriptOffset).U16((ushort)featureOffset).U16((ushort)lookupOffset)
             .Bytes(script).Bytes(feature).Bytes(lookupList).ToArray();
