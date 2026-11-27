@@ -20,8 +20,9 @@ public class MergeGoldenCultureTests
         byte[] actual;
         using (new CultureScope(culture))
         {
-            // Build switches to the invariant culture itself, so the merge is also run directly under the culture.
-            var document = new PdfDocument();
+            // Build switches to the invariant culture itself, so the merge is also run directly under the culture. The
+            // golden file holds the bytes with compression off (WR-042).
+            var document = new PdfDocument { CompressStreams = false };
             document.Footer.Height = 20;
             document.Footer.AddText("Page {page} of {pages}", 0, 4, 9, PdfTextAlignment.Right);
             document.AddPage().AddText("Merged report", 72, 760, 18);

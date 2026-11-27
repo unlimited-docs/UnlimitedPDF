@@ -90,6 +90,7 @@ class UnlimitedPDF.PdfColumn
   System.Nullable<System.Double> Width { public get; public set }
   public .ctor(System.Int32 index)
 class UnlimitedPDF.PdfDocument
+  System.Boolean CompressStreams { public get; public set }
   System.Boolean FailOnMissingCharacters { public get; public set }
   System.Collections.Generic.IList<UnlimitedPDF.PdfFont> FontFallback { public get }
   System.Double BodyMarginBottom { public get; public set }

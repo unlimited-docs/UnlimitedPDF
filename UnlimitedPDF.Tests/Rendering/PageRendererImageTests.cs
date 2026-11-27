@@ -67,7 +67,7 @@ public class PageRendererImageTests
     {
         byte[] pdf = OnePageWith(PdfImage.FromBytes(File.ReadAllBytes(Fixtures.Jpeg(fixture))), 50, 50, 100, 100);
         var page = RenderTestFiles.RenderFirst(pdf);
-        string cm = Regex.Match(Encoding.Latin1.GetString(pdf), @"q\s+([-\d. ]+) cm\s+/Im\d+ Do").Groups[1].Value;
+        string cm = Regex.Match(PdfText.Of(pdf), @"q\s+([-\d. ]+) cm\s+/Im\d+ Do").Groups[1].Value;
         var m = cm.Split(' ').Select(v => double.Parse(v, CultureInfo.InvariantCulture)).ToArray();
 
         // The drawing is the unit square, flipped to put row one on top, then the PDF's matrix, then the page flip.

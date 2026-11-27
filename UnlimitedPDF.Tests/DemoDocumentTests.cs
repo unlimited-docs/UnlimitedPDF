@@ -20,7 +20,7 @@ public class DemoDocumentTests
         using var stream = new MemoryStream();
         document.Save(stream);
         var pdf = stream.ToArray();
-        var text = Encoding.Latin1.GetString(pdf);
+        var text = PdfText.Of(pdf);
 
         PdfStructureChecker.AssertValid(pdf);
 

@@ -2,6 +2,11 @@
 
 What changed in each release of the [UnlimitedPDF package](https://www.nuget.org/packages/UnlimitedPDF). Upgrading from 0.0.x? See [Upgrading to 1.0.0](docs/guides/upgrading-to-1.0.0.md).
 
+## 1.3.0
+
+- New: `PdfDocument.CompressStreams`, on by default. Saving compresses the page content and the other streams the library writes itself with `/Filter /FlateDecode`, the lossless compression every PDF reader supports, so pages look exactly as before.
+- Changed: saved PDFs are smaller; a page of text is a small fraction of its 1.2.0 size. Set `CompressStreams` to false for uncompressed output, for example to compare saved bytes or read page operators directly; the file is then the same as 1.2.0 writes. Pages copied from an existing PDF, font programs, and images are written as before.
+
 ## 1.2.0
 
 - New: right-to-left documents (`PdfTextDirection`, `PdfDocument.TextDirection`, `PdfTextOptions`, `PdfTable.Direction`, `PdfCellText.Direction`): text in Arabic, Persian, Urdu, Pashto, Kurdish (Sorani), Sindhi, Uyghur, Malay (Jawi), Hebrew, and Dhivehi reads from the right, and a right-to-left table draws its first column at the right. Set the direction once on the document, for one call with a `PdfTextOptions` argument after the call's required arguments, for one table, or for one cell. See [Fonts and languages](docs/guides/fonts-and-languages.md).

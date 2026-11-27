@@ -28,9 +28,12 @@ internal static class GoldenDocuments
 
     /// <summary>
     /// Builds the named document and returns the bytes <see cref="PdfDocument.Save(Stream)"/> writes.
-    /// Numbers are written under the invariant culture, the reference for AC-14.
+    /// Numbers are written under the invariant culture, the reference for AC-14. The golden files are the bytes with
+    /// <see cref="PdfDocument.CompressStreams"/> off (WR-042), so that is the default here.
     /// </summary>
-    public static byte[] Build(string name)
+    /// <param name="name">The golden document's name.</param>
+    /// <param name="compressStreams">The value of <see cref="PdfDocument.CompressStreams"/> for the save.</param>
+    public static byte[] Build(string name, bool compressStreams = false)
     {
         using var culture = new CultureScope("");
         var document = name switch
@@ -46,6 +49,7 @@ internal static class GoldenDocuments
             _ => throw new ArgumentOutOfRangeException(nameof(name), name, "Unknown golden document.")
         };
 
+        document.CompressStreams = compressStreams;
         using var stream = new MemoryStream();
         document.Save(stream);
         return stream.ToArray();

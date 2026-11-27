@@ -309,12 +309,14 @@ public class PdfPage
     }
 
     /// <summary>
-    /// Stores compiled content in the page's content stream.
+    /// Stores compiled content in the page's content stream, compressed when <paramref name="compress"/> is true
+    /// (WR-042).
     /// </summary>
     /// <param name="content">Bytes from <see cref="BuildContent"/>.</param>
-    internal void CommitContent(byte[] content)
+    /// <param name="compress">Whether to store the content compressed (<see cref="PdfDocument.CompressStreams"/>).</param>
+    internal void CommitContent(byte[] content, bool compress)
     {
-        _contentStream.StreamData = content;
+        _contentStream.SetData(content, compress);
     }
 
     #endregion

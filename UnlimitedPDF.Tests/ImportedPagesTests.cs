@@ -186,11 +186,14 @@ public class ImportedPagesTests
     #region Internal Methods
 
     /// <summary>
-    /// Returns the text drawn by each page's <c>Tj</c> operators, one string per page.
+    /// Returns the text drawn by each page's <c>Tj</c> operators, one string per page. Content saved with
+    /// <c>/Filter /FlateDecode</c> is unpacked first (WR-042).
     /// </summary>
     internal static string[] PageTexts(PdfFile output) => output.Pages
         .Select(page => output.Source.Objects.Resolve(page.Dictionary["Contents"]))
-        .Select(contents => contents is PdfReadStream stream ? Encoding.Latin1.GetString(stream.Data.ToArray()) : "")
+        .Select(contents => contents is PdfReadStream stream
+            ? Encoding.Latin1.GetString(PdfStreamDecoder.Decode(stream, output.Source.Objects.Resolve, long.MaxValue))
+            : "")
         .Select(text => string.Join(" ", System.Text.RegularExpressions.Regex.Matches(text, @"\((.*?)\)\s*Tj").Select(m => m.Groups[1].Value)))
         .ToArray();
 

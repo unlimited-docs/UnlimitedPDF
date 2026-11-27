@@ -93,6 +93,20 @@ public class PublicSurfaceTests
     }
 
     [Fact]
+    public void The_stream_compression_switch_records_its_version_and_is_on_by_default()
+    {
+        // WR-042: one switch on PdfDocument, on by default (AC-07). PdfOperations takes none (AC-08); the recorded
+        // public surface (Fixtures/public-surface.txt) holds its unchanged signatures.
+        var property = typeof(PdfDocument).GetProperty(nameof(PdfDocument.CompressStreams))!;
+
+        Assert.Equal(typeof(bool), property.PropertyType);
+        Assert.True(property.CanRead && property.CanWrite);
+        Assert.Equal("1.3.0", VersionOf(property));
+        Assert.False(string.IsNullOrWhiteSpace(property.GetCustomAttribute<DescriptionAttribute>()?.Description));
+        Assert.True(new PdfDocument().CompressStreams);
+    }
+
+    [Fact]
     public void Every_public_type_is_in_the_UnlimitedPDF_namespace()
     {
         Assert.All(Library.GetExportedTypes(), type => Assert.Equal("UnlimitedPDF", type.Namespace));

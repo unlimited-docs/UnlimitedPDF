@@ -177,7 +177,17 @@ internal sealed class PdfInspector
     public Dictionary<string, object?> Dictionary(int number) =>
         _objects.TryGetValue(number, out var o) && PdfSyntax.ParseObject(o.Dictionary) is Dictionary<string, object?> d ? d : new(StringComparer.Ordinal);
 
+    /// <summary>
+    /// Returns an object's text as written, up to its stream data (empty when the object does not exist).
+    /// </summary>
+    public string DictionaryText(int number) => _objects.TryGetValue(number, out var o) ? o.Dictionary : string.Empty;
+
     public bool Exists(int number) => _objects.ContainsKey(number);
+
+    /// <summary>
+    /// Returns whether the object exists and holds stream data.
+    /// </summary>
+    public bool HasStream(int number) => _objects.TryGetValue(number, out var o) && o.Stream is not null;
 
     /// <summary>
     /// Returns every Type0 font in the file, read back with its parts.

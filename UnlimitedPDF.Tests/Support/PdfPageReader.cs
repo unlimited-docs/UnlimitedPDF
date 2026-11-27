@@ -3,19 +3,16 @@ using System.Text.RegularExpressions;
 namespace UnlimitedPDF.Tests.Support;
 
 /// <summary>
-/// Reads the pages of a PDF the library wrote, in <c>/Kids</c> order: each page's media box and its content stream
-/// text. Relies on the library's own uncompressed output, not on a general PDF parser.
+/// Reads the pages of a PDF the library wrote, in page-tree order: each page's media box and its content stream
+/// text. Objects are found through the cross-reference table, and a content stream with <c>/Filter /FlateDecode</c>
+/// is unpacked first, so the text is the same whether or not the library compressed the stream.
 /// </summary>
 internal static class PdfPageReader
 {
     #region Fields and Constants
 
     private static readonly Regex ContentsPattern = new(@"/Contents (\d+) 0 R", RegexOptions.CultureInvariant);
-    private static readonly Regex KidsPattern = new(@"/Kids \[([^\]]*)\]", RegexOptions.CultureInvariant);
     private static readonly Regex MediaBoxPattern = new(@"/MediaBox (\[[^\]]*\])", RegexOptions.CultureInvariant);
-    private static readonly Regex ObjectPattern = new(@"(?m)^(\d+) 0 obj\r?\n(.*?)endobj", RegexOptions.CultureInvariant | RegexOptions.Singleline);
-    private static readonly Regex ReferencePattern = new(@"(\d+) 0 R", RegexOptions.CultureInvariant);
-    private static readonly Regex StreamPattern = new(@"stream\r?\n(.*?)\r?\nendstream", RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
     #endregion
 
@@ -30,17 +27,14 @@ internal static class PdfPageReader
     /// <returns>Each page's media box and content stream text.</returns>
     public static IReadOnlyList<Page> Read(byte[] pdf)
     {
-        var text = Encoding.Latin1.GetString(pdf);
-        var objects = ObjectPattern.Matches(text).ToDictionary(m => int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture), m => m.Groups[2].Value);
-
-        var kids = KidsPattern.Match(objects[2]).Groups[1].Value;
-        return ReferencePattern.Matches(kids)
-            .Select(m => objects[int.Parse(m.Groups[1].Value, CultureInfo.InvariantCulture)])
-            .Select(page =>
+        var inspector = PdfInspector.Read(pdf);
+        return inspector.Pages()
+            .Select(number =>
             {
+                var page = inspector.DictionaryText(number);
                 int contents = int.Parse(ContentsPattern.Match(page).Groups[1].Value, CultureInfo.InvariantCulture);
-                var stream = StreamPattern.Match(objects[contents]);
-                return new Page(MediaBoxPattern.Match(page).Groups[1].Value, stream.Success ? stream.Groups[1].Value : "");
+                var content = inspector.HasStream(contents) ? Encoding.Latin1.GetString(inspector.StreamData(contents)) : "";
+                return new Page(MediaBoxPattern.Match(page).Groups[1].Value, content);
             })
             .ToList();
     }

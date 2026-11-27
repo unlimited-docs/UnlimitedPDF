@@ -235,7 +235,7 @@ public class PageRendererEmbeddedFontTests
     [Fact]
     public void Stroked_glyphs_with_a_zero_width_keep_a_hairline()
     {
-        var page = RenderTestFiles.RenderFirst(EditContent(Save(BoxFont(), "A", 0, 0, 10), content => content.Replace("BT", "BT 1 Tr 0 w")));
+        var page = RenderTestFiles.RenderFirst(EditContent(SavePlain(BoxFont(), "A", 0, 0, 10), content => content.Replace("BT", "BT 1 Tr 0 w")));
 
         Assert.Contains("fill=\"none\" stroke=\"#000000\" stroke-width=\"1\" vector-effect=\"non-scaling-stroke\"", page.Svg);
     }
@@ -243,7 +243,7 @@ public class PageRendererEmbeddedFontTests
     [Fact]
     public void Actual_text_over_two_shows_is_placed_once()
     {
-        byte[] pdf = EditContent(Save(BoxFont(), "A", 0, 0, 10), content =>
+        byte[] pdf = EditContent(SavePlain(BoxFont(), "A", 0, 0, 10), content =>
             Regex.Replace(content, @"(<[0-9A-Fa-f]+> Tj)", "/Span << /ActualText <FEFF0058> >> BDC $1 $1 EMC"));
 
         var page = RenderTestFiles.RenderFirst(pdf);
@@ -256,7 +256,7 @@ public class PageRendererEmbeddedFontTests
     [Fact]
     public void Glyphs_follow_horizontal_scaling_and_rise()
     {
-        var page = RenderTestFiles.RenderFirst(EditContent(Save(BoxFont(), "A", 100, 700, 10), content => content.Replace("BT", "BT 50 Tz 3 Ts")));
+        var page = RenderTestFiles.RenderFirst(EditContent(SavePlain(BoxFont(), "A", 100, 700, 10), content => content.Replace("BT", "BT 50 Tz 3 Ts")));
 
         Assert.Contains("<use href=\"#t-f0g1\" transform=\"matrix(0.005 0 0 -0.01 100 138.89)\"/>", page.Svg);
     }
@@ -272,7 +272,7 @@ public class PageRendererEmbeddedFontTests
     [Fact]
     public void Invisible_glyph_text_draws_no_glyphs_but_keeps_its_text()
     {
-        var page = RenderTestFiles.RenderFirst(EditContent(Save(BoxFont(), "A", 0, 0, 10), content => content.Replace("BT", "BT 3 Tr")));
+        var page = RenderTestFiles.RenderFirst(EditContent(SavePlain(BoxFont(), "A", 0, 0, 10), content => content.Replace("BT", "BT 3 Tr")));
 
         Assert.True(page.IsDrawn, page.Reason);
         Assert.DoesNotContain("<use ", page.Svg);
@@ -282,7 +282,7 @@ public class PageRendererEmbeddedFontTests
     [Fact]
     public void The_outermost_actual_text_gives_the_text_of_nested_spans()
     {
-        byte[] pdf = EditContent(Save(BoxFont(), "A", 0, 0, 10), content =>
+        byte[] pdf = EditContent(SavePlain(BoxFont(), "A", 0, 0, 10), content =>
             Regex.Replace(content, @"(<[0-9A-Fa-f]+> Tj)", "/Span << /ActualText <FEFF0058> >> BDC /Span << /ActualText <FEFF0059> >> BDC $1 EMC EMC"));
 
         var page = RenderTestFiles.RenderFirst(pdf);
@@ -331,8 +331,8 @@ public class PageRendererEmbeddedFontTests
         return PdfFont.FromBytes(builder.Build());
     }
 
-    // Rewrites the page's (uncompressed) content stream: the stream around the first BT. The reader recovers the
-    // cross-references and lengths that move.
+    // Rewrites the page's uncompressed content stream (saved with SavePlain): the stream around the first BT. The
+    // reader recovers the cross-references and lengths that move.
     private static byte[] EditContent(byte[] pdf, Func<string, string> edit)
     {
         string text = Encoding.Latin1.GetString(pdf);
@@ -352,9 +352,14 @@ public class PageRendererEmbeddedFontTests
     private static string Outline((short X, short Y)[] points) =>
         "M" + string.Join("L", points.Select(p => $"{p.X} {p.Y}")) + "Z";
 
-    private static byte[] Save(PdfFont font, string text, double x, double y, double size)
+    private static byte[] Save(PdfFont font, string text, double x, double y, double size) => Save(font, text, x, y, size, compressStreams: true);
+
+    // The same file with CompressStreams off (WR-042), for EditContent, which edits the content stream as text.
+    private static byte[] SavePlain(PdfFont font, string text, double x, double y, double size) => Save(font, text, x, y, size, compressStreams: false);
+
+    private static byte[] Save(PdfFont font, string text, double x, double y, double size, bool compressStreams)
     {
-        var document = new PdfDocument();
+        var document = new PdfDocument { CompressStreams = compressStreams };
         document.AddPage().AddGlyphs(font, text.Select(c => (font.Font.CharacterMap.GlyphFor(c), c.ToString())).ToArray(), x, y, size);
         return PdfPageReader.SaveBytes(document);
     }

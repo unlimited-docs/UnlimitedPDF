@@ -1,4 +1,3 @@
-using System.IO.Compression;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 
@@ -71,8 +70,9 @@ internal sealed class EmbeddedFonts
     }
 
     /// <summary>
-    /// Returns a face's objects for its glyph use: the Type0, CIDFont, and descriptor dictionaries and the bodies
-    /// and data of the program and ToUnicode streams.
+    /// Returns a face's objects for its glyph use: the Type0, CIDFont, and descriptor dictionaries, the body and
+    /// compressed data of the font program, and the unpacked data of the ToUnicode map, which the save writes
+    /// compressed or plain (WR-042).
     /// </summary>
     /// <param name="face">The face, with its object numbers set.</param>
     /// <param name="used">Every glyph the save draws with this face and the text it stands for.</param>
@@ -91,12 +91,12 @@ internal sealed class EmbeddedFonts
         string name = SubsetTag(source.PostScriptName + "|" + font.Weight, kept) + "+" + SafeName(source);
         var program = trueType ? TrueTypeSubsetter.Build(font, kept) : CffSubsetter.Build(font, kept, name);
 
-        var compressed = Compress(program);
+        // The font program is always compressed, whatever CompressStreams says (WR-042).
+        var compressed = FlateEncoder.Compress(program);
         var programBody = Encoding.ASCII.GetBytes(trueType
             ? $"<< /Length {compressed.Length} /Length1 {program.Length} /Filter /FlateDecode >>"
             : $"<< /Subtype /CIDFontType0C /Length {compressed.Length} /Filter /FlateDecode >>");
         var toUnicode = ToUnicode(used);
-        var toUnicodeBody = Encoding.ASCII.GetBytes($"<< /Length {toUnicode.Length} >>");
 
         var (xMin, yMin, xMax, yMax) = source.Bounds;
         int flags = 4 | (source.IsFixedPitch ? 1 : 0) | (font.IsItalic ? 64 : 0); // Symbolic, FixedPitch, Italic
@@ -113,7 +113,7 @@ internal sealed class EmbeddedFonts
             $"/FontDescriptor {objects[2]} 0 R {(trueType ? "/CIDToGIDMap /Identity " : string.Empty)}/W {Widths(used.Keys, instance, scale)} >>";
 
         string type0 = $"<< /Type /Font /Subtype /Type0 /BaseFont /{name} /Encoding /Identity-H /DescendantFonts [{objects[1]} 0 R] /ToUnicode {objects[4]} 0 R >>";
-        return new FaceObjects(type0, cidFont, descriptor, programBody, compressed, toUnicodeBody, toUnicode);
+        return new FaceObjects(type0, cidFont, descriptor, programBody, compressed, toUnicode);
     }
 
     #endregion
@@ -121,13 +121,6 @@ internal sealed class EmbeddedFonts
     #region Private Methods
 
     private static string N(double value) => PdfNumber.Format(Math.Round(value));
-
-    private static byte[] Compress(byte[] data)
-    {
-        using var output = new MemoryStream();
-        using (var z = new ZLibStream(output, CompressionLevel.Optimal, leaveOpen: true)) z.Write(data, 0, data.Length);
-        return output.ToArray();
-    }
 
     // The font's PostScript name (else its family name) reduced to letters, digits, and hyphens, at most 63 long, so
     // names from untrusted font data can never break PDF syntax (A05).
@@ -220,4 +213,4 @@ internal sealed class EmbeddedFonts
 /// <summary>
 /// The written objects of one embedded face.
 /// </summary>
-internal sealed record FaceObjects(string Type0, string CidFont, string Descriptor, byte[] ProgramBody, byte[] ProgramData, byte[] ToUnicodeBody, byte[] ToUnicodeData);
+internal sealed record FaceObjects(string Type0, string CidFont, string Descriptor, byte[] ProgramBody, byte[] ProgramData, byte[] ToUnicodeData);

@@ -211,7 +211,7 @@ public class PdfImagePlacementTests
         document.AddPage().AddImage(Jpeg(3, 7), 10.5, 20.25, 33.3);
 
         var pdf = Save(document);
-        var draw = DrawPattern.Match(Encoding.Latin1.GetString(pdf));
+        var draw = DrawPattern.Match(PdfText.Of(pdf));
 
         Assert.True(draw.Success);
         Assert.DoesNotContain(",", draw.Value);
@@ -293,7 +293,7 @@ public class PdfImagePlacementTests
         }
 
         var pdf = Save(document);
-        var text = Encoding.Latin1.GetString(pdf);
+        var text = PdfText.Of(pdf);
 
         PdfStructureChecker.AssertValid(pdf);
         Assert.Equal(2, CountImageObjects(pdf));

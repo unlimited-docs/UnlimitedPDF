@@ -63,7 +63,7 @@ public class HtmlEntryPointTests
     public void Web_and_mail_links_become_uri_annotations_and_other_schemes_are_dropped()
     {
         var html = PdfHtml.FromString("<p><a href='https://acme.com/a b'>acme</a> <a href='mailto:sales@acme.com'>mail</a> <a href='javascript:alert(1)'>x</a> <a href='https://acme.com/é'>accent</a></p>");
-        string pdf = Encoding.ASCII.GetString(SaveHtml(html));
+        string pdf = PdfText.Of(SaveHtml(html));
         Assert.Contains("/A << /S /URI /URI (https://acme.com/a%20b) >>", pdf);
         Assert.Contains("/URI (mailto:sales@acme.com)", pdf);
         Assert.Contains("/URI (https://acme.com/%C3%A9)", pdf);

@@ -34,7 +34,7 @@ public class TableRenderingTests
         using var stream = new MemoryStream();
         document.Save(stream);
 
-        string pdf = Encoding.Latin1.GetString(stream.ToArray());
+        string pdf = PdfText.Of(stream.ToArray());
         Assert.DoesNotMatch(@"\d[eE][-+]?\d", pdf);
         Assert.Contains("0.00001 ", pdf);
     }
@@ -227,7 +227,7 @@ public class TableRenderingTests
         using var stream = new MemoryStream();
         document.Save(stream);
         var pdf = stream.ToArray();
-        var text = Encoding.Latin1.GetString(pdf);
+        var text = PdfText.Of(pdf);
 
         PdfStructureChecker.AssertValid(pdf);
         Assert.Equal(3, Regex.Matches(text, @"/Subtype /Image\b").Count); // Logo, PNG, and the PNG's mask.
@@ -260,7 +260,7 @@ public class TableRenderingTests
 
         using var stream = new MemoryStream();
         document.Save(stream);
-        var text = Encoding.Latin1.GetString(stream.ToArray());
+        var text = PdfText.Of(stream.ToArray());
 
         PdfStructureChecker.AssertValid(stream.ToArray());
         Assert.DoesNotMatch(@"\d,\d", text);

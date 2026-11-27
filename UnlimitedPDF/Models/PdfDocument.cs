@@ -856,7 +856,7 @@ public class PdfDocument
         {
             var entry = visible[i];
             if (entry.Builder is null || contents[i] is not { } content) continue;
-            entry.Builder.CommitContent(content.Data);
+            entry.Builder.CommitContent(content.Data, CompressStreams);
             entry.Page!.Resources = CreateResources(content.Images, sinks[i]?.Fonts ?? Array.Empty<StandardFont>(), sinks[i]?.Faces ?? Array.Empty<EmbeddedFace>());
             entry.Page.Annots = sinks[i] is { Links.Count: > 0 } sink
                 ? LinkAnnotations.Syntax(sink.Links, id => targets.TryGetValue(id, out var target) ? target : null)
@@ -867,10 +867,17 @@ public class PdfDocument
         foreach (var entry in unused)
         {
             if (entry.Builder is null) continue;
-            entry.Builder.CommitContent(Array.Empty<byte>());
+            entry.Builder.CommitContent(Array.Empty<byte>(), CompressStreams);
             entry.Page!.Resources = new PdfDictionary();
             entry.Page.Annots = null;
             entry.PageObject.Content = entry.Page.ToString();
+        }
+
+        // The other streams the library writes itself, the ToUnicode maps and the streams the page importer added,
+        // follow this save's CompressStreams too; copied streams are never touched (WR-042).
+        foreach (var obj in _objects.Objects)
+        {
+            if (obj is PdfRawObject raw) raw.ApplyCompression(CompressStreams);
         }
 
         // The output declares the highest version among the imported files, and at least 1.7 (WR-036).
@@ -982,9 +989,8 @@ public class PdfDocument
             var program = (PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[3]);
             program.Body = written.ProgramBody;
             program.StreamData = written.ProgramData;
-            var toUnicode = (PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[4]);
-            toUnicode.Body = written.ToUnicodeBody;
-            toUnicode.StreamData = written.ToUnicodeData;
+            // Compressed or plain later in this save, with the other library streams (WR-042).
+            ((PdfRawObject)objects.First(o => o.ObjectNumber == face.Objects[4])).SetLibraryStream(written.ToUnicodeData);
         }
     }
 
@@ -1325,6 +1331,19 @@ public class PdfDocument
     /// Gets the footer band drawn on every saved page: its height, whether it is hidden, and its content (WR-031).
     /// </summary>
     public PdfPageSection Footer { get; }
+
+    /// <summary>
+    /// Gets or sets whether saving compresses the streams the library writes itself (WR-042): page content, the
+    /// <c>ToUnicode</c> maps of embedded fonts, and the streams added when pages of an existing PDF are imported. They
+    /// are written with <c>/Filter /FlateDecode</c>, the lossless compression every PDF reader supports, so files are
+    /// much smaller and every page looks exactly the same. The default is true. Set it to false for uncompressed output,
+    /// for example to compare saved bytes or read page operators directly; the file then matches what 1.2.0 writes for
+    /// the same document. Streams copied from an existing PDF, font programs, and images are written as before either
+    /// way. Each save uses the value at the time it runs.
+    /// </summary>
+    [AddedVersion("1.3.0")]
+    [Description("Gets or sets whether saving compresses the page content and other streams the library writes. The default is true.")]
+    public bool CompressStreams { get; set; } = true;
 
     /// <summary>
     /// Gets or sets whether saving fails with <see cref="PdfTextException"/>, before anything is written, when text

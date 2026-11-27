@@ -88,11 +88,15 @@ public class HtmlGoldenTests
         _ => HtmlTemplates.Resume
     };
 
-    internal static byte[] Convert(string name, out IReadOnlyList<PdfHtmlWarning> warnings, out int pages)
+    // Saves the document PdfOperations.ConvertHtml saves. The golden files are its bytes with CompressStreams off
+    // (WR-042), so that is the default here; ConvertHtml itself always compresses.
+    internal static byte[] Convert(string name, out IReadOnlyList<PdfHtmlWarning> warnings, out int pages, bool compressStreams = false)
     {
         var html = PdfHtml.FromString(Source(name), new PdfHtmlLoadOptions { ResourceResolver = Images, FailOnWarning = false });
         using var stream = new MemoryStream();
-        PdfOperations.ConvertHtml(html, stream, new PdfHtmlConvertOptions { HeadingBookmarks = name == "html-report" });
+        var document = PdfOperations.HtmlDocument(html, new PdfHtmlConvertOptions { HeadingBookmarks = name == "html-report" });
+        document.CompressStreams = compressStreams;
+        document.Save(stream);
         warnings = html.Warnings;
         byte[] bytes = stream.ToArray();
         pages = PdfPageReader.Read(bytes).Count;

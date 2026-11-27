@@ -589,6 +589,29 @@ public static class PdfOperations
     #region Internal Methods
 
     /// <summary>
+    /// Returns the document a one-call HTML conversion saves (WR-038): exactly what a caller would build by hand. The
+    /// golden tests save it with <see cref="PdfDocument.CompressStreams"/> off (WR-042).
+    /// </summary>
+    /// <param name="html">The loaded HTML.</param>
+    /// <param name="options">The page size, margins, fallback fonts, and bookmark choice, or null for the defaults.</param>
+    /// <returns>The document, not yet saved.</returns>
+    internal static PdfDocument HtmlDocument(PdfHtml html, PdfHtmlConvertOptions? options)
+    {
+        if (html is null) throw new ArgumentNullException(nameof(html));
+        options ??= new PdfHtmlConvertOptions();
+        var document = new PdfDocument(options.PageSize)
+        {
+            MarginTop = options.MarginTop,
+            MarginBottom = options.MarginBottom,
+            MarginLeft = options.MarginLeft,
+            MarginRight = options.MarginRight
+        };
+        foreach (var font in options.FontFallback) document.FontFallback.Add(font);
+        document.Body.AddHtml(html, headingBookmarks: options.HeadingBookmarks);
+        return document;
+    }
+
+    /// <summary>
     /// Splits a PDF every <paramref name="pagesPerPart"/> pages into <paramref name="outputFolder"/>, opening each part
     /// file with <paramref name="openFile"/>, so tests can fail or pause a write part-way (V-10).
     /// </summary>
@@ -622,23 +645,6 @@ public static class PdfOperations
     #endregion
 
     #region Private Methods
-
-    // The document a one-call HTML conversion saves (WR-038): exactly what a caller would build by hand.
-    private static PdfDocument HtmlDocument(PdfHtml html, PdfHtmlConvertOptions? options)
-    {
-        if (html is null) throw new ArgumentNullException(nameof(html));
-        options ??= new PdfHtmlConvertOptions();
-        var document = new PdfDocument(options.PageSize)
-        {
-            MarginTop = options.MarginTop,
-            MarginBottom = options.MarginBottom,
-            MarginLeft = options.MarginLeft,
-            MarginRight = options.MarginRight
-        };
-        foreach (var font in options.FontFallback) document.FontFallback.Add(font);
-        document.Body.AddHtml(html, headingBookmarks: options.HeadingBookmarks);
-        return document;
-    }
 
     // The base of every part file name: the source file name without its extension, else "part". Characters that are
     // not allowed in a file name, including directory separators, become "_", so a part is always written straight

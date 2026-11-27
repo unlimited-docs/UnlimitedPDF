@@ -32,10 +32,15 @@ public class ImportedAnnotationsTests
         var page = output.Pages[0].Dictionary;
 
         var contents = Assert.IsType<PdfReadArray>(objects.Resolve(page["Contents"]));
-        string last = Encoding.ASCII.GetString(Assert.IsType<PdfReadStream>(objects.Resolve(contents[contents.Count - 1])).Data.ToArray());
+        // The streams the importer adds are saved compressed by default (WR-042), so they are read unpacked.
+        string Unpacked(PdfReadValue value) =>
+            Encoding.ASCII.GetString(PdfStreamDecoder.Decode(Assert.IsType<PdfReadStream>(objects.Resolve(value)), objects.Resolve, long.MaxValue));
+        string last = Unpacked(contents[contents.Count - 1]);
         var xObjects = Assert.IsType<PdfReadDictionary>(objects.Resolve(Assert.IsType<PdfReadDictionary>(objects.Resolve(page["Resources"]))["XObject"]));
 
-        Assert.Equal("q\n", Encoding.ASCII.GetString(Assert.IsType<PdfReadStream>(objects.Resolve(contents[0])).Data.ToArray()));
+        Assert.Equal("q\n", Unpacked(contents[0]));
+        var added = Assert.IsType<PdfReadStream>(objects.Resolve(contents[0]));
+        Assert.Equal("FlateDecode", Assert.IsType<PdfReadName>(added.Dictionary["Filter"]).Value);
         Assert.Contains("1 0 0 1 100 100 cm /UnlimitedField1 Do", last, StringComparison.Ordinal);
         Assert.DoesNotContain("UnlimitedField2", last, StringComparison.Ordinal);
         Assert.IsType<PdfReadStream>(objects.Resolve(xObjects["UnlimitedField1"]));

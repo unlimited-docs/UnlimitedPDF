@@ -232,8 +232,9 @@ internal sealed class PageImporter
 
         foreach (var (index, number) in round)
             objects.Add(new PdfRawObject(number, PageBody(_file.Pages[index], rewrites[index], Map)));
+        // Streams added here are the library's own, so each save writes them compressed or plain (WR-042).
         foreach (var (number, data) in added.Values)
-            objects.Add(new PdfRawObject(number, Encoding.ASCII.GetBytes($"<< /Length {data.Length.ToString(CultureInfo.InvariantCulture)} >>"), data));
+            objects.Add(PdfRawObject.LibraryStream(number, data));
         foreach (int source in order)
         {
             bool isRewritten = overrides.TryGetValue(source, out var rewritten);

@@ -29,6 +29,47 @@ internal sealed class PdfRawObject : PdfObject
     #region Public Methods
 
     /// <summary>
+    /// Creates a stream the library writes itself, such as a <c>ToUnicode</c> map or a stream the page importer adds
+    /// (WR-042). It keeps the unpacked bytes, so each save writes it compressed or plain with
+    /// <see cref="ApplyCompression"/>. Until then it is written plain.
+    /// </summary>
+    /// <param name="objectNumber">The object number in the document being written.</param>
+    /// <param name="data">The stream's unpacked bytes.</param>
+    /// <returns>The object.</returns>
+    public static PdfRawObject LibraryStream(int objectNumber, byte[] data)
+    {
+        var stream = new PdfRawObject(objectNumber, Array.Empty<byte>());
+        stream.SetLibraryStream(data);
+        return stream;
+    }
+
+    /// <summary>
+    /// Writes a library stream (see <see cref="LibraryStream"/>) compressed with <see cref="FlateEncoder"/> when
+    /// <paramref name="compress"/> is true, else plain: its data and a dictionary with the matching <c>/Length</c>,
+    /// and <c>/Filter /FlateDecode</c> when compressed. Does nothing for any other object.
+    /// </summary>
+    /// <param name="compress">Whether to write the stream compressed (<see cref="PdfDocument.CompressStreams"/>).</param>
+    public void ApplyCompression(bool compress)
+    {
+        if (UnpackedStreamData is not { } data) return;
+        var written = compress ? FlateEncoder.Compress(data) : data;
+        var length = written.Length.ToString(CultureInfo.InvariantCulture);
+        Body = Encoding.ASCII.GetBytes(compress ? $"<< /Length {length} /Filter {FlateEncoder.FilterName} >>" : $"<< /Length {length} >>");
+        StreamData = written;
+    }
+
+    /// <summary>
+    /// Makes this object a library stream holding <paramref name="data"/>, written plain until
+    /// <see cref="ApplyCompression"/> runs.
+    /// </summary>
+    /// <param name="data">The stream's unpacked bytes.</param>
+    public void SetLibraryStream(byte[] data)
+    {
+        UnpackedStreamData = data;
+        ApplyCompression(compress: false);
+    }
+
+    /// <summary>
     /// Returns the object as Latin-1 text, for diagnostics.
     /// </summary>
     /// <returns>The object's syntax.</returns>
@@ -62,6 +103,12 @@ internal sealed class PdfRawObject : PdfObject
     /// Gets or sets the stream data, or null for an object that is not a stream.
     /// </summary>
     public byte[]? StreamData { get; set; }
+
+    /// <summary>
+    /// Gets the unpacked bytes of a stream the library writes itself, or null for any other object, such as one
+    /// copied from an existing file, whose bytes are always written as they are.
+    /// </summary>
+    public byte[]? UnpackedStreamData { get; private set; }
 
     #endregion
 }
