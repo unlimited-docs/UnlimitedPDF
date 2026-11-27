@@ -107,9 +107,9 @@ internal sealed class LayoutEngine
         if (--_budget < 0) throw FontBytes.Corrupt("has layout rules that do too much work for its text");
     }
 
-    private void Step()
+    private void Step(int count = 1)
     {
-        if (--_steps < 0) throw FontBytes.Corrupt("has layout rules that take too long to match its text");
+        if ((_steps -= count) < 0) throw FontBytes.Corrupt("has layout rules that take too long to match its text");
     }
 
     private bool Skip(ShapingGlyph glyph, LayoutLookup lookup)
@@ -152,6 +152,13 @@ internal sealed class LayoutEngine
     private bool ApplyOnce(LayoutLookup lookup, int position, int depth, out int next)
     {
         next = position + 1;
+        // A glyph no subtable can start at applies nothing; it spends the steps trying each subtable would (A06).
+        int glyph = _buffer[position].Glyph;
+        if (_table.FirstGlyphs(lookup, _glyphCount) is { } first && glyph < _glyphCount && (first[glyph >> 6] & (1UL << (glyph & 63))) == 0)
+        {
+            Step(lookup.Subtables.Length);
+            return false;
+        }
         foreach (int subtable in lookup.Subtables)
         {
             Step();
@@ -554,29 +561,11 @@ internal sealed class LayoutEngine
 
         if (format == 3)
         {
-            // Each array is a count and coverage offsets, read one entry per glyph compared (RV-20).
-            int p = subtable + 2;
-            var backtrack = (Count: 0, At: 0);
-            var lookahead = (Count: 0, At: 0);
-            if (chained) backtrack = Array16(ref p, "a chained context rule");
-            int inputCount = data.U16(p);
-            int lookupCount = 0;
-            if (!chained) lookupCount = data.U16(p + 2);
-            int inputAt = p + (chained ? 2 : 4);
-            data.Require(inputAt, 2L * inputCount, "a context rule");
-            p = inputAt + 2 * inputCount;
-            if (chained)
-            {
-                lookahead = Array16(ref p, "a chained context rule");
-                lookupCount = data.U16(p);
-                p += 2;
-            }
-            bool Covered(int at, int k, int g) => LayoutData.Coverage(data, subtable + data.U16(at + 2 * k), g) >= 0;
-            if (inputCount == 0) return false;
-            if (!Match(lookup, position, inputCount, (k, g) => Covered(inputAt, k, g), out var matched)) return false;
-            if (!MatchBack(lookup, position, backtrack.Count, (k, g) => Covered(backtrack.At, k, g))) return false;
-            if (!MatchAhead(lookup, matched[^1], lookahead.Count, (k, g) => Covered(lookahead.At, k, g))) return false;
-            return ApplyRecords(p, lookupCount, matched, depth, out next);
+            var rule = LayoutData.ReadCoverageRule(data, subtable, chained);
+            if (rule.InputCount == 0) return false;
+            // Most positions fail on their first glyph, so that check runs before any matching state is allocated.
+            if (LayoutData.Coverage(data, subtable + data.U16(rule.InputAt), glyph) < 0) return false;
+            return MatchCoverages(lookup, subtable, position, depth, rule, out next);
         }
 
         int coverageIndex = LayoutData.Coverage(data, subtable + data.U16(subtable + 2), glyph);
@@ -598,10 +587,30 @@ internal sealed class LayoutEngine
             int firstClass = LayoutData.ClassOf(data, inputDef, glyph);
             if (firstClass >= data.U16(setsAt)) return false;
             int set = LayoutData.Offset16(data, subtable, setsAt + 2 + 2 * firstClass);
-            var classDefs = new[] { backtrackDef, inputDef, lookaheadDef };
-            return set != 0 && RuleSet(lookup, set, position, depth, chained, (part, g, value) => LayoutData.ClassOf(data, classDefs[part], g) == value, classDefs, out next);
+            return set != 0 && ClassRuleSet(lookup, set, position, depth, chained, new[] { backtrackDef, inputDef, lookaheadDef }, out next);
         }
         return false;
+    }
+
+    // Format 3 once its first glyph is covered: the rest of the input, then backtrack and lookahead, each glyph against
+    // its own coverage table.
+    private bool MatchCoverages(LayoutLookup lookup, int subtable, int position, int depth, CoverageRule rule, out int next)
+    {
+        var data = _table.Data;
+        next = position + 1;
+        bool Covered(int at, int k, int g) => LayoutData.Coverage(data, subtable + data.U16(at + 2 * k), g) >= 0;
+        if (!Match(lookup, position, rule.InputCount, (k, g) => Covered(rule.InputAt, k, g), out var matched)) return false;
+        if (!MatchBack(lookup, position, rule.Backtrack.Count, (k, g) => Covered(rule.Backtrack.At, k, g))) return false;
+        if (!MatchAhead(lookup, matched[^1], rule.Lookahead.Count, (k, g) => Covered(rule.Lookahead.At, k, g))) return false;
+        return ApplyRecords(rule.Records, rule.LookupCount, matched, depth, out next);
+    }
+
+    // Format 2: rules compare glyph classes from the backtrack, input, and lookahead class definitions. The closure
+    // is made here, so Context allocates nothing for positions that fail before a rule set is found.
+    private bool ClassRuleSet(LayoutLookup lookup, int set, int position, int depth, bool chained, int[] classDefs, out int next)
+    {
+        var data = _table.Data;
+        return RuleSet(lookup, set, position, depth, chained, (part, g, value) => LayoutData.ClassOf(data, classDefs[part], g) == value, classDefs, out next);
     }
 
     // A rule set of format 1 (glyph IDs) or format 2 (classes); the first rule that matches applies.
@@ -641,15 +650,7 @@ internal sealed class LayoutEngine
     }
 
     // Reads a count of 16-bit entries and checks they are in the data; returns the count and where the entries start.
-    private (int Count, int At) Array16(ref int p, string what)
-    {
-        var data = _table.Data;
-        int count = data.U16(p);
-        data.Require(p + 2, 2L * count, what);
-        var array = (count, p + 2);
-        p += 2 + 2 * count;
-        return array;
-    }
+    private (int Count, int At) Array16(ref int p, string what) => LayoutData.Array16(_table.Data, ref p, what);
 
     private bool Match(LayoutLookup lookup, int position, int count, Func<int, int, bool> matches, out List<int> matched)
     {
