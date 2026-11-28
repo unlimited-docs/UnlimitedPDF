@@ -12,7 +12,9 @@ internal sealed class PageDrawSink
 
     private readonly SortedSet<StandardFont> _fonts = new();
     private readonly List<EmbeddedFace> _faces = new();
-    private readonly Dictionary<EmbeddedFace, SortedDictionary<int, string>> _faceGlyphs = new(ReferenceEqualityComparer.Instance);
+    // Per face, the glyphs the page draws and the first text recorded for each. The order does not matter: the save
+    // merges every page's glyphs into one sorted map per face.
+    private readonly Dictionary<EmbeddedFace, Dictionary<int, string>> _faceGlyphs = new(ReferenceEqualityComparer.Instance);
 
     #endregion
 
@@ -34,6 +36,26 @@ internal sealed class PageDrawSink
 
     #region Public Methods
 
+    /// <summary>    /// Records that the page draws with a caller font and returns the page's glyphs for it, so a run looks the face up
+    /// once and records each of its glyphs with <c>TryAdd(glyph, text)</c>, which keeps the first text recorded for a
+    /// glyph. Call it only for a run with glyphs: the face counts as used from the first call.
+    /// </summary>
+    /// <param name="font">The caller font.</param>
+    /// <param name="resourceName">The font's resource name without the slash, for example "E1".</param>
+    /// <returns>The glyphs the page draws with the font and the text each stands for.</returns>
+    public Dictionary<int, string> FaceGlyphs(PdfFont font, out string resourceName)
+    {
+        var face = EmbeddedFonts.Face(font);
+        if (!_faceGlyphs.TryGetValue(face, out var glyphs))
+        {
+            glyphs = new Dictionary<int, string>();
+            _faceGlyphs[face] = glyphs;
+            _faces.Add(face);
+        }
+        resourceName = face.ResourceName;
+        return glyphs;
+    }
+
     /// <summary>
     /// Registers a standard font as used on the page and returns its resource name without the slash.
     /// </summary>
@@ -45,32 +67,13 @@ internal sealed class PageDrawSink
         return StandardFontObject.ResourceName(font);
     }
 
-    /// <summary>
-    /// Records that the page draws <paramref name="glyph"/> of a caller font, standing for <paramref name="text"/>
-    /// (the first text recorded for a glyph is kept), and returns the font's resource name.
-    /// </summary>
-    public string FaceResource(PdfFont font, int glyph, string text)
-    {
-        var face = EmbeddedFonts.Face(font);
-        if (!_faceGlyphs.TryGetValue(face, out var glyphs))
-        {
-            glyphs = new SortedDictionary<int, string>();
-            _faceGlyphs[face] = glyphs;
-            _faces.Add(face);
-        }
-        if (!glyphs.ContainsKey(glyph)) glyphs[glyph] = text;
-        return face.ResourceName;
-    }
-
-    /// <summary>
-    /// Records a character the page draws as '?' because no font has it, with the text that holds it (D-015).
-    /// </summary>
-    public void RecordMissing(string character, string text) => MissingCharacters.Add((character, text));
-
-    /// <summary>
-    /// Returns the glyphs the page draws with a face and the text each stands for.
+    /// <summary>    /// Returns the glyphs the page draws with a face and the text each stands for, in no particular order.
     /// </summary>
     public IReadOnlyDictionary<int, string> GlyphsOf(EmbeddedFace face) => _faceGlyphs[face];
+
+    /// <summary>    /// Records a character the page draws as '?' because no font has it, with the text that holds it (D-015).
+    /// </summary>
+    public void RecordMissing(string character, string text) => MissingCharacters.Add((character, text));
 
     #endregion
 

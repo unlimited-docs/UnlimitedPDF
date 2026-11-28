@@ -33,8 +33,8 @@ internal sealed class PdfGlyphRunElement
     public void ToContent(StringBuilder sb, PageDrawSink sink)
     {
         if (Glyphs.Count == 0) return;
-        string resource = string.Empty;
-        foreach (var (glyph, text) in Glyphs) resource = sink.FaceResource(Font, glyph, text);
+        var used = sink.FaceGlyphs(Font, out string resource);
+        foreach (var (glyph, text) in Glyphs) used.TryAdd(glyph, text);
 
         // BT/ET = text object, Tf = font and size, Td = start position, Tj = show glyphs
         sb.Append("BT /").Append(resource).Append(' ').Append(PdfNumber.Format(FontSize)).Append(" Tf ")

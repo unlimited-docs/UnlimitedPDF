@@ -479,9 +479,11 @@ internal static class TextPipeline
         double unitsPerEm = font.Font.UnitsPerEm;
         // Right-to-left letters the library does not shape are drawn, but recorded like missing characters (WR-039).
         foreach (string unshaped in RightToLeftSupport.UnshapedElements(segment.Text)) sink.RecordMissing(unshaped, segment.Text);
-        string resource = string.Empty;
-        for (int i = 0; i < segment.Run.Glyphs.Count; i++) resource = sink.FaceResource(font, segment.Run.Glyphs[i].Glyph, segment.GlyphTexts[i]);
         if (segment.Run.Glyphs.Count == 0) return;
+        // The face is looked up once per run; each glyph is recorded with the first text drawn for it.
+        var used = sink.FaceGlyphs(font, out string resource);
+        for (int i = 0; i < segment.Run.Glyphs.Count; i++) used.TryAdd(segment.Run.Glyphs[i].Glyph, segment.GlyphTexts[i]);
+        var instance = font.Instance;
 
         // Tf = font and size, Tm = text position, TJ = show glyphs with spacing, Ts = text rise for glyphs placed above
         // or below the baseline
@@ -520,7 +522,7 @@ internal static class TextPipeline
             }
             if (!first) sb.Append(' ');
             AppendGlyphId(sb.Append('<'), glyph.Glyph).Append('>');
-            pen = target + Math.Round(font.Instance.Advance(glyph.Glyph) * 1000.0 / unitsPerEm);
+            pen = target + Math.Round(instance.Advance(glyph.Glyph) * 1000.0 / unitsPerEm);
             if (i + 1 == glyphs.Count || glyphs[i + 1].Cluster != glyph.Cluster)
             {
                 if (letterSpacing != 0) shift += letterSpacing * 1000 / fontSize;
