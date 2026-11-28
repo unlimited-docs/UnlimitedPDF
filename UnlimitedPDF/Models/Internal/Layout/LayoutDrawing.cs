@@ -39,9 +39,10 @@ internal static class LayoutDrawing
     public static double LineHeight(double fontSize) => LineHeightFactor * fontSize;
 
     /// <summary>
-    /// Returns the operators that draw one line of text in an area, aligned within it, with the line's top edge at
-    /// <paramref name="top"/>. The text is escaped (WR-031).
+    /// Appends to <paramref name="sb"/> the operators that draw one line of text in an area, aligned within it, with
+    /// the line's top edge at <paramref name="top"/>. The text is escaped (WR-031). No line break follows them.
     /// </summary>
+    /// <param name="sb">The page's content.</param>
     /// <param name="text">The text.</param>
     /// <param name="fontSize">The font size.</param>
     /// <param name="alignment">The alignment within the area.</param>
@@ -52,8 +53,7 @@ internal static class LayoutDrawing
     /// <param name="sink">The page's draw sink, which records the font the text uses.</param>
     /// <param name="font">The caller font, or null for the built-in font (with the document's fallback fonts).</param>
     /// <param name="direction">The text's own direction, or null for the document's (WR-041).</param>
-    /// <returns>The operators.</returns>
-    public static string Text(string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top, PageDrawSink sink, PdfFont? font = null, PdfTextDirection? direction = null)
+    public static void Text(StringBuilder sb, string text, double fontSize, PdfTextAlignment alignment, double left, double right, double x, double top, PageDrawSink sink, PdfFont? font = null, PdfTextDirection? direction = null)
     {
         int? baseLevel = TextDirections.BaseLevel(direction, sink.EmbeddedFonts.TextDirection);
         var layout = TextPipeline.Layout(text, font, sink.EmbeddedFonts.Fallback, fontSize, baseLevel);
@@ -70,11 +70,15 @@ internal static class LayoutDrawing
         double baseline = top - LineHeight(fontSize) / 2 - fontSize / 3;
 
         // BT/ET = text object, Tf = font and size, rg = black fill, Tm = text position, Tj = show text
-        if (layout is not null) return TextPipeline.Draw(layout, textX, baseline, fontSize, sink);
+        if (layout is not null)
+        {
+            TextPipeline.Draw(sb, layout, textX, baseline, fontSize, sink);
+            return;
+        }
 
         var (resource, literal) = StandardText.Prepare(text, sink);
-        return $"BT /{resource} {PdfNumber.Format(fontSize)} Tf 0 0 0 rg 1 0 0 1 {PdfNumber.Format(textX)} {PdfNumber.Format(baseline)} Tm " +
-               $"({literal}) Tj ET";
+        sb.Append("BT /").Append(resource).Append(' ').Append(PdfNumber.Format(fontSize)).Append(" Tf 0 0 0 rg 1 0 0 1 ")
+          .Append(PdfNumber.Format(textX)).Append(' ').Append(PdfNumber.Format(baseline)).Append(" Tm (").Append(literal).Append(") Tj ET");
     }
 
     #endregion

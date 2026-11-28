@@ -64,6 +64,18 @@ internal static class TextPipeline
     #region Public Methods
 
     /// <summary>
+    /// Appends a glyph ID as at least four uppercase hex digits, the digits <c>ToString("X4")</c> gives, without
+    /// allocating a string.
+    /// </summary>
+    public static StringBuilder AppendGlyphId(StringBuilder sb, int glyph)
+    {
+        // Eight digits hold any int in hex, so the format always fits.
+        Span<char> digits = stackalloc char[8];
+        glyph.TryFormat(digits, out int written, "X4", CultureInfo.InvariantCulture);
+        return sb.Append(digits.Slice(0, written));
+    }
+
+    /// <summary>
     /// Lays out <paramref name="text"/>, or returns null when it takes the built-in path unchanged: no font on the
     /// call and no fallback fonts (D-009 keeps those documents byte-identical).
     /// </summary>
@@ -230,14 +242,15 @@ internal static class TextPipeline
     }
 
     /// <summary>
-    /// Returns the operators that draw laid-out text with its baseline starting at (<paramref name="x"/>,
-    /// <paramref name="baseline"/>), in black, recording fonts and glyphs in <paramref name="sink"/>.
+    /// Appends to <paramref name="sb"/> the operators that draw laid-out text with its baseline starting at
+    /// (<paramref name="x"/>, <paramref name="baseline"/>), in black, recording fonts and glyphs in
+    /// <paramref name="sink"/>. No line break follows them.
     /// </summary>
-    public static string Draw(LaidOutText layout, double x, double baseline, double fontSize, PageDrawSink sink)
+    public static void Draw(StringBuilder sb, LaidOutText layout, double x, double baseline, double fontSize, PageDrawSink sink)
     {
         // One text object for the whole line, so a line in several fonts stays one line of text for copy and search.
         // BT/ET = text object, rg = black fill; each segment sets its font (Tf) and position (Tm).
-        var sb = new StringBuilder("BT 0 0 0 rg");
+        sb.Append("BT 0 0 0 rg");
         // A reordered line is one ActualText span holding its logical text, so copy and search read it in order
         // (WR-041); its segments then draw without spans of their own. BDC = begin marked content.
         if (layout.Reordered) sb.Append(" /Span << /ActualText <FEFF").Append(Convert.ToHexString(Encoding.BigEndianUnicode.GetBytes(layout.Text))).Append("> >> BDC");
@@ -256,7 +269,7 @@ internal static class TextPipeline
         }
         // EMC = end marked content
         if (layout.Reordered) sb.Append(" EMC");
-        return sb.Append(" ET").ToString();
+        sb.Append(" ET");
     }
 
     #endregion
@@ -506,7 +519,7 @@ internal static class TextPipeline
                 first = false;
             }
             if (!first) sb.Append(' ');
-            sb.Append('<').Append(glyph.Glyph.ToString("X4", CultureInfo.InvariantCulture)).Append('>');
+            AppendGlyphId(sb.Append('<'), glyph.Glyph).Append('>');
             pen = target + Math.Round(font.Instance.Advance(glyph.Glyph) * 1000.0 / unitsPerEm);
             if (i + 1 == glyphs.Count || glyphs[i + 1].Cluster != glyph.Cluster)
             {

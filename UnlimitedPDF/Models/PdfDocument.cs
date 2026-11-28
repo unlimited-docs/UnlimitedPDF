@@ -614,7 +614,8 @@ public class PdfDocument
         switch (item)
         {
             case FlowText text:
-                sb.AppendLine(LayoutDrawing.Text(text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink, text.Font, text.Direction));
+                LayoutDrawing.Text(sb, text.Text, text.FontSize, text.Alignment, left, right, text.X, top, sink, text.Font, text.Direction);
+                sb.AppendLine();
                 break;
             case FlowImage image:
                 var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);
@@ -674,7 +675,8 @@ public class PdfDocument
             switch (band.Items[i])
             {
                 case SectionText text:
-                    sb.AppendLine(LayoutDrawing.Text(FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink, text.Font, text.Direction));
+                    LayoutDrawing.Text(sb, FillPlaceholders(text.Text, band.Info), text.FontSize, text.Alignment, g.Left, g.Right, text.X, top - text.Y, sink, text.Font, text.Direction);
+                    sb.AppendLine();
                     break;
                 case SectionImage image:
                     var box = ImageBox.Compute(image.Image, image.Width, image.Height, image.Options);

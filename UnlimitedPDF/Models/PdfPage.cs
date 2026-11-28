@@ -293,11 +293,13 @@ public class PdfPage
             }
             else if (element is PdfTextElement text)
             {
-                sb.AppendLine(text.ToContent(sink));
+                text.ToContent(sb, sink);
+                sb.AppendLine();
             }
             else if (element is PdfGlyphRunElement run)
             {
-                sb.AppendLine(run.ToContent(sink));
+                run.ToContent(sb, sink);
+                sb.AppendLine();
             }
             else
             {
@@ -305,7 +307,7 @@ public class PdfPage
             }
         }
         after?.Invoke(sb, sink);
-        return new PdfPageContent(Encoding.ASCII.GetBytes(sb.ToString().Trim()), images, sink);
+        return new PdfPageContent(TrimmedAscii(sb), images, sink);
     }
 
     /// <summary>
@@ -317,6 +319,35 @@ public class PdfPage
     internal void CommitContent(byte[] content, bool compress)
     {
         _contentStream.SetData(content, compress);
+    }
+
+    /// <summary>
+    /// Returns the bytes <c>Encoding.ASCII.GetBytes(sb.ToString().Trim())</c> gives, encoded straight from the
+    /// builder's chunks, so the page content is not copied into two strings first. One encoder spans the chunks, so a
+    /// surrogate pair split across two chunks encodes as it does in one string.
+    /// </summary>
+    /// <param name="sb">The page content.</param>
+    /// <returns>The trimmed content in ASCII, with '?' for any other character.</returns>
+    internal static byte[] TrimmedAscii(StringBuilder sb)
+    {
+        int start = 0, end = sb.Length;
+        while (start < end && char.IsWhiteSpace(sb[start])) start++;
+        while (end > start && char.IsWhiteSpace(sb[end - 1])) end--;
+
+        var bytes = new byte[end - start];
+        var encoder = Encoding.ASCII.GetEncoder();
+        int position = 0, written = 0;
+        foreach (var chunk in sb.GetChunks())
+        {
+            var chars = chunk.Span;
+            int from = Math.Max(start - position, 0), to = Math.Min(end - position, chars.Length);
+            position += chars.Length;
+            if (from < to) written += encoder.GetBytes(chars.Slice(from, to - from), bytes.AsSpan(written), flush: position >= end);
+        }
+
+        // Each character gives at most one byte; a surrogate pair may give a single '?', so trim to what was written.
+        if (written < bytes.Length) Array.Resize(ref bytes, written);
+        return bytes;
     }
 
     #endregion

@@ -25,23 +25,22 @@ internal sealed class PdfGlyphRunElement
     #region Public Methods
 
     /// <summary>
-    /// Returns the operators that draw the glyphs, recording each in <paramref name="sink"/>.
+    /// Appends to <paramref name="sb"/> the operators that draw the glyphs, recording each in
+    /// <paramref name="sink"/>. Nothing is appended when there are no glyphs, and no line break follows them.
     /// </summary>
+    /// <param name="sb">The page's content.</param>
     /// <param name="sink">The page's draw sink.</param>
-    /// <returns>The operators; empty when there are no glyphs.</returns>
-    public string ToContent(PageDrawSink sink)
+    public void ToContent(StringBuilder sb, PageDrawSink sink)
     {
-        if (Glyphs.Count == 0) return string.Empty;
+        if (Glyphs.Count == 0) return;
         string resource = string.Empty;
-        var hex = new StringBuilder(Glyphs.Count * 4);
-        foreach (var (glyph, text) in Glyphs)
-        {
-            resource = sink.FaceResource(Font, glyph, text);
-            hex.Append(glyph.ToString("X4", CultureInfo.InvariantCulture));
-        }
+        foreach (var (glyph, text) in Glyphs) resource = sink.FaceResource(Font, glyph, text);
 
         // BT/ET = text object, Tf = font and size, Td = start position, Tj = show glyphs
-        return $"BT /{resource} {PdfNumber.Format(FontSize)} Tf {PdfNumber.Format(X)} {PdfNumber.Format(Y)} Td <{hex}> Tj ET";
+        sb.Append("BT /").Append(resource).Append(' ').Append(PdfNumber.Format(FontSize)).Append(" Tf ")
+          .Append(PdfNumber.Format(X)).Append(' ').Append(PdfNumber.Format(Y)).Append(" Td <");
+        foreach (var (glyph, _) in Glyphs) TextPipeline.AppendGlyphId(sb, glyph);
+        sb.Append("> Tj ET");
     }
 
     #endregion

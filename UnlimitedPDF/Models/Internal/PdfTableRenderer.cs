@@ -161,7 +161,8 @@ internal static class PdfTableRenderer
                 bool rightToLeft = TextDirections.IsRightToLeft(text.Text, baseLevel);
                 if (TextPipeline.Layout(text.Text, text.Font, sink.EmbeddedFonts.Fallback, text.FontSize, baseLevel) is { } laidOut)
                 {
-                    sb.AppendLine(TextPipeline.Draw(laidOut, AlignedX(cell, currentX, cellWidth, laidOut.Width, rightToLeft), baseline, text.FontSize, sink));
+                    TextPipeline.Draw(sb, laidOut, AlignedX(cell, currentX, cellWidth, laidOut.Width, rightToLeft), baseline, text.FontSize, sink);
+                    sb.AppendLine();
                     continue;
                 }
                 double textX = AlignedX(cell, currentX, cellWidth, GetTextWidth(text.Text, text.FontSize), rightToLeft);
@@ -239,7 +240,8 @@ internal static class PdfTableRenderer
         if (TextPipeline.Layout(text, item.Font, sink.EmbeddedFonts.Fallback, 12, baseLevel) is { } layout)
         {
             // Caller fonts are placed with their real shaped width (G-012).
-            sb.AppendLine(TextPipeline.Draw(layout, AlignedX(cell, currentX, cellWidth, layout.Width, rightToLeft), middleBaseline, 12, sink));
+            TextPipeline.Draw(sb, layout, AlignedX(cell, currentX, cellWidth, layout.Width, rightToLeft), middleBaseline, 12, sink);
+            sb.AppendLine();
             return;
         }
 
