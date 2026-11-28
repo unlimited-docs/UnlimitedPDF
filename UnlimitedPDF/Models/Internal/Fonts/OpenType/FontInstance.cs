@@ -127,12 +127,17 @@ internal sealed class FontInstance
     /// <summary>
     /// Returns a TrueType glyph's <c>glyf</c> data at this instance (empty for an empty glyph).
     /// </summary>
-    public byte[] GlyphData(int glyph)
+    public byte[] GlyphData(int glyph) => _glyphData?[glyph] ?? GlyphSpan(glyph).ToArray();
+
+    /// <summary>
+    /// Returns a TrueType glyph's <c>glyf</c> data at this instance (empty for an empty glyph), without copying it.
+    /// </summary>
+    public ReadOnlySpan<byte> GlyphSpan(int glyph)
     {
         if (_glyphData?[glyph] is { } instanced) return instanced;
         var (glyf, _) = _font.TableRange("glyf");
         var (offset, length) = _font.GlyphRange(glyph);
-        return _font.Data.Slice(glyf + offset, length);
+        return _font.Data.Span(glyf + offset, length);
     }
 
     #endregion

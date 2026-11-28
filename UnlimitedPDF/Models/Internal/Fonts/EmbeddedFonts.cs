@@ -1,3 +1,4 @@
+using System.Buffers;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType;
 using UnlimitedPDF.Models.Internal.Fonts.OpenType.Cff;
 
@@ -89,12 +90,31 @@ internal sealed class EmbeddedFonts
         // through a charset that maps every glyph to the CID of the same number.
         var kept = TrueTypeSubsetter.KeptGlyphs(font, used.Keys);
         string name = SubsetTag(source.PostScriptName + "|" + font.Weight, kept) + "+" + SafeName(source);
-        var program = trueType ? TrueTypeSubsetter.Build(font, kept) : CffSubsetter.Build(font, kept, name);
 
         // The font program is always compressed, whatever CompressStreams says (WR-042).
-        var compressed = FlateEncoder.Compress(program);
+        byte[] compressed;
+        int programLength;
+        if (trueType)
+        {
+            var program = TrueTypeSubsetter.Build(font, kept);
+            try
+            {
+                compressed = FlateEncoder.Compress(program);
+                programLength = program.Count;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(program.Array!);
+            }
+        }
+        else
+        {
+            var program = CffSubsetter.Build(font, kept, name);
+            compressed = FlateEncoder.Compress(program);
+            programLength = program.Length;
+        }
         var programBody = Encoding.ASCII.GetBytes(trueType
-            ? $"<< /Length {compressed.Length} /Length1 {program.Length} /Filter /FlateDecode >>"
+            ? $"<< /Length {compressed.Length} /Length1 {programLength} /Filter /FlateDecode >>"
             : $"<< /Subtype /CIDFontType0C /Length {compressed.Length} /Filter /FlateDecode >>");
         var toUnicode = ToUnicode(used);
 

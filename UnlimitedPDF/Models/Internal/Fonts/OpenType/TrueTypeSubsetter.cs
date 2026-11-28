@@ -1,3 +1,6 @@
+using System.Buffers;
+using System.Buffers.Binary;
+
 namespace UnlimitedPDF.Models.Internal.Fonts.OpenType;
 
 /// <summary>
@@ -11,6 +14,7 @@ internal static class TrueTypeSubsetter
     #region Fields and Constants
 
     private const uint ChecksumMagic = 0xB1B0AFBA;
+    private const int PostLength = 32;
 
     // Hinting tables are copied when present; viewers that hint use them with the glyphs' own instructions.
     private static readonly string[] CopiedTables = { "cvt ", "fpgm", "prep", "OS/2" };
@@ -41,62 +45,149 @@ internal static class TrueTypeSubsetter
     }
 
     /// <summary>
-    /// Returns the font program bytes keeping the outlines of <paramref name="kept"/>.
+    /// Returns the font program bytes keeping the outlines of <paramref name="kept"/>. Every table is written straight
+    /// into one program buffer, in tag order, so no table is built or copied twice.
     /// </summary>
-    public static byte[] Build(PdfFont font, IReadOnlySet<int> kept)
+    /// <returns>The program, at the start of a buffer rented from <see cref="ArrayPool{T}.Shared"/>, which the caller
+    /// returns once the program is compressed.</returns>
+    public static ArraySegment<byte> Build(PdfFont font, IReadOnlySet<int> kept)
     {
         var source = font.Font;
         var instance = font.Instance;
         int glyphCount = source.GlyphCount;
 
-        var glyf = new List<byte>();
-        var loca = new List<byte>();
-        var hmtx = new List<byte>();
-        int advanceMax = 0;
+        var keep = new bool[glyphCount];
+        int glyfLength = 0;
+        foreach (int glyph in kept)
+        {
+            if ((uint)glyph >= (uint)glyphCount || keep[glyph]) continue;
+            keep[glyph] = true;
+            glyfLength += Padded(instance.GlyphSpan(glyph).Length);
+        }
+
+        int headLength = source.TableRange("head").Length;
+        if (headLength < 54) throw FontBytes.Corrupt("has a head table that is too short");
+        var tables = new List<(string Tag, int Length)>
+        {
+            ("cmap", EmptyCmap.Length),
+            ("glyf", glyfLength),
+            ("head", headLength),
+            ("hhea", source.TableRange("hhea").Length),
+            ("hmtx", 4 * glyphCount),
+            ("loca", 4 * (glyphCount + 1)),
+            ("maxp", source.TableRange("maxp").Length),
+            ("post", PostLength)
+        };
+        foreach (var tag in CopiedTables)
+            if (source.HasTable(tag)) tables.Add((tag, source.TableRange(tag).Length));
+        tables.Sort((a, b) => string.CompareOrdinal(a.Tag, b.Tag));
+
+        int count = tables.Count;
+        var offsets = new int[count];
+        int end = 12 + 16 * count;
+        for (int i = 0; i < count; i++)
+        {
+            offsets[i] = end;
+            end += Padded(tables[i].Length);
+        }
+        var program = ArrayPool<byte>.Shared.Rent(end);
+        program.AsSpan(0, end).Clear(); // padding stays zero, as the checksums and the file require
+        int Offset(string tag) => offsets[tables.FindIndex(t => t.Tag == tag)];
+
+        // glyf, loca, and hmtx: every glyph ID keeps its slot; glyphs that are not kept are empty.
+        int glyf = Offset("glyf"), loca = Offset("loca"), hmtx = Offset("hmtx");
+        int position = 0, advanceMax = 0;
         for (int g = 0; g < glyphCount; g++)
         {
-            AppendU32(loca, (uint)glyf.Count);
-            var data = kept.Contains(g) ? instance.GlyphData(g) : Array.Empty<byte>();
-            glyf.AddRange(data);
-            while (glyf.Count % 4 != 0) glyf.Add(0);
+            BinaryPrimitives.WriteUInt32BigEndian(program.AsSpan(loca + 4 * g), (uint)position);
+            var data = keep[g] ? instance.GlyphSpan(g) : ReadOnlySpan<byte>.Empty;
+            data.CopyTo(program.AsSpan(glyf + position));
+            position += Padded(data.Length);
 
             int advance = instance.Advance(g);
             advanceMax = Math.Max(advanceMax, advance);
             int leftSideBearing = data.Length >= 10 ? (short)((data[2] << 8) | data[3]) : 0;
-            AppendU16(hmtx, (ushort)advance);
-            AppendU16(hmtx, unchecked((ushort)(short)leftSideBearing));
+            SetU16(program, hmtx + 4 * g, (ushort)advance);
+            SetU16(program, hmtx + 4 * g + 2, unchecked((ushort)(short)leftSideBearing));
         }
-        AppendU32(loca, (uint)glyf.Count);
+        BinaryPrimitives.WriteUInt32BigEndian(program.AsSpan(loca + 4 * glyphCount), (uint)position);
 
-        var tables = new SortedDictionary<string, byte[]>(StringComparer.Ordinal)
+        EmptyCmap.CopyTo(program.AsSpan(Offset("cmap")));
+        int head = Offset("head");
+        Head(source, program, head);
+        Hhea(source, instance, program, Offset("hhea"), glyphCount, advanceMax);
+        Copy(source, "maxp", program, Offset("maxp"));
+        Post(source, program, Offset("post"));
+        foreach (var tag in CopiedTables)
+            if (source.HasTable(tag)) Copy(source, tag, program, Offset(tag));
+
+        // The table directory, then the whole-font checksum adjustment in head.
+        int entrySelector = 0;
+        while ((2 << entrySelector) <= count) entrySelector++;
+        int searchRange = 16 << entrySelector;
+        BinaryPrimitives.WriteUInt32BigEndian(program, 0x00010000);
+        SetU16(program, 4, count);
+        SetU16(program, 6, searchRange);
+        SetU16(program, 8, entrySelector);
+        SetU16(program, 10, count * 16 - searchRange);
+        for (int i = 0; i < count; i++)
         {
-            ["cmap"] = EmptyCmap(),
-            ["glyf"] = glyf.ToArray(),
-            ["head"] = Head(source),
-            ["hhea"] = Hhea(source, instance, glyphCount, advanceMax),
-            ["hmtx"] = hmtx.ToArray(),
-            ["loca"] = loca.ToArray(),
-            ["maxp"] = Copy(source, "maxp"),
-            ["post"] = Post(source)
-        };
-        foreach (var tag in CopiedTables.Where(source.HasTable)) tables[tag] = Copy(source, tag);
-        return Assemble(tables);
+            var (tag, length) = tables[i];
+            int entry = 12 + 16 * i;
+            for (int c = 0; c < 4; c++) program[entry + c] = (byte)tag[c];
+            BinaryPrimitives.WriteUInt32BigEndian(program.AsSpan(entry + 4), Checksum(program.AsSpan(offsets[i], Padded(length))));
+            BinaryPrimitives.WriteUInt32BigEndian(program.AsSpan(entry + 8), (uint)offsets[i]);
+            BinaryPrimitives.WriteUInt32BigEndian(program.AsSpan(entry + 12), (uint)length);
+        }
+        BinaryPrimitives.WriteUInt32BigEndian(program.AsSpan(head + 8), unchecked(ChecksumMagic - Checksum(program.AsSpan(0, end))));
+        return new ArraySegment<byte>(program, 0, end);
     }
 
     #endregion
 
     #region Private Methods
 
-    private static void AppendU16(List<byte> bytes, ushort value)
+    // The sum of the big-endian 32-bit words of data whose length is a multiple of 4 (tables are zero-padded).
+    private static uint Checksum(ReadOnlySpan<byte> data)
     {
-        bytes.Add((byte)(value >> 8));
-        bytes.Add((byte)value);
+        uint sum = 0;
+        for (int i = 0; i < data.Length; i += 4) sum = unchecked(sum + BinaryPrimitives.ReadUInt32BigEndian(data.Slice(i)));
+        return sum;
     }
 
-    private static void AppendU32(List<byte> bytes, uint value)
+    private static void Copy(OpenTypeFont font, string tag, byte[] program, int offset)
     {
-        AppendU16(bytes, (ushort)(value >> 16));
-        AppendU16(bytes, (ushort)value);
+        var (start, length) = font.TableRange(tag);
+        font.Data.Span(start, length).CopyTo(program.AsSpan(offset));
+    }
+
+    // head with long glyph offsets and the checksum adjustment cleared (Build sets it).
+    private static void Head(OpenTypeFont font, byte[] program, int offset)
+    {
+        Copy(font, "head", program, offset);
+        program.AsSpan(offset + 8, 4).Clear();
+        SetU16(program, offset + 50, 1);
+    }
+
+    // hhea with one metric per glyph, the instance's ascender and descender, and the new widest advance.
+    private static void Hhea(OpenTypeFont font, FontInstance instance, byte[] program, int offset, int glyphCount, int advanceMax)
+    {
+        Copy(font, "hhea", program, offset);
+        SetU16(program, offset + 4, instance.Ascender);
+        SetU16(program, offset + 6, instance.Descender);
+        SetU16(program, offset + 10, advanceMax);
+        SetU16(program, offset + 34, glyphCount);
+    }
+
+    private static int Padded(int length) => (length + 3) & ~3;
+
+    // post version 3 (no glyph names), keeping the italic angle, underline, and fixed-pitch values: only the first 32
+    // bytes of the font's post table are read.
+    private static void Post(OpenTypeFont font, byte[] program, int offset)
+    {
+        if (font.HasTable("post") && font.TableRange("post") is { Length: >= PostLength } post)
+            font.Data.Span(post.Offset, PostLength).CopyTo(program.AsSpan(offset));
+        program[offset] = 0; program[offset + 1] = 3; program[offset + 2] = 0; program[offset + 3] = 0;
     }
 
     private static void SetU16(byte[] data, int offset, int value)
@@ -105,105 +196,21 @@ internal static class TrueTypeSubsetter
         data[offset + 1] = (byte)value;
     }
 
-    private static byte[] Copy(OpenTypeFont font, string tag)
-    {
-        var (offset, length) = font.TableRange(tag);
-        return font.Data.Slice(offset, length);
-    }
+    #endregion
+
+    #endregion
+
+    #region Properties, Indexers
 
     // A cmap with an empty format 4 subtable: CID fonts map codes to glyphs through the PDF, but some viewers expect
     // the table to exist.
-    private static byte[] EmptyCmap() => new byte[]
+    private static ReadOnlySpan<byte> EmptyCmap => new byte[]
     {
         0, 0, 0, 1, // version 0, one encoding record
         0, 3, 0, 1, 0, 0, 0, 12, // Windows Unicode BMP, subtable at 12
         0, 4, 0, 24, 0, 0, 0, 2, 0, 2, 0, 0, 0, 0, // format 4, length 24, one segment
         0xFF, 0xFF, 0, 0, 0xFF, 0xFF, 0, 1, 0, 0 // end 0xFFFF, pad, start 0xFFFF, delta 1, range offset 0
     };
-
-    // head with long glyph offsets and the checksum adjustment cleared (Assemble sets it).
-    private static byte[] Head(OpenTypeFont font)
-    {
-        var head = Copy(font, "head");
-        if (head.Length < 54) throw FontBytes.Corrupt("has a head table that is too short");
-        head.AsSpan(8, 4).Clear();
-        SetU16(head, 50, 1);
-        return head;
-    }
-
-    // hhea with one metric per glyph, the instance's ascender and descender, and the new widest advance.
-    private static byte[] Hhea(OpenTypeFont font, FontInstance instance, int glyphCount, int advanceMax)
-    {
-        var hhea = Copy(font, "hhea");
-        SetU16(hhea, 4, instance.Ascender);
-        SetU16(hhea, 6, instance.Descender);
-        SetU16(hhea, 10, advanceMax);
-        SetU16(hhea, 34, glyphCount);
-        return hhea;
-    }
-
-    // post version 3 (no glyph names), keeping the italic angle, underline, and fixed-pitch values.
-    private static byte[] Post(OpenTypeFont font)
-    {
-        var post = font.HasTable("post") && font.TableRange("post").Length >= 32 ? Copy(font, "post").AsSpan(0, 32).ToArray() : new byte[32];
-        post[0] = 0; post[1] = 3; post[2] = 0; post[3] = 0;
-        return post;
-    }
-
-    private static uint Checksum(byte[] data)
-    {
-        uint sum = 0;
-        for (int i = 0; i < data.Length; i += 4)
-        {
-            uint word = 0;
-            for (int j = 0; j < 4; j++) word = (word << 8) | (i + j < data.Length ? data[i + j] : 0u);
-            sum += word;
-        }
-        return sum;
-    }
-
-    private static byte[] Assemble(SortedDictionary<string, byte[]> tables)
-    {
-        int count = tables.Count;
-        int entrySelector = 0;
-        while ((2 << entrySelector) <= count) entrySelector++;
-        int searchRange = 16 << entrySelector;
-        var header = new List<byte>();
-        AppendU32(header, 0x00010000);
-        AppendU16(header, (ushort)count);
-        AppendU16(header, (ushort)searchRange);
-        AppendU16(header, (ushort)entrySelector);
-        AppendU16(header, (ushort)(count * 16 - searchRange));
-
-        int offset = 12 + 16 * count;
-        int headOffset = 0;
-        foreach (var (tag, data) in tables)
-        {
-            header.AddRange(Encoding.ASCII.GetBytes(tag));
-            AppendU32(header, Checksum(data));
-            AppendU32(header, (uint)offset);
-            AppendU32(header, (uint)data.Length);
-            if (tag == "head") headOffset = offset;
-            offset += (data.Length + 3) & ~3;
-        }
-
-        var font = new byte[offset];
-        header.CopyTo(font);
-        int p = 12 + 16 * count;
-        foreach (var data in tables.Values)
-        {
-            data.CopyTo(font, p);
-            p += (data.Length + 3) & ~3;
-        }
-        uint adjustment = unchecked(ChecksumMagic - Checksum(font));
-        font[headOffset + 8] = (byte)(adjustment >> 24);
-        font[headOffset + 9] = (byte)(adjustment >> 16);
-        font[headOffset + 10] = (byte)(adjustment >> 8);
-        font[headOffset + 11] = (byte)adjustment;
-        return font;
-    }
-
-    #endregion
 
     #endregion
 }
